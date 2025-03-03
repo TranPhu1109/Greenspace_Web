@@ -1,0 +1,75 @@
+.design-orders-list-container {
+  .ant-card {
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  
+  .mb-4 {
+    margin-bottom: 16px;
+  }
+  
+  .text-right {
+    text-align: right;
+    
+    @media (max-width: 768px) {
+      text-align: left;
+      margin-top: 16px;
+    }
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .design-orders-table {
+    .ant-table {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .ant-table-thead > tr > th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .ant-table-row {
+      cursor: pointer;
+      
+      &:hover {
+        background-color: #f9f9f9;
+      }
+    }
+    
+    .customer-info {
+      display: flex;
+      flex-direction: column;
+      
+      .customer-name {
+        font-weight: 500;
+      }
+      
+      .customer-email {
+        font-size: 12px;
+        color: #666;
+      }
+    }
+    
+    .price-value {
+      font-weight: 500;
+      color: #4caf50;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .design-orders-list-container {
+    .ant-col {
+      margin-bottom: 8px;
+    }
+    
+    .ant-table {
+      overflow-x: auto;
+    }
+  }
+} 

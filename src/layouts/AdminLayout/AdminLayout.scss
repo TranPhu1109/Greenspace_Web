@@ -1,0 +1,142 @@
+.admin-layout {
+  min-height: 100vh;
+  
+  .ant-layout-sider {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    
+    .logo-container {
+      height: 64px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      border-bottom: 1px solid #f0f0f0;
+      
+      .logo {
+        height: 32px;
+      }
+      
+      .logo-text {
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+        margin-left: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+    }
+  }
+  
+  .admin-header {
+    background: #fff;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    z-index: 1;
+    height: 64px;
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      
+      .trigger {
+        font-size: 18px;
+        cursor: pointer;
+        transition: color 0.3s;
+        padding: 0 12px;
+        
+        &:hover {
+          color: #4caf50;
+        }
+      }
+      
+      .header-title {
+        font-size: 18px;
+        font-weight: 500;
+        margin-left: 12px;
+      }
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      
+      .notification-badge {
+        margin-right: 24px;
+        cursor: pointer;
+      }
+      
+      .header-icon {
+        font-size: 18px;
+      }
+      
+      .user-info {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        
+        .username {
+          margin-left: 8px;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+  
+  .admin-content {
+    margin: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 4px;
+    min-height: 280px;
+  }
+  
+  .notification-item {
+    max-width: 300px;
+    
+    .notification-title {
+      font-weight: 500;
+    }
+    
+    .notification-time {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 4px;
+    }
+    
+    .notification-content {
+      font-size: 14px;
+    }
+  }
+  
+  .view-all {
+    text-align: center;
+    color: #4caf50;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .admin-layout {
+    .admin-header {
+      .header-title {
+        display: none;
+      }
+      
+      .user-info {
+        .username {
+          display: none;
+        }
+      }
+    }
+    
+    .admin-content {
+      margin: 16px;
+      padding: 16px;
+    }
+  }
+} 
