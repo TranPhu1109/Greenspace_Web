@@ -17,6 +17,9 @@ importers:
       antd:
         specifier: ^5.24.2
         version: 5.24.2(moment@2.30.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      calendar:
+        specifier: ^0.1.1
+        version: 0.1.1
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
@@ -819,6 +822,9 @@ packages:
     resolution: {integrity: sha512-KDi1Ny1gSePi1vm0q4oxSF8b4DR44GF4BbmS2YdhPLOEqd8pDviZOGH/GsmRwoWJ2+5Lr085X7naowMwKHDG1A==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
+
+  calendar@0.1.1:
+    resolution: {integrity: sha512-CExn+MxSU1pCsjYiS+Cx8d1MtIZqezxRhpIu8odr1oqvYG/0C1m8lvehHxTl1FslgKbOD7Z5QuEcyk8sGgpZLQ==}
 
   callsites@3.1.0:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
@@ -2387,6 +2393,8 @@ snapshots:
       electron-to-chromium: 1.5.109
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.24.4)
+
+  calendar@0.1.1: {}
 
   callsites@3.1.0: {}
 

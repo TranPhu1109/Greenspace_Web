@@ -21,7 +21,8 @@ const { Header, Content } = Layout;
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [role, setRole] = useState('admin'); // Mặc định là admin, sau này sẽ lấy từ authentication
+  const [role, setRole] = useState('staff'); // Mặc định là admin, sau này sẽ lấy từ authentication
+  const [username, setUsername] = useState('Staff User'); // Thêm biến trạng thái cho tên người dùng
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -35,6 +36,30 @@ const AdminLayout = () => {
       setRole(roleParam);
     }
   }, [location]);
+
+  // Giả lập việc lấy tên người dùng từ API hoặc localStorage
+  useEffect(() => {
+    // Cập nhật tên người dùng dựa trên vai trò
+    switch (role) {
+      case 'admin':
+        setUsername('Admin User');
+        break;
+      case 'accountant':
+        setUsername('Accountant User');
+        break;
+      case 'staff':
+        setUsername('Staff User');
+        break;
+      case 'designer':
+        setUsername('Designer User');
+        break;
+      case 'manager':
+        setUsername('Manager User');
+        break;
+      default:
+        setUsername('Admin User');
+    }
+  }, [role]); // Cập nhật khi role thay đổi
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -123,7 +148,7 @@ const AdminLayout = () => {
             <Dropdown overlay={userMenu} trigger={['click']} placement="bottomRight">
               <div className="user-info">
                 <Avatar size="small" icon={<UserOutlined />} />
-                <span className="username">Admin User</span>
+                <span className="username">{username}</span>
               </div>
             </Dropdown>
           </div>

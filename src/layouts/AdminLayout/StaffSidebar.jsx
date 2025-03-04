@@ -18,7 +18,7 @@ const StaffSidebar = ({ collapsed }) => {
   const location = useLocation();
   
   return (
-    <Sider trigger={null} collapsible collapsed={collapsed} width={250}>
+    <Sider trigger={null} collapsible collapsed={collapsed} width={250} theme="light">
       <div className="logo-container">
         <img src={logo} alt="Logo" className="logo" />
         {/* {!collapsed && <span className="logo-text">GreenSpace</span>} */}
@@ -29,45 +29,46 @@ const StaffSidebar = ({ collapsed }) => {
         selectedKeys={[location.pathname]}
         defaultOpenKeys={collapsed ? [] : ['orders', 'products']}
       >
-        <Menu.Item key="/admin/dashboard" icon={<DashboardOutlined />}>
-          <Link to="/admin/dashboard">Dashboard</Link>
+        <Menu.Item key="/staff/dashboard" icon={<DashboardOutlined />}>
+          <Link to="/staff/dashboard">Dashboard</Link>
         </Menu.Item>
         
-        <SubMenu key="orders" icon={<ShoppingOutlined />} title="Đơn hàng">
-          <Menu.Item key="/admin/orders/new">
-            <Link to="/admin/orders/new">Đơn hàng mới</Link>
+        <SubMenu
+          key="orders"
+          icon={<ShoppingOutlined />}
+          title="Quản lý đơn hàng"
+        >
+          <Menu.Item key="/staff/orders">
+            <Link to="/staff/orders">Danh sách đơn hàng</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/orders/processing">
-            <Link to="/admin/orders/processing">Đang xử lý</Link>
-          </Menu.Item>
-          <Menu.Item key="/admin/orders/completed">
-            <Link to="/admin/orders/completed">Đã hoàn thành</Link>
-          </Menu.Item>
+          {/* <Menu.Item key="/staff/orders/shipping">
+            <Link to="/staff/orders/shipping">Vận chuyển</Link>
+          </Menu.Item> */}
         </SubMenu>
         
-        <Menu.Item key="/admin/customers" icon={<UserOutlined />}>
-          <Link to="/admin/customers">Khách hàng</Link>
+        <Menu.Item key="/staff/customers" icon={<UserOutlined />}>
+          <Link to="/staff/customers">Khách hàng</Link>
         </Menu.Item>
         
         <SubMenu key="products" icon={<AppstoreOutlined />} title="Sản phẩm">
-          <Menu.Item key="/admin/products/list">
-            <Link to="/admin/products/list">Danh sách sản phẩm</Link>
+          <Menu.Item key="/staff/products/list">
+            <Link to="/staff/products/list">Danh sách sản phẩm</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/products/stock">
-            <Link to="/admin/products/stock">Kiểm tra tồn kho</Link>
+          <Menu.Item key="/staff/products/stock">
+            <Link to="/staff/products/stock">Kiểm tra tồn kho</Link>
           </Menu.Item>
         </SubMenu>
         
-        <Menu.Item key="/admin/messages" icon={<MessageOutlined />}>
-          <Link to="/admin/messages">Tin nhắn</Link>
+        <Menu.Item key="/staff/messages" icon={<MessageOutlined />}>
+          <Link to="/staff/messages">Tin nhắn</Link>
         </Menu.Item>
         
-        <Menu.Item key="/admin/schedule" icon={<CalendarOutlined />}>
-          <Link to="/admin/schedule">Lịch làm việc</Link>
+        <Menu.Item key="/staff/schedule" icon={<CalendarOutlined />}>
+          <Link to="/staff/schedule">Lịch làm việc</Link>
         </Menu.Item>
         
-        <Menu.Item key="/admin/settings" icon={<SettingOutlined />}>
-          <Link to="/admin/settings">Cài đặt</Link>
+        <Menu.Item key="/staff/settings" icon={<SettingOutlined />}>
+          <Link to="/staff/settings">Cài đặt</Link>
         </Menu.Item>
       </Menu>
     </Sider>

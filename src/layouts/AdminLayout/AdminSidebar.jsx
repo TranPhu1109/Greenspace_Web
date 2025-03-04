@@ -89,23 +89,6 @@ const AdminSidebar = ({ collapsed }) => {
         </SubMenu>
 
         {/* <div className="menu-section-divider">
-          <span className="menu-section-title">Manager</span>
-          <SubMenu
-            key="staff"
-            icon={<TeamOutlined />}
-            title="Quản lý nhân viên"
-          >
-            <Menu.Item key="/admin/staff">
-              <Link to="/admin/staff">Danh sách nhân viên</Link>
-            </Menu.Item>
-            <Menu.Item key="/admin/staff/roles">
-            <Link to="/admin/staff/roles">Phân quyền</Link>
-          </Menu.Item>
-          </SubMenu>
-          
-        </div> */}
-
-        {/* <div className="menu-section-divider">
           <span className="menu-section-title">Accountant</span>
         </div> */}
         <SubMenu key="design-orders" icon={<FileImageOutlined />} title="Đơn đặt thiết kế">

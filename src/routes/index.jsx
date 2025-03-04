@@ -22,6 +22,7 @@ import StaffRoles from '../pages/Admin/Staff/StaffRoles';
 import DesignOrdersList from '../pages/Admin/DesignOrders/DesignOrdersList';
 import DesignOrderDetail from '../pages/Admin/DesignOrders/DesignOrderDetail';
 import PendingDesignOrders from '../pages/Admin/DesignOrders/PendingDesignOrders';
+import ScheduleList from '../pages/Admin/Schedule/ScheduleList';
 
 // Admin Pages
 import Dashboard from '../pages/Admin/Dashboard';
@@ -113,6 +114,61 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'orders',
+        element: <OrdersList />,
+      },
+      {
+        path: 'orders/:id',
+        element: <OrderDetail />,
+      },
+      {
+        path: 'design-orders',
+        element: <DesignOrdersList />,
+      },
+      {
+        path: 'design-orders/pending',  
+        element: <PendingDesignOrders />,
+      },
+    ],
+  },
+  {
+    path: '/staff',
+    element: <AdminLayout />,
+    errorElement: <ErrorPage />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'orders',
+        element: <OrdersList />,
+      },
+      {
+        path: 'orders/:id',
+        element: <OrderDetail />,
+      },
+      {
+        path: 'design-orders',
+        element: <DesignOrdersList />,
+      },
+      {
+        path: 'design-orders/pending',
+        element: <PendingDesignOrders />,
+      },
+      {
+        path: 'schedule',
+        element: <ScheduleList />,
       },
     ],
   },
