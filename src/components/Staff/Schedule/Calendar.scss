@@ -1,0 +1,185 @@
+.calendar-layout {
+  .calendar-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    padding: 0;
+
+    .custom-calendar {
+      .ant-picker-calendar-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      
+      .ant-picker-calendar-date {
+        margin: 0;
+        padding: 4px 8px;
+        height: 100%;
+        
+        &-value {
+          margin: 0 0 4px;
+          font-weight: 500;
+        }
+      }
+
+      .ant-picker-calendar-date-content {
+        height: auto;
+        min-height: 80px;
+        max-height: 80px;
+        overflow-y: auto;
+        
+        /* Tùy chỉnh thanh cuộn */
+        &::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.1);
+          border-radius: 4px;
+        }
+        
+        &::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      .date-cell-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 100%;
+        overflow-y: visible;
+        padding-right: 2px; /* Thêm padding để tránh nội dung bị che bởi thanh cuộn */
+        
+        .designer-task-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 4px;
+          border-radius: 4px;
+          background-color: rgba(0, 0, 0, 0.02);
+          cursor: pointer;
+          transition: background-color 0.2s ease; /* Thêm hiệu ứng chuyển động mượt mà */
+          
+          &:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+          }
+          
+          .designer-name {
+            flex: 1;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+      }
+    }
+  }
+
+  .side-detail-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-y: auto;
+    height: 100%;
+    max-height: calc(116vh - 180px); /* Giới hạn chiều cao tối đa */
+    
+    /* Tùy chỉnh thanh cuộn */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+    
+    .day-header {
+      margin-bottom: 16px;
+      
+      h4 {
+        margin: 0;
+      }
+    }
+    
+    .available-designers-section,
+    .busy-designers-section {
+      margin-bottom: 16px;
+      
+      h5 {
+        margin-bottom: 12px;
+      }
+    }
+    
+    .designer-tasks-card {
+      margin-bottom: 12px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Tooltip styling
+.designer-tooltip {
+  .ant-tooltip-inner {
+    background-color: #1f1f1f;
+    padding: 12px;
+    border-radius: 8px;
+    max-width: 250px;
+  }
+  
+  .tooltip-designer {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 4px;
+  }
+  
+  .tooltip-tasks {
+    margin: 4px 0 0;
+    padding-left: 16px;
+    
+    li {
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .calendar-layout {
+    .calendar-container {
+      .custom-calendar {
+        .ant-picker-calendar-date-content {
+          min-height: 60px;
+          max-height: 60px;
+        }
+      }
+    }
+    
+    .side-detail-container {
+      margin-top: 16px;
+    }
+  }
+} 

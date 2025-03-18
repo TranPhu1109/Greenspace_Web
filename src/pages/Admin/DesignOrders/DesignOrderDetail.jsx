@@ -37,6 +37,7 @@ import DesignRequirements from './components/DesignRequirements';
 import PriceAdjustment from './components/PriceAdjustment';
 import DesignImages from './components/DesignImages';
 import DesignHistory from './components/DesignHistory';
+import PaymentStatusTag from './components/PaymentStatusTag';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -378,6 +379,22 @@ const DesignOrderDetail = () => {
                         </Descriptions.Item>
                         <Descriptions.Item label="Cập nhật lần cuối" span={2}>
                           {orderData.lastUpdated}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái đặt cọc">
+                          <PaymentStatusTag 
+                            type="deposit"
+                            status={orderData.depositStatus}
+                            amount={orderData.depositAmount}
+                            total={orderData.totalPrice}
+                          />
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái thanh toán">
+                          <PaymentStatusTag 
+                            type="payment"
+                            status={orderData.paymentStatus}
+                            amount={orderData.paymentHistory?.reduce((sum, payment) => sum + payment.amount, 0)}
+                            total={orderData.totalPrice}
+                          />
                         </Descriptions.Item>
                       </Descriptions>
                     </Col>

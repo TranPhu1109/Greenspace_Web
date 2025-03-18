@@ -8,6 +8,17 @@ export const designOrdersData = [
     orderDate: '15/01/2023',
     area: 50,
     totalPrice: 5000000,
+    depositAmount: 2000000,
+    depositStatus: 'paid',
+    paymentStatus: 'paid',
+    paymentHistory: [
+      {
+        amount: 2000000,
+        type: 'deposit',
+        date: '16/01/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: 'Trần Thị B',
     status: 'completed',
     description: 'Thiết kế phòng khách hiện đại, tối giản',
@@ -28,6 +39,17 @@ export const designOrdersData = [
     orderDate: '18/01/2023',
     area: 75,
     totalPrice: 7500000,
+    depositAmount: 3000000,
+    depositStatus: 'paid',
+    paymentStatus: 'partial',
+    paymentHistory: [
+      {
+        amount: 3000000,
+        type: 'deposit',
+        date: '19/01/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: 'Nguyễn Văn A',
     status: 'designing',
     description: 'Thiết kế văn phòng làm việc tại nhà',
@@ -47,6 +69,17 @@ export const designOrdersData = [
     orderDate: '20/01/2023',
     area: 30,
     totalPrice: 3000000,
+    depositAmount: 1000000,
+    depositStatus: 'paid',
+    paymentStatus: 'partial',
+    paymentHistory: [
+      {
+        amount: 1000000,
+        type: 'deposit',
+        date: '21/01/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: 'Lê Văn C',
     status: 'reviewing',
     description: 'Thiết kế phòng ngủ cho bé gái',
@@ -67,6 +100,17 @@ export const designOrdersData = [
     orderDate: '22/01/2023',
     area: 100,
     totalPrice: 10000000,
+    depositAmount: 5000000,
+    depositStatus: 'paid',
+    paymentStatus: 'partial',
+    paymentHistory: [
+      {
+        amount: 5000000,
+        type: 'deposit',
+        date: '23/01/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: null,
     status: 'pending',
     description: 'Thiết kế toàn bộ căn hộ 2 phòng ngủ',
@@ -86,8 +130,19 @@ export const designOrdersData = [
     orderDate: '25/01/2023',
     area: 60,
     totalPrice: 6000000,
+    depositAmount: 2000000,
+    depositStatus: 'paid',
+    paymentStatus: 'partial',
+    paymentHistory: [
+      {
+        amount: 2000000,
+        type: 'deposit',
+        date: '26/01/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: 'Trần Thị B',
-    status: 'processing',
+    status: 'consulting',
     description: 'Thiết kế phòng bếp và khu vực ăn uống',
     requirements: 'Phong cách hiện đại, tối ưu không gian lưu trữ, đảo bếp',
     images: [
@@ -105,6 +160,17 @@ export const designOrdersData = [
     orderDate: '28/01/2023',
     area: 45,
     totalPrice: 4500000,
+    depositAmount: 1000000,
+    depositStatus: 'paid',
+    paymentStatus: 'partial',
+    paymentHistory: [
+      {
+        amount: 1000000,
+        type: 'deposit',
+        date: '29/01/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: null,
     status: 'cancelled',
     description: 'Thiết kế ban công',
@@ -124,6 +190,17 @@ export const designOrdersData = [
     orderDate: '01/02/2023',
     area: 80,
     totalPrice: 8000000,
+    depositAmount: 3000000,
+    depositStatus: 'paid',
+    paymentStatus: 'paid',
+    paymentHistory: [
+      {
+        amount: 3000000,
+        type: 'deposit',
+        date: '02/02/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: 'Nguyễn Văn A',
     status: 'completed',
     description: 'Thiết kế phòng khách kết hợp phòng ăn',
@@ -144,6 +221,17 @@ export const designOrdersData = [
     orderDate: '05/02/2023',
     area: 120,
     totalPrice: 12000000,
+    depositAmount: 5000000,
+    depositStatus: 'paid',
+    paymentStatus: 'partial',
+    paymentHistory: [
+      {
+        amount: 5000000,
+        type: 'deposit',
+        date: '06/02/2023',
+        method: 'bank_transfer'
+      }
+    ],
     designer: 'Lê Văn C',
     status: 'designing',
     description: 'Thiết kế biệt thự sân vườn',

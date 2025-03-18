@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import './DesignOrdersList.scss';
 import { designOrdersData } from './data/designOrdersData';
 import StatusTag from './components/StatusTag';
+import PaymentStatusTag from './components/PaymentStatusTag';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -164,6 +165,30 @@ const DesignOrdersList = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => <StatusTag status={status} />,
+    },
+    {
+      title: 'Đặt cọc',
+      key: 'deposit',
+      render: (_, record) => (
+        <PaymentStatusTag 
+          type="deposit"
+          status={record.depositStatus}
+          amount={record.depositAmount}
+          total={record.totalPrice}
+        />
+      ),
+    },
+    {
+      title: 'Thanh toán',
+      key: 'payment',
+      render: (_, record) => (
+        <PaymentStatusTag 
+          type="payment"
+          status={record.paymentStatus}
+          amount={record.paymentHistory?.reduce((sum, payment) => sum + payment.amount, 0)}
+          total={record.totalPrice}
+        />
+      ),
     },
     {
       title: 'Hành động',

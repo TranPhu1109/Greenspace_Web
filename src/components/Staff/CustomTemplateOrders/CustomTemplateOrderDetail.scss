@@ -1,0 +1,82 @@
+.custom-template-order-detail {
+  .header-actions {
+    margin-bottom: 16px;
+  }
+
+  .info-section {
+    margin-bottom: 24px;
+  }
+
+  .fee-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    &.total {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1890ff;
+    }
+  }
+
+  .payment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .material-table {
+    .ant-table-cell {
+      vertical-align: top;
+    }
+
+    .price-difference {
+      &.increase {
+        color: #f5222d;
+      }
+      &.decrease {
+        color: #52c41a;
+      }
+    }
+  }
+
+  .timeline-section {
+    .ant-timeline-item-content {
+      min-height: 48px;
+
+      .date {
+        color: #8c8c8c;
+        font-size: 13px;
+      }
+
+      .description {
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .statistic-section {
+    text-align: right;
+    padding: 16px 0;
+
+    .ant-statistic {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  // Modal styles
+  .modal-form {
+    .ant-form-item-label {
+      padding-bottom: 4px;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+  }
+} 

@@ -129,7 +129,7 @@ const AdminLayout = () => {
   return (
     <Layout className="admin-layout">
       {renderSidebar()}
-      <Layout className="site-layout">
+      <Layout className={`site-layout ${collapsed ? 'collapsed' : ''}`}>
         <Header className="admin-header">
           <div className="header-left">
             <div className="trigger" onClick={toggleCollapsed}>
@@ -162,3 +162,6 @@ const AdminLayout = () => {
 };
 
 export default AdminLayout; 
+
+
+

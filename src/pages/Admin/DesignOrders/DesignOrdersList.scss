@@ -60,6 +60,28 @@
       color: #4caf50;
     }
   }
+
+  .ant-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    
+    .anticon {
+      font-size: 12px;
+    }
+  }
+
+  .payment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .amount {
+      font-size: 12px;
+      color: #666;
+    }
+  }
 }
 
 @media (max-width: 768px) {

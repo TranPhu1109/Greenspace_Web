@@ -10,22 +10,32 @@ import Home from '../pages/Home';
 // import CartPage from '../pages/Cart';
 // import CheckoutPage from '../pages/Checkout';
 import ErrorPage from '../pages/Error';
-import OrdersList from '../pages/Admin/Orders/OrdersList';
-import OrderDetail from '../pages/Admin/Orders/OrderDetail';
+import OrdersList from '../components/Staff/Orders/OrdersList';
+import OrderDetail from '../components/Staff/Orders/OrderDetail';
 import UsersList from '../pages/Admin/Users/UsersList';
 import UserDetail from '../pages/Admin/Users/UserDetail';
-import ProductsList from '../pages/Admin/Products/ProductsList';
-import ProductDetail from '../pages/Admin/Products/ProductDetail';
-import Categories from '../pages/Admin/Products/Categories';
+import ProductsList from '../components/Staff/Products/ProductsList';
+import ProductDetail from '../components/Staff/Products/ProductDetail';
+import Categories from '../components/Staff/Products/Categories';
 import StaffList from '../pages/Admin/Staff/StaffList';
 import StaffRoles from '../pages/Admin/Staff/StaffRoles';
 import DesignOrdersList from '../pages/Admin/DesignOrders/DesignOrdersList';
 import DesignOrderDetail from '../pages/Admin/DesignOrders/DesignOrderDetail';
 import PendingDesignOrders from '../pages/Admin/DesignOrders/PendingDesignOrders';
-import ScheduleList from '../pages/Admin/Schedule/ScheduleList';
+import ScheduleList from '../components/Staff/Schedule/ScheduleList';
+import TemplateOrdersList from '../components/Staff/TemplateOrders/TemplateOrdersList';
+import CustomTemplateOrdersList from '../components/Staff/CustomTemplateOrders/CustomTemplateOrdersList';
+import CustomOrdersList from '../pages/Admin/DesignOrders/CustomOrders/CustomOrdersList';
+import TemplateOrderDetail from '../components/Staff/TemplateOrders/TemplateOrderDetail';
+import CustomTemplateOrderDetail from '../components/Staff/CustomTemplateOrders/CustomTemplateOrderDetail';
+import NewDesignOrdersList from '../components/Staff/NewDesignOrders/NewDesignOrdersList';
+import NewDesignOrderDetail from '../components/Staff/NewDesignOrders/NewDesignOrderDetail';
 
 // Admin Pages
 import Dashboard from '../pages/Admin/Dashboard';
+import DesignerScheduleView from '../pages/Admin/Designer/Schedule/DesignerScheduleView';
+import TaskDetail from '../pages/Admin/Designer/Tasks/TaskDetail';
+import FeedbackManagement from '@/components/Staff/FeedbackManage/FeedbackManagement';
 // Bỏ các import chưa có
 
 const router = createBrowserRouter([
@@ -93,7 +103,46 @@ const router = createBrowserRouter([
       },
       {
         path: 'design-orders',
-        element: <DesignOrdersList />,
+        children: [
+          {
+            index: true,
+            element: <DesignOrdersList />
+          },
+          {
+            path: 'template-orders',
+            children: [
+              {
+                index: true,
+                element: <TemplateOrdersList />
+              },
+              {
+                path: ':id',
+                element: <TemplateOrderDetail />
+              }
+            ]
+          },
+          {
+            path: 'custom-template-orders',
+            element: <CustomTemplateOrdersList /> 
+          },
+          {
+            path: 'custom-orders',
+            element: <CustomOrdersList />
+          },
+          {
+            path: 'new-design-orders',
+            children: [
+              {
+                index: true,
+                element: <NewDesignOrdersList />
+              },
+              {
+                path: ':id',
+                element: <NewDesignOrderDetail />
+              }
+            ]
+          }
+        ]
       },
       {
         path: 'design-orders/:id',
@@ -102,6 +151,14 @@ const router = createBrowserRouter([
       {
         path: 'design-orders/pending',
         element: <PendingDesignOrders />,
+      },
+      {
+        path: 'design-orders/new-design-orders',
+        element: <NewDesignOrdersList />
+      },
+      {
+        path: 'design-orders/new-design-orders/:id',
+        element: <NewDesignOrderDetail />
       },
       // Bỏ các route chưa có
     ],
@@ -160,17 +217,108 @@ const router = createBrowserRouter([
       },
       {
         path: 'design-orders',
-        element: <DesignOrdersList />,
-      },
-      {
-        path: 'design-orders/pending',
-        element: <PendingDesignOrders />,
+        children: [
+          {
+            index: true,
+            element: <DesignOrdersList />
+          },
+          {
+            path: 'template-orders',
+            children: [
+              {
+                index: true,
+                element: <TemplateOrdersList />
+              },
+              {
+                path: ':id',
+                element: <TemplateOrderDetail />
+              }
+            ]
+          },
+          {
+            path: 'custom-template-orders',
+            children: [
+              {
+                index: true,
+                element: <CustomTemplateOrdersList />
+              },
+              {
+                path: ':id',
+                element: <CustomTemplateOrderDetail />
+              }
+            ]
+          },
+          {
+            path: 'new-design-orders',
+            children: [
+              {
+                index: true,
+                element: <NewDesignOrdersList />
+              },
+              {
+                path: ':id',
+                element: <NewDesignOrderDetail />
+              }
+            ]
+          },
+          {
+            path: 'pending',
+            element: <PendingDesignOrders />
+          }
+        ]
       },
       {
         path: 'schedule',
         element: <ScheduleList />,
       },
+      {
+        path: 'products',
+        element: <ProductsList />,
+      },
+      {
+        path: 'products/:id',
+        element: <ProductDetail />,
+      },
+      {
+        path: 'products/categories',
+        element: <Categories />,
+      },
+      {
+        path: 'feedback',
+        element: <FeedbackManagement />,
+      },
     ],
+  },
+  {
+    path: '/designer',
+    element: <AdminLayout />,
+    errorElement: <ErrorPage />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'schedule',
+        element: <DesignerScheduleView />,
+      },
+      {
+        path: 'tasks/:id',
+        element: <TaskDetail />,
+      },
+    ]
+  },
+  {
+    path: '/staff/design-orders/custom-template-orders',
+    element: <CustomTemplateOrdersList />,
+  },
+  {
+    path: '/staff/design-orders/custom-template-orders/:id',
+    element: <CustomTemplateOrderDetail />,
   },
   {
     path: '*',

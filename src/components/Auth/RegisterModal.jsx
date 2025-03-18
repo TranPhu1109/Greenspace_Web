@@ -4,6 +4,7 @@ import { GoogleOutlined } from '@ant-design/icons';
 import './Auth.scss';
 import logoImage from '../../assets/logo.png';
 import loginBg from '../../assets/login.png';
+import useAuthStore from '../../stores/useAuthStore';
 
 const RegisterModal = ({ visible, onCancel }) => {
   const [name, setName] = useState('');
@@ -11,12 +12,23 @@ const RegisterModal = ({ visible, onCancel }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const register = useAuthStore((state) => state.register);
 
-  const handleRegister = () => {
-    // Xử lý đăng ký
-    console.log('Register with:', { name, email, password, agreeTerms });
-    // Sau khi đăng ký thành công, đóng modal
-    onCancel();
+  const handleRegister = async () => {
+    if (password !== confirmPassword) {
+      message.error('Mật khẩu không khớp');
+      return;
+    }
+    if (!agreeTerms) {
+      message.error('Bạn phải đồng ý với điều khoản và điều kiện');
+    }
+    try {
+      await register(name, email, password);
+      message.success('Đăng ký thành công');
+      onCancel();
+    } catch (error) {
+      message.error('Đăng ký thất bại' + (error.response?.data?.message || error.message));
+    }
   };
 
   const handleGoogleRegister = () => {
@@ -36,13 +48,13 @@ const RegisterModal = ({ visible, onCancel }) => {
     >
       <div className="auth-container">
         <div className="auth-form">
-          <h1 className="auth-title">Register</h1>
+          <h1 className="auth-title">Đăng ký</h1>
           
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
+            <label htmlFor="name">Họ và tên</label>
             <Input
               id="name"
-              placeholder="Enter your full name"
+              placeholder="Nhập họ và tên"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="auth-input"
@@ -50,10 +62,10 @@ const RegisterModal = ({ visible, onCancel }) => {
           </div>
           
           <div className="form-group">
-            <label htmlFor="email">Email address</label>
+            <label htmlFor="email">Email</label>
             <Input
               id="email"
-              placeholder="Enter your email"
+              placeholder="Nhập email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="auth-input"
@@ -61,10 +73,10 @@ const RegisterModal = ({ visible, onCancel }) => {
           </div>
           
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">Mật khẩu</label>
             <Input.Password
               id="password"
-              placeholder="Create a password"
+              placeholder="Nhập mật khẩu"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="auth-input"
@@ -72,10 +84,10 @@ const RegisterModal = ({ visible, onCancel }) => {
           </div>
           
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+            <label htmlFor="confirmPassword">Nhập lại mật khẩu</label>
             <Input.Password
               id="confirmPassword"
-              placeholder="Confirm your password"
+              placeholder="Nhập lại mật khẩu"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="auth-input"
@@ -88,7 +100,7 @@ const RegisterModal = ({ visible, onCancel }) => {
               onChange={(e) => setAgreeTerms(e.target.checked)}
               className="terms-checkbox"
             >
-              I agree to the Terms of Service and Privacy Policy
+              Tôi đồng ý với điều khoản và điều kiện
             </Checkbox>
           </div>
           
@@ -99,7 +111,7 @@ const RegisterModal = ({ visible, onCancel }) => {
             className="register-button"
             disabled={!agreeTerms}
           >
-            Create Account
+            Đăng ký
           </Button>
           
           <div className="social-login">
@@ -108,7 +120,7 @@ const RegisterModal = ({ visible, onCancel }) => {
               onClick={handleGoogleRegister}
               className="google-button"
             >
-              Sign up with Google
+              Đăng ký với Google
             </Button>
           </div>
         </div>

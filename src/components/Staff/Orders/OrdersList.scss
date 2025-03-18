@@ -1,0 +1,251 @@
+.orders-list-container {
+  .ant-card {
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  
+  .search-input {
+    width: 250px;
+  }
+  
+  .orders-table {
+    .ant-table {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .ant-table-thead > tr > th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .ant-table-row {
+      &:hover {
+        cursor: pointer;
+      }
+    }
+    
+    .status-tag {
+      padding: 4px 8px;
+      border-radius: 16px;
+      
+      .ant-badge-status-dot {
+        width: 8px;
+        height: 8px;
+      }
+    }
+    
+    .payment-tag {
+      padding: 4px 8px;
+      border-radius: 16px;
+      
+      .anticon {
+        margin-right: 4px;
+      }
+    }
+    
+    .ant-table-expanded-row {
+      .ant-table {
+        margin: 0;
+        background-color: #fafafa;
+      }
+      
+      .ant-table-thead > tr > th {
+        background-color: #f0f0f0;
+        font-weight: 500;
+      }
+    }
+  }
+  
+  .ant-pagination {
+    margin-top: 16px;
+    text-align: right;
+  }
+  
+  .text-gray-500 {
+    color: #6b7280;
+    font-size: 12px;
+  }
+  
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .step-description {
+    font-size: 12px;
+    text-align: center;
+    
+    .step-status {
+      color: #666;
+      margin-top: 4px;
+    }
+  }
+
+  .ant-steps {
+    .ant-steps-item {
+      &-icon {
+        background-color: #f0f0f0;
+        border-color: #d9d9d9;
+      }
+
+      &-title {
+        font-size: 14px;
+      }
+
+      &-description {
+        min-height: 40px;
+      }
+
+      &-finish {
+        .ant-steps-item-icon {
+          background-color: #4caf50;
+          border-color: #4caf50;
+          
+          .anticon {
+            color: white;
+          }
+        }
+      }
+
+      &-process {
+        .ant-steps-item-icon {
+          background-color: #4caf50;
+          border-color: #4caf50;
+        }
+      }
+    }
+  }
+
+  .order-expanded-content {
+    padding: 16px 24px;
+    
+    .order-tracking {
+      margin-top: 24px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      
+      .tracking-title {
+        margin-bottom: 16px;
+        padding-left: 8px;
+        border-left: 4px solid #4caf50;
+      }
+      
+      .tracking-steps {
+        padding: 8px 0;
+
+        .ant-steps-item {
+          &-tail {
+            &::after {
+              background-color: #e8e8e8 !important;
+            }
+          }
+
+          &-finish {
+            .ant-steps-item-tail::after {
+              background-color: #4caf50 !important;
+            }
+          }
+          
+          &-content {
+            .ant-steps-item-title {
+              font-size: 14px;
+              font-weight: 500;
+              color: #333;
+              
+              &::after {
+                display: none;
+              }
+            }
+            
+            .ant-steps-item-subtitle {
+              font-size: 12px;
+              color: #666;
+              margin-top: 4px;
+            }
+          }
+        }
+
+        .custom-dot {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f0f0f0;
+          border: 2px solid #d9d9d9;
+          transition: all 0.3s;
+          
+          .step-icon {
+            font-size: 16px;
+            color: #999;
+          }
+          
+          &.finish {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            
+            .step-icon {
+              color: #4caf50;
+            }
+          }
+          
+          &.process {
+            background: #4caf50;
+            border-color: #4caf50;
+            
+            .step-icon {
+              color: white;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .orders-list-container {
+    .search-input {
+      width: 180px;
+    }
+    
+    .ant-table {
+      overflow-x: auto;
+    }
+
+    .ant-steps {
+      .ant-steps-item {
+        &-title {
+          font-size: 12px;
+        }
+        
+        &-description {
+          font-size: 11px;
+        }
+      }
+    }
+
+    .order-expanded-content {
+      padding: 12px;
+      
+      .order-tracking {
+        padding: 16px 12px;
+        
+        .tracking-steps {
+          .ant-steps-item-content {
+            .ant-steps-item-title {
+              font-size: 12px;
+            }
+            
+            .ant-steps-item-subtitle {
+              font-size: 11px;
+            }
+          }
+        }
+      }
+    }
+  }
+} 

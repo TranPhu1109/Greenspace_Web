@@ -4,6 +4,11 @@
   .ant-layout-sider {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     z-index: 10;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
     
     .logo-container {
       height: 64px;
@@ -35,9 +40,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: fixed;
+    width: calc(100% - 250px);
+    z-index: 9;
+    top: 0;
+    right: 0;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    z-index: 1;
     height: 64px;
+    transition: width 0.3s;
     
     .header-left {
       display: flex;
@@ -87,12 +97,25 @@
     }
   }
   
+  .site-layout {
+    margin-left: 250px;
+    transition: margin-left 0.3s;
+    
+    &.collapsed {
+      margin-left: 80px;
+      
+      .admin-header {
+        width: calc(100% - 80px);
+      }
+    }
+  }
+  
   .admin-content {
-    margin: 24px;
+    margin: 84px 16px 16px;
     padding: 24px;
     background: #fff;
-    border-radius: 4px;
-    min-height: 280px;
+    border-radius: 8px;
+    min-height: calc(100vh - 116px);
   }
   
   .notification-item {
