@@ -12,7 +12,7 @@ const useOrderStore = create((set, get) => ({
   fetchOrders: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.get('http://localhost:3000/orders');
+      const response = await axios.get('/api/orders');
       // API trả về mảng orders trực tiếp
       set({ orders: response.data, isLoading: false });
     } catch (error) {
@@ -32,7 +32,7 @@ const useOrderStore = create((set, get) => ({
       }
 
       // Nếu không tìm thấy, gọi API để lấy chi tiết đơn hàng
-      const response = await axios.get(`http://localhost:3000/orders/${id}`);
+      const response = await axios.get(`/api/orders/${id}`);
       set({ 
         selectedOrder: response.data,
         isLoading: false 

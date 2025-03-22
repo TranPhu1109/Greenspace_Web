@@ -328,7 +328,6 @@ const FeedbackManagement = () => {
           width: "100%",
           backgroundColor: "#f0f0f0",
           borderRadius: "10px",
-          // padding: "10px",
         }}
       >
         <div>

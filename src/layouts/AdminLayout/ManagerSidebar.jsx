@@ -1,5 +1,5 @@
-import { Layout, Menu } from 'antd';
-import { Link, useLocation } from 'react-router-dom';
+import { Layout, Menu } from "antd";
+import { Link, useLocation } from "react-router-dom";
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -9,18 +9,34 @@ import {
   FileTextOutlined,
   ProjectOutlined,
   ShopOutlined,
-  SettingOutlined
-} from '@ant-design/icons';
-import logo from '../../assets/logo.png';
+  SettingOutlined,
+  HistoryOutlined,
+} from "@ant-design/icons";
+import logo from "../../assets/logo.png";
 
 const { Sider } = Layout;
 const { SubMenu } = Menu;
 
 const ManagerSidebar = ({ collapsed }) => {
   const location = useLocation();
-  
+
+  // Add this function to get the base path for selection
+  const getSelectedKey = (pathname) => {
+    
+    if (pathname.startsWith("/manager/")) {
+      return pathname.split("/").slice(0, 3).join("/");
+    }
+    return pathname;
+  };
+
   return (
-    <Sider trigger={null} collapsible collapsed={collapsed} width={250}>
+    <Sider
+      trigger={null}
+      collapsible
+      collapsed={collapsed}
+      width={250}
+      theme="light"
+    >
       <div className="logo-container">
         <img src={logo} alt="Logo" className="logo" />
         {/* {!collapsed && <span className="logo-text">GreenSpace</span>} */}
@@ -28,71 +44,78 @@ const ManagerSidebar = ({ collapsed }) => {
       <Menu
         theme="light"
         mode="inline"
-        selectedKeys={[location.pathname]}
-        defaultOpenKeys={collapsed ? [] : ['staff', 'reports', 'sales']}
+        selectedKeys={[getSelectedKey(location.pathname)]}
+        defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales"]}
       >
-        <Menu.Item key="/admin/dashboard" icon={<DashboardOutlined />}>
-          <Link to="/admin/dashboard">Dashboard</Link>
+        <Menu.Item key="/manager/dashboard" icon={<DashboardOutlined />}>
+          <Link to="/manager/dashboard">Dashboard</Link>
         </Menu.Item>
-        
-        <SubMenu key="staff" icon={<TeamOutlined />} title="Nhân viên">
-          <Menu.Item key="/admin/staff/list">
-            <Link to="/admin/staff/list">Danh sách nhân viên</Link>
+
+        <SubMenu key="staff" icon={<TeamOutlined />} title="Danh sách người dùng">
+          <Menu.Item key="/manager/customer-list">
+            <Link to="/manager/customer-list">Danh sách khách hàng</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/staff/performance">
-            <Link to="/admin/staff/performance">Hiệu suất</Link>
+          <Menu.Item key="/manager/employee-list">
+            <Link to="/manager/employee-list">Danh sách nhân viên</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/staff/schedule">
-            <Link to="/admin/staff/schedule">Lịch làm việc</Link>
-          </Menu.Item>
+          {/* <Menu.Item key="/manager/staff/performance">
+            <Link to="/manager/staff/performance">Hiệu suất</Link>
+          </Menu.Item> */}
+          {/* <Menu.Item key="/manager/staff/schedule">
+            <Link to="/manager/staff/schedule">Lịch làm việc</Link>
+          </Menu.Item> */}
         </SubMenu>
-        
+
+        <Menu.Item key="/manager/products" icon={<AppstoreOutlined />}>
+          <Link to="/manager/products">Sản phẩm</Link>
+        </Menu.Item>
+
         <SubMenu key="sales" icon={<ShoppingOutlined />} title="Bán hàng">
-          <Menu.Item key="/admin/sales/orders">
-            <Link to="/admin/sales/orders">Đơn hàng</Link>
+          <Menu.Item key="/manager/orders">
+            <Link to="/manager/orders">Đơn hàng</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/sales/customers">
-            <Link to="/admin/sales/customers">Khách hàng</Link>
-          </Menu.Item>
-          <Menu.Item key="/admin/sales/promotions">
-            <Link to="/admin/sales/promotions">Khuyến mãi</Link>
+          {/* <Menu.Item key="/manager/sales/customers">
+            <Link to="/manager/sales/customers">Khách hàng</Link>
+          </Menu.Item> */}
+          <Menu.Item key="/manager/promotions">
+            <Link to="/manager/promotions">Khuyến mãi</Link>
           </Menu.Item>
         </SubMenu>
-        
-        <Menu.Item key="/admin/products" icon={<AppstoreOutlined />}>
-          <Link to="/admin/products">Sản phẩm</Link>
+
+        <Menu.Item key="/manager/transactions" icon={<HistoryOutlined />}>
+          <Link to="/manager/transactions">Lịch sử giao dịch</Link>
         </Menu.Item>
-        
-        <Menu.Item key="/admin/projects" icon={<ProjectOutlined />}>
-          <Link to="/admin/projects">Dự án</Link>
+
+        <Menu.Item key="/manager/projects" icon={<ProjectOutlined />}>
+          <Link to="/manager/projects">Dự án</Link>
         </Menu.Item>
-        
-        <Menu.Item key="/admin/stores" icon={<ShopOutlined />}>
-          <Link to="/admin/stores">Cửa hàng</Link>
+
+        <Menu.Item key="/manager/stores" icon={<ShopOutlined />}>
+          <Link to="/manager/stores">Cửa hàng</Link>
         </Menu.Item>
-        
+
         <SubMenu key="reports" icon={<FileTextOutlined />} title="Báo cáo">
-          <Menu.Item key="/admin/reports/sales">
-            <Link to="/admin/reports/sales">Báo cáo bán hàng</Link>
+          <Menu.Item key="/manager/reports/sales">
+            <Link to="/manager/reports/sales">Báo cáo bán hàng</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/reports/inventory">
-            <Link to="/admin/reports/inventory">Báo cáo kho hàng</Link>
+          <Menu.Item key="/manager/reports/inventory">
+            <Link to="/manager/reports/inventory">Báo cáo kho hàng</Link>
           </Menu.Item>
-          <Menu.Item key="/admin/reports/financial">
-            <Link to="/admin/reports/financial">Báo cáo tài chính</Link>
+          <Menu.Item key="/manager/reports/financial">
+            <Link to="/manager/reports/financial">Báo cáo tài chính</Link>
           </Menu.Item>
         </SubMenu>
-        
-        <Menu.Item key="/admin/analytics" icon={<BarChartOutlined />}>
-          <Link to="/admin/analytics">Phân tích</Link>
+
+        <Menu.Item key="/manager/analytics" icon={<BarChartOutlined />}>
+          <Link to="/manager/analytics">Phân tích</Link>
         </Menu.Item>
-        
-        <Menu.Item key="/admin/settings" icon={<SettingOutlined />}>
-          <Link to="/admin/settings">Cài đặt</Link>
+
+        <Menu.Item key="/manager/settings" icon={<SettingOutlined />}>
+          <Link to="/manager/settings">Cài đặt</Link>
         </Menu.Item>
       </Menu>
     </Sider>
   );
 };
 
-export default ManagerSidebar; 
+export default ManagerSidebar;

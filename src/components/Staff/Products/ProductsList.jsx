@@ -18,6 +18,8 @@ import {
   Popconfirm,
   Tooltip,
   Tabs,
+  Alert,
+  Progress,
 } from "antd";
 import {
   SearchOutlined,
@@ -28,21 +30,37 @@ import {
   ExclamationCircleOutlined,
   TagOutlined,
   MoreOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import useProductStore from "../../../stores/useProductStore";
 import "./ProductsList.scss";
 import { Popover } from "antd";
+import { useRoleBasedPath } from "../../../hooks/useRoleBasedPath";
+import { useCloudinaryStorage } from "../../../hooks/useCloudinaryStorage";
+
+// Import component con
+import CreateProductModal from "./components/CreateProductModal";
+import UpdateProductModal from "./components/UpdateProductModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const { Dragger } = Upload;
-const { confirm } = Modal;
 const { TabPane } = Tabs;
 
 const ProductsList = () => {
   const navigate = useNavigate();
+  const { getBasePath } = useRoleBasedPath();
+
+  // Replace all path calculations with the hook
+  const handleRowClick = (record) => {
+    navigate(`${getBasePath()}/products/${record.id}`);
+  };
+
+  const goToCategories = () => {
+    navigate(`${getBasePath()}/products/categories`);
+  };
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -57,9 +75,8 @@ const ProductsList = () => {
     products,
     categories,
     isLoading,
-    error,
-    fetchProducts,
     fetchCategories,
+    fetchProducts,
     createProduct,
     updateProduct,
     deleteProduct,
@@ -71,18 +88,6 @@ const ProductsList = () => {
     fetchProducts();
     fetchCategories();
   }, [fetchProducts, fetchCategories]);
-
-  // Xử lý lỗi nếu có
-  useEffect(() => {
-    if (error) {
-      message.error(`Đã xảy ra lỗi: ${error}`);
-    }
-  }, [error]);
-
-  // Xử lý khi click vào hàng
-  const handleRowClick = (record) => {
-    navigate(`/staff/products/${record.id}`);
-  };
 
   // Xử lý khi chọn hàng
   const onSelectChange = (newSelectedRowKeys) => {
@@ -131,7 +136,6 @@ const ProductsList = () => {
     setIsModalVisible(true);
   };
 
-  // Xử lý xóa sản phẩm
   const handleDelete = async (id) => {
     try {
       await deleteProduct(id);
@@ -143,7 +147,7 @@ const ProductsList = () => {
 
   // Xử lý xóa nhiều sản phẩm
   const handleBatchDelete = () => {
-    confirm({
+    Modal.confirm({
       title: "Bạn có chắc chắn muốn xóa các sản phẩm đã chọn?",
       icon: <ExclamationCircleOutlined />,
       content: "Hành động này không thể hoàn tác",
@@ -160,58 +164,59 @@ const ProductsList = () => {
     });
   };
 
-  // Xử lý hủy modal
   const handleCancel = () => {
     setIsModalVisible(false);
     form.resetFields();
   };
 
-  // Xử lý submit form
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (productData) => {
     try {
+      // Bây giờ productData đã được xử lý từ component con (CreateProductModal hoặc UpdateProductModal)
+
+      console.log('Submitting product data:', productData); // Add this for debugging
+
       if (editingProduct) {
-        // Cập nhật sản phẩm
-        await updateProduct(editingProduct.id, values);
+        await updateProduct(editingProduct.id, productData);
         message.success("Cập nhật sản phẩm thành công");
       } else {
-        // Thêm mới sản phẩm
-        await createProduct(values);
+        await createProduct(productData);
         message.success("Thêm sản phẩm thành công");
       }
+
+      await fetchProducts();
       setIsModalVisible(false);
       form.resetFields();
+      return true;
     } catch (error) {
+      console.error('Error submitting product:', error);
       message.error("Có lỗi xảy ra: " + error.message);
+      return false;
     }
   };
 
-  // Lọc dữ liệu
-  const filteredData = products.filter((item) => {
-    const matchSearch = searchText
-      ? item.name.toLowerCase().includes(searchText.toLowerCase())
-      : true;
+  // // Make sure the category form field is properly set up
+  // <Form.Item
+  //   name="category_id"
+  //   label="Danh mục"
+  //   rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
+  // >
+  //   <Select placeholder="Chọn danh mục">
+  //     {categories.map((category) => (
+  //       <Option key={category.id} value={category.id}>
+  //         {category.name}
+  //       </Option>
+  //     ))}
+  //   </Select>
+  // </Form.Item>
 
-    const matchCategory = filterCategory
-      ? item.category_id === parseInt(filterCategory)
-      : true;
-
-    const matchStatus = filterStatus ? item.status === filterStatus : true;
-
-    return matchSearch && matchCategory && matchStatus;
-  });
-
-  // Cấu hình rowSelection
   const rowSelection = {
     selectedRowKeys,
-    onChange: onSelectChange,
+    onChange: (newSelectedRowKeys) => {
+      setSelectedRowKeys(newSelectedRowKeys); // Fix: was using undefined newSelectedKeys
+    },
   };
 
-  // Thêm hàm điều hướng đến trang Categories
-  const goToCategories = () => {
-    navigate("/staff/products/categories");
-  };
-
-  // Cấu hình cột
+  // Add columns configuration before the return statement
   const columns = [
     {
       title: "Sản phẩm",
@@ -220,22 +225,30 @@ const ProductsList = () => {
       render: (text, record) => (
         <div className="product-info">
           <img
-            src={record.thumbnail}
+            src={record.image.imageUrl}
             alt={text}
-            className="product-thumbnail"
+            className="imageUrl"
             width={50}
             height={50}
           />
           <div className="product-details">
             <span className="product-name">{text}</span>
             <span className="product-category">
-              {getCategoryNameById(record.category_id)}
+              {getCategoryNameById(record.categoryId)}
+              {/* {record.categoryName} */}
             </span>
           </div>
         </div>
       ),
       sorter: (a, b) => a.name.localeCompare(b.name),
       sortOrder: sortedInfo.columnKey === "name" && sortedInfo.order,
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
+      sorter: (a, b) => a.description.localeCompare(b.description),
+      sortOrder: sortedInfo.columnKey === "description" && sortedInfo.order,
     },
     {
       title: "Giá",
@@ -261,87 +274,100 @@ const ProductsList = () => {
           {status === "active" ? "Đang bán" : "Ngừng bán"}
         </Tag>
       ),
-      filters: [
-        { text: "Đang bán", value: "active" },
-        { text: "Ngừng bán", value: "inactive" },
-      ],
-      filteredValue: filterStatus ? [filterStatus] : null,
     },
     {
       title: "Hành động",
       key: "action",
       render: (_, record) => (
-        <Popover
-          size="small"
-          placement="bottomLeft"
-          content={
-            <div className="flex flex-col gap-2">
-              <Button
-                type="default"
-                style={{
-                  backgroundColor: "beige",
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                icon={<EyeOutlined />}
-                onClick={() => handleRowClick(record)}
-              >
-                Xem chi tiết
-              </Button>
-              <Button
-                type="primary"
-                style={{
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                icon={<EditOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(record);
-                }}
-              >
-                Chỉnh sửa
-              </Button>
-              <Popconfirm
-                title="Bạn có chắc chắn muốn xóa sản phẩm này?"
-                onConfirm={(e) => {
-                  e.stopPropagation();
-                  handleDelete(record.id);
-                }}
-                okText="Có"
-                cancelText="Không"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  style={{
-                    justifyContent: "flex-start",
-                    backgroundColor: "red",
-                    color: "white",
-                  }}
-                  icon={<DeleteOutlined />}
-                >
-                  Xóa
-                </Button>
-              </Popconfirm>
-            </div>
-          }
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Popover>
+        <Space>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEdit(record);
+            }}
+          />
+          <Popconfirm
+            title="Bạn có chắc chắn muốn xóa?"
+            onConfirm={(e) => {
+              e.stopPropagation();
+              handleDelete(record.id);
+            }}
+            onCancel={(e) => e.stopPropagation()}
+          >
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
 
+  // Add this before the return statement, after columns definition
+  const filteredData = Array.isArray(products)
+    ? products.filter((item) => {
+        const matchSearch = searchText
+          ? item.name.toLowerCase().includes(searchText.toLowerCase())
+          : true;
+
+        const matchCategory = filterCategory
+          ? item.categoryId === parseInt(filterCategory)
+          : true;
+
+        const matchStatus = filterStatus
+          ? item.status === filterStatus
+          : true;
+
+        return matchSearch && matchCategory && matchStatus;
+      })
+    : [];
+
   return (
     <div className="products-list-container">
-      <Card className="mb-4">
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} md={16}>
-            <Title level={4} style={{ margin: 0 }}>
-              Quản lý sản phẩm
-            </Title>
+      <Card title="Danh sách sản phẩm" className="mb-4">
+        <Row gutter={[16, 16]} className="mb-4" align="middle">
+          <Col flex="200px">
+            <Input
+              placeholder="Tìm kiếm sản phẩm"
+              prefix={<SearchOutlined />}
+              className="search-input"
+              onChange={(e) => handleSearch(e.target.value)}
+              allowClear
+            />
           </Col>
-          <Col xs={24} md={8} style={{ textAlign: "right" }}>
+          <Col flex="200px">
+            <Select
+              placeholder="Lọc theo danh mục"
+              style={{ width: "100%" }}
+              onChange={handleCategoryFilter}
+              allowClear
+            >
+              {Array.isArray(categories)
+                ? categories.map((category) => (
+                    <Option key={category.id} value={category.id}>
+                      {category.name}
+                    </Option>
+                  ))
+                : null}
+            </Select>
+          </Col>
+          <Col flex="200px">
+            <Select
+              placeholder="Lọc theo trạng thái"
+              style={{ width: "100%" }}
+              onChange={handleStatusFilter}
+              allowClear
+            >
+              <Option value="active">Đang bán</Option>
+              <Option value="inactive">Ngừng bán</Option>
+            </Select>
+          </Col>
+          <Col flex="auto" style={{ textAlign: "right" }}>
             <Space>
               <Button onClick={goToCategories} icon={<TagOutlined />}>
                 Quản lý danh mục
@@ -354,43 +380,6 @@ const ProductsList = () => {
                 Thêm sản phẩm
               </Button>
             </Space>
-          </Col>
-        </Row>
-
-        <Row gutter={[16, 16]} className="mb-4">
-          <Col xs={24} sm={8} md={6}>
-            <Input
-              placeholder="Tìm kiếm sản phẩm"
-              prefix={<SearchOutlined />}
-              className="search-input"
-              onChange={(e) => handleSearch(e.target.value)}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} sm={8} md={6}>
-            <Select
-              placeholder="Lọc theo danh mục"
-              style={{ width: "100%" }}
-              onChange={handleCategoryFilter}
-              allowClear
-            >
-              {categories.map((category) => (
-                <Option key={category.id} value={category.id}>
-                  {category.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} md={6}>
-            <Select
-              placeholder="Lọc theo trạng thái"
-              style={{ width: "100%" }}
-              onChange={handleStatusFilter}
-              allowClear
-            >
-              <Option value="active">Đang bán</Option>
-              <Option value="inactive">Ngừng bán</Option>
-            </Select>
           </Col>
         </Row>
 
@@ -422,111 +411,26 @@ const ProductsList = () => {
           }}
         />
       </Card>
-
-      <Modal
-        title={editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
-        visible={isModalVisible}
+      {/* Create Product Modal */}
+      <CreateProductModal
+        visible={isModalVisible && !editingProduct}
         onCancel={handleCancel}
-        footer={null}
-      >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="name"
-            label="Tên sản phẩm"
-            rules={[{ required: true, message: "Vui lòng nhập tên sản phẩm!" }]}
-          >
-            <Input placeholder="Nhập tên sản phẩm" />
-          </Form.Item>
-
-          <Form.Item
-            name="price"
-            label="Giá"
-            rules={[{ required: true, message: "Vui lòng nhập giá sản phẩm!" }]}
-          >
-            <InputNumber
-              style={{ width: "100%" }}
-              formatter={(value) =>
-                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-              }
-              parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-              placeholder="Nhập giá sản phẩm"
-              min={0}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="category_id"
-            label="Danh mục"
-            rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
-          >
-            <Select placeholder="Chọn danh mục">
-              {categories.map((category) => (
-                <Option key={category.id} value={category.id}>
-                  {category.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="stock"
-            label="Tồn kho"
-            rules={[
-              { required: true, message: "Vui lòng nhập số lượng tồn kho!" },
-            ]}
-          >
-            <InputNumber
-              style={{ width: "100%" }}
-              placeholder="Nhập số lượng tồn kho"
-              min={0}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            rules={[{ required: true, message: "Vui lòng chọn trạng thái!" }]}
-            initialValue="active"
-          >
-            <Select placeholder="Chọn trạng thái">
-              <Option value="active">Đang bán</Option>
-              <Option value="inactive">Ngừng bán</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="Mô tả"
-            rules={[
-              { required: true, message: "Vui lòng nhập mô tả sản phẩm!" },
-            ]}
-          >
-            <TextArea placeholder="Nhập mô tả sản phẩm" rows={4} />
-          </Form.Item>
-
-          <Form.Item name="image" label="Hình ảnh">
-            <Upload
-              listType="picture-card"
-              maxCount={1}
-              beforeUpload={() => false}
-            >
-              <div>
-                <PlusOutlined />
-                <div style={{ marginTop: 8 }}>Tải lên</div>
-              </div>
-            </Upload>
-          </Form.Item>
-
-          <Form.Item className="form-actions">
-            <Button onClick={handleCancel} style={{ marginRight: 8 }}>
-              Hủy
-            </Button>
-            <Button type="primary" htmlType="submit">
-              {editingProduct ? "Cập nhật" : "Thêm mới"}
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onSubmit={handleSubmit}
+        form={form}
+        categories={categories}
+        isLoading={isLoading}
+      />
+      
+      {/* Edit Product Modal */}
+      <UpdateProductModal
+        visible={isModalVisible && !!editingProduct}
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+        form={form}
+        categories={categories}
+        isLoading={isLoading}
+        product={editingProduct}
+      />
     </div>
   );
 };

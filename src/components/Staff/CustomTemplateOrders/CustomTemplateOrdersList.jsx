@@ -34,6 +34,7 @@ import { customTemplateOrders } from "../mockData/customTemplateOrders";
 import { orderStatuses } from "../mockData/templateOrders";
 import { useNavigate } from "react-router-dom";
 import { Popover } from "antd";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -59,9 +60,13 @@ const CustomTemplateOrdersList = () => {
     CloseCircleOutlined: CloseCircleOutlined,
   };
 
+  const { getBasePath } = useRoleBasedPath();
+
+  // Replace all path calculations with the hook
   const handleViewDetail = (id) => {
-    navigate(`/staff/design-orders/custom-template-orders/${id}`);
+    navigate(`${getBasePath()}/design-orders/custom-template-orders/${id}`);
   };
+
 
   const handleAssignOrder = (order) => {
     setSelectedOrder(order);
@@ -312,9 +317,12 @@ const CustomTemplateOrdersList = () => {
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} đơn hàng`,
           }}
+          onRow={(record) => ({
+            onClick: () => handleViewDetail(record.id),
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
-
     </>
   );
 };

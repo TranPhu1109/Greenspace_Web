@@ -11,7 +11,7 @@ const useScheduleStore = create((set, get) => ({
   fetchDesigners: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('http://localhost:3000/schedule');
+      const response = await api.get('api/schedule');
       set({ 
         designers: response.data,
         isLoading: false 

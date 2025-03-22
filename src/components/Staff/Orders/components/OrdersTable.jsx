@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import useOrderStore from "../../../../stores/orderStore";
 import OrderExpandedRow from "./OrderExpandedRow";
 import { Popover } from "antd";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Step } = Steps;
 const { confirm } = Modal;
@@ -33,9 +34,11 @@ const OrdersTable = ({
 }) => {
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderStore();
+  const { getBasePath } = useRoleBasedPath();
 
   const handleViewOrderDetail = (record) => {
-    navigate(`/staff/orders/${record.id}`);
+    // navigate(`/staff/orders/${record.id}`);
+    navigate(`${getBasePath()}/orders/${record.id}`);
   };
 
   const handleAcceptOrder = (e, record) => {

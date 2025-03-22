@@ -15,6 +15,7 @@ import {
   Tag,
   Tooltip,
   Switch,
+  // Remove notification from imports
 } from "antd";
 import {
   SearchOutlined,
@@ -27,6 +28,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import useProductStore from "../../../stores/useProductStore";
 import "./Categories.scss";
+import { Select } from "antd";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -40,15 +43,21 @@ const Categories = () => {
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState("");
 
-  // Sử dụng store
+  // Move store usage inside component
   const {
     categories,
     isLoading,
     fetchCategories,
     createCategory,
     updateCategory,
-    deleteCategory,
+    deleteCategory
   } = useProductStore();
+
+  const { getBasePath } = useRoleBasedPath();
+
+  const handleBack = () => {
+    navigate(`${getBasePath()}/products`);
+  };
 
   // Fetch categories khi component mount
   useEffect(() => {
@@ -57,7 +66,7 @@ const Categories = () => {
 
   // Xử lý khi chọn hàng
   const onSelectChange = (newSelectedRowKeys) => {
-    setSelectedRowKeys(newSelectedKeys);
+    setSelectedRowKeys(newSelectedRowKeys); // Fixed parameter name
   };
 
   // Xử lý thêm mới
@@ -76,19 +85,27 @@ const Categories = () => {
       status: record.status === "active",
     });
     setIsModalVisible(true);
+    // notification.info({
+    //   message: "Thông báo",
+    //   description: "Vui lòng cập nhật thông tin danh mục",
+    //   placement: "topRight"
+    // });
   };
 
   // Xử lý xóa
   const handleDelete = async (id) => {
     try {
-      await deleteCategory(id);
-      message.success("Xóa danh mục thành công");
+      const response = await deleteCategory(id);
+      if (response && response.data) {
+        message.success("Xóa danh mục thành công");
+        fetchCategories();
+      }
     } catch (error) {
       message.error("Xóa danh mục thất bại: " + error.message);
     }
   };
 
-  // Xử lý xóa nhiều
+  // In handleBatchDelete
   const handleBatchDelete = () => {
     confirm({
       title: "Bạn có chắc chắn muốn xóa các danh mục đã chọn?",
@@ -99,12 +116,15 @@ const Categories = () => {
       cancelText: "Hủy",
       onOk: async () => {
         try {
-          // Xóa lần lượt các danh mục đã chọn
           for (const id of selectedRowKeys) {
-            await deleteCategory(id);
+            const response = await deleteCategory(id);
+            if (!response || !response.data) {
+              throw new Error('Có lỗi khi xóa danh mục');
+            }
           }
           setSelectedRowKeys([]);
-          message.success("Xóa danh mục thành công");
+          message.success("Xóa các danh mục đã chọn thành công");
+          fetchCategories();
         } catch (error) {
           message.error("Xóa danh mục thất bại: " + error.message);
         }
@@ -112,43 +132,67 @@ const Categories = () => {
     });
   };
 
-  // Xử lý submit form
+  // In handleOk
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
 
-      // Chuyển đổi trạng thái từ boolean sang string
-      const categoryData = {
-        ...values,
-        status: values.status ? "active" : "inactive",
-      };
-
-      if (editingCategory) {
-        // Cập nhật
-        await updateCategory(editingCategory.id, categoryData);
-        message.success("Cập nhật danh mục thành công");
-      } else {
-        // Thêm mới
-        await createCategory(categoryData);
-        message.success("Thêm danh mục thành công");
+      if (!values.name || typeof values.name !== 'string') {
+        throw new Error('Tên danh mục không hợp lệ');
       }
 
-      setIsModalVisible(false);
+      if (!values.description || typeof values.description !== 'string') {
+        throw new Error('Mô tả danh mục không hợp lệ');
+      }
+
+      const categoryData = {
+        name: values.name.trim(),
+        description: values.description.trim()
+      };
+
+      let response;
+      if (editingCategory) {
+        response = await updateCategory(editingCategory.id, categoryData);
+        if (response?.status === 200) {
+          message.success("Cập nhật danh mục thành công");
+          setIsModalVisible(false);
+          form.resetFields();
+          fetchCategories();
+        } else {
+          throw new Error('Cập nhật danh mục thất bại');
+        }
+      } else {
+        response = await createCategory(categoryData);
+        if (response?.status === 201) {
+          message.success("Thêm danh mục thành công");
+          setIsModalVisible(false);
+          form.resetFields();
+          fetchCategories();
+        } else {
+          throw new Error('Thêm danh mục thất bại');
+        }
+      }
     } catch (error) {
-      message.error("Lỗi: " + error.message);
+      message.error(error.message || "Đã có lỗi xảy ra");
     }
   };
 
-  // Xử lý hủy
+  // In handleCancel
   const handleCancel = () => {
     setIsModalVisible(false);
+    message.info("Đã hủy thao tác");
   };
 
   // Lọc dữ liệu theo từ khóa tìm kiếm
+  // Add new state for status filter
+  const [statusFilter, setStatusFilter] = useState(null);
+
+  // Update filteredData to include status filter
   const filteredData = categories.filter(
     (item) =>
-      item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchText.toLowerCase())
+      ((item.name?.toLowerCase() || '').includes(searchText.toLowerCase()) ||
+        (item.description?.toLowerCase() || '').includes(searchText.toLowerCase())) &&
+      (!statusFilter || item.status === statusFilter)
   );
 
   // Cấu hình rowSelection
@@ -160,10 +204,11 @@ const Categories = () => {
   // Cấu hình cột
   const columns = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 80,
+      title: "STT",
+      key: "index",
+      render: (_, __, index) => index + 1,
+      width: 60,
+      fixed: "left",
     },
     {
       title: "Tên danh mục",
@@ -178,20 +223,17 @@ const Categories = () => {
       ellipsis: true,
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Hoạt động" : "Không hoạt động"}
-        </Tag>
-      ),
-    },
-    {
       title: "Ngày tạo",
-      dataIndex: "created_at",
-      key: "created_at",
-      render: (date) => new Date(date).toLocaleDateString("vi-VN"),
+      dataIndex: "creationDate",
+      key: "creationDate",
+      render: (date) => {
+        const formattedDate = new Date(date).toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric"
+        });
+        return formattedDate;
+      },
     },
     {
       title: "Hành động",
@@ -222,30 +264,24 @@ const Categories = () => {
 
   return (
     <div className="categories-container">
-      <Card className="mb-4">
+      <div className="mb-4">
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={16}>
-              <Button
-                type="primary"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/staff/products")}
-                style={{ marginRight: 8 }}
-              >
-                Quay lại
-              </Button>
-              <Title level={4}>Quản lý danh mục</Title>
-          </Col>
-          <Col xs={24} sm={12} md={8} style={{ textAlign: "right" }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-              Thêm danh mục
+            <Button
+              type="dashed"
+              icon={<ArrowLeftOutlined />}
+              onClick={handleBack}
+              style={{ marginRight: 8 }}
+            >
+              Quay lại
             </Button>
           </Col>
         </Row>
-      </Card>
+      </div>
 
-      <Card>
+      <Card title="Danh sách danh mục">
         <Row gutter={[16, 16]} className="mb-4">
-          <Col xs={24} sm={12} md={8}>
+          <Col flex="300px">
             <Input
               placeholder="Tìm kiếm theo tên, mô tả..."
               prefix={<SearchOutlined />}
@@ -253,13 +289,29 @@ const Categories = () => {
               onChange={(e) => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={24} sm={12} md={16} style={{ textAlign: "right" }}>
-            <Button
-              danger
-              disabled={selectedRowKeys.length === 0}
-              onClick={handleBatchDelete}
+          <Col flex="200px">
+            <Select
+              placeholder="Lọc theo trạng thái"
+              style={{ width: "100%" }}
+              onChange={setStatusFilter}
+              allowClear
             >
-              Xóa đã chọn ({selectedRowKeys.length})
+              <Option value="active">Hoạt động</Option>
+              <Option value="inactive">Không hoạt động</Option>
+            </Select>
+          </Col>
+          <Col flex="auto" style={{ textAlign: "right" }}>
+            {selectedRowKeys.length > 0 && (
+              <Button
+                danger
+                onClick={handleBatchDelete}
+                style={{ marginRight: 8 }}
+              >
+                Xóa đã chọn ({selectedRowKeys.length})
+              </Button>
+            )}
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Thêm danh mục
             </Button>
           </Col>
         </Row>
@@ -271,7 +323,6 @@ const Categories = () => {
           rowKey="id"
           loading={isLoading}
           pagination={{
-            pageSize: 10,
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} danh mục`,
           }}
@@ -307,7 +358,7 @@ const Categories = () => {
             <TextArea placeholder="Nhập mô tả danh mục" rows={4} />
           </Form.Item>
 
-          <Form.Item
+          {/* <Form.Item
             name="status"
             label="Trạng thái"
             valuePropName="checked"
@@ -317,7 +368,7 @@ const Categories = () => {
               checkedChildren="Hoạt động"
               unCheckedChildren="Không hoạt động"
             />
-          </Form.Item>
+          </Form.Item> */}
         </Form>
       </Modal>
     </div>

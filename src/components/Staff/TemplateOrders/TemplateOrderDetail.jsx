@@ -38,6 +38,7 @@ import {
 import dayjs from "dayjs";
 import { useParams, useNavigate } from "react-router-dom";
 import { Alert } from "antd";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -55,6 +56,12 @@ const TemplateOrderDetail = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [form] = Form.useForm();
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+
+  const { getBasePath } = useRoleBasedPath();
+
+  const handleBack = () => {
+    navigate(`${getBasePath()}/design-orders/template-orders`);
+  };
 
   if (!order) {
     return (
@@ -273,7 +280,7 @@ const TemplateOrderDetail = () => {
         }}
       >
         {/* Nút quay lại */}
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+        <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
           Quay lại
         </Button>
 

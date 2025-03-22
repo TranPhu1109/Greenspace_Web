@@ -1,33 +1,40 @@
-// src/config/api.js
-
 import axios from 'axios';
 
-// Định nghĩa base URL từ biến môi trường hoặc dùng giá trị mặc định
-const API_BASE_URL = import.meta.env.GREENSPACE_API_BASE_URL || 'http://localhost:3000';
-
-// Tạo một instance của axios với cấu hình chung
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000, // thời gian chờ request (ms)
+  baseURL: 'http://localhost:8080',
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
-// Interceptor cho request: bạn có thể thêm token xác thực, header chung,...
+// Add request deduplication
+const pendingRequests = new Map();
+
 api.interceptors.request.use(
   (config) => {
-    // Ví dụ: thêm token nếu có
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    const requestKey = `${config.method}:${config.url}`;
+    if (pendingRequests.has(requestKey)) {
+      const controller = new AbortController();
+      config.signal = controller.signal;
+      controller.abort();
+    }
+    pendingRequests.set(requestKey, true);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Interceptor cho response: xử lý lỗi chung, logging,...
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const requestKey = `${response.config.method}:${response.config.url}`;
+    pendingRequests.delete(requestKey);
+    return response;
+  },
   (error) => {
+    const requestKey = `${error.config?.method}:${error.config?.url}`;
+    pendingRequests.delete(requestKey);
     return Promise.reject(error);
   }
 );

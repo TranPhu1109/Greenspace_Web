@@ -111,7 +111,7 @@ const DayDetail = ({ selectedDate, designers = [], selectedDesignerId }) => {
                       /* Xử lý thêm task */
                     }}
                   >
-                    Tạo task
+                    Thêm task
                   </Button>,
                 ]}
               >

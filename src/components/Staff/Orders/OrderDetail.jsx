@@ -40,6 +40,7 @@ import dayjs from "dayjs";
 import useOrderStore from "../../../stores/orderStore";
 import "./OrderDetail.scss";
 import { Tooltip } from "antd";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
@@ -65,8 +66,11 @@ const OrderDetail = () => {
     getOrderById(id);
   }, [id, getOrderById]);
 
+  const { getBasePath } = useRoleBasedPath();
+
   const handleBack = () => {
-    navigate("/staff/orders");
+    // navigate("/staff/orders");
+    navigate(`${getBasePath()}/orders`);
   };
 
   const handleUpdatePaymentStatus = async (values) => {

@@ -32,6 +32,7 @@ import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { Popover } from "antd";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -45,6 +46,16 @@ const TemplateOrdersList = () => {
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+
+  const { getBasePath } = useRoleBasedPath();
+
+  const handleViewDetail = (id) => {
+    navigate(`${getBasePath()}/design-orders/template-orders/${id}`);
+  };
+
+// const handleViewDetail = (id) => {
+  //   navigate(`/staff/design-orders/template-orders/${id}`);
+  // };
 
   const getPaymentStatus = (payments, totalCost) => {
     const depositRequired = totalCost * 0.5; // 50% tổng giá trị
@@ -79,9 +90,7 @@ const TemplateOrdersList = () => {
     };
   };
 
-  const handleViewDetail = (id) => {
-    navigate(`/staff/design-orders/template-orders/${id}`);
-  };
+  
 
   const handleAssignOrder = (order) => {
     setSelectedOrder(order);
@@ -340,6 +349,10 @@ const TemplateOrdersList = () => {
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} đơn hàng`,
           }}
+          onRow={(record) => ({
+            onClick: () => handleViewDetail(record.id),
+            style: { cursor: "pointer" },
+          })}
         />
       </Card>
 

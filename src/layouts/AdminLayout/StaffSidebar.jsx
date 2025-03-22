@@ -24,25 +24,26 @@ const { SubMenu } = Menu;
 const StaffSidebar = ({ collapsed }) => {
   const location = useLocation();
 
-  // const items = [
-  //   {
-  //     key: 'design-orders',
-  //     icon: <FileTextOutlined />,
-  //     label: 'Quản lý đơn thiết kế',
-  //     children: [
-  //       {
-  //         key: 'template-orders',
-  //         label: 'Đơn đặt từ mẫu',
-  //         path: '/staff/design-orders/template-orders'
-  //       },
-  //       {
-  //         key: 'custom-template-orders',
-  //         label: 'Đơn tùy chỉnh từ mẫu',
-  //         path: '/staff/design-orders/custom-template-orders'
-  //       }
-  //     ]
-  //   },
-  // ];
+  const getSelectedKey = (pathname) => {
+    // For design orders section
+    if (pathname.includes('/design-orders')) {
+      // Return the parent path for design order details
+      if (pathname.includes('/custom-template-orders/')) {
+        return '/staff/design-orders/custom-template-orders';
+      }
+      return pathname;
+    }
+    // For other sections
+    return pathname.split("/").slice(0, 3).join("/");
+  };
+
+  // Get open keys based on current path
+  const getOpenKeys = () => {
+    if (location.pathname.includes('/design-orders')) {
+      return ['design-orders'];
+    }
+    return [];
+  };
 
   return (
     <Sider
@@ -54,13 +55,12 @@ const StaffSidebar = ({ collapsed }) => {
     >
       <div className="logo-container">
         <img src={logo} alt="Logo" className="logo" />
-        {/* {!collapsed && <span className="logo-text">GreenSpace</span>} */}
       </div>
       <Menu
         theme="light"
         mode="inline"
-        selectedKeys={[location.pathname]}
-        defaultOpenKeys={collapsed ? [] : ["design-orders"]}
+        selectedKeys={[getSelectedKey(location.pathname)]}
+        defaultOpenKeys={collapsed ? [] : getOpenKeys()}
       >
         <Menu.Item key="/staff/dashboard" icon={<DashboardOutlined />}>
           <Link to="/staff/dashboard">Dashboard</Link>

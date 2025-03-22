@@ -300,6 +300,10 @@ const NewDesignOrdersList = () => {
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} đơn hàng`,
           }}
+          onRow={(record) => ({
+            onClick: () => handleViewDetail(record.id),
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
     </div>

@@ -11,7 +11,8 @@ export const customTemplateOrders = [
       address: '606 Đường VWX, Quận 9, TP.HCM'
     },
     orderDate: '2024-03-05T10:00:00Z',
-    area: 40,
+    area: 20,
+    areaCustom: 40,
     requirements: 'Thiết kế phòng khách và phòng ăn theo phong cách Minimalist. Tôi thích không gian thoáng đãng, màu sắc nhẹ nhàng.',
     attachments: [
       {
@@ -23,7 +24,51 @@ export const customTemplateOrders = [
         url: 'https://example.com/ideas.pdf'
       }
     ],
-    selectedMaterials: [],
+    customerImages: [
+      {
+        url: 'https://decoxdesign.com/upload/images/thiet-ke-balcony-01-decox-design.jpg',
+        name: 'Ảnh 1'
+      },
+      {
+        url: 'https://decoxdesign.com/upload/images/thiet-ke-balcony-01-decox-design.jpg',
+        name: 'Ảnh 1'
+      },
+      {
+        url: 'https://decoxdesign.com/upload/images/thiet-ke-balcony-01-decox-design.jpg',
+        name: 'Ảnh 1'
+      },
+      {
+        url: 'https://decoxdesign.com/upload/images/thiet-ke-balcony-01-decox-design.jpg',
+        name: 'Ảnh 1'
+      },
+      {
+        url: 'https://decoxdesign.com/upload/images/thiet-ke-balcony-01-decox-design.jpg',
+        name: 'Ảnh 1'
+      },
+      {
+        url: 'https://decoxdesign.com/upload/images/thiet-ke-balcony-01-decox-design.jpg',
+        name: 'Ảnh 1'
+      },
+    ],
+    selectedMaterials: [
+      {
+        category: 'Sàn',
+        items: [
+          {
+            name: 'Sàn 1',
+            quantity: 1,
+            unit: 'm2',
+            price: 1000000
+          },
+          {
+            name: 'Sàn 2',
+            quantity: 2,
+            unit: 'm2',
+            price: 2000000
+          }
+        ]
+      }
+    ],
     prices: {
       designFee: 6500000,
       totalMaterialCost: 0,
@@ -49,7 +94,7 @@ export const customTemplateOrders = [
         description: 'Đơn hàng được tạo'
       }
     ],
-    designer: ''
+    designer: 'test'
   },
   
   // Đơn hàng ở trạng thái tư vấn (consulting)

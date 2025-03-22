@@ -43,9 +43,12 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 // Add notification to imports
-import { notification } from 'antd';
+import { notification } from "antd";
+import { useRoleBasedPath } from "../../../hooks/useRoleBasedPath";
 
 const ProductDetail = () => {
+  const { getBasePath } = useRoleBasedPath();
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("info");
@@ -71,32 +74,31 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         const data = await getProductById(id);
-        setProductData(data);
-        // Cập nhật giá trị ban đầu cho form
-        form.setFieldsValue({
-          name: data.name,
-          category_id: data.category_id,
-          price: data.price,
-          stock: data.stock,
-          status: data.status === "active",
-          description: data.description,
-          specifications: {
-            material: data.specifications?.material,
-            dimensions: data.specifications?.dimensions,
-            weight: data.specifications?.weight,
-            warranty: data.specifications?.warranty,
-            origin: data.specifications?.origin,
-            care_instructions: data.specifications?.care_instructions,
-          },
-          highlights: data.highlights || [],
-        });
+        if (data) {
+          setProductData(data);
+          // Update form fields to match API response structure
+          form.setFieldsValue({
+            name: data.name,
+            categoryId: data.categoryId, // Changed from category_id
+            price: data.price,
+            stock: data.stock,
+            status: data.status === "active",
+            description: data.description,
+            size: data.size,
+          });
+        }
       } catch (err) {
         message.error("Không thể tải thông tin sản phẩm");
       }
     };
     if (id) fetchProduct();
-  }, [id, form]);
+  }, [id, form, getProductById]);
 
+  
+
+  const handleBack = () => {
+    navigate(`${getBasePath()}/products`);
+  };
   const handleUpdate = async (values) => {
     try {
       const updatedData = {
@@ -106,18 +108,18 @@ const ProductDetail = () => {
       };
       await updateProduct(id, updatedData);
       notification.success({
-        message: 'Thành công',
-        description: 'Cập nhật sản phẩm thành công',
-        placement: 'topRight',
+        message: "Thành công",
+        description: "Cập nhật sản phẩm thành công",
+        placement: "topRight",
       });
       setIsEditing(false);
       const newData = await getProductById(id);
       setProductData(newData);
     } catch (error) {
       notification.error({
-        message: 'Thất bại',
-        description: 'Cập nhật sản phẩm thất bại',
-        placement: 'topRight',
+        message: "Thất bại",
+        description: "Cập nhật sản phẩm thất bại",
+        placement: "topRight",
       });
     }
   };
@@ -149,16 +151,16 @@ const ProductDetail = () => {
         try {
           await deleteProduct(id);
           notification.success({
-            message: 'Thành công',
-            description: 'Xóa sản phẩm thành công',
-            placement: 'topRight',
+            message: "Thành công",
+            description: "Xóa sản phẩm thành công",
+            placement: "topRight",
           });
           navigate("/staff/products");
         } catch (error) {
           notification.error({
-            message: 'Thất bại',
-            description: 'Xóa sản phẩm thất bại',
-            placement: 'topRight',
+            message: "Thất bại",
+            description: "Xóa sản phẩm thất bại",
+            placement: "topRight",
           });
         }
       },
@@ -167,22 +169,26 @@ const ProductDetail = () => {
 
   if (isLoading) return <Spin size="large" className="loading-spinner" />;
   if (error)
-    return <Alert message="Lỗi" description={error} type="error" showIcon />;
+    return (
+      <>
+        <Button icon={<ArrowLeftOutlined />} onClick={handleBack}></Button>
+        <Alert message="Lỗi" description={error} type="error" showIcon />
+      </>
+    );
   if (!productData) return <Empty description="Không tìm thấy sản phẩm" />;
 
   return (
     <div className="product-detail-container">
-      <div style={{marginBottom: 10}}>
-        <Row justify="space-between" align="middle" >
+      <div style={{ marginBottom: 10 }}>
+        <Row justify="space-between" align="middle">
           <Col>
             <Space align="center">
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate("/staff/products")}
-              >
+              <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
                 Quay lại
               </Button>
-              <Title level={4} style={{ margin: 0 }}>Chi tiết sản phẩm: {productData.name}</Title>
+              <Title level={4} style={{ margin: 0 }}>
+                Chi tiết sản phẩm: {productData.name}
+              </Title>
             </Space>
           </Col>
           <Col>
@@ -231,12 +237,12 @@ const ProductDetail = () => {
                 width="100%"
                 style={{ borderRadius: 8 }}
               />
-              <Divider />
-              <Statistic
+              {/* <Divider /> */}
+              {/* <Statistic
                 title="Lượt xem"
                 value={productData.views}
                 prefix={<EyeOutlined />}
-              />
+              /> */}
               <Divider />
               <Statistic
                 title="Đã bán"
@@ -248,9 +254,9 @@ const ProductDetail = () => {
                 <Descriptions.Item label="Ngày tạo">
                   {dayjs(productData.createdAt).format("DD/MM/YYYY HH:mm")}
                 </Descriptions.Item>
-                <Descriptions.Item label="Cập nhật lần cuối">
+                {/* <Descriptions.Item label="Cập nhật lần cuối">
                   {dayjs(productData.updatedAt).format("DD/MM/YYYY HH:mm")}
-                </Descriptions.Item>
+                </Descriptions.Item> */}
               </Descriptions>
             </Card>
           </Col>
@@ -265,9 +271,10 @@ const ProductDetail = () => {
                         {productData.name}
                       </Descriptions.Item>
                       <Descriptions.Item label="Danh mục">
-                        {categories.find(
+                        {/* {categories.find(
                           (c) => c.id === productData.category_id
-                        )?.name || "Không xác định"}
+                        )?.name || "Không xác định"} */}
+                        {productData.categoryName || "Không xác định"}
                       </Descriptions.Item>
                       <Descriptions.Item label="Giá bán">
                         {productData.price.toLocaleString()} VND
@@ -275,15 +282,17 @@ const ProductDetail = () => {
                       <Descriptions.Item label="Tồn kho">
                         {productData.stock}
                       </Descriptions.Item>
-                      <Descriptions.Item label="Trạng thái">
+                      {/* <Descriptions.Item label="Trạng thái">
                         <Tag
                           color={
                             productData.status === "active" ? "green" : "red"
                           }
                         >
-                          {productData.status === "active" ? "Đang bán" : "Ngừng bán"}
+                          {productData.status === "active"
+                            ? "Đang bán"
+                            : "Ngừng bán"}
                         </Tag>
-                      </Descriptions.Item>
+                      </Descriptions.Item> */}
                       <Descriptions.Item label="Mô tả">
                         {productData.description}
                       </Descriptions.Item>
@@ -302,7 +311,6 @@ const ProductDetail = () => {
                         label="Danh mục"
                         rules={[{ required: true }]}
                       >
-                        
                         <Select>
                           {categories.map((c) => (
                             <Option key={c.id} value={c.id}>
