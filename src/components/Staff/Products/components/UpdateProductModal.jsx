@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   Form,
@@ -9,8 +9,9 @@ import {
   Row,
   Col,
   message,
+  Upload,
 } from "antd";
-import { CloudinaryMultiUpload } from "../../../../components/CloudinaryUpload";
+import { PlusOutlined } from "@ant-design/icons";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 
 const { Option } = Select;
@@ -25,15 +26,19 @@ const UpdateProductModal = ({
   product,
 }) => {
   const { uploadImages } = useCloudinaryStorage();
+  const [imageUrls, setImageUrls] = useState({
+    imageUrl: '',
+    image2: '',
+    image3: ''
+  });
 
-  // Cập nhật form khi product thay đổi
   useEffect(() => {
     if (product && visible) {
-      // Tạo mảng URLs ảnh từ product.image
-      const imageUrls = [];
-      if (product.image?.imageUrl) imageUrls[0] = product.image.imageUrl;
-      if (product.image?.image2) imageUrls[1] = product.image.image2;
-      if (product.image?.image3) imageUrls[2] = product.image.image3;
+      setImageUrls({
+        imageUrl: product.image?.imageUrl || '',
+        image2: product.image?.image2 || '',
+        image3: product.image?.image3 || ''
+      });
       
       form.setFieldsValue({
         name: product.name,
@@ -42,20 +47,14 @@ const UpdateProductModal = ({
         stock: product.stock,
         size: product.size,
         description: product.description,
-        images: imageUrls, // Set giá trị cho CloudinaryMultiUpload
       });
     }
   }, [product, form, visible]);
 
   const handleSubmit = async (values) => {
     try {
-      // Hiển thị thông báo đang xử lý
       const loadingMessage = message.loading("Đang xử lý...", 0);
       
-      // Lấy URLs ảnh từ form (đã được upload bởi CloudinaryMultiUpload)
-      const imageUrls = values.images || [];
-      
-      // Sử dụng ảnh mới nếu có, nếu không thì giữ nguyên ảnh cũ
       const productData = {
         name: values.name,
         categoryId: values.categoryId,
@@ -64,13 +63,12 @@ const UpdateProductModal = ({
         description: values.description || "",
         size: parseFloat(values.size) || 0,
         image: {
-          imageUrl: imageUrls[0] || product?.image?.imageUrl || "",
-          image2: imageUrls[1] || product?.image?.image2 || "",
-          image3: imageUrls[2] || product?.image?.image3 || "",
+          imageUrl: imageUrls.imageUrl,
+          image2: imageUrls.image2,
+          image3: imageUrls.image3,
         }
       };
 
-      // Gửi dữ liệu sản phẩm lên API
       await onSubmit(productData);
       loadingMessage();
       message.success("Cập nhật sản phẩm thành công");
@@ -80,6 +78,92 @@ const UpdateProductModal = ({
     }
   };
 
+  // Replace the CloudinaryMultiUpload with separate Upload components
+  const renderImageUpload = () => (
+    <Row gutter={16}>
+      <Col span={8}>
+        <Form.Item
+          name="imageUrl"
+          label="Ảnh chính"
+          rules={[{ required: true, message: "Vui lòng tải lên ảnh chính!" }]}
+        >
+          <Upload
+            listType="picture-card"
+            maxCount={1}
+            beforeUpload={async (file) => {
+              try {
+                const urls = await uploadImages([file]);
+                setImageUrls(prev => ({ ...prev, imageUrl: urls[0] }));
+                return false;
+              } catch (error) {
+                message.error("Tải ảnh thất bại");
+                return false;
+              }
+            }}
+          >
+            <div>
+              <PlusOutlined />
+              <div style={{ marginTop: 8 }}>Tải lên</div>
+            </div>
+          </Upload>
+        </Form.Item>
+      </Col>
+      <Col span={8}>
+        <Form.Item
+          name="image2"
+          label="Ảnh phụ 1"
+        >
+          <Upload
+            listType="picture-card"
+            maxCount={1}
+            beforeUpload={async (file) => {
+              try {
+                const urls = await uploadImages([file]);
+                setImageUrls(prev => ({ ...prev, image2: urls[0] }));
+                return false;
+              } catch (error) {
+                message.error("Tải ảnh thất bại");
+                return false;
+              }
+            }}
+          >
+            <div>
+              <PlusOutlined />
+              <div style={{ marginTop: 8 }}>Tải lên</div>
+            </div>
+          </Upload>
+        </Form.Item>
+      </Col>
+      <Col span={8}>
+        <Form.Item
+          name="image3"
+          label="Ảnh phụ 2"
+        >
+          <Upload
+            listType="picture-card"
+            maxCount={1}
+            beforeUpload={async (file) => {
+              try {
+                const urls = await uploadImages([file]);
+                setImageUrls(prev => ({ ...prev, image3: urls[0] }));
+                return false;
+              } catch (error) {
+                message.error("Tải ảnh thất bại");
+                return false;
+              }
+            }}
+          >
+            <div>
+              <PlusOutlined />
+              <div style={{ marginTop: 8 }}>Tải lên</div>
+            </div>
+          </Upload>
+        </Form.Item>
+      </Col>
+    </Row>
+  );
+
+  // Update the form to use the new image upload section
   return (
     <Modal
       title="Chỉnh sửa sản phẩm"
@@ -170,17 +254,7 @@ const UpdateProductModal = ({
           <Input.TextArea placeholder="Nhập mô tả" />
         </Form.Item>
 
-        {/* Image Upload Section */}
-        <Form.Item
-          name="images"
-          label="Hình ảnh sản phẩm"
-          rules={[{ required: true, message: "Vui lòng tải lên ít nhất một ảnh!" }]}
-        >
-          <CloudinaryMultiUpload 
-            labels={["Ảnh chính", "Ảnh phụ 1", "Ảnh phụ 2"]} 
-            maxCount={1}
-          />
-        </Form.Item>
+        {renderImageUpload()}
 
         <Form.Item className="form-actions">
           <Button onClick={onCancel} style={{ marginRight: 8 }}>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   Form,
@@ -9,9 +9,10 @@ import {
   Row,
   Col,
   message,
+  Upload,
 } from "antd";
-import { CloudinaryMultiUpload } from "../../../../components/CloudinaryUpload";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -25,14 +26,17 @@ const CreateProductModal = ({
 }) => {
   const { uploadImages } = useCloudinaryStorage();
 
+  const [imageUrls, setImageUrls] = useState({
+    imageUrl: "",
+    image2: "",
+    image3: "",
+  });
+
   const handleSubmit = async (values) => {
     try {
       // Hiển thị thông báo đang xử lý
       const loadingMessage = message.loading("Đang xử lý...", 0);
-      
-      // Lấy URLs ảnh từ form (đã được upload bởi CloudinaryMultiUpload)
-      const imageUrls = values.images || [];
-      
+
       // Tạo đối tượng dữ liệu sản phẩm với URL ảnh đã lấy được
       const productData = {
         name: values.name,
@@ -41,11 +45,12 @@ const CreateProductModal = ({
         stock: parseInt(values.stock),
         description: values.description || "",
         size: parseFloat(values.size) || 0,
+
         image: {
-          imageUrl: imageUrls[0] || "",
-          image2: imageUrls[1] || "",
-          image3: imageUrls[2] || "",
-        }
+          imageUrl: imageUrls.imageUrl || "",
+          image2: imageUrls.image2 || "",
+          image3: imageUrls.image3 || "",
+        },
       };
 
       console.log("📦 Sending productData:", productData);
@@ -151,16 +156,86 @@ const CreateProductModal = ({
         </Form.Item>
 
         {/* Image Upload Section */}
-        <Form.Item
-          name="images"
-          label="Hình ảnh sản phẩm"
-          rules={[{ required: true, message: "Vui lòng tải lên ít nhất một ảnh!" }]}
-        >
-          <CloudinaryMultiUpload 
-            labels={["Ảnh chính", "Ảnh phụ 1", "Ảnh phụ 2"]} 
-            maxCount={1}
-          />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="imageUrl"
+              label="Ảnh chính"
+              rules={[
+                { required: true, message: "Vui lòng tải lên ảnh chính!" },
+              ]}
+            >
+              <Upload
+                listType="picture-card"
+                maxCount={1}
+                beforeUpload={async (file) => {
+                  try {
+                    const urls = await uploadImages([file]);
+                    const newUrl = urls[0];
+                    setImageUrls((prev) => ({ ...prev, imageUrl: newUrl }));
+                    return false;
+                  } catch (error) {
+                    message.error("Tải ảnh thất bại");
+                    return false;
+                  }
+                }}
+              >
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                </div>
+              </Upload>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="image2" label="Ảnh phụ 1">
+              <Upload
+                listType="picture-card"
+                maxCount={1}
+                beforeUpload={async (file) => {
+                  try {
+                    const urls = await uploadImages([file]);
+                    const newUrl = urls[0];
+                    setImageUrls((prev) => ({...prev, image2: newUrl }));
+                    return false;
+                  } catch (error) {
+                    message.error("Tải ảnh thất bại");
+                    return false;
+                  }
+                }}
+              >
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                </div>
+              </Upload>
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item name="image3" label="Ảnh phụ 2">
+              <Upload
+                listType="picture-card"
+                maxCount={1}
+                beforeUpload={async (file) => {
+                  try {
+                    const urls = await uploadImages([file]);
+                    const newUrl = urls[0];
+                    setImageUrls((prev) => ({...prev, image3: newUrl }));
+                    return false;
+                  } catch (error) {
+                    message.error("Tải ảnh thất bại");
+                    return false;
+                  }
+                }}
+              >
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                </div>
+              </Upload>
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item className="form-actions">
           <Button onClick={onCancel} style={{ marginRight: 8 }}>

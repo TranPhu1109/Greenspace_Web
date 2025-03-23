@@ -68,77 +68,38 @@ const ProductDetail = () => {
 
   useEffect(() => {
     fetchCategories();
+    getProductById(id);
   }, [fetchCategories]);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const data = await getProductById(id);
-        if (data) {
-          setProductData(data);
-          // Update form fields to match API response structure
-          form.setFieldsValue({
-            name: data.name,
-            categoryId: data.categoryId, // Changed from category_id
-            price: data.price,
-            stock: data.stock,
-            status: data.status === "active",
-            description: data.description,
-            size: data.size,
-          });
-        }
-      } catch (err) {
-        message.error("Không thể tải thông tin sản phẩm");
-      }
-    };
-    if (id) fetchProduct();
-  }, [id, form, getProductById]);
+  // useEffect(() => {
+  //   const fetchProduct = async () => {
+  //     try {
+  //       const data = await getProductById(id);
+  //       if (data) {
+  //         setProductData(data);
+  //         // Update form fields to match API response structure
+  //         form.setFieldsValue({
+  //           name: data.name,
+  //           categoryId: data.categoryId, // Changed from category_id
+  //           price: data.price,
+  //           stock: data.stock,
+  //           status: data.status === "active",
+  //           description: data.description,
+  //           size: data.size,
+  //         });
+  //       }
+  //     } catch (err) {
+  //       message.error("Không thể tải thông tin sản phẩm");
+  //     }
+  //   };
+  //   if (id) fetchProduct();
+  // }, [id, form, getProductById]);
 
   
 
   const handleBack = () => {
     navigate(`${getBasePath()}/products`);
   };
-  const handleUpdate = async (values) => {
-    try {
-      const updatedData = {
-        ...productData, // Giữ lại tất cả dữ liệu cũ
-        ...values, // Cập nhật với dữ liệu mới
-        status: values.status ? "active" : "inactive",
-      };
-      await updateProduct(id, updatedData);
-      notification.success({
-        message: "Thành công",
-        description: "Cập nhật sản phẩm thành công",
-        placement: "topRight",
-      });
-      setIsEditing(false);
-      const newData = await getProductById(id);
-      setProductData(newData);
-    } catch (error) {
-      notification.error({
-        message: "Thất bại",
-        description: "Cập nhật sản phẩm thất bại",
-        placement: "topRight",
-      });
-    }
-  };
-
-  // Thêm hàm mới để xử lý khi bấm nút chỉnh sửa
-  const handleEdit = () => {
-    form.setFieldsValue({
-      name: productData.name,
-      category_id: productData.category_id,
-      price: productData.price,
-      stock: productData.stock,
-      status: productData.status === "active",
-      description: productData.description,
-      specifications: productData.specifications,
-      highlights: productData.highlights,
-    });
-    setIsEditing(true);
-  };
-
   // Update the handleDelete function
   const handleDelete = () => {
     Modal.confirm({
@@ -282,17 +243,7 @@ const ProductDetail = () => {
                       <Descriptions.Item label="Tồn kho">
                         {productData.stock}
                       </Descriptions.Item>
-                      {/* <Descriptions.Item label="Trạng thái">
-                        <Tag
-                          color={
-                            productData.status === "active" ? "green" : "red"
-                          }
-                        >
-                          {productData.status === "active"
-                            ? "Đang bán"
-                            : "Ngừng bán"}
-                        </Tag>
-                      </Descriptions.Item> */}
+                      
                       <Descriptions.Item label="Mô tả">
                         {productData.description}
                       </Descriptions.Item>

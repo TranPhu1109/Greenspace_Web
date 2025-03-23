@@ -194,21 +194,6 @@ const ProductsList = () => {
     }
   };
 
-  // // Make sure the category form field is properly set up
-  // <Form.Item
-  //   name="category_id"
-  //   label="Danh mục"
-  //   rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
-  // >
-  //   <Select placeholder="Chọn danh mục">
-  //     {categories.map((category) => (
-  //       <Option key={category.id} value={category.id}>
-  //         {category.name}
-  //       </Option>
-  //     ))}
-  //   </Select>
-  // </Form.Item>
-
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys) => {
