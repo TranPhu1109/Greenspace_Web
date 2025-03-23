@@ -77,60 +77,70 @@ createProduct: async (productData) => {
 updateProduct: async (id, productData) => {
   set({ isLoading: true, error: null });  
   try {
-    const requestBody = {
-      id: id,
-      name: productData.name,
-      categoryId: productData.categoryId,
-      price: productData.price,
-      stock: productData.stock,
-      description: productData.description,
-      size: productData.size || 0,
-      image: {
-        imageUrl: productData.image.imageUrl,
-        image2: productData.image.image2,
-        image3: productData.image.image3
-      }
-    };
-
-    const response = await axios.put(`/api/product/${id}`, requestBody, {
+    const response = await axios.put(`/api/product/${id}`, productData, {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     });
-
-    if (response.status === 200) {
-      const updatedProduct = {
-        id: id,
-        name: productData.name,
-        categoryId: productData.categoryId,
-        price: productData.price,
-        stock: productData.stock,
-        description: productData.description,
-        size: productData.size || 0,
-        image: productData.image
-      };
-      set(state => ({
-        products: state.products.map(product => product.id === id ? updatedProduct : product),
-        isLoading: false
-      }));
-      return response.data;
-    } 
-    throw new Error('Failed to update product');
+    return response.data;
   } catch (error) {
-    console.error('Error updating product:', error);
-    set({ error: error.message, isLoading: false });
     throw error;
-  } finally {
-    set({
-      selectedProduct: {
-        image: {
-          imageUrl: productData.image.imageUrl || '',
-          image2: productData.image.image2 || '',
-          image3: productData.image.image3 || ''
-        }
-      }
-    })
   }
+  // try {
+  //   const requestBody = {
+  //     id: id,
+  //     name: productData.name,
+  //     categoryId: productData.categoryId,
+  //     price: productData.price,
+  //     stock: productData.stock,
+  //     description: productData.description,
+  //     size: productData.size || 0,
+  //     image: {
+  //       imageUrl: productData.image.imageUrl,
+  //       image2: productData.image.image2,
+  //       image3: productData.image.image3
+  //     }
+  //   };
+
+  //   const response = await axios.put(`/api/product/${id}`, requestBody, {
+  //     headers: {
+  //       'Content-Type': 'application/json'
+  //     }
+  //   });
+
+  //   if (response.status === 200) {
+  //     const updatedProduct = {
+  //       id: id,
+  //       name: productData.name,
+  //       categoryId: productData.categoryId,
+  //       price: productData.price,
+  //       stock: productData.stock,
+  //       description: productData.description,
+  //       size: productData.size || 0,
+  //       image: productData.image
+  //     };
+  //     set(state => ({
+  //       products: state.products.map(product => product.id === id ? updatedProduct : product),
+  //       isLoading: false
+  //     }));
+  //     return response.data;
+  //   } 
+  //   throw new Error('Failed to update product');
+  // } catch (error) {
+  //   console.error('Error updating product:', error);
+  //   set({ error: error.message, isLoading: false });
+  //   throw error;
+  // } finally {
+  //   set({
+  //     selectedProduct: {
+  //       image: {
+  //         imageUrl: productData.image.imageUrl || '',
+  //         image2: productData.image.image2 || '',
+  //         image3: productData.image.image3 || ''
+  //       }
+  //     }
+  //   })
+  // }
 },
 
 deleteProduct: async (id) => {

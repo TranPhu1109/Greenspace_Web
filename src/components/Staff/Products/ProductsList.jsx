@@ -124,15 +124,6 @@ const ProductsList = () => {
   // Xử lý chỉnh sửa sản phẩm
   const handleEdit = (record) => {
     setEditingProduct(record);
-    form.setFieldsValue({
-      name: record.name,
-      price: record.price,
-      category_id: record.category_id,
-      stock: record.stock,
-      status: record.status,
-      description: record.description,
-      // Không set image vì Upload component không hỗ trợ
-    });
     setIsModalVisible(true);
   };
 
@@ -171,12 +162,11 @@ const ProductsList = () => {
 
   const handleSubmit = async (productData) => {
     try {
-      // Bây giờ productData đã được xử lý từ component con (CreateProductModal hoặc UpdateProductModal)
-
-      console.log('Submitting product data:', productData); // Add this for debugging
+      console.log("Submitting product data:", productData); // Add this for debugging
 
       if (editingProduct) {
-        await updateProduct(editingProduct.id, productData);
+        const productId = editingProduct.id;
+        await updateProduct(productId, productData);
         message.success("Cập nhật sản phẩm thành công");
       } else {
         await createProduct(productData);
@@ -186,9 +176,10 @@ const ProductsList = () => {
       await fetchProducts();
       setIsModalVisible(false);
       form.resetFields();
+      setEditingProduct(null);
       return true;
     } catch (error) {
-      console.error('Error submitting product:', error);
+      console.error("Error submitting product:", error);
       message.error("Có lỗi xảy ra: " + error.message);
       return false;
     }
@@ -215,14 +206,15 @@ const ProductsList = () => {
             className="imageUrl"
             width={50}
             height={50}
+            style={{ marginRight: "10px" }}
           />
-          <div className="product-details">
+          <Col className="product-details">
             <span className="product-name">{text}</span>
-            <span className="product-category">
+            <Tag color="processing" className="product-category">
               {getCategoryNameById(record.categoryId)}
               {/* {record.categoryName} */}
-            </span>
-          </div>
+            </Tag>
+          </Col>
         </div>
       ),
       sorter: (a, b) => a.name.localeCompare(b.name),
@@ -252,13 +244,28 @@ const ProductsList = () => {
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "stock",
       key: "status",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Đang bán" : "Ngừng bán"}
-        </Tag>
-      ),
+      render: (stock) => {
+        if (stock === 0) {
+          return <Tag color="red">Hết hàng</Tag>;
+        } else if (stock <= 10) {
+          return <Tag color="orange">Sắp hết hàng</Tag>;
+        } else {
+          return <Tag color="green">Còn hàng</Tag>;
+        }
+      },
+      filters: [
+        { text: "Hết hàng", value: "out" },
+        { text: "Sắp hết hàng", value: "low" },
+        { text: "Còn hàng", value: "in" },
+      ],
+      onFilter: (value, record) => {
+        if (value === "out") return record.stock === 0;
+        if (value === "low") return record.stock > 0 && record.stock <= 10;
+        if (value === "in") return record.stock > 10;
+        return true;
+      },
     },
     {
       title: "Hành động",
@@ -294,18 +301,30 @@ const ProductsList = () => {
   ];
 
   // Add this before the return statement, after columns definition
+  // Update the filteredData logic
   const filteredData = Array.isArray(products)
     ? products.filter((item) => {
-        const matchSearch = searchText
-          ? item.name.toLowerCase().includes(searchText.toLowerCase())
-          : true;
+        // Search across multiple fields
+        const searchFields = [
+          item.name,
+          item.description,
+          getCategoryNameById(item.categoryId),
+          item.price?.toString(),
+          item.stock?.toString(),
+        ].map(field => (field || '').toLowerCase());
+
+        const matchSearch = !searchText || searchFields.some(field => 
+          field.includes(searchText.toLowerCase())
+        );
 
         const matchCategory = filterCategory
           ? item.categoryId === parseInt(filterCategory)
           : true;
 
         const matchStatus = filterStatus
-          ? item.status === filterStatus
+          ? (filterStatus === 'out' && item.stock === 0) ||
+            (filterStatus === 'low' && item.stock > 0 && item.stock <= 10) ||
+            (filterStatus === 'in' && item.stock > 10)
           : true;
 
         return matchSearch && matchCategory && matchStatus;
@@ -348,8 +367,9 @@ const ProductsList = () => {
               onChange={handleStatusFilter}
               allowClear
             >
-              <Option value="active">Đang bán</Option>
-              <Option value="inactive">Ngừng bán</Option>
+              <Option value="out">Hết hàng</Option>
+              <Option value="low">Sắp hết hàng</Option>
+              <Option value="in">Còn hàng</Option>
             </Select>
           </Col>
           <Col flex="auto" style={{ textAlign: "right" }}>
@@ -405,7 +425,7 @@ const ProductsList = () => {
         categories={categories}
         isLoading={isLoading}
       />
-      
+
       {/* Edit Product Modal */}
       <UpdateProductModal
         visible={isModalVisible && !!editingProduct}

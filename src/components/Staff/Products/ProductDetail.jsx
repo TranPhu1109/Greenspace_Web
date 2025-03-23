@@ -67,39 +67,70 @@ const ProductDetail = () => {
   const [productData, setProductData] = useState(null);
 
   useEffect(() => {
-    fetchCategories();
-    getProductById(id);
-  }, [fetchCategories]);
+    const fetchData = async () => {
+      try {
+        await fetchCategories();
+        const data = await getProductById(id);
+        if (data) {
+          setProductData(data);
+          form.setFieldsValue({
+            name: data.name,
+            categoryId: data.categoryId,
+            price: data.price,
+            stock: data.stock,
+            status: data.status === "active",
+            description: data.description,
+            size: data.size,
+            specifications: data.specifications,
+            highlights: data.highlights,
+          });
+        }
+      } catch (error) {
+        // message.error("Không thể tải thông tin sản phẩm");
+      }
+    };
 
-  // useEffect(() => {
-  //   const fetchProduct = async () => {
-  //     try {
-  //       const data = await getProductById(id);
-  //       if (data) {
-  //         setProductData(data);
-  //         // Update form fields to match API response structure
-  //         form.setFieldsValue({
-  //           name: data.name,
-  //           categoryId: data.categoryId, // Changed from category_id
-  //           price: data.price,
-  //           stock: data.stock,
-  //           status: data.status === "active",
-  //           description: data.description,
-  //           size: data.size,
-  //         });
-  //       }
-  //     } catch (err) {
-  //       message.error("Không thể tải thông tin sản phẩm");
-  //     }
-  //   };
-  //   if (id) fetchProduct();
-  // }, [id, form, getProductById]);
-
-  
+    if (id) {
+      fetchData();
+    }
+  }, [id, form, getProductById, fetchCategories]);
 
   const handleBack = () => {
     navigate(`${getBasePath()}/products`);
   };
+  const handleUpdate = async (values) => {
+    try {
+      const updatedData = {
+        ...productData, // Giữ lại tất cả dữ liệu cũ
+        ...values, // Cập nhật với dữ liệu mới
+        status: values.status ? "active" : "inactive",
+      };
+      await updateProduct(id, updatedData);
+      message.success("Cập nhật sản phẩm thành công");
+      setIsEditing(false);
+      const newData = await getProductById(id);
+      setProductData(newData);
+    } catch (error) {
+      message.success("Cập nhật sản phẩm thất bại");
+    }
+  };
+
+  // Thêm hàm mới để xử lý khi bấm nút chỉnh sửa
+  const handleEdit = () => {
+    form.setFieldsValue({
+      name: productData.name,
+      category_id: productData.categoryId,
+      price: productData.price,
+      stock: productData.stock,
+      // status: productData.status === "active",
+      size: productData.size,
+      description: productData.description,
+      specifications: productData.specifications,
+      highlights: productData.highlights,
+    });
+    setIsEditing(true);
+  };
+
   // Update the handleDelete function
   const handleDelete = () => {
     Modal.confirm({
@@ -137,7 +168,7 @@ const ProductDetail = () => {
       </>
     );
   if (!productData) return <Empty description="Không tìm thấy sản phẩm" />;
-
+  console.log(productData);
   return (
     <div className="product-detail-container">
       <div style={{ marginBottom: 10 }}>
@@ -192,32 +223,59 @@ const ProductDetail = () => {
         <Row gutter={[16, 16]}>
           <Col span={10}>
             <Card>
-              <Image
-                src={productData.thumbnail}
-                alt="Hình ảnh sản phẩm"
-                width="100%"
-                style={{ borderRadius: 8 }}
-              />
-              {/* <Divider /> */}
-              {/* <Statistic
-                title="Lượt xem"
-                value={productData.views}
-                prefix={<EyeOutlined />}
-              /> */}
+              <Row gutter={[8, 8]}>
+                <Col span={24}>
+                  <Image
+                    src={productData.image.imageUrl}
+                    alt="Hình ảnh sản phẩm chính"
+                    width="100%"
+                    style={{ borderRadius: 8 }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Image
+                    src={
+                      productData.image.imageUrl2 || productData.image.imageUrl
+                    }
+                    alt="Hình ảnh phụ 1"
+                    width="100%"
+                    style={{ borderRadius: 8 }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Image
+                    src={
+                      productData.image.imageUrl3 || productData.image.imageUrl
+                    }
+                    alt="Hình ảnh phụ 2"
+                    width="100%"
+                    style={{ borderRadius: 8 }}
+                  />
+                </Col>
+              </Row>
               <Divider />
-              <Statistic
-                title="Đã bán"
-                value={productData.salesCount}
-                prefix={<ShoppingOutlined />}
-              />
+              <Row>
+                <Col flex="auto">
+                  <Statistic
+                    title="Tồn kho"
+                    value={productData.stock}
+                    prefix={<ShoppingOutlined />}
+                  />
+                </Col>
+                <Col flex="auto">
+                  <Statistic
+                    title="Đã bán"
+                    value={productData.salesCount}
+                    prefix={<ShoppingOutlined />}
+                  />
+                </Col>
+              </Row>
+
               <Divider />
               <Descriptions column={1}>
                 <Descriptions.Item label="Ngày tạo">
                   {dayjs(productData.createdAt).format("DD/MM/YYYY HH:mm")}
                 </Descriptions.Item>
-                {/* <Descriptions.Item label="Cập nhật lần cuối">
-                  {dayjs(productData.updatedAt).format("DD/MM/YYYY HH:mm")}
-                </Descriptions.Item> */}
               </Descriptions>
             </Card>
           </Col>
@@ -238,12 +296,14 @@ const ProductDetail = () => {
                         {productData.categoryName || "Không xác định"}
                       </Descriptions.Item>
                       <Descriptions.Item label="Giá bán">
-                        {productData.price.toLocaleString()} VND
+                        {productData.price.toLocaleString()}đ
                       </Descriptions.Item>
                       <Descriptions.Item label="Tồn kho">
                         {productData.stock}
                       </Descriptions.Item>
-                      
+                      <Descriptions.Item label="Kích thước">
+                        {productData.size}
+                      </Descriptions.Item>
                       <Descriptions.Item label="Mô tả">
                         {productData.description}
                       </Descriptions.Item>
@@ -258,7 +318,7 @@ const ProductDetail = () => {
                         <Input />
                       </Form.Item>
                       <Form.Item
-                        name="category_id"
+                        name="categoryId"
                         label="Danh mục"
                         rules={[{ required: true }]}
                       >
@@ -269,6 +329,13 @@ const ProductDetail = () => {
                             </Option>
                           ))}
                         </Select>
+                      </Form.Item>
+                      <Form.Item
+                        name="size"
+                        label="Kích thước"
+                        rules={[{ required: true }]}
+                      >
+                        <InputNumber style={{ width: "100%" }} />
                       </Form.Item>
                       <Form.Item
                         name="price"
@@ -284,128 +351,120 @@ const ProductDetail = () => {
                       >
                         <InputNumber style={{ width: "100%" }} />
                       </Form.Item>
-                      <Form.Item
-                        name="status"
-                        label="Trạng thái"
-                        valuePropName="checked"
-                      >
-                        <Switch
-                          checkedChildren="Đang bán"
-                          unCheckedChildren="Ngừng bán"
-                        />
-                      </Form.Item>
                       <Form.Item name="description" label="Mô tả">
                         <TextArea rows={4} />
                       </Form.Item>
                     </>
                   )}
                 </TabPane>
-
-                <TabPane tab="Thông số kỹ thuật" key="specifications">
-                  {!isEditing ? (
-                    <Descriptions bordered column={1}>
-                      <Descriptions.Item label="Chất liệu">
-                        {productData.specifications?.material}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Kích thước">
-                        {productData.specifications?.dimensions}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Trọng lượng">
-                        {productData.specifications?.weight}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Bảo hành">
-                        {productData.specifications?.warranty}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Xuất xứ">
-                        {productData.specifications?.origin}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Hướng dẫn bảo quản">
-                        {productData.specifications?.care_instructions}
-                      </Descriptions.Item>
-                    </Descriptions>
-                  ) : (
-                    <>
-                      <Form.Item
-                        name={["specifications", "material"]}
-                        label="Chất liệu"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "dimensions"]}
-                        label="Kích thước"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "weight"]}
-                        label="Trọng lượng"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "warranty"]}
-                        label="Bảo hành"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "origin"]}
-                        label="Xuất xứ"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "care_instructions"]}
-                        label="Hướng dẫn bảo quản"
-                      >
-                        <TextArea rows={3} />
-                      </Form.Item>
-                    </>
-                  )}
-                </TabPane>
-
-                <TabPane tab="Điểm nổi bật" key="highlights">
-                  {!isEditing ? (
-                    <ul className="highlights-list">
-                      {productData.highlights?.map((highlight, index) => (
-                        <li key={index}>{highlight}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <Form.List name="highlights">
-                      {(fields, { add, remove }) => (
-                        <>
-                          {fields.map((field, index) => (
-                            <Form.Item required={false} key={field.key}>
-                              <Form.Item
-                                {...field}
-                                validateTrigger={["onChange", "onBlur"]}
-                                noStyle
-                              >
-                                <Input
-                                  style={{ width: "95%" }}
-                                  placeholder="Nhập điểm nổi bật"
-                                />
+                <Tabs activeKey={activeTab} onChange={setActiveTab}>
+                  <TabPane tab="Thông số kỹ thuật" key="specifications">
+                    {!isEditing ? (
+                      <Descriptions bordered column={1}>
+                        <Descriptions.Item label="Chất liệu">
+                          {productData.specifications?.material}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Kích thước">
+                          {productData.specifications?.dimensions}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trọng lượng">
+                          {productData.specifications?.weight}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Bảo hành">
+                          {productData.specifications?.warranty}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Xuất xứ">
+                          {productData.specifications?.origin}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Hướng dẫn bảo quản">
+                          {productData.specifications?.care_instructions}
+                        </Descriptions.Item>
+                      </Descriptions>
+                    ) : (
+                      <>
+                        <Form.Item
+                          name={["specifications", "material"]}
+                          label="Chất liệu"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "dimensions"]}
+                          label="Kích thước"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "weight"]}
+                          label="Trọng lượng"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "warranty"]}
+                          label="Bảo hành"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "origin"]}
+                          label="Xuất xứ"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "care_instructions"]}
+                          label="Hướng dẫn bảo quản"
+                        >
+                          <TextArea rows={3} />
+                        </Form.Item>
+                      </>
+                    )}
+                  </TabPane>
+                </Tabs>
+                <Tabs activeKey={activeTab} onChange={setActiveTab}>
+                  <TabPane tab="Điểm nổi bật" key="highlights">
+                    {!isEditing ? (
+                      <ul className="highlights-list">
+                        {productData.highlights?.map((highlight, index) => (
+                          <li key={index}>{highlight}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <Form.List name="highlights">
+                        {(fields, { add, remove }) => (
+                          <>
+                            {fields.map((field, index) => (
+                              <Form.Item required={false} key={field.key}>
+                                <Form.Item
+                                  {...field}
+                                  validateTrigger={["onChange", "onBlur"]}
+                                  noStyle
+                                >
+                                  <Input
+                                    style={{ width: "95%" }}
+                                    placeholder="Nhập điểm nổi bật"
+                                  />
+                                </Form.Item>
+                                <Button
+                                  type="link"
+                                  onClick={() => remove(field.name)}
+                                >
+                                  Xóa
+                                </Button>
                               </Form.Item>
-                              <Button
-                                type="link"
-                                onClick={() => remove(field.name)}
-                              >
-                                Xóa
+                            ))}
+                            <Form.Item>
+                              <Button type="dashed" onClick={() => add()} block>
+                                Thêm điểm nổi bật
                               </Button>
                             </Form.Item>
-                          ))}
-                          <Form.Item>
-                            <Button type="dashed" onClick={() => add()} block>
-                              Thêm điểm nổi bật
-                            </Button>
-                          </Form.Item>
-                        </>
-                      )}
-                    </Form.List>
-                  )}
-                </TabPane>
+                          </>
+                        )}
+                      </Form.List>
+                    )}
+                  </TabPane>
+                </Tabs>
               </Tabs>
             </Card>
           </Col>

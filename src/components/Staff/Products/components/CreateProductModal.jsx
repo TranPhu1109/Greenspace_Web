@@ -10,9 +10,12 @@ import {
   Col,
   message,
   Upload,
+  Divider,
+  Space,
 } from "antd";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 import { PlusOutlined } from "@ant-design/icons";
+import useProductStore from "@/stores/useProductStore";
 
 const { Option } = Select;
 
@@ -25,19 +28,71 @@ const CreateProductModal = ({
   isLoading,
 }) => {
   const { uploadImages } = useCloudinaryStorage();
+  const [newCategory, setNewCategory] = useState("");
+  const [categoryDescription, setCategoryDescription] = useState("");
+  const { createCategory } = useProductStore();
+  const [isDuplicateCategory, setIsDuplicateCategory] = useState(false);
+  const [isDuplicateProduct, setIsDuplicateProduct] = useState(false);
+  const { products } = useProductStore();
 
-  const [imageUrls, setImageUrls] = useState({
-    imageUrl: "",
-    image2: "",
-    image3: "",
+  const handleCreateCategory = async () => {
+    try {
+      if (!newCategory) return;
+      const newCategoryData = {
+        name: newCategory,
+        description: categoryDescription,
+      };
+      await createCategory(newCategoryData);
+      setNewCategory("");
+      setCategoryDescription("");
+      message.success("Tạo danh mục mới thành công");
+    } catch (error) {
+      message.error("Không thể tạo danh mục mới: " + error.message);
+    }
+  };
+
+  // State to store selected files before upload
+  const [selectedFiles, setSelectedFiles] = useState({
+    imageUrl: null,
+    image2: null,
+    image3: null,
   });
 
   const handleSubmit = async (values) => {
     try {
-      // Hiển thị thông báo đang xử lý
       const loadingMessage = message.loading("Đang xử lý...", 0);
 
-      // Tạo đối tượng dữ liệu sản phẩm với URL ảnh đã lấy được
+      // Upload images only when form is submitted
+      const uploadPromises = [];
+      const imageUrls = { imageUrl: "", image2: "", image3: "" };
+
+      if (selectedFiles.imageUrl) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.imageUrl]).then((urls) => {
+            imageUrls.imageUrl = urls[0];
+          })
+        );
+      }
+
+      if (selectedFiles.image2) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.image2]).then((urls) => {
+            imageUrls.image2 = urls[0];
+          })
+        );
+      }
+
+      if (selectedFiles.image3) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.image3]).then((urls) => {
+            imageUrls.image3 = urls[0];
+          })
+        );
+      }
+
+      // Wait for all images to upload
+      await Promise.all(uploadPromises);
+
       const productData = {
         name: values.name,
         categoryId: values.categoryId,
@@ -45,24 +100,38 @@ const CreateProductModal = ({
         stock: parseInt(values.stock),
         description: values.description || "",
         size: parseFloat(values.size) || 0,
-
-        image: {
-          imageUrl: imageUrls.imageUrl || "",
-          image2: imageUrls.image2 || "",
-          image3: imageUrls.image3 || "",
-        },
+        image: imageUrls,
       };
 
-      console.log("📦 Sending productData:", productData);
-
-      // Gửi dữ liệu sản phẩm lên API
       await onSubmit(productData);
       loadingMessage();
-      message.success("Tạo sản phẩm thành công");
+
+      // Reset selected files after successful submission
+      setSelectedFiles({
+        imageUrl: null,
+        image2: null,
+        image3: null,
+      });
     } catch (error) {
       console.error("Error submitting product:", error);
       message.error("Có lỗi xảy ra: " + error.message);
     }
+  };
+
+  // Add these validation functions
+  const checkDuplicateCategory = (value) => {
+    const isDuplicate = categories.some(
+      (category) => category.name.toLowerCase() === value.toLowerCase()
+    );
+    setIsDuplicateCategory(isDuplicate);
+    setNewCategory(value);
+  };
+
+  const checkDuplicateProduct = (value) => {
+    const isDuplicate = products.some(
+      (product) => product.name.toLowerCase() === value.toLowerCase()
+    );
+    setIsDuplicateProduct(isDuplicate);
   };
 
   return (
@@ -81,9 +150,20 @@ const CreateProductModal = ({
               label="Tên sản phẩm"
               rules={[
                 { required: true, message: "Vui lòng nhập tên sản phẩm!" },
+                {
+                  validator: async (_, value) => {
+                    if (value && isDuplicateProduct) {
+                      throw new Error("Tên sản phẩm đã tồn tại");
+                    }
+                  },
+                },
               ]}
             >
-              <Input placeholder="Nhập tên sản phẩm" />
+              <Input
+                placeholder="Nhập tên sản phẩm"
+                onChange={(e) => checkDuplicateProduct(e.target.value)}
+                status={isDuplicateProduct ? "error" : ""}
+              />
             </Form.Item>
 
             <Form.Item
@@ -109,7 +189,45 @@ const CreateProductModal = ({
               label="Danh mục"
               rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
             >
-              <Select placeholder="Chọn danh mục">
+              <Select
+                placeholder="Chọn danh mục"
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                    <Divider style={{ margin: "8px 0" }} />
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Input
+                        placeholder="Tên danh mục mới"
+                        value={newCategory}
+                        onChange={(e) => checkDuplicateCategory(e.target.value)}
+                        status={isDuplicateCategory ? "error" : ""}
+                      />
+                      {isDuplicateCategory && (
+                        <div style={{ color: "#ff4d4f", fontSize: "12px" }}>
+                          Tên danh mục đã tồn tại
+                        </div>
+                      )}
+                      <Input.TextArea
+                        placeholder="Mô tả danh mục"
+                        value={categoryDescription}
+                        onChange={(e) => setCategoryDescription(e.target.value)}
+                        rows={2}
+                      />
+                      <div
+                        style={{ display: "flex", justifyContent: "flex-end" }}
+                      >
+                        <Button
+                          type="primary"
+                          onClick={handleCreateCategory}
+                          disabled={!newCategory || !categoryDescription}
+                        >
+                          Thêm danh mục mới
+                        </Button>
+                      </div>
+                    </Space>
+                  </>
+                )}
+              >
                 {categories.map((category) => (
                   <Option key={category.id} value={category.id}>
                     {category.name}
@@ -117,6 +235,20 @@ const CreateProductModal = ({
                 ))}
               </Select>
             </Form.Item>
+
+            {/* <Form.Item
+              name="categoryId"
+              label="Danh mục"
+              rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
+            >
+              <Select placeholder="Chọn danh mục">
+                {categories.map((category) => (
+                  <Option key={category.id} value={category.id}>
+                    {category.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item> */}
           </Col>
 
           <Col span={12}>
@@ -151,7 +283,16 @@ const CreateProductModal = ({
           </Col>
         </Row>
 
-        <Form.Item name="description" label="Mô tả">
+        <Form.Item
+          name="description"
+          label="Mô tả"
+          rules={[
+            {
+              required: true,
+              message: "Vui lòng nhập mô tả!",
+            },
+          ]}
+        >
           <Input.TextArea placeholder="Nhập mô tả" />
         </Form.Item>
 
@@ -168,16 +309,12 @@ const CreateProductModal = ({
               <Upload
                 listType="picture-card"
                 maxCount={1}
-                beforeUpload={async (file) => {
-                  try {
-                    const urls = await uploadImages([file]);
-                    const newUrl = urls[0];
-                    setImageUrls((prev) => ({ ...prev, imageUrl: newUrl }));
-                    return false;
-                  } catch (error) {
-                    message.error("Tải ảnh thất bại");
-                    return false;
-                  }
+                beforeUpload={(file) => {
+                  setSelectedFiles((prev) => ({ ...prev, imageUrl: file }));
+                  return false; // Prevent automatic upload
+                }}
+                onRemove={() => {
+                  setSelectedFiles((prev) => ({ ...prev, imageUrl: null }));
                 }}
               >
                 <div>
@@ -192,16 +329,12 @@ const CreateProductModal = ({
               <Upload
                 listType="picture-card"
                 maxCount={1}
-                beforeUpload={async (file) => {
-                  try {
-                    const urls = await uploadImages([file]);
-                    const newUrl = urls[0];
-                    setImageUrls((prev) => ({...prev, image2: newUrl }));
-                    return false;
-                  } catch (error) {
-                    message.error("Tải ảnh thất bại");
-                    return false;
-                  }
+                beforeUpload={(file) => {
+                  setSelectedFiles((prev) => ({ ...prev, image2: file }));
+                  return false; // Prevent automatic upload
+                }}
+                onRemove={() => {
+                  setSelectedFiles((prev) => ({ ...prev, image2: null }));
                 }}
               >
                 <div>
@@ -216,16 +349,12 @@ const CreateProductModal = ({
               <Upload
                 listType="picture-card"
                 maxCount={1}
-                beforeUpload={async (file) => {
-                  try {
-                    const urls = await uploadImages([file]);
-                    const newUrl = urls[0];
-                    setImageUrls((prev) => ({...prev, image3: newUrl }));
-                    return false;
-                  } catch (error) {
-                    message.error("Tải ảnh thất bại");
-                    return false;
-                  }
+                beforeUpload={(file) => {
+                  setSelectedFiles((prev) => ({ ...prev, image3: file }));
+                  return false; // Prevent automatic upload
+                }}
+                onRemove={() => {
+                  setSelectedFiles((prev) => ({ ...prev, image3: null }));
                 }}
               >
                 <div>
@@ -237,7 +366,10 @@ const CreateProductModal = ({
           </Col>
         </Row>
 
-        <Form.Item className="form-actions">
+        <Form.Item
+          className="form-actions"
+          style={{ textAlign: "right", marginTop: 10 }}
+        >
           <Button onClick={onCancel} style={{ marginRight: 8 }}>
             Hủy
           </Button>

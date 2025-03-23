@@ -26,20 +26,16 @@ const UpdateProductModal = ({
   product,
 }) => {
   const { uploadImages } = useCloudinaryStorage();
-  const [imageUrls, setImageUrls] = useState({
-    imageUrl: '',
-    image2: '',
-    image3: ''
+
+  // State to store selected files before upload
+  const [selectedFiles, setSelectedFiles] = useState({
+    imageUrl: null,
+    image2: null,
+    image3: null,
   });
 
   useEffect(() => {
     if (product && visible) {
-      setImageUrls({
-        imageUrl: product.image?.imageUrl || '',
-        image2: product.image?.image2 || '',
-        image3: product.image?.image3 || ''
-      });
-      
       form.setFieldsValue({
         name: product.name,
         categoryId: product.categoryId,
@@ -54,52 +50,106 @@ const UpdateProductModal = ({
   const handleSubmit = async (values) => {
     try {
       const loadingMessage = message.loading("Đang xử lý...", 0);
-      
+
+      // Upload images only when form is submitted and new files are selected
+      const uploadPromises = [];
+      const imageUrls = {
+        imageUrl: product?.image?.imageUrl || "",
+        image2: product?.image?.image2 || "",
+        image3: product?.image?.image3 || "",
+      };
+
+      // Only process image uploads if there are new files
+      if (selectedFiles.imageUrl || selectedFiles.image2 || selectedFiles.image3) {
+        if (selectedFiles.imageUrl) {
+          uploadPromises.push(
+            uploadImages([selectedFiles.imageUrl]).then((urls) => {
+              imageUrls.imageUrl = urls[0];
+            })
+          );
+        }
+
+        if (selectedFiles.image2) {
+          uploadPromises.push(
+            uploadImages([selectedFiles.image2]).then((urls) => {
+              imageUrls.image2 = urls[0];
+            })
+          );
+        }
+
+        if (selectedFiles.image3) {
+          uploadPromises.push(
+            uploadImages([selectedFiles.image3]).then((urls) => {
+              imageUrls.image3 = urls[0];
+            })
+          );
+        }
+
+        await Promise.all(uploadPromises);
+      }
+
       const productData = {
+        ...product,
         name: values.name,
         categoryId: values.categoryId,
         price: parseFloat(values.price),
         stock: parseInt(values.stock),
         description: values.description || "",
         size: parseFloat(values.size) || 0,
-        image: {
-          imageUrl: imageUrls.imageUrl,
-          image2: imageUrls.image2,
-          image3: imageUrls.image3,
-        }
       };
+
+      // Only include image data if there are either existing images or new uploads
+      if (selectedFiles.imageUrl || selectedFiles.image2 || selectedFiles.image3 || 
+          product?.image?.imageUrl || product?.image?.image2 || product?.image?.image3) {
+        productData.image = imageUrls;
+      }
 
       await onSubmit(productData);
       loadingMessage();
-      message.success("Cập nhật sản phẩm thành công");
+
+      // Reset selected files after successful submission
+      setSelectedFiles({
+        imageUrl: null,
+        image2: null,
+        image3: null,
+      });
     } catch (error) {
       console.error("Error updating product:", error);
       message.error("Có lỗi xảy ra: " + error.message);
     }
   };
 
-  // Replace the CloudinaryMultiUpload with separate Upload components
+  // Update the image upload section
   const renderImageUpload = () => (
     <Row gutter={16}>
       <Col span={8}>
         <Form.Item
           name="imageUrl"
           label="Ảnh chính"
-          rules={[{ required: true, message: "Vui lòng tải lên ảnh chính!" }]}
+          rules={[{ required: false }]}
         >
           <Upload
             listType="picture-card"
             maxCount={1}
-            beforeUpload={async (file) => {
-              try {
-                const urls = await uploadImages([file]);
-                setImageUrls(prev => ({ ...prev, imageUrl: urls[0] }));
-                return false;
-              } catch (error) {
-                message.error("Tải ảnh thất bại");
-                return false;
-              }
+            beforeUpload={(file) => {
+              setSelectedFiles((prev) => ({ ...prev, imageUrl: file }));
+              return false;
             }}
+            onRemove={() => {
+              setSelectedFiles((prev) => ({ ...prev, imageUrl: null }));
+            }}
+            defaultFileList={
+              product?.image?.imageUrl
+                ? [
+                    {
+                      uid: "-1",
+                      name: "image.png",
+                      status: "done",
+                      url: product.image.imageUrl,
+                    },
+                  ]
+                : []
+            }
           >
             <div>
               <PlusOutlined />
@@ -108,24 +158,35 @@ const UpdateProductModal = ({
           </Upload>
         </Form.Item>
       </Col>
+
       <Col span={8}>
         <Form.Item
           name="image2"
           label="Ảnh phụ 1"
+          rules={[{ required: false }]}
         >
           <Upload
             listType="picture-card"
             maxCount={1}
-            beforeUpload={async (file) => {
-              try {
-                const urls = await uploadImages([file]);
-                setImageUrls(prev => ({ ...prev, image2: urls[0] }));
-                return false;
-              } catch (error) {
-                message.error("Tải ảnh thất bại");
-                return false;
-              }
+            beforeUpload={(file) => {
+              setSelectedFiles((prev) => ({ ...prev, image2: file }));
+              return false;
             }}
+            onRemove={() => {
+              setSelectedFiles((prev) => ({ ...prev, image2: null }));
+            }}
+            defaultFileList={
+              product?.image?.image2
+                ? [
+                    {
+                      uid: "-1",
+                      name: "image.png",
+                      status: "done",
+                      url: product.image.image2,
+                    },
+                  ]
+                : []
+            }
           >
             <div>
               <PlusOutlined />
@@ -134,25 +195,36 @@ const UpdateProductModal = ({
           </Upload>
         </Form.Item>
       </Col>
+
       <Col span={8}>
         <Form.Item
           name="image3"
           label="Ảnh phụ 2"
+          rules={[{ required: false }]}
         >
           <Upload
             listType="picture-card"
             maxCount={1}
-            beforeUpload={async (file) => {
-              try {
-                const urls = await uploadImages([file]);
-                setImageUrls(prev => ({ ...prev, image3: urls[0] }));
-                return false;
-              } catch (error) {
-                message.error("Tải ảnh thất bại");
-                return false;
-              }
+            beforeUpload={(file) => {
+              setSelectedFiles((prev) => ({ ...prev, image3: file }));
+              return false;
             }}
-          >
+            onRemove={() => {
+              setSelectedFiles((prev) => ({ ...prev, image3: null }));
+            }}
+            defaultFileList={
+              product?.image?.image3
+                ? [
+                    {
+                      uid: "-1",
+                      name: "image.png",
+                      status: "done",
+                      url: product.image.image3,
+                    },
+                  ]
+                : []
+            }
+            >
             <div>
               <PlusOutlined />
               <div style={{ marginTop: 8 }}>Tải lên</div>
