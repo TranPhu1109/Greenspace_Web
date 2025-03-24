@@ -36,7 +36,8 @@ const NewDesignOrderDetail = () => {
         setOrder(orderData);
       } else {
         message.error('Không tìm thấy đơn hàng');
-        navigate('/admin/design-orders/new-design-orders');
+        // navigate('/admin/design-orders/new-design-orders');
+        navigate('/design-orders/new-design-orders');
       }
     } catch (error) {
       console.error("Error fetching order:", error);

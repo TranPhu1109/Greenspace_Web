@@ -61,7 +61,8 @@ const NewDesignOrdersList = () => {
   };
 
   const handleViewDetail = (id) => {
-    navigate(`/admin/design-orders/new-design-orders/${id}`);
+    // navigate(`/admin/design-orders/new-design-orders/${id}`);
+    navigate(`/staff/design-orders/new-design-orders/${id}`);
   };
 
   const handleFilterChange = (key, value) => {

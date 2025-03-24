@@ -50,6 +50,9 @@ const DesignerSidebar = ({ collapsed }) => {
           <Menu.Item key="/designer/designs/templates">
             <Link to="/designer/designs/templates">Mẫu thiết kế</Link>
           </Menu.Item>
+          <Menu.Item key="/designer/designs/categories">
+            <Link to="/designer/designs/categories">Danh mục thiết kế</Link>
+          </Menu.Item>
           <Menu.Item key="/designer/designs/gallery">
             <Link to="/designer/designs/gallery">Thư viện</Link>
           </Menu.Item>
@@ -82,4 +85,4 @@ const DesignerSidebar = ({ collapsed }) => {
   );
 };
 
-export default DesignerSidebar; 
+export default DesignerSidebar;

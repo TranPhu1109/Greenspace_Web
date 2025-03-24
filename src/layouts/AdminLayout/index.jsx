@@ -21,8 +21,8 @@ const { Header, Content } = Layout;
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [role, setRole] = useState('staff'); // Mặc định là admin, sau này sẽ lấy từ authentication
-  const [username, setUsername] = useState('Staff User'); // Thêm biến trạng thái cho tên người dùng
+  const [role, setRole] = useState('designer'); // Mặc định là admin, sau này sẽ lấy từ authentication
+  const [username, setUsername] = useState('Designer User'); // Thêm biến trạng thái cho tên người dùng
   const location = useLocation();
   const navigate = useNavigate();
 

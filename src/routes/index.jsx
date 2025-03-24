@@ -40,6 +40,8 @@ import CustomerList from "@/components/Manager/Customers/CustomerList";
 import EmployeeList from "@/components/Manager/Employee/EmployeeList";
 import PromotionsList from "@/components/Manager/Promotions/PromotionsList";
 import TransactionsList from "@/components/Manager/Transactions/TransactionsList";
+import DesignCategories from "@/components/Designer/Designs/DesignCategories";
+import DesignTemplates from "@/components/Designer/Designs/DesignTemplates";
 // Bỏ các import chưa có
 
 const router = createBrowserRouter([
@@ -265,6 +267,7 @@ const router = createBrowserRouter([
       },
     ],
   },
+  //Staff
   {
     path: "/staff",
     element: <AdminLayout />,
@@ -377,6 +380,7 @@ const router = createBrowserRouter([
       },
     ],
   },
+  //Designer
   {
     path: "/designer",
     element: <AdminLayout />,
@@ -391,6 +395,19 @@ const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
+        path: "designs",  
+        children: [
+          {
+            path: "templates",
+            element: <DesignTemplates />,
+          },
+          {
+            path: "categories",
+            element: <DesignCategories />,
+          },
+        ]
+      },
+      {
         path: "schedule",
         element: <DesignerScheduleView />,
       },
@@ -400,14 +417,14 @@ const router = createBrowserRouter([
       },
     ],
   },
-  {
-    path: "/staff/design-orders/custom-template-orders",
-    element: <CustomTemplateOrdersList />,
-  },
-  {
-    path: "/staff/design-orders/custom-template-orders/:id",
-    element: <CustomTemplateOrderDetail />,
-  },
+  // {
+  //   path: "/staff/design-orders/custom-template-orders",
+  //   element: <CustomTemplateOrdersList />,
+  // },
+  // {
+  //   path: "/staff/design-orders/custom-template-orders/:id",
+  //   element: <CustomTemplateOrderDetail />,
+  // },
   {
     path: "*",
     element: <ErrorPage />,
