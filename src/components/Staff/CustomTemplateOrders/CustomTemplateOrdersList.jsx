@@ -1,31 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   Card,
   Button,
   Input,
-  Space,
-  Tag,
   Row,
   Col,
   Select,
   DatePicker,
-  Tooltip,
 } from "antd";
 import {
   SearchOutlined,
   EyeOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  EditOutlined,
-  ShoppingOutlined,
-  CarOutlined,
-  UserOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  ClockCircleOutlined,
-  SyncOutlined,
-  PhoneFilled,
+  
   MoreOutlined,
 } from "@ant-design/icons";
 import StatusTag from "../../../pages/Admin/DesignOrders/components/StatusTag";
@@ -35,6 +24,7 @@ import { orderStatuses } from "../mockData/templateOrders";
 import { useNavigate } from "react-router-dom";
 import { Popover } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
+import useDesignOrderStore from "@/stores/useDesignOrderStore";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -49,24 +39,40 @@ const CustomTemplateOrdersList = () => {
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   const navigate = useNavigate();
 
-  // Định nghĩa mapping cho icons
-  const icons = {
-    ClockCircleOutlined: ClockCircleOutlined,
-    SyncOutlined: SyncOutlined,
-    EditOutlined: EditOutlined,
-    ShoppingOutlined: ShoppingOutlined,
-    CarOutlined: CarOutlined,
-    CheckCircleOutlined: CheckCircleOutlined,
-    CloseCircleOutlined: CloseCircleOutlined,
-  };
-
+  const { designOrders, isLoading, fetchDesignOrders } = useDesignOrderStore();
   const { getBasePath } = useRoleBasedPath();
+
+  useEffect(() => {
+    fetchDesignOrders();
+  }, []);
+
+  const filteredOrders = Array.isArray(designOrders) 
+    ? designOrders
+        .filter((order) => order.isCustom)
+        .filter(
+          (order) =>
+            (searchText
+              ? order.userName.toLowerCase().includes(searchText.toLowerCase()) ||
+                order.cusPhone.includes(searchText)
+              : true) &&
+            (filterStatus ? order.status === filterStatus : true) &&
+            (dateRange ? true : true)
+        )
+    : [];
+
+  const statusOptions = [
+    { value: "Pending", label: "Chờ xử lý" },
+    { value: "Processing", label: "Đang xử lý" },
+    { value: "Completed", label: "Hoàn thành" },
+    { value: "Cancelled", label: "Đã hủy" },
+  ];
+
+  console.log(designOrders);
 
   // Replace all path calculations with the hook
   const handleViewDetail = (id) => {
     navigate(`${getBasePath()}/design-orders/custom-template-orders/${id}`);
   };
-
 
   const handleAssignOrder = (order) => {
     setSelectedOrder(order);
@@ -78,105 +84,66 @@ const CustomTemplateOrdersList = () => {
     setIsRejectModalVisible(true);
   };
 
-  // Cập nhật phần render trạng thái
-  const renderStatus = (status) => {
-    const statusConfig = orderStatuses[status];
-    const IconComponent = icons[statusConfig.icon];
-    return (
-      <Tag color={statusConfig.color} icon={IconComponent && <IconComponent />}>
-        {statusConfig.label}
-      </Tag>
-    );
-  };
-
   const columns = [
     {
       title: "Mã đơn",
-      dataIndex: "orderNumber",
-      key: "orderNumber",
-    },
-    {
-      title: "Mẫu gốc",
-      dataIndex: "templateName",
-      key: "templateName",
-      render: (templateName) => (
-        <Tooltip title={templateName}>
-           <div
-            className="overflow-hidden text-ellipsis"
-            style={{
-              maxWidth: "200px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {templateName}
-          </div>
-        </Tooltip>
-      ),
+      dataIndex: "id",
+      key: "id",
+      width: 100,
+      render: (id) => <span>#{id.slice(0, 8)}</span>,
     },
     {
       title: "Khách hàng",
-      dataIndex: ["customerInfo", "name"],
-      key: "customerName",
-      render: (_, record) => (
-        <Tooltip
-          title={
-            <div>
-              <p>
-                <UserOutlined /> {record.customerInfo.name}
-              </p>
-              <p>
-                <PhoneOutlined /> {record.customerInfo.phone}
-              </p>
-              <p>
-                <MailOutlined /> {record.customerInfo.email}
-              </p>
-            </div>
-          }
-        >
-          <div className="flex flex-col">
-            <span>
-              <UserOutlined style={{ color: "green" }} />{" "}
-              {record.customerInfo.name}
-            </span>
-            <span>
-              <PhoneOutlined style={{ color: "green" }} />{" "}
-              {record.customerInfo.phone}
-            </span>
-          </div>
-        </Tooltip>
-      ),
+      dataIndex: "userName",
+      key: "userName",
     },
     {
-      title: "Yêu cầu tùy chỉnh",
-      dataIndex: "requirements",
-      key: "requirements",
-      render: (requirements) => (
-        <Tooltip title={requirements}>
-          <div
-            style={{
-              maxWidth: "300px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical",
-              whiteSpace: "normal",
-            }}
-          >
-            {requirements}
-          </div>
-        </Tooltip>
-      ),
+      title: "Số điện thoại",
+      dataIndex: "cusPhone",
+      key: "cusPhone",
     },
-
+    {
+      title: "Kích thước",
+      key: "size",
+      render: (_, record) => `${record.length}m x ${record.width}m`,
+    },
+    {
+      title: "Giá thiết kế",
+      dataIndex: "designPrice",
+      key: "designPrice",
+      render: (value) => (value ? `${value.toLocaleString()}đ` : "0đ"),
+    },
+    {
+      title: "Giá vật liệu",
+      dataIndex: "materialPrice",
+      key: "materialPrice",
+      render: (value) => (value ? `${value.toLocaleString()}đ` : "0đ"),
+    },
+    {
+      title: "Tổng tiền",
+      dataIndex: "totalCost",
+      key: "totalCost",
+      render: (value) => (value ? `${value.toLocaleString()}đ` : "0đ"),
+    },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: renderStatus,
+      render: (status) => <StatusTag status={status.toLowerCase()} />,
     },
+    // {
+    //   title: 'Hành động',
+    //   key: 'action',
+    //   render: (_, record) => (
+    //     <Space>
+    //       <Button
+    //         type="text"
+    //         icon={<EyeOutlined />}
+    //         onClick={() => handleViewDetail(record.id)}
+    //       />
+    //     </Space>
+    //   ),
+    // },
     {
       title: "Thao tác",
       key: "action",
@@ -187,9 +154,6 @@ const CustomTemplateOrdersList = () => {
             trigger="click"
             content={
               <div className="flex flex-col gap-2">
-                {/* <Button type="text">Chi tiết</Button> */}
-                {/* <Button>Phân công</Button> */}
-                {/* <Button>Từ chối</Button> */}
                 <Button
                   type="default"
                   style={{
@@ -232,48 +196,47 @@ const CustomTemplateOrdersList = () => {
     },
   ];
 
-  // Chức năng quản lý danh sách
-  const features = {
-    // 1. Xem danh sách đơn hàng
-    listOrders: {
-      search: "Tìm kiếm theo mã đơn, tên khách hàng",
-      filter: "Lọc theo trạng thái, ngày đặt",
-      sort: "Sắp xếp theo ngày, giá trị đơn",
-    },
+  // const features = {
+  //   // 1. Xem danh sách đơn hàng
+  //   listOrders: {
+  //     search: "Tìm kiếm theo mã đơn, tên khách hàng",
+  //     filter: "Lọc theo trạng thái, ngày đặt",
+  //     sort: "Sắp xếp theo ngày, giá trị đơn",
+  //   },
 
-    // 2. Xử lý đơn mới
-    handleNewOrder: {
-      accept: "Nhận đơn và phân công designer",
-      reject: "Từ chối đơn và ghi chú lý do",
-    },
+  //   // 2. Xử lý đơn mới
+  //   handleNewOrder: {
+  //     accept: "Nhận đơn và phân công designer",
+  //     reject: "Từ chối đơn và ghi chú lý do",
+  //   },
 
-    // 3. Quản lý vật liệu
-    manageMaterials: {
-      view: "Xem danh sách vật liệu gốc",
-      update: "Cập nhật/thay đổi vật liệu",
-      calculate: "Tính toán chi phí thay đổi",
-    },
+  //   // 3. Quản lý vật liệu
+  //   manageMaterials: {
+  //     view: "Xem danh sách vật liệu gốc",
+  //     update: "Cập nhật/thay đổi vật liệu",
+  //     calculate: "Tính toán chi phí thay đổi",
+  //   },
 
-    // 4. Quản lý thanh toán
-    managePayments: {
-      deposit: "Xác nhận đặt cọc 50%",
-      final: "Xác nhận thanh toán còn lại",
-      status: "Theo dõi trạng thái thanh toán",
-    },
+  //   // 4. Quản lý thanh toán
+  //   managePayments: {
+  //     deposit: "Xác nhận đặt cọc 50%",
+  //     final: "Xác nhận thanh toán còn lại",
+  //     status: "Theo dõi trạng thái thanh toán",
+  //   },
 
-    // 5. Cập nhật trạng thái
-    updateStatus: {
-      material: "Cập nhật trạng thái chọn/đặt vật liệu",
-      delivery: "Cập nhật trạng thái giao vật liệu",
-      completion: "Xác nhận hoàn thành đơn hàng",
-    },
+  //   // 5. Cập nhật trạng thái
+  //   updateStatus: {
+  //     material: "Cập nhật trạng thái chọn/đặt vật liệu",
+  //     delivery: "Cập nhật trạng thái giao vật liệu",
+  //     completion: "Xác nhận hoàn thành đơn hàng",
+  //   },
 
-    // 6. Theo dõi tiến độ
-    trackProgress: {
-      timeline: "Xem lịch sử thay đổi trạng thái",
-      notes: "Thêm ghi chú cho đơn hàng",
-    },
-  };
+  //   // 6. Theo dõi tiến độ
+  //   trackProgress: {
+  //     timeline: "Xem lịch sử thay đổi trạng thái",
+  //     notes: "Thêm ghi chú cho đơn hàng",
+  //   },
+  // };
 
   return (
     <>
@@ -293,25 +256,19 @@ const CustomTemplateOrdersList = () => {
               allowClear
               onChange={(value) => setFilterStatus(value)}
             >
-              {Object.entries(orderStatuses).map(([key, { label }]) => (
-                <Option key={key} value={key}>
-                  {label}
+              {statusOptions.map((status) => (
+                <Option key={status.value} value={status.value}>
+                  {status.label}
                 </Option>
               ))}
             </Select>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <RangePicker
-              style={{ width: "100%" }}
-              onChange={(dates) => setDateRange(dates)}
-              placeholder={["Từ ngày", "Đến ngày"]}
-            />
           </Col>
         </Row>
 
         <Table
           columns={columns}
-          dataSource={customTemplateOrders}
+          dataSource={filteredOrders}
+          loading={isLoading}
           rowKey="id"
           pagination={{
             showSizeChanger: true,
@@ -319,7 +276,7 @@ const CustomTemplateOrdersList = () => {
           }}
           onRow={(record) => ({
             onClick: () => handleViewDetail(record.id),
-            style: { cursor: 'pointer' }
+            style: { cursor: "pointer" },
           })}
         />
       </Card>

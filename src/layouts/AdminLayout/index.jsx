@@ -16,15 +16,42 @@ import DesignerSidebar from './DesignerSidebar';
 import ManagerSidebar from './ManagerSidebar';
 import './AdminLayout.scss';
 import logo from '../../assets/logo.png';
+import { Select } from 'antd'; // Add this import
 
 const { Header, Content } = Layout;
+const { Option } = Select;
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [role, setRole] = useState('designer'); // Mặc định là admin, sau này sẽ lấy từ authentication
-  const [username, setUsername] = useState('Designer User'); // Thêm biến trạng thái cho tên người dùng
+  const [role, setRole] = useState('admin');
+  const [username, setUsername] = useState('Admin User');
   const location = useLocation();
   const navigate = useNavigate();
+
+  const roles = [
+    { value: 'admin', label: 'Admin' },
+    { value: 'manager', label: 'Manager' },
+    { value: 'accountant', label: 'Accountant' },
+    { value: 'staff', label: 'Staff' },
+    { value: 'designer', label: 'Designer' },
+  ];
+
+  const handleRoleChange = (newRole) => {
+    setRole(newRole);
+    // Store the selected role in localStorage for persistence
+    localStorage.setItem('selectedRole', newRole);
+    // Navigate to the corresponding route
+    navigate(`/${newRole}/dashboard`);
+  };
+
+  // Load saved role from localStorage on initial render
+  useEffect(() => {
+    const savedRole = localStorage.getItem('selectedRole');
+    if (savedRole) {
+      setRole(savedRole);
+      navigate(`/${savedRole}/dashboard`);
+    }
+  }, []);
 
   // Giả lập việc lấy role từ API hoặc localStorage
   useEffect(() => {
@@ -135,8 +162,19 @@ const AdminLayout = () => {
             <div className="trigger" onClick={toggleCollapsed}>
               {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </div>
+            <Select
+              value={role}
+              onChange={handleRoleChange}
+              style={{ width: 120, marginRight: 16 }}
+            >
+              {roles.map(role => (
+                <Option key={role.value} value={role.value}>
+                  {role.label}
+                </Option>
+              ))}
+            </Select>
             <div className="header-title">
-              {role.charAt(0).toUpperCase() + role.slice(1)} Dashboard
+              Dashboard
             </div>
           </div>
           <div className="header-right">
@@ -161,7 +199,7 @@ const AdminLayout = () => {
   );
 };
 
-export default AdminLayout; 
+export default AdminLayout;
 
 
 

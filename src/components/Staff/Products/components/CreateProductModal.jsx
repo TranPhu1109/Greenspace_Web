@@ -33,7 +33,7 @@ const CreateProductModal = ({
   const { createCategory } = useProductStore();
   const [isDuplicateCategory, setIsDuplicateCategory] = useState(false);
   const [isDuplicateProduct, setIsDuplicateProduct] = useState(false);
-  const { products } = useProductStore();
+  const { products, fetchCategories } = useProductStore();
 
   const handleCreateCategory = async () => {
     try {
@@ -45,6 +45,7 @@ const CreateProductModal = ({
       await createCategory(newCategoryData);
       setNewCategory("");
       setCategoryDescription("");
+      fetchCategories();
       message.success("Tạo danh mục mới thành công");
     } catch (error) {
       message.error("Không thể tạo danh mục mới: " + error.message);
@@ -265,7 +266,7 @@ const CreateProductModal = ({
               <InputNumber
                 style={{ width: "100%" }}
                 placeholder="Nhập số lượng tồn kho"
-                min={0}
+                min={1}
               />
             </Form.Item>
 

@@ -26,48 +26,39 @@ import {
   PhoneOutlined,
   MailOutlined,
   HomeOutlined,
-  DollarOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   ArrowLeftOutlined,
-  ExclamationCircleOutlined,
   StarTwoTone,
   LayoutOutlined,
 } from "@ant-design/icons";
 import { customTemplateOrders } from "../mockData/customTemplateOrders";
-import {
-  orderStatuses,
-  customizableMaterials,
-} from "../mockData/templateOrders";
 import dayjs from "dayjs";
 import { useParams, useNavigate } from "react-router-dom";
 import ConsultingSection from "./sections/ConsultingSection";
 import DesignSection from "./sections/DesignSection";
 import MaterialSection from "./sections/MaterialSection";
-import DepositSection from "./sections/DepositSection";
-import DeliverySection from "./sections/DeliverySection";
 import "./CustomTemplateOrderDetail.scss";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
+import useDesignOrderStore from "@/stores/useDesignOrderStore";
 
-const { TextArea } = Input;
-const { Option } = Select;
 const { Step } = Steps;
 
 const CustomTemplateOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [isUpdateStatusModalVisible, setIsUpdateStatusModalVisible] =
-    useState(false);
-  const [isUpdateMaterialModalVisible, setIsUpdateMaterialModalVisible] =
-    useState(false);
-  const [isUpdatePaymentModalVisible, setIsUpdatePaymentModalVisible] =
-    useState(false);
-  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
-  const [form] = Form.useForm();
-  const [currentStep, setCurrentStep] = useState(0);
+  // const [loading, setLoading] = useState(false);
+  const { getDesignOrderById, selectedOrder, isLoading } = useDesignOrderStore();
+  console.log(selectedOrder);
+  // const [order, setOrder] = useState(null);
+  // // const [isUpdateStatusModalVisible, setIsUpdateStatusModalVisible] =
+  // //   useState(false);
+  // // const [isUpdateMaterialModalVisible, setIsUpdateMaterialModalVisible] =
+  // //   useState(false);
+  // // const [isUpdatePaymentModalVisible, setIsUpdatePaymentModalVisible] =
+  // //   useState(false);
+  // // const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  // // const [selectedMaterial, setSelectedMaterial] = useState(null);
+  // // const [form] = Form.useForm();
+  // // const [currentStep, setCurrentStep] = useState(0);
 
   const { getBasePath } = useRoleBasedPath();
 
@@ -75,122 +66,49 @@ const CustomTemplateOrderDetail = () => {
     navigate(`${getBasePath()}/design-orders/custom-template-orders`);
   };
 
-
-  const orderSteps = [
-    {
-      title: "Tiếp nhận",
-      description: "Xem xét và tiếp nhận đơn",
-      status: ["pending"],
-    },
-    {
-      title: "Tư vấn",
-      description: "Designer tư vấn cho khách hàng",
-      status: ["processing", "consulting"],
-    },
-    {
-      title: "Thiết kế",
-      description: "Thực hiện thiết kế và chỉnh sửa",
-      status: ["designing", "design_review"],
-    },
-    {
-      title: "Đặt cọc & Vật liệu",
-      description: "Xác nhận đặt cọc và chọn vật liệu",
-      status: ["waiting_deposit", "material_selecting", "material_ordered"],
-    },
-    {
-      title: "Hoàn thành",
-      description: "Giao vật liệu và thanh toán",
-      status: ["delivering", "completed"],
-    },
-  ];
-
   useEffect(() => {
-    // Fetch order data
-    const orderData = customTemplateOrders.find((o) => o.id === id);
-    if (orderData) {
-      setOrder(orderData);
-    }
+    const fetchOrderDetail = async () => {
+      try {
+        await getDesignOrderById(id);
+      } catch (error) {
+        message.error('Không thể tải thông tin đơn hàng');
+        navigate(-1);
+      }
+    };
+    fetchOrderDetail();
   }, [id]);
 
-  useEffect(() => {
-    const currentStatus = order?.status;
-    const stepIndex = orderSteps.findIndex((step) =>
-      step.status.includes(currentStatus)
-    );
-    setCurrentStep(stepIndex !== -1 ? stepIndex : 0);
-  }, [order?.status]);
-
-  const handleUpdateStatus = async (updatedOrder) => {
-    setLoading(true);
-    try {
-      // TODO: Call API to update order
-      setOrder(updatedOrder);
-      return true;
-    } catch (error) {
-      message.error("Có lỗi xảy ra khi cập nhật đơn hàng");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!order) {
+  if (isLoading || !selectedOrder) {
     return (
       <Card>
-        <Empty description="Không tìm thấy thông tin đơn hàng" />
-        <Button onClick={() => navigate(-1)}>Quay lại</Button>
+        <Empty description="Đang tải thông tin đơn hàng..." />
       </Card>
     );
   }
 
-  // Tính toán chi phí vật liệu
-  const calculateMaterialCosts = () => {
-    if (!order.selectedMaterials || order.selectedMaterials.length === 0) {
-      return {
-        originalTotal: 0,
-        selectedTotal: 0,
-        difference: 0,
-      };
-    }
-
-    const originalTotal = order.selectedMaterials.reduce((total, material) => {
-      return total + (material.originalPrice || 0) * (material.quantity || 0);
-    }, 0);
-
-    const selectedTotal = order.selectedMaterials.reduce((total, material) => {
-      return total + (material.selectedPrice || 0) * (material.quantity || 0);
-    }, 0);
-
-    return {
-      originalTotal,
-      selectedTotal,
-      difference: selectedTotal - originalTotal,
-    };
-  };
-
   const renderSection = () => {
-    switch (order.status) {
+    switch (selectedOrder.status) {
       case "pending":
         return null; // Show default order info
       case "processing":
       case "consulting":
         return (
           <ConsultingSection
-            order={order}
+            order={selectedOrder}
             onUpdateStatus={handleUpdateStatus}
           />
         );
       case "designing":
       case "design_review":
         return (
-          <DesignSection order={order} onUpdateStatus={handleUpdateStatus} />
+          <DesignSection order={selectedOrder} onUpdateStatus={handleUpdateStatus} />
         );
       // case 'waiting_deposit':
       //   return <DepositSection order={order} onUpdateStatus={handleUpdateStatus} />;
       case "material_selecting":
       case "material_ordered":
         return (
-          <MaterialSection order={order} onUpdateStatus={handleUpdateStatus} />
+          <MaterialSection order={selectedOrder} onUpdateStatus={handleUpdateStatus} />
         );
       case "delivering":
       // case 'completed':
@@ -206,13 +124,12 @@ const CustomTemplateOrderDetail = () => {
       <div className="header-actions">
         <Space>
           <Button icon={<ArrowLeftOutlined />} 
-          // onClick={() => navigate(-1)}
           onClick={handleBack}
           >
             Quay lại
           </Button>
           <span style={{ fontWeight: "bold" }}>
-            Chi tiết đơn đặt thiết kế #{order.id}
+            Chi tiết đơn đặt thiết kế #{selectedOrder.id}
           </span>
         </Space>
       </div>
@@ -223,15 +140,13 @@ const CustomTemplateOrderDetail = () => {
             title="Tiến độ đơn hàng"
             bordered={true}
             style={{
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)", 
               borderRadius: "12px",
               border: "none",
             }}
             headStyle={{
               background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              // backgroundColor: "#f0f7f0",
               color: "white",
-              // color: "#4caf50",
               borderRadius: "12px 12px 0 0",
               padding: "16px 20px",
               fontSize: "16px",
@@ -239,14 +154,23 @@ const CustomTemplateOrderDetail = () => {
               border: "none",
             }}
           >
-            <Steps current={currentStep}>
-              {orderSteps.map((step, index) => (
-                <Step
-                  key={index}
-                  title={step.title}
-                  description={step.description}
-                />
-              ))}
+            <Steps 
+              current={
+                selectedOrder.status === 'pending' ? 0 :
+                selectedOrder.status === 'consulting' ? 1 :
+                selectedOrder.status === 'designing' ? 2 :
+                selectedOrder.status === 'design_review' ? 2 :
+                selectedOrder.status === 'material_selecting' ? 3 :
+                selectedOrder.status === 'material_ordered' ? 4 :
+                selectedOrder.status === 'delivering' ? 5 : 0
+              }
+            >
+              <Step title="Chờ xác nhận" description="Đơn hàng mới" />
+              <Step title="Tư vấn" description="Trao đổi yêu cầu" />
+              <Step title="Thiết kế" description="Đang thiết kế" />
+              <Step title="Chọn vật liệu" description="Lựa chọn vật liệu" />
+              <Step title="Đặt vật liệu" description="Đã đặt vật liệu" />
+              <Step title="Vận chuyển" description="Đang giao hàng" />
             </Steps>
           </Card>
         </Col>
@@ -271,34 +195,34 @@ const CustomTemplateOrderDetail = () => {
           >
             <Descriptions column={2} bordered>
               <Descriptions.Item label="Mã đơn hàng">
-                #{order.id}
+                #{selectedOrder.id}
               </Descriptions.Item>
-              <Descriptions.Item label="Ngày đặt hàng">
+              {/* <Descriptions.Item label="Ngày đặt hàng">
                 {dayjs(order.orderDate).format("DD/MM/YYYY")}
-              </Descriptions.Item>
+              </Descriptions.Item> */}
               <Descriptions.Item label="Designer">
-                {order.designer}
+                {selectedOrder.designer}
               </Descriptions.Item>
               <Descriptions.Item label="Mẫu thiết kế">
-                {order.templateName}
+                {selectedOrder.templateName}
               </Descriptions.Item>
-              <Descriptions.Item label="Diện tích mẫu">
-                {order.area} m²
-              </Descriptions.Item>
+              {/* <Descriptions.Item label="Diện tích mẫu">
+                {selectedOrder.area} m²
+              </Descriptions.Item> */}
               <Descriptions.Item label="Diện tích yêu cầu">
-                {order.areaCustom} m²
+                {selectedOrder.length * selectedOrder.width} m²
               </Descriptions.Item>
             </Descriptions>
             <Divider />
             <div>
               <h4>Yêu cầu thiết kế:</h4>
-              <p>{order.requirements || "Không có yêu cầu cụ thể"}</p>
+              <p>{selectedOrder.description || "Không có yêu cầu cụ thể"}</p>
             </div>
-            {order.attachments && order.attachments.length > 0 && (
+            {selectedOrder.attachments && selectedOrder.attachments.length > 0 && (
               <div className="attachments">
                 <h4>Tài liệu đính kèm:</h4>
                 <ul>
-                  {order.attachments.map((file, index) => (
+                  {selectedOrder.attachments.map((file, index) => (
                     <li key={index}>
                       <a
                         href={file.url}
@@ -312,88 +236,108 @@ const CustomTemplateOrderDetail = () => {
                 </ul>
               </div>
             )}
-            {order.customerImages && order.customerImages.length > 0 && (
+            {selectedOrder.image && (
               <div className="customer-images">
                 <h4>Hình ảnh từ khách hàng:</h4>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {order.customerImages.map((image, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        width: "150px",
-                        height: "150px",
-                        position: "relative",
-                        border: "1px solid #e8e8e8",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <img
-                        src={image.url}
-                        alt={`Customer image ${index + 1}`}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                        onClick={() => window.open(image.url, "_blank")}
-                      />
+                  {[selectedOrder.image.imageUrl, selectedOrder.image.image2, selectedOrder.image.image3]
+                    .filter(img => img) // Filter out undefined/null images
+                    .map((imageUrl, index) => (
                       <div
+                        key={index}
                         style={{
-                          position: "absolute",
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          padding: "4px",
-                          background: "rgba(0,0,0,0.5)",
-                          color: "white",
-                          fontSize: "12px",
-                          textAlign: "center",
+                          width: "150px",
+                          height: "150px",
+                          position: "relative",
+                          border: "1px solid #e8e8e8",
+                          borderRadius: "8px", 
+                          overflow: "hidden",
+                          cursor: "pointer"
                         }}
                       >
-                        {image.name || `Hình ${index + 1}`}
+                        <img
+                          src={imageUrl}
+                          alt={`Customer image ${index + 1}`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                          onClick={() => {
+                            const modal = Modal.info({
+                              icon: null,
+                              content: (
+                                <img
+                                  src={imageUrl}
+                                  alt={`Enlarged customer image ${index + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    maxHeight: '80vh',
+                                    objectFit: 'contain'
+                                  }}
+                                />
+                              ),
+                              okText: "Đóng",
+                              maskClosable: true,
+                              width: '80%',
+                            });
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            padding: "4px",
+                            background: "rgba(0,0,0,0.5)",
+                            color: "white",
+                            fontSize: "12px",
+                            textAlign: "center",
+                          }}
+                        >
+                          Hình ảnh thiết kế {index + 1}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             )}
             <Divider />
-            {order.selectedMaterials && order.selectedMaterials.length > 0 && (
+            {selectedOrder.serviceOrderDetails && selectedOrder.serviceOrderDetails.length > 0 && (
               <div className="selected-materials">
                 <h4>Vật liệu đã chọn:</h4>
-                {order.selectedMaterials.map((category, categoryIndex) => (
-                  <div key={categoryIndex} style={{ marginBottom: "10px" }}>
-                    <Table
-                      dataSource={category.items}
-                      pagination={false}
-                      size="small"
-                      bordered
-                    >
-                      <Table.Column title="Tên vật liệu" dataIndex="name" />
-                      <Table.Column title="Số lượng" dataIndex="quantity" />
-                      <Table.Column title="Đơn vị" dataIndex="unit" />
-                      <Table.Column
-                        title="Đơn giá"
-                        dataIndex="price"
-                        render={(price) => (
-                          <span>{price.toLocaleString("vi-VN")} đ</span>
-                        )}
-                      />
-                      <Table.Column
-                        title="Thành tiền"
-                        render={(_, record) => (
-                          <span>
-                            {(record.price * record.quantity).toLocaleString(
-                              "vi-VN"
-                            )}{" "}
-                            đ
-                          </span>
-                        )}
-                      />
-                    </Table>
-                  </div>
-                ))}
+                <div style={{ marginBottom: "10px" }}>
+                  <Table
+                    dataSource={selectedOrder.serviceOrderDetails}
+                    pagination={false}
+                    size="small"
+                    bordered
+                  >
+                    <Table.Column 
+                      title="Mã sản phẩm" 
+                      dataIndex="productId"
+                    />
+                    <Table.Column 
+                      title="Số lượng" 
+                      dataIndex="quantity" 
+                    />
+                    <Table.Column
+                      title="Đơn giá"
+                      dataIndex="price"
+                      render={(price) => (
+                        <span>{price.toLocaleString("vi-VN")} đ</span>
+                      )}
+                    />
+                    <Table.Column
+                      title="Thành tiền"
+                      dataIndex="totalPrice" 
+                      render={(totalPrice) => (
+                        <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
+                      )}
+                    />
+                  </Table>
+                </div>
               </div>
             )}
           </Card>
@@ -439,7 +383,7 @@ const CustomTemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                {order.customerInfo?.name}
+                {selectedOrder.userName}
               </Descriptions.Item>
 
               <Descriptions.Item
@@ -464,7 +408,7 @@ const CustomTemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                {order.customerInfo?.phone}
+                {selectedOrder.cusPhone}
               </Descriptions.Item>
 
               <Descriptions.Item
@@ -489,7 +433,7 @@ const CustomTemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                {order.customerInfo?.email}
+                {selectedOrder.email}
               </Descriptions.Item>
 
               <Descriptions.Item
@@ -514,7 +458,7 @@ const CustomTemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                {order.customerInfo?.address}
+                {selectedOrder.address}
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -538,11 +482,11 @@ const CustomTemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                <Tag color={order.status === "active" ? "green" : "gold"}>
-                  {order.status}
+                <Tag color={selectedOrder.status === "active" ? "green" : "gold"}>
+                  {selectedOrder.status}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item
+              {/* <Descriptions.Item
                 // label="Diện tích yêu cầu"
                 label={
                   <Space>
@@ -565,8 +509,8 @@ const CustomTemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                {order.areaCustom} m²
-              </Descriptions.Item>
+                {selectedOrder.length * selectedOrder.width} m²
+              </Descriptions.Item> */}
               <Descriptions.Item
                 label={
                   <span style={{ color: "#666", fontSize: "15px" }}>
@@ -574,7 +518,7 @@ const CustomTemplateOrderDetail = () => {
                   </span>
                 }
               >
-                {order.prices.totalCost.toLocaleString("vi-VN")} đ
+                {selectedOrder.totalCost.toLocaleString("vi-VN")} đ
               </Descriptions.Item>
             </Descriptions>
             <div
@@ -737,7 +681,7 @@ const CustomTemplateOrderDetail = () => {
         </Col>
 
         {/* Chi phí và thanh toán */}
-        <Col span={24}>
+        {/* <Col span={24}>
           <Card title="Chi phí và thanh toán" bordered={false}>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={12}>
@@ -767,7 +711,7 @@ const CustomTemplateOrderDetail = () => {
               </Col>
             </Row>
           </Card>
-        </Col>
+        </Col> */}
 
         {/* Timeline */}
         {/* <Col span={24}>
