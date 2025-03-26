@@ -61,7 +61,7 @@ const TemplateOrdersList = () => {
     fetchDesignOrders();
   }, []);
 
-// Filter design orders to only get non-custom orders
+  // Filter design orders to only get non-custom orders
 
   const filteredOrders = designOrders
     .filter((order) => !order.isCustom)
@@ -78,12 +78,12 @@ const TemplateOrdersList = () => {
           : true)
     );
 
-    const statusOptions = [
-      { value: 'Pending', label: 'Chờ xử lý' },
-      { value: 'Processing', label: 'Đang xử lý' },
-      { value: 'Completed', label: 'Hoàn thành' },
-      { value: 'Cancelled', label: 'Đã hủy' },
-    ];
+  const statusOptions = [
+    { value: "Pending", label: "Chờ xử lý" },
+    { value: "Processing", label: "Đang xử lý" },
+    { value: "Completed", label: "Hoàn thành" },
+    { value: "Cancelled", label: "Đã hủy" },
+  ];
 
   // const getPaymentStatus = (payments, totalCost) => {
   //   const depositRequired = totalCost * 0.5; // 50% tổng giá trị
@@ -167,7 +167,7 @@ const TemplateOrdersList = () => {
     message.success("Đã từ chối đơn hàng");
     setIsRejectModalVisible(false);
   };
- 
+
   const columns = [
     {
       title: "Mã đơn",
@@ -208,56 +208,58 @@ const TemplateOrdersList = () => {
       key: "action",
       fixed: "right",
       render: (_, record) => (
-        <Popover
-          placement="bottomLeft"
-          trigger="click"
-          content={
-            <div className="flex flex-col gap-1">
-              <Button
-                type="default"
-                style={{
-                  backgroundColor: "white",
-                  width: "120px",
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                icon={<EyeOutlined />}
-                onClick={() => handleViewDetail(record.id)}
-              >
-                Chi tiết
-              </Button>
-              <Button
-                type="primary"
-                style={{
-                  width: "120px",
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                disabled={record.status !== "pending"}
-                icon={<CheckCircleOutlined />}
-                onClick={() => handleAssignOrder(record)}
-              >
-                Nhận đơn
-              </Button>
-              <Button
-                type="primary"
-                danger
-                style={{
-                  width: "120px",
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                disabled={record.status !== "pending"}
-                icon={<CloseCircleOutlined />}
-                onClick={() => handleRejectOrder(record)}
-              >
-                Từ chối
-              </Button>
-            </div>
-          }
-        >
-          <MoreOutlined style={{ fontSize: "20px", fontWeight: "bold" }} />
-        </Popover>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Popover
+            placement="bottomLeft"
+            trigger="click"
+            content={
+              <div className="flex flex-col gap-1">
+                <Button
+                  type="default"
+                  style={{
+                    backgroundColor: "white",
+                    width: "120px",
+                    marginBottom: "5px",
+                    justifyContent: "flex-start",
+                  }}
+                  icon={<EyeOutlined />}
+                  onClick={() => handleViewDetail(record.id)}
+                >
+                  Chi tiết
+                </Button>
+                <Button
+                  type="primary"
+                  style={{
+                    width: "120px",
+                    marginBottom: "5px",
+                    justifyContent: "flex-start",
+                  }}
+                  disabled={record.status !== "Pending"}
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => handleAssignOrder(record)}
+                >
+                  Nhận đơn
+                </Button>
+                <Button
+                  type="primary"
+                  danger
+                  style={{
+                    width: "120px",
+                    marginBottom: "5px",
+                    justifyContent: "flex-start",
+                  }}
+                  disabled={record.status !== "Pending"}
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => handleRejectOrder(record)}
+                >
+                  Từ chối
+                </Button>
+              </div>
+            }
+          >
+            <MoreOutlined style={{ fontSize: "20px", fontWeight: "bold" }} />
+          </Popover>
+        </div>
       ),
     },
   ];
@@ -291,6 +293,7 @@ const TemplateOrdersList = () => {
         <Table
           columns={columns}
           dataSource={filteredOrders}
+          loading={isLoading}
           rowKey="id"
           // scroll={{ x: 1300 }}
           pagination={{

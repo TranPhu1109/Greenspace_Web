@@ -30,8 +30,6 @@ import {
   StarTwoTone,
   LayoutOutlined,
 } from "@ant-design/icons";
-import { customTemplateOrders } from "../mockData/customTemplateOrders";
-import dayjs from "dayjs";
 import { useParams, useNavigate } from "react-router-dom";
 import ConsultingSection from "./sections/ConsultingSection";
 import DesignSection from "./sections/DesignSection";
@@ -45,20 +43,8 @@ const { Step } = Steps;
 const CustomTemplateOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  // const [loading, setLoading] = useState(false);
   const { getDesignOrderById, selectedOrder, isLoading } = useDesignOrderStore();
   console.log(selectedOrder);
-  // const [order, setOrder] = useState(null);
-  // // const [isUpdateStatusModalVisible, setIsUpdateStatusModalVisible] =
-  // //   useState(false);
-  // // const [isUpdateMaterialModalVisible, setIsUpdateMaterialModalVisible] =
-  // //   useState(false);
-  // // const [isUpdatePaymentModalVisible, setIsUpdatePaymentModalVisible] =
-  // //   useState(false);
-  // // const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
-  // // const [selectedMaterial, setSelectedMaterial] = useState(null);
-  // // const [form] = Form.useForm();
-  // // const [currentStep, setCurrentStep] = useState(0);
 
   const { getBasePath } = useRoleBasedPath();
 

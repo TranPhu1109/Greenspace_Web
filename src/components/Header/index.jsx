@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import { Link } from "react-router-dom";
 import { Button, Drawer, Menu, Input, Select } from "antd";
 import {
@@ -9,16 +9,12 @@ import {
   CustomerServiceOutlined,
 } from "@ant-design/icons";
 import reactLogo from "../../assets/logo.png";
-import LoginModal from "../Auth/LoginModal";
-import RegisterModal from "../Auth/RegisterModal";
 import "./styles.scss";
 
 const { Option } = Select;
 
 const Header = () => {
   const [open, setOpen] = useState(false);
-  const [loginModalVisible, setLoginModalVisible] = useState(false);
-  const [registerModalVisible, setRegisterModalVisible] = useState(false);
 
   const showDrawer = () => {
     setOpen(true);
@@ -28,21 +24,7 @@ const Header = () => {
     setOpen(false);
   };
 
-  const showLoginModal = () => {
-    setLoginModalVisible(true);
-  };
 
-  const hideLoginModal = () => {
-    setLoginModalVisible(false);
-  };
-
-  const showRegisterModal = () => {
-    setRegisterModalVisible(true);
-  };
-
-  const hideRegisterModal = () => {
-    setRegisterModalVisible(false);
-  };
 
   const menuItems = [
     { key: "home", label: "Trang chủ", path: "/" },
@@ -62,12 +44,12 @@ const Header = () => {
               <span>0963202427</span>
             </div>
             <div className="auth-links">
-              <a className="login-link" onClick={showLoginModal}>
+              <Link to="/login" className="login-link">
                 Đăng nhập
-              </a>
-              <a className="register-link" onClick={showRegisterModal}>
+              </Link>
+              <Link to="/register" className="register-link">
                 Đăng ký
-              </a>
+              </Link>
               <Link to="/cart" className="cart-link">
                 <ShoppingCartOutlined />
                 <span>Giỏ hàng</span>
@@ -169,9 +151,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Auth Modals */}
-      <LoginModal visible={loginModalVisible} onCancel={hideLoginModal} />
-      <RegisterModal visible={registerModalVisible} onCancel={hideRegisterModal} />
+
     </>
   );
 };

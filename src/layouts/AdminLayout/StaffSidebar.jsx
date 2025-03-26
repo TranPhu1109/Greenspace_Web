@@ -88,12 +88,6 @@ const StaffSidebar = ({ collapsed }) => {
               Đơn thiết kế mới
             </Link>
           </Menu.Item>
-
-          {/* <Menu.Item key="/staff/design-orders/pending">
-            <Link to="/staff/design-orders/pending">
-              Đơn chờ xử lý
-            </Link>
-          </Menu.Item> */}
         </SubMenu>
 
         <Menu.Item key="/staff/orders" icon={<ShoppingCartOutlined />}>
@@ -104,17 +98,13 @@ const StaffSidebar = ({ collapsed }) => {
           <Link to="/staff/products">Sản phẩm</Link>
         </Menu.Item>
 
-        {/* <Menu.Item key="/staff/customers" icon={<TeamOutlined />}>
-          <Link to="/staff/customers">Khách hàng</Link>
-        </Menu.Item> */}
-
         <Menu.Item key="/staff/schedule" icon={<CalendarOutlined />}>
           <Link to="/staff/schedule">Lịch làm việc</Link>
         </Menu.Item>
-
+{/* 
         <Menu.Item key="/staff/messages" icon={<MessageOutlined />}>
           <Link to="/staff/messages">Tin nhắn</Link>
-        </Menu.Item>
+        </Menu.Item> */}
 
         <Menu.Item key="/staff/feedback" icon={<MdOutlineFeedback />}>
           <Link to="/staff/feedback">Phản hồi</Link>
