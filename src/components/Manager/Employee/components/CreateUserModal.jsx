@@ -17,12 +17,9 @@ const { Option } = Select;
 const CreateUserModal = ({ visible, onCancel, onSubmit }) => {
   const [form] = Form.useForm();
   const [useCustomPassword, setUseCustomPassword] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
   const { users } = useUserStore();
 
   const roles = [
-    { value: "admin", label: "Admin", defaultPassword: "admin123" },
-    { value: "manager", label: "Manager", defaultPassword: "manager123" },
     {
       value: "accountant",
       label: "Accountant",
@@ -45,8 +42,6 @@ const CreateUserModal = ({ visible, onCancel, onSubmit }) => {
       form.resetFields();
     } catch (error) {
       console.error("Error creating user:", error);
-    } finally {
-      setSubmitLoading(false);
     }
   };
 
@@ -175,10 +170,10 @@ const CreateUserModal = ({ visible, onCancel, onSubmit }) => {
         <Form.Item
           style={{ textAlign: "right", marginBottom: 0, marginTop: "20px" }}
         >
-          <Button onClick={onCancel} style={{ marginRight: 8 }} disabled={submitLoading}>
+          <Button onClick={onCancel} style={{ marginRight: 8 }}>
             Hủy
           </Button>
-          <Button type="primary" htmlType="submit" loading={submitLoading}>
+          <Button type="primary" htmlType="submit">
             Thêm mới
           </Button>
         </Form.Item>

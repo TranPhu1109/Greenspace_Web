@@ -26,6 +26,8 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
     image2: null,
     image3: null,
   });
+  const [productQuantities, setProductQuantities] = useState({});
+  const [selectedProducts, setSelectedProducts] = useState([]); // Add this state
 
   React.useEffect(() => {
     fetchProducts();
@@ -64,13 +66,16 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
 
       await Promise.all(uploadPromises);
 
+      // Ensure productDetails exists and is an array
+      const productDetails = selectedProducts.map(productId => ({
+        productId: productId,
+        quantity: productQuantities[productId] || 1
+      }));
+
       const designData = {
         ...values,
         image: imageUrls,
-        productDetails: values.productDetails.map(product => ({
-          productId: product.productId || product.value,
-          quantity: product.quantity || 1
-        }))
+        productDetails: productDetails
       };
 
       await onSubmit(designData);
@@ -81,6 +86,8 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
         image2: null,
         image3: null,
       });
+      setSelectedProducts([]); // Reset selected products
+      setProductQuantities({}); // Reset quantities
       
     } catch (error) {
       message.error("Có lỗi xảy ra: " + error.message);
@@ -107,9 +114,9 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
             </Form.Item>
 
             <Form.Item
-              name="price"
-              label="Giá"
-              rules={[{ required: true, message: "Vui lòng nhập giá" }]}
+              name="designPrice"
+              label="Giá thiết kế"
+              rules={[{ required: true, message: "Vui lòng nhập giá thiết kế" }]}
             >
               <InputNumber
                 style={{ width: "100%" }}
@@ -139,76 +146,81 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
               label="Sản phẩm"
               rules={[{ required: true, message: "Vui lòng chọn ít nhất một sản phẩm" }]}
             >
-              <Select
-                mode="multiple"
-                placeholder="Chọn sản phẩm"
-                optionLabelProp="label"
-                labelInValue
-                onChange={(values) => {
-                  // Transform the selected values to include productId and quantity
-                  const productDetails = values.map(item => ({
-                    ...item,
-                    productId: item.value,
-                    quantity: item.quantity || 1
-                  }));
-                  form.setFieldsValue({ productDetails });
-                }}
-              >
-                {products.map(product => (
-                  <Option 
-                    key={product.id} 
-                    value={product.id}
-                    label={`${product.name} (${product.price ? product.price.toLocaleString() + ' đ' : 'N/A'})`}
-                  >
-                    <Row justify="space-between" align="middle" style={{ width: '100%' }}>
-                      <Col span={16}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          {product.image?.imageUrl && (
-                            <img 
-                              src={product.image.imageUrl} 
-                              alt={product.name} 
-                              style={{ width: 40, height: 40, marginRight: 10, objectFit: 'cover' }} 
-                            />
-                          )}
-                          <div>
-                            <div style={{ fontWeight: 'bold' }}>{product.name}</div>
-                            <div style={{ fontSize: '12px', color: '#888' }}>
-                              {product.price ? product.price.toLocaleString() + ' đ' : 'N/A'}
-                            </div>
+              <div>
+                <Select
+                  mode="multiple"
+                  placeholder="Chọn sản phẩm"
+                  style={{ marginBottom: 16 }}
+                  onChange={(selectedIds) => {
+                    const newQuantities = {};
+                    selectedIds.forEach(id => {
+                      newQuantities[id] = productQuantities[id] || 1;
+                    });
+                    setProductQuantities(newQuantities);
+                    setSelectedProducts(selectedIds); // Update selected products
+                    
+                    const productDetails = selectedIds.map(id => ({
+                      value: id,
+                      quantity: newQuantities[id]
+                    }));
+                    form.setFieldsValue({ productDetails });
+                  }}
+                >
+                  {products.map(product => (
+                    <Option key={product.id} value={product.id}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {product.image?.imageUrl && (
+                          <img 
+                            src={product.image.imageUrl} 
+                            alt={product.name} 
+                            style={{ width: 40, height: 40, marginRight: 10, objectFit: 'cover', borderRadius: '4px' }} 
+                          />
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 'bold' }}>{product.name}</div>
+                          <div style={{ fontSize: '12px', color: '#888' }}>
+                            {product.price ? product.price.toLocaleString() + ' đ' : 'N/A'}
                           </div>
                         </div>
-                      </Col>
-                      <Col span={8} style={{ textAlign: 'right' }}>
-                        <InputNumber
-                          min={1}
-                          defaultValue={1}
-                          style={{ width: '80px' }}
-                          onChange={(quantity) => {
-                            // Update the quantity in the form values
-                            const currentDetails = form.getFieldValue('productDetails') || [];
-                            const updatedDetails = currentDetails.map(detail => 
-                              detail.productId === product.id 
-                                ? { ...detail, quantity } 
-                                : detail
-                            );
-                            form.setFieldsValue({ productDetails: updatedDetails });
-                            
-                            // Also update the quantity in the select's internal state
-                            const selectedValues = form.getFieldValue('productDetails');
-                            if (selectedValues) {
-                              const found = selectedValues.find(item => item.productId === product.id);
-                              if (found) {
-                                found.quantity = quantity;
-                              }
-                            }
-                          }}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      </Col>
-                    </Row>
-                  </Option>
-                ))}
-              </Select>
+                      </div>
+                    </Option>
+                  ))}
+                </Select>
+
+                {selectedProducts.length > 0 && (
+                  <div style={{ border: '1px solid #d9d9d9', padding: '16px', borderRadius: '8px' }}>
+                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Số lượng sản phẩm:</div>
+                    {selectedProducts.map(productId => {
+                      const product = products.find(p => p.id === productId);
+                      return (
+                        <div key={productId} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                          <img 
+                            src={product?.image?.imageUrl} 
+                            alt={product?.name}
+                            style={{ width: 30, height: 30, marginRight: 10, objectFit: 'cover', borderRadius: '4px' }}
+                          />
+                          <span style={{ flex: 1 }}>{product?.name}</span>
+                          <InputNumber
+                            min={1}
+                            value={productQuantities[productId]}
+                            onChange={(quantity) => {
+                              const newQuantities = { ...productQuantities, [productId]: quantity };
+                              setProductQuantities(newQuantities);
+                              
+                              const updatedDetails = selectedProducts.map(id => ({
+                                value: id,
+                                quantity: id === productId ? quantity : (productQuantities[id] || 1)
+                              }));
+                              form.setFieldsValue({ productDetails: updatedDetails });
+                            }}
+                            style={{ width: 80 }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </Form.Item>
           </Col>
         </Row>

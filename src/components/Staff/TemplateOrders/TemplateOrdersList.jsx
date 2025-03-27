@@ -85,64 +85,12 @@ const TemplateOrdersList = () => {
     { value: "Cancelled", label: "Đã hủy" },
   ];
 
-  // const getPaymentStatus = (payments, totalCost) => {
-  //   const depositRequired = totalCost * 0.5; // 50% tổng giá trị
-  //   const depositPaid =
-  //     payments.deposit?.status === "paid" ? payments.deposit.amount : 0;
-  //   const finalPaid =
-  //     payments.final?.status === "paid" ? payments.final.amount : 0;
-
-  //   if (finalPaid > 0) {
-  //     return {
-  //       status: "completed",
-  //       text: "Đã thanh toán đủ",
-  //       color: "success",
-  //       amount: totalCost,
-  //     };
-  //   }
-
-  //   if (depositPaid >= depositRequired) {
-  //     return {
-  //       status: "deposit",
-  //       text: "Đã đặt cọc",
-  //       color: "processing",
-  //       amount: depositPaid,
-  //     };
-  //   }
-
-  //   return {
-  //     status: "unpaid",
-  //     text: "Chưa đặt cọc",
-  //     color: "error",
-  //     amount: 0,
-  //   };
-  // };
 
   const handleAssignOrder = (order) => {
     setSelectedOrder(order);
     setIsAssignModalVisible(true);
   };
 
-  // const handleAssignSubmit = (values) => {
-  //   // Xử lý nhận đơn
-  //   const updatedOrder = {
-  //     ...selectedOrder,
-  //     status: "processing",
-  //     designer: values.designer,
-  //     timeline: [
-  //       ...selectedOrder.timeline,
-  //       {
-  //         date: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-  //         status: "assigned",
-  //         description: `Đơn hàng được phân công cho designer ${values.designer}`,
-  //       },
-  //     ],
-  //   };
-
-  //   // Cập nhật state và gọi API
-  //   message.success("Nhận đơn thành công");
-  //   setIsAssignModalVisible(false);
-  // };
 
   const handleRejectOrder = (order) => {
     setSelectedOrder(order);

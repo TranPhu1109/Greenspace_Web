@@ -3,9 +3,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f8f5;
+  // background-color: #f5f8f5;
 //   padding: 20px;
   overflow: hidden;
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #45a049, #7CB342);
+  }
 }
 
 .auth-container {
@@ -22,7 +28,7 @@
 
 .auth-content {
   display: flex;
-//   height: 600px;
+  height: 600px;
   
   @media (max-width: 768px) {
     flex-direction: column-reverse;
@@ -47,11 +53,11 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #8bc349;
+    background: #e3f0e1;
     border-radius: 4px;
     
     &:hover {
-      background: #7ab33d;
+      background: #e3f0e1;
     }
   }
   

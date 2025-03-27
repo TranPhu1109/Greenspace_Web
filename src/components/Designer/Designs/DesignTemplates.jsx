@@ -115,8 +115,8 @@ const DesignTemplates = () => {
     },
     {
       title: "Giá",
-      dataIndex: "price",
-      key: "price",
+      dataIndex: "totalPrice",
+      key: "totalPrice",
       render: (price) => `${price ? price.toLocaleString("vi-VN") : 0}đ`,
       sorter: (a, b) => a.price - b.price,
     },
@@ -249,12 +249,25 @@ const DesignTemplates = () => {
                     </div>
                   </Col>
                   <Col span={16}>
-                    <Descriptions title={record.name} column={1} bordered>
-                      <Descriptions.Item label="Giá">
-                        {record.price
-                          ? record.price.toLocaleString("vi-VN")
+                    <Descriptions title={record.name} column={2} bordered>
+                      
+                      <Descriptions.Item label="Giá thiết kế">
+                        {record.designPrice
+                          ? record.designPrice.toLocaleString("vi-VN")
                           : 0}
                         đ
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Giá tổng">
+                        <Typography.Text style={{ 
+                          color: '#f50', 
+                          fontSize: '16px',
+                          fontWeight: 'bold'
+                        }}>
+                          {record.totalPrice
+                            ? record.totalPrice.toLocaleString("vi-VN")
+                            : 0}
+                          đ
+                        </Typography.Text>
                       </Descriptions.Item>
                       <Descriptions.Item label="Danh mục">
                         {record.categoryName}
@@ -277,16 +290,41 @@ const DesignTemplates = () => {
                                 title: "Tên sản phẩm",
                                 dataIndex: "productName",
                                 key: "productName",
+                                render: (text, record) => (
+                                  <Space>
+                                    {record.imageUrl && (
+                                      <Image
+                                        src={record.imageUrl}
+                                        alt={text}
+                                        width={40}
+                                        height={40}
+                                        style={{
+                                          objectFit: "cover",
+                                          borderRadius: 4,
+                                        }}
+                                      />
+                                    )}
+                                    <Typography.Text>{text}</Typography.Text>
+                                  </Space>
+                                ),
                               },
                               {
                                 title: "Số lượng",
                                 dataIndex: "quantity",
                                 key: "quantity",
                               },
+                              {
+                                title: "Giá",
+                                dataIndex: "price",
+                                key: "price",
+                                render: (price) =>
+                                  `${
+                                    price ? price.toLocaleString("vi-VN") : 0
+                                  }đ`,
+                              },
                             ]}
-                            dataSource={record.productDetails.map(
-                              (detail, index) => {
-                                // Find the product name from the products array using productId
+                            dataSource={[
+                              ...record.productDetails.map((detail, index) => {
                                 const product = products.find(
                                   (p) => p.id === detail.productId
                                 );
@@ -296,9 +334,26 @@ const DesignTemplates = () => {
                                     ? product.name
                                     : "Không có tên",
                                   quantity: detail.quantity || 1,
+                                  price: detail.price,
+                                  imageUrl: product?.image?.imageUrl,
                                 };
-                              }
-                            )}
+                              }),
+                              {
+                                key: "total",
+                                productName: (
+                                  <Typography.Text
+                                    strong
+                                    style={{
+                                      color: "#333",
+                                      fontSize: "14px",
+                                    }}
+                                  >
+                                    Tổng giá vật liệu
+                                  </Typography.Text>
+                                ),
+                                price: record.materialPrice,
+                              },
+                            ]}
                           />
                         </>
                       )}
@@ -306,7 +361,6 @@ const DesignTemplates = () => {
                 </Row>
               </div>
             ),
-            rowExpandable: (record) => true,
           }}
         />
       </Card>

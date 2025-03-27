@@ -10,14 +10,8 @@ import {
   Tag,
   Space,
   Modal,
-  Form,
-  Input,
-  Select,
   message,
   Divider,
-  Timeline,
-  Badge,
-  Statistic,
   Empty,
 } from "antd";
 import {
@@ -25,47 +19,43 @@ import {
   PhoneOutlined,
   MailOutlined,
   HomeOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   ArrowLeftOutlined,
-  ExclamationCircleOutlined,
   StarTwoTone,
 } from "@ant-design/icons";
-import {
-  templateOrders,
-  orderStatuses,
-  customizableMaterials,
-} from "../mockData/templateOrders";
-import dayjs from "dayjs";
+
 import { useParams, useNavigate } from "react-router-dom";
-import { Alert } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
+import useProductStore from "@/stores/useProductStore";
 
-const { TextArea } = Input;
-const { Option } = Select;
 const { Step } = Steps;
-
 
 const TemplateOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDesignOrderById, selectedOrder, isLoading } = useDesignOrderStore();
-  
-
+  const { getDesignOrderById, selectedOrder, isLoading } =
+    useDesignOrderStore();
+  const { products, fetchProducts, categories, fetchCategories } =
+    useProductStore();
   const { getBasePath } = useRoleBasedPath();
+
+  console.log("selectedOrder", selectedOrder);
 
   const handleBack = () => {
     navigate(`${getBasePath()}/design-orders/template-orders`);
   };
 
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, [fetchProducts, fetchCategories]);
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
       try {
         await getDesignOrderById(id);
       } catch (error) {
-        message.error('Không thể tải thông tin đơn hàng');
+        message.error("Không thể tải thông tin đơn hàng");
         navigate(-1);
       }
     };
@@ -115,21 +105,33 @@ const TemplateOrderDetail = () => {
           >
             <Steps
               current={
-                selectedOrder.status === 'pending' ? 0 :
-                selectedOrder.status === 'consulting' ? 1 :
-                selectedOrder.status === 'designing' ? 2 :
-                selectedOrder.status === 'design_review' ? 2 :
-                selectedOrder.status === 'material_selecting' ? 3 :
-                selectedOrder.status === 'material_ordered' ? 4 :
-                selectedOrder.status === 'delivering' ? 5 : 0
+                selectedOrder.status === "Pending" ? 0 :
+                selectedOrder.status === "PaymentSuccess" ? 1 :
+                selectedOrder.status === "Processing" ? 2 :
+                selectedOrder.status === "PickedPackageAndDelivery" ? 3 :
+                selectedOrder.status === "DeliveryFail" ? 3 :
+                selectedOrder.status === "ReDelivery" ? 3 :
+                selectedOrder.status === "DeliveredSuccessfully" ? 4 :
+                selectedOrder.status === "CompleteOrder" ? 5 :
+                selectedOrder.status === "OrderCancelled" ? -1 :
+                selectedOrder.status === "Refund" ? -1 :
+                selectedOrder.status === "DoneRefund" ? -1 : 0
+              }
+              status={
+                selectedOrder.status === "OrderCancelled" || 
+                selectedOrder.status === "Refund" || 
+                selectedOrder.status === "DoneRefund" || 
+                selectedOrder.status === "DeliveryFail" 
+                ? "error" 
+                : "process"
               }
             >
-              <Step title="Chờ xác nhận" description="Đơn hàng mới" />
-              <Step title="Tư vấn" description="Trao đổi yêu cầu" />
-              <Step title="Thiết kế" description="Đang thiết kế" />
-              <Step title="Chọn vật liệu" description="Lựa chọn vật liệu" />
-              <Step title="Đặt vật liệu" description="Đã đặt vật liệu" />
+              <Step title="Chờ xử lý" description="Đơn hàng mới" />
+              <Step title="Thanh toán" description="Đã thanh toán" />
+              <Step title="Xử lý" description="Đang xử lý đơn hàng" />
               <Step title="Vận chuyển" description="Đang giao hàng" />
+              <Step title="Đã giao" description="Giao hàng thành công" />
+              <Step title="Hoàn thành" description="Đơn hàng hoàn thành" />
             </Steps>
           </Card>
         </Col>
@@ -152,53 +154,130 @@ const TemplateOrderDetail = () => {
               border: "none",
             }}
           >
-            <Descriptions column={2} bordered>
-              <Descriptions.Item label="Mã đơn hàng">
-                #{selectedOrder.id}
-              </Descriptions.Item>
-              <Descriptions.Item label="Designer">
-                {selectedOrder.designer}
-              </Descriptions.Item>
-              <Descriptions.Item label="Mẫu thiết kế">
-                {selectedOrder.templateName}
-              </Descriptions.Item>
-              <Descriptions.Item label="Diện tích yêu cầu">
-                {selectedOrder.length * selectedOrder.width} m²
-              </Descriptions.Item>
-            </Descriptions>
+            <div>
+              {/* Order Information Section */}
+              <Descriptions column={2} bordered title="Thông tin đơn hàng">
+                <Descriptions.Item label="Mã đơn hàng">
+                  #{selectedOrder.id}
+                </Descriptions.Item>
+
+                <Descriptions.Item label="Mẫu thiết kế">
+                  {selectedOrder.templateName}
+                </Descriptions.Item>
+                <Descriptions.Item label="Giá thiết kế">
+                  <strong>
+                    {selectedOrder.designPrice.toLocaleString("vi-VN")} đ
+                  </strong>
+                </Descriptions.Item>
+              </Descriptions>
+
+              {/* Customer Requirements Section */}
+              <Descriptions
+                column={3}
+                bordered
+                title="Yêu cầu khách hàng"
+                style={{ marginTop: "16px" }}
+              >
+                <Descriptions.Item label="Chiều dài">
+                  {selectedOrder.length} m
+                </Descriptions.Item>
+                <Descriptions.Item label="Chiều rộng">
+                  {selectedOrder.width} m
+                </Descriptions.Item>
+                <Descriptions.Item label="Diện tích yêu cầu">
+                  {selectedOrder.length * selectedOrder.width} m²
+                </Descriptions.Item>
+                <Descriptions.Item label="Mô tả">
+                  {selectedOrder.description}
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
 
             <Divider />
 
-            {selectedOrder.serviceOrderDetails && selectedOrder.serviceOrderDetails.length > 0 && (
-              <div className="selected-materials">
-                <h4>Vật liệu đã chọn:</h4>
-                <div style={{ marginBottom: "10px" }}>
-                  <Table
-                    dataSource={selectedOrder.serviceOrderDetails}
-                    pagination={false}
-                    size="small"
-                    bordered
-                  >
-                    <Table.Column title="Mã sản phẩm" dataIndex="productId" />
-                    <Table.Column title="Số lượng" dataIndex="quantity" />
-                    <Table.Column
-                      title="Đơn giá"
-                      dataIndex="price"
-                      render={(price) => (
-                        <span>{price.toLocaleString("vi-VN")} đ</span>
+            {selectedOrder.serviceOrderDetails &&
+              selectedOrder.serviceOrderDetails.length > 0 && (
+                <div className="selected-materials">
+                  <h4>Vật liệu đã chọn:</h4>
+                  <div style={{ marginBottom: "10px" }}>
+                    <Table
+                      dataSource={selectedOrder.serviceOrderDetails.map(
+                        (detail) => {
+                          const product = products.find(
+                            (p) => p.id === detail.productId
+                          );
+                          const category = categories.find(
+                            (c) => c.id === product?.categoryId
+                          );
+                          return {
+                            ...detail,
+                            product,
+                            category,
+                          };
+                        }
                       )}
-                    />
-                    <Table.Column
-                      title="Thành tiền"
-                      dataIndex="totalPrice"
-                      render={(totalPrice) => (
-                        <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
+                      pagination={false}
+                      size="small"
+                      bordered
+                      summary={() => (
+                        <Table.Summary>
+                          <Table.Summary.Row>
+                            <Table.Summary.Cell index={0} colSpan={3}>
+                              <strong>Tổng tiền vật liệu</strong>
+                            </Table.Summary.Cell>
+                            <Table.Summary.Cell index={1}>
+                              <strong>
+                                {selectedOrder.materialPrice.toLocaleString(
+                                  "vi-VN"
+                                )}{" "}
+                                đ
+                              </strong>
+                            </Table.Summary.Cell>
+                          </Table.Summary.Row>
+                        </Table.Summary>
                       )}
-                    />
-                  </Table>
+                    >
+                      <Table.Column
+                        title="Sản phẩm"
+                        key="product"
+                        render={(record) => (
+                          <Space>
+                            <img
+                              src={record.product?.image.imageUrl}
+                              alt={record.product?.name}
+                              style={{
+                                width: 50,
+                                height: 50,
+                                borderRadius: "5px",
+                                objectFit: "cover",
+                              }}
+                            />
+                            <div>
+                              <div>{record.product?.name}</div>
+                              <Tag color="green">{record.category?.name}</Tag>
+                            </div>
+                          </Space>
+                        )}
+                      />
+                      <Table.Column title="Số lượng" dataIndex="quantity" />
+                      <Table.Column
+                        title="Đơn giá"
+                        dataIndex="price"
+                        render={(price) => (
+                          <span>{price.toLocaleString("vi-VN")} đ</span>
+                        )}
+                      />
+                      <Table.Column
+                        title="Thành tiền"
+                        dataIndex="totalPrice"
+                        render={(totalPrice) => (
+                          <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
+                        )}
+                      />
+                    </Table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </Card>
         </Col>
 
@@ -342,35 +421,12 @@ const TemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                <Tag color={selectedOrder.status === "active" ? "green" : "gold"}>
+                <Tag
+                  color={selectedOrder.status === "active" ? "green" : "gold"}
+                >
                   {selectedOrder.status}
                 </Tag>
               </Descriptions.Item>
-              {/* <Descriptions.Item
-                // label="Diện tích yêu cầu"
-                label={
-                  <Space>
-                    <LayoutOutlined
-                      style={{
-                        color: "#4caf50",
-                        fontSize: "18px",
-                        backgroundColor: "#f0f7f0",
-                        padding: "10px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    />
-
-                    <span style={{ color: "#666", fontSize: "15px" }}>
-                      Diện tích yêu cầu
-                    </span>
-                  </Space>
-                }
-              >
-                {selectedOrder.length * selectedOrder.width} m²
-              </Descriptions.Item> */}
               <Descriptions.Item
                 label={
                   <span style={{ color: "#666", fontSize: "15px" }}>
@@ -378,7 +434,9 @@ const TemplateOrderDetail = () => {
                   </span>
                 }
               >
-                {selectedOrder.totalCost.toLocaleString("vi-VN")} đ
+                <strong>
+                  {selectedOrder.totalCost.toLocaleString("vi-VN")} đ
+                </strong>
               </Descriptions.Item>
             </Descriptions>
             <div

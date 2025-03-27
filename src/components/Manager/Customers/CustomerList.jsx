@@ -4,12 +4,14 @@ import { SearchOutlined, UserAddOutlined, DownloadOutlined } from '@ant-design/i
 import useCustomerStore from '../../../stores/managerStore';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import useUserStore from '@/stores/useUserStore';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const CustomerList = () => {
-  const { customers, loading, error, fetchCustomers } = useCustomerStore();
+  // const { customers, loading, error, fetchCustomers } = useCustomerStore();
+  const {users, fetchUsers, isLoading, error }=useUserStore();
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
   const [exportFilters, setExportFilters] = useState({
     status: undefined,
@@ -17,8 +19,9 @@ const CustomerList = () => {
   });
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    fetchUsers();
+  }, [ fetchUsers ]);
+  console.log(users);
 
   const columns = [
     {
@@ -56,11 +59,11 @@ const CustomerList = () => {
         </Tag>
       ),
     },
-    {
-      title: 'Ngày tham gia',
-      dataIndex: 'joinDate',
-      key: 'joinDate',
-    },
+    // {
+    //   title: 'Ngày tham gia',
+    //   dataIndex: 'joinDate',
+    //   key: 'joinDate',
+    // },
   ];
 
   // Add expandable row configuration
@@ -84,7 +87,7 @@ const CustomerList = () => {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card title="Danh sách khách hàng">
         <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -95,41 +98,45 @@ const CustomerList = () => {
   }
 
   if (error) {
-    return (
-      <Card title="Danh sách khách hàng">
-        <div style={{ textAlign: 'center', color: 'red' }}>
-          Error: {error}
-        </div>
-      </Card>
-    );
+    console.error('Error fetching users:', error);
+    // Don't return error card unless it's a critical error
+    if (!users || users.length === 0) {
+      return (
+        <Card title="Danh sách khách hàng">
+          <div style={{ textAlign: 'center', color: 'red' }}>
+            Không thể tải dữ liệu khách hàng
+          </div>
+        </Card>
+      );
+    }
   }
 
   const handleExport = () => {
-    let filteredData = [...customers];
+    let filteredData = [...users];
 
     // Apply status filter
     if (exportFilters.status) {
-      filteredData = filteredData.filter(customer => customer.status === exportFilters.status);
+      filteredData = filteredData.filter(users => users.status === exportFilters.status);
     }
 
     // Apply date range filter
     if (exportFilters.dateRange) {
       const [startDate, endDate] = exportFilters.dateRange;
-      filteredData = filteredData.filter(customer => {
-        const customerDate = new Date(customer.joinDate);
+      filteredData = filteredData.filter(users => {
+        const customerDate = new Date(users.joinDate);
         return customerDate >= startDate && customerDate <= endDate;
       });
     }
 
     // Prepare data for export
-    const exportData = filteredData.map(customer => ({
-      'Họ và tên': customer.name,
-      'Email': customer.email,
-      'Số điện thoại': customer.phone,
-      'Trạng thái': customer.status === 'active' ? 'Hoạt động' : 'Không hoạt động',
-      'Địa chỉ': customer.address || 'Chưa cập nhật',
-      'Ngày tham gia': customer.joinDate,
-      'Số đơn hàng': customer.orderCount || 0,
+    const exportData = filteredData.map(users => ({
+      'Họ và tên': users.name,
+      'Email': users.email,
+      'Số điện thoại': users.phone,
+      'Trạng thái': users.status === 'active' ? 'Hoạt động' : 'Không hoạt động',
+      'Địa chỉ': users.address || 'Chưa cập nhật',
+      'Ngày tham gia': users.joinDate,
+      'Số đơn hàng': users.orderCount || 0,
     }));
 
     // Create workbook
@@ -151,9 +158,16 @@ const CustomerList = () => {
       <div style={{ marginBottom: 16 }}>
         <Space>
           <Input
-            placeholder="Tìm kiếm khách hàng"
+            placeholder="Tìm kiếm theo tên hoặc email"
             prefix={<SearchOutlined />}
             style={{ width: 300 }}
+            onChange={(e) => {
+              const searchText = e.target.value.toLowerCase();
+              const filtered = users.filter(user => 
+                user.name.toLowerCase().includes(searchText) ||
+                user.email.toLowerCase().includes(searchText)
+              );
+            }}
           />
           {/* <Button type="primary" icon={<UserAddOutlined />}>
             Thêm khách hàng
@@ -169,13 +183,14 @@ const CustomerList = () => {
       </div>
       <Table
         columns={columns}
-        dataSource={customers}
+        dataSource={users.filter(user => user.roleName === 'Customer')}
+        loading={isLoading}
         expandable={{
           expandedRowRender,
           expandRowByClick: true,
         }}
         pagination={{
-          total: customers.length,
+          total: users.length,
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `Tổng ${total} khách hàng`,

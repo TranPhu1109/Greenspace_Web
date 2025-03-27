@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   Table,
   Button,
@@ -8,27 +8,33 @@ import {
   Card,
   Input,
   Tag,
+  Select,
   Tooltip,
-} from "antd";
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  StopOutlined,
-} from "@ant-design/icons";
-import useUserStore from "../../../stores/useUserStore";
-import CreateUserModal from "./components/CreateUserModal";
-import { render } from "sass";
+} from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, BlockOutlined, StopOutlined } from '@ant-design/icons';
+import useUserStore from '../../../stores/useUserStore';
+import CreateUserModal from './components/CreateUserModal';
 
-// Add delete handler in UsersList component
-const UsersList = () => {
+const StaffList = () => {
   const { users, isLoading, fetchUsers, banUser } = useUserStore();
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const roles = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'Admin', label: 'Admin' },
+    { value: 'Manager', label: 'Manager' },
+    { value: 'Accountant', label: 'Accountant' },
+    { value: 'Staff', label: 'Staff' },
+    { value: 'Designer', label: 'Designer' },
+  ];
 
   const columns = [
     {
@@ -85,40 +91,48 @@ const UsersList = () => {
       },
     },
     {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
     },
     {
-      title: "Số điện thoại",
-      dataIndex: "phone",
-      key: "phone",
+      title: 'Số điện thoại',
+      dataIndex: 'phone',
+      key: 'phone',
     },
     {
-      title: "Địa chỉ",
-      dataIndex: "address",
-      key: "address",
+      title: 'Địa chỉ',
+      dataIndex: 'address',
+      key: 'address',
     },
     {
-      title: "Vai trò",
-      dataIndex: "roleName",
-      key: "roleName",
-      render: (_, record) => {
-        const roleName = record.roleName || "Khách hàng";
-        return <Tag color="blue">{roleName}</Tag>;
-      },
+      title: 'Vai trò',
+      dataIndex: 'roleName',
+      key: 'roleName',
+      render: (roleName) => (
+        <Tag color={
+          roleName === 'Admin' ? 'red' :
+          roleName === 'Staff' ? 'green' :
+          roleName === 'Designer' ? 'purple' :
+          roleName === 'Accountant' ? 'blue' :
+          roleName === 'Manager'? 'orange' :
+          'default'
+        }>
+          {roleName}
+        </Tag>
+      ),
     },
     {
-      title: "Hành động",
-      key: "action",
+      title: 'Hành động',
+      key: 'action',
       render: (_, record) => (
         <Space size="middle">
-          {/* <Button
+          <Button
             type="text"
             icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          /> */}
-          <Tooltip
+            onClick={() => handleEdit(record.id)}
+          />
+           <Tooltip
             title="Vô hiệu hóa tài khoản"
           >
             <Button
@@ -134,78 +148,90 @@ const UsersList = () => {
   ];
 
   const handleCreateUser = async (values) => {
+    setCreateLoading(true);
     try {
       await useUserStore.getState().createUser(values);
-      message.success("Tạo người dùng mới thành công");
+      message.success('Tạo người dùng mới thành công');
       setCreateModalVisible(false);
       fetchUsers();
     } catch (error) {
-      message.error("Có lỗi xảy ra: " + error.message);
+      message.error('Có lỗi xảy ra: ' + error.message);
+    } finally {
+      setCreateLoading(false);
     }
   };
 
   const handleBanUser = (user) => {
     Modal.confirm({
-      title: "Xác nhận vô hiệu hóa tài khoản",
-      content: `Bạn có chắc chắn muốn vô hiệu hóa người dùng "${user.name}" không?`,
-      okText: "Xác nhận",
-      okType: "danger",
-      cancelText: "Hủy",
+      title: 'Xác nhận vô hiệu hóa tài khoản',
+      content: `Bạn có chắc chắn muốn vô hiệu hóa tài khoản nhân viên "${user.name}" không?`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
       onOk: async () => {
         try {
           await banUser(user.id);
-          message.success("Xóa người dùng thành công");
+          message.success('Xóa nhân viên thành công');
           fetchUsers();
         } catch (error) {
-          message.error("Có lỗi xảy ra: " + error.message);
+          message.error('Có lỗi xảy ra: ' + error.message);
         }
       },
     });
   };
 
+  const handleEdit = (user) => {
+    // Implement edit functionality
+    console.log('Edit user:', user);
+  };
+
   return (
     <Card
-      title="Quản lý người dùng"
-      // extra={
-      //   <Button
-      //     type="primary"
-      //     icon={<PlusOutlined />}
-      //     onClick={() => setCreateModalVisible(true)}
-      //   >
-      //     Thêm người dùng
-      //   </Button>
-      // }
+      title="Quản lý nhân viên"
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => { setCreateModalVisible(true)}}
+        >
+          Thêm nhân viên
+        </Button>
+      }
     >
       <div style={{ marginBottom: 16 }}>
         <Input.Search
           placeholder="Tìm kiếm theo tên hoặc email"
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: 300 }}
+          style={{ width: 300, marginRight: 16 }}
+        />
+        <Select
+          defaultValue="all"
+          style={{ width: 200 }}
+          onChange={setSelectedRole}
+          options={roles}
         />
       </div>
 
       <Table
         columns={columns}
         dataSource={users
-          .filter(
-            (user) =>
-              // First filter by role
-              user.roleName === "Customer" &&
-              // Then filter by search text
-              (user.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchText.toLowerCase()))
+          .filter(user => 
+            user.roleName !== 'Customer' &&
+            (selectedRole === 'all' || user.roleName === selectedRole) &&
+            (user.name.toLowerCase().includes(searchText.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchText.toLowerCase()))
           )
           .map((user) => ({ ...user, key: user.id }))}
         loading={isLoading}
       />
-
       <CreateUserModal
         visible={createModalVisible}
         onCancel={() => setCreateModalVisible(false)}
         onSubmit={handleCreateUser}
+        loading={createLoading}
       />
     </Card>
   );
 };
 
-export default UsersList;
+export default StaffList;

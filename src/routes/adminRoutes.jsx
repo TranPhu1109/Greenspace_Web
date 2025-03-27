@@ -1,7 +1,6 @@
 import Dashboard from "../pages/Admin/Dashboard";
 // import UsersList from "../pages/Admin/Users/UsersList";
 import UserDetail from "../pages/Admin/Users/UserDetail";
-import StaffList from "../pages/Admin/Staff/StaffList";
 import StaffRoles from "../pages/Admin/Staff/StaffRoles";
 import DesignOrdersList from "../pages/Admin/DesignOrders/DesignOrdersList";
 import DesignOrderDetail from "../pages/Admin/DesignOrders/DesignOrderDetail";
@@ -12,6 +11,10 @@ import ProductsList from "../components/Staff/Products/ProductsList";
 import ProductDetail from "../components/Staff/Products/ProductDetail";
 import Categories from "../components/Staff/Products/Categories";
 import UsersList from "@/components/Admin/Users/UsersList";
+import StaffList from "@/components/Admin/Users/StaffList";
+import BannedAccounts from "@/components/Admin/Users/BannedAccounts";
+import Profile from "@/components/Account/Profile";
+import Settings from "@/components/Account/Settings";
 
 export const adminRoutes = {
   path: "/admin",
@@ -26,7 +29,17 @@ export const adminRoutes = {
     },
     {
       path: "users",
-      element: <UsersList />,
+      // element: <UsersList />,
+      children: [
+        {
+          index: true,
+          element: <UsersList />,
+        },
+        {
+          path: ":id",
+          // element: <UserDetail />,
+        },
+      ],
     },
     {
       path: "staff",
@@ -40,6 +53,18 @@ export const adminRoutes = {
           element: <StaffRoles />,
         },
       ],
+    },
+    {
+      path: "account-banned",
+      element: <BannedAccounts/>
+    },
+    {
+      path: '/admin/profile',
+      element: <Profile />,
+    },
+    {
+      path: '/admin/settings',
+      element: <Settings />,
     },
     {
       path: "design-orders",

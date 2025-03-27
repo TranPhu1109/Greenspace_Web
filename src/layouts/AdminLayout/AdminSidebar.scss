@@ -1,3 +1,41 @@
+.admin-sider {
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  
+  .logo-container {
+    height: 64px;
+    padding: 16px;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+    border-bottom: 1px solid #f0f0f0;
+    
+    .logo {
+      height: 32px;
+      margin: 0;
+    }
+  }
+
+  .menu-container {
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: #d9d9d9;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+  }
+}
 .menu-section-divider {
   padding: 12px 24px 8px;
   margin-top: 8px;
@@ -37,4 +75,4 @@
       right: 8px;
     }
   }
-} 
+}

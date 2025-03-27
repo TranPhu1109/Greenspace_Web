@@ -53,25 +53,25 @@ const DesignerSidebar = ({ collapsed }) => {
           <Menu.Item key="/designer/designs/categories">
             <Link to="/designer/designs/categories">Danh mục thiết kế</Link>
           </Menu.Item>
-          <Menu.Item key="/designer/designs/gallery">
+          {/* <Menu.Item key="/designer/designs/gallery">
             <Link to="/designer/designs/gallery">Thư viện</Link>
           </Menu.Item>
           <Menu.Item key="/designer/designs/tools">
             <Link to="/designer/designs/tools">Công cụ thiết kế</Link>
-          </Menu.Item>
+          </Menu.Item> */}
         </SubMenu>
         
-        <Menu.Item key="/designer/products" icon={<AppstoreOutlined />}>
+        {/* <Menu.Item key="/designer/products" icon={<AppstoreOutlined />}>
           <Link to="/designer/products">Sản phẩm</Link>
-        </Menu.Item>
+        </Menu.Item> */}
         
-        <Menu.Item key="/designer/clients" icon={<TeamOutlined />}>
+        {/* <Menu.Item key="/designer/clients" icon={<TeamOutlined />}>
           <Link to="/designer/clients">Khách hàng</Link>
         </Menu.Item>
-        
-        <Menu.Item key="/designer/messages" icon={<MessageOutlined />}>
+         */}
+        {/* <Menu.Item key="/designer/messages" icon={<MessageOutlined />}>
           <Link to="/designer/messages">Tin nhắn</Link>
-        </Menu.Item>
+        </Menu.Item> */}
         
         <Menu.Item key="/designer/schedule" icon={<CalendarOutlined />}>
           <Link to="/designer/schedule">Lịch làm việc</Link>

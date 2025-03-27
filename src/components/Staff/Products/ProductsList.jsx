@@ -231,7 +231,7 @@ const ProductsList = () => {
       title: "Giá",
       dataIndex: "price",
       key: "price",
-      render: (price) => `${price.toLocaleString("vi-VN")} đ`,
+      render: (price) => `${price.toLocaleString("vi-VN", { style: 'currency', currency: 'VND' })}`,
       sorter: (a, b) => a.price - b.price,
       sortOrder: sortedInfo.columnKey === "price" && sortedInfo.order,
     },

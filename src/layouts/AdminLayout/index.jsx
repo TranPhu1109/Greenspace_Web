@@ -1,114 +1,74 @@
-import { useState, useEffect } from 'react';
-import { Layout, Menu, Dropdown, Avatar, Badge } from 'antd';
-import { 
-  BellOutlined, 
-  UserOutlined, 
-  LogoutOutlined, 
+import { useState, useEffect } from "react";
+import { Layout, Menu, Dropdown, Avatar, Badge } from "antd";
+import {
+  BellOutlined,
+  UserOutlined,
+  LogoutOutlined,
   SettingOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
-} from '@ant-design/icons';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import AdminSidebar from './AdminSidebar';
-import AccountantSidebar from './AccountantSidebar';
-import StaffSidebar from './StaffSidebar';
-import DesignerSidebar from './DesignerSidebar';
-import ManagerSidebar from './ManagerSidebar';
-import './AdminLayout.scss';
-import logo from '../../assets/logo.png';
-import { Select } from 'antd'; // Add this import
+  MenuUnfoldOutlined,
+} from "@ant-design/icons";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import AdminSidebar from "./AdminSidebar";
+import AccountantSidebar from "./AccountantSidebar";
+import StaffSidebar from "./StaffSidebar";
+import DesignerSidebar from "./DesignerSidebar";
+import ManagerSidebar from "./ManagerSidebar";
+import "./AdminLayout.scss";
+import useAuthStore from "@/stores/useAuthStore";
+import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Header, Content } = Layout;
-const { Option } = Select;
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [role, setRole] = useState('admin');
-  const [username, setUsername] = useState('Admin User');
-  const location = useLocation();
+  const [role, setRole] = useState("");
+  const [username, setUsername] = useState("");
   const navigate = useNavigate();
+  const userData = JSON.parse(localStorage.getItem("user"));
+  const { getAccountPath } = useRoleBasedPath();
+  // console.log(userData);
 
-  const roles = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'accountant', label: 'Accountant' },
-    { value: 'staff', label: 'Staff' },
-    { value: 'designer', label: 'Designer' },
-  ];
+  useEffect(() => {
+    // Get user data from localStorage
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (userData) {
+      setRole(userData.roleName.toLowerCase());
+      setUsername(userData.name);
+    } else {
+      // Redirect to login if no user data
+      navigate("/login");
+    }
+  }, [navigate]);
 
-  const handleRoleChange = (newRole) => {
-    setRole(newRole);
-    // Store the selected role in localStorage for persistence
-    localStorage.setItem('selectedRole', newRole);
-    // Navigate to the corresponding route
-    navigate(`/${newRole}/dashboard`);
+  const handleLogout = () => {
+    useAuthStore.getState().logout();
+    navigate("/login");
   };
 
-  // Load saved role from localStorage on initial render
   useEffect(() => {
-    const savedRole = localStorage.getItem('selectedRole');
+    const savedRole = localStorage.getItem("selectedRole");
     if (savedRole) {
       setRole(savedRole);
       navigate(`/${savedRole}/dashboard`);
     }
   }, []);
 
-  // Giả lập việc lấy role từ API hoặc localStorage
-  useEffect(() => {
-    // Để demo, bạn có thể thay đổi role bằng cách thêm query param vào URL
-    // Ví dụ: /admin?role=manager
-    const params = new URLSearchParams(location.search);
-    const roleParam = params.get('role');
-    if (roleParam && ['admin', 'accountant', 'staff', 'designer', 'manager'].includes(roleParam)) {
-      setRole(roleParam);
-    }
-  }, [location]);
-
-  // Giả lập việc lấy tên người dùng từ API hoặc localStorage
-  useEffect(() => {
-    // Cập nhật tên người dùng dựa trên vai trò
-    switch (role) {
-      case 'admin':
-        setUsername('Admin User');
-        break;
-      case 'accountant':
-        setUsername('Accountant User');
-        break;
-      case 'staff':
-        setUsername('Staff User');
-        break;
-      case 'designer':
-        setUsername('Designer User');
-        break;
-      case 'manager':
-        setUsername('Manager User');
-        break;
-      default:
-        setUsername('Admin User');
-    }
-  }, [role]); // Cập nhật khi role thay đổi
-
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
 
-  const handleLogout = () => {
-    // Xử lý đăng xuất
-    console.log('Logout');
-    navigate('/');
-  };
-
   const renderSidebar = () => {
     switch (role) {
-      case 'admin':
+      case "admin":
         return <AdminSidebar collapsed={collapsed} />;
-      case 'accountant':
+      case "accountant":
         return <AccountantSidebar collapsed={collapsed} />;
-      case 'staff':
+      case "staff":
         return <StaffSidebar collapsed={collapsed} />;
-      case 'designer':
+      case "designer":
         return <DesignerSidebar collapsed={collapsed} />;
-      case 'manager':
+      case "manager":
         return <ManagerSidebar collapsed={collapsed} />;
       default:
         return <AdminSidebar collapsed={collapsed} />;
@@ -117,10 +77,18 @@ const AdminLayout = () => {
 
   const userMenu = (
     <Menu>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
+      <Menu.Item
+        key="profile"
+        icon={<UserOutlined />}
+        onClick={() => navigate(getAccountPath("profile"))}
+      >
         Thông tin cá nhân
       </Menu.Item>
-      <Menu.Item key="settings" icon={<SettingOutlined />}>
+      <Menu.Item
+        key="settings"
+        icon={<SettingOutlined />}
+        onClick={() => navigate(getAccountPath("settings"))}
+      >
         Cài đặt tài khoản
       </Menu.Item>
       <Menu.Divider />
@@ -143,7 +111,9 @@ const AdminLayout = () => {
         <div className="notification-item">
           <div className="notification-title">Yêu cầu thiết kế</div>
           <div className="notification-time">30 phút trước</div>
-          <div className="notification-content">Khách hàng gửi yêu cầu thiết kế mới</div>
+          <div className="notification-content">
+            Khách hàng gửi yêu cầu thiết kế mới
+          </div>
         </div>
       </Menu.Item>
       <Menu.Divider />
@@ -156,37 +126,47 @@ const AdminLayout = () => {
   return (
     <Layout className="admin-layout">
       {renderSidebar()}
-      <Layout className={`site-layout ${collapsed ? 'collapsed' : ''}`}>
+      <Layout className={`site-layout ${collapsed ? "collapsed" : ""}`}>
         <Header className="admin-header">
           <div className="header-left">
             <div className="trigger" onClick={toggleCollapsed}>
               {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </div>
-            <Select
-              value={role}
-              onChange={handleRoleChange}
-              style={{ width: 120, marginRight: 16 }}
-            >
-              {roles.map(role => (
-                <Option key={role.value} value={role.value}>
-                  {role.label}
-                </Option>
-              ))}
-            </Select>
-            <div className="header-title">
-              Dashboard
-            </div>
           </div>
           <div className="header-right">
-            <Dropdown overlay={notificationMenu} trigger={['click']} placement="bottomRight">
+            <Dropdown
+              overlay={notificationMenu}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
               <Badge count={2} className="notification-badge">
                 <BellOutlined className="header-icon" />
               </Badge>
             </Dropdown>
-            <Dropdown overlay={userMenu} trigger={['click']} placement="bottomRight">
+            <Dropdown
+              overlay={userMenu}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
               <div className="user-info">
-                <Avatar size="small" icon={<UserOutlined />} />
-                <span className="username">{username}</span>
+                <div className="user-avatar">
+                  <Avatar
+                    size={32}
+                    src={userData?.avatarUrl}
+                    style={{
+                      backgroundColor: userData?.avatarUrl
+                        ? "transparent"
+                        : "#4caf50",
+                    }}
+                  >
+                    {!userData?.avatarUrl &&
+                      userData?.name?.charAt(0).toUpperCase()}
+                  </Avatar>
+                </div>
+                <div className="user-details">
+                  <span className="user-name">{userData?.name}</span>
+                  <span className="user-email">{userData?.email}</span>
+                </div>
               </div>
             </Dropdown>
           </div>
@@ -200,6 +180,3 @@ const AdminLayout = () => {
 };
 
 export default AdminLayout;
-
-
-

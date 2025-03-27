@@ -1,6 +1,6 @@
 .admin-layout {
   min-height: 100vh;
-  
+
   .ant-layout-sider {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     z-index: 10;
@@ -9,7 +9,30 @@
     left: 0;
     top: 0;
     overflow-y: auto;
-    
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #f0f0f0;
+      border-radius: 4px;
+
+      &:hover {
+        background: #e3f0e1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      padding: 20px 15px;
+      max-height: 400px;
+    }
+
     .logo-container {
       height: 64px;
       padding: 16px;
@@ -18,11 +41,11 @@
       justify-content: center;
       background-color: #fff;
       border-bottom: 1px solid #f0f0f0;
-      
+
       .logo {
         height: 32px;
       }
-      
+
       .logo-text {
         color: #333;
         font-size: 18px;
@@ -33,7 +56,7 @@
       }
     }
   }
-  
+
   .admin-header {
     background: #fff;
     padding: 0 16px;
@@ -48,11 +71,11 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     height: 64px;
     transition: width 0.3s;
-    
+
     .header-left {
       display: flex;
       align-items: center;
-      
+
       .ant-select {
         .ant-select-selector {
           margin-left: 6px;
@@ -60,52 +83,88 @@
           // border: 1px solid rgba(255, 255, 255, 0.2);
           // color: white;
         }
-        
+
         .ant-select-arrow {
           // color: white;
         }
       }
     }
-    
+
     .header-right {
       display: flex;
       align-items: center;
-      
+      gap: 24px;
+
       .notification-badge {
-        margin-right: 24px;
         cursor: pointer;
+        
+        .header-icon {
+          font-size: 20px;
+          color: #666;
+          
+          &:hover {
+            color: #4caf50;
+          }
+        }
       }
-      
-      .header-icon {
-        font-size: 18px;
-      }
-      
+
       .user-info {
         display: flex;
         align-items: center;
+        gap: 12px;
+        padding: 4px 8px;
+        border-radius: 6px;
         cursor: pointer;
-        
-        .username {
-          margin-left: 8px;
-          font-weight: 500;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: #f5f5f5;
+        }
+
+        .user-avatar {
+          .ant-avatar {
+            border: 2px solid #e8e8e8;
+          }
+        }
+
+        .user-details {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          line-height: 1.2;
+          margin: 0;
+          padding: 0;
+          .user-name {
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 2px;
+            // line-height: 1.2;
+          }
+
+          .user-email {
+            color: #666;
+            font-size: 12px;
+            // line-height: 1.2;
+          }
         }
       }
     }
   }
-  
+
   .site-layout {
     margin-left: 250px;
     transition: margin-left 0.3s;
-    
+
     &.collapsed {
       margin-left: 80px;
-      
+
       .admin-header {
         width: calc(100% - 80px);
       }
     }
   }
-  
+
   .admin-content {
     margin: 84px 16px 16px;
     padding: 24px;
@@ -113,25 +172,25 @@
     border-radius: 8px;
     min-height: calc(100vh - 116px);
   }
-  
+
   .notification-item {
     max-width: 300px;
-    
+
     .notification-title {
       font-weight: 500;
     }
-    
+
     .notification-time {
       font-size: 12px;
       color: #999;
       margin-bottom: 4px;
     }
-    
+
     .notification-content {
       font-size: 14px;
     }
   }
-  
+
   .view-all {
     text-align: center;
     color: #4caf50;
@@ -145,14 +204,14 @@
       .header-title {
         display: none;
       }
-      
+
       .user-info {
         .username {
           display: none;
         }
       }
     }
-    
+
     .admin-content {
       margin: 16px;
       padding: 16px;

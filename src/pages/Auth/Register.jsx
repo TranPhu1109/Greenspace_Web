@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Input, Checkbox, Button, Form, message, Typography, Card } from 'antd';
-import { GoogleOutlined, LockOutlined, MailOutlined, UserOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { GoogleOutlined, LockOutlined, MailOutlined, UserOutlined, ArrowLeftOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import './Auth.scss';
 import logoImage from '../../assets/logo.png';
@@ -12,12 +12,10 @@ const { Title, Text } = Typography;
 const Register = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const register = useAuthStore((state) => state.register);
+  const { register } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (values) => {
-    const { name, email, password } = values;
-    
     if (!values.agreeTerms) {
       message.error('Bạn phải đồng ý với điều khoản và điều kiện');
       return;
@@ -25,20 +23,40 @@ const Register = () => {
     
     setLoading(true);
     try {
-      await register(name, email, password);
-      message.success('Đăng ký thành công');
+      await register({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        phone: values.phone,
+        address: values.address || '',
+        avatarUrl: ''
+      });
+      message.success('Đăng ký thành công');;
       navigate('/login');
     } catch (error) {
       console.error('Register failed:', error);
-      message.error('Đăng ký thất bại: ' + (error.response?.data?.message || error.message));
+      if (error.response?.data?.error?.includes('EMAIL_EXISTS')) {
+        message.error('Email này đã được sử dụng. Vui lòng dùng email khác.');
+      } else {
+        message.error('Đăng ký thất bại: ' + (error.response?.data?.message || error.message));
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleRegister = () => {
-    // Xử lý đăng ký bằng Google
-    console.log('Register with Google');
+  const handleGoogleRegister = async () => {
+    try {
+      setLoading(true);
+      await loginWithGoogle();
+      message.success('Đăng ký thành công');
+      navigate('/');
+    } catch (error) {
+      console.error('Google register failed:', error);
+      message.error('Đăng ký thất bại: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,13 +74,13 @@ const Register = () => {
                 >
                   Trang chủ
                 </Button>
-                <Title level={2} className="auth-title">Đăng ký</Title>
+                
                 {/* <img src={logoImage} alt="GreenSpace Logo" className="auth-logo-small" /> */}
               </div>
-              
-              
+              <div style={{ textAlign: 'center' }}>
+              <Title level={2} className="auth-title">Đăng ký</Title>
               <Text className="auth-subtitle">Tạo tài khoản để trải nghiệm dịch vụ của GreenSpace</Text>
-              
+              </div>
               <Form
                 form={form}
                 name="register"
@@ -95,6 +113,22 @@ const Register = () => {
                   <Input 
                     prefix={<MailOutlined className="site-form-item-icon" />} 
                     placeholder="Nhập email" 
+                    size="large"
+                    className="auth-input"
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="phone"
+                  label="Số điện thoại"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập số điện thoại!' },
+                    { pattern: /^[0-9]{10}$/, message: 'Số điện thoại không hợp lệ!' }
+                  ]}
+                >
+                  <Input 
+                    prefix={<PhoneOutlined className="site-form-item-icon" />} 
+                    placeholder="Nhập số điện thoại" 
                     size="large"
                     className="auth-input"
                   />
@@ -155,7 +189,7 @@ const Register = () => {
                     Đăng ký
                   </Button>
                 </Form.Item>
-                
+{/*                 
                 <div className="divider-container">
                   <div className="divider-line"></div>
                   <span className="divider-text">Hoặc</span>
@@ -170,7 +204,7 @@ const Register = () => {
                   size="large"
                 >
                   Đăng ký với Google
-                </Button>
+                </Button> */}
                 
                 <div className="auth-footer">
                   <Text>Bạn đã có tài khoản? </Text>

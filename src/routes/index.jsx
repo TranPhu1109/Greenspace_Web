@@ -10,12 +10,19 @@ import { managerRoutes } from "./managerRoutes";
 import { accountantRoutes } from "./accountantRoutes";
 import { staffRoutes } from "./staffRoutes";
 import { designerRoutes } from "./designerRoutes";
+import LandingPage from "@/pages/LandingPage";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
+    element: <LandingPage />,
+    // element: <Home />,
     errorElement: <ErrorPage />,
+  },
+  {
+    path: "/home",
+    element: <Home />,
+    errorElement: <ErrorPage />,  
   },
   {
     path: "/login",
