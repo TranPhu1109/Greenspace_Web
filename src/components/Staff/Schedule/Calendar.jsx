@@ -30,6 +30,7 @@ import DayDetail from "./components/DayDetail";
 import AddTaskModal from "./components/AddTaskModal";
 import useScheduleStore from "../../../stores/useScheduleStore";
 import "./Calendar.scss";
+import useDesignOrderStore from "@/stores/useDesignOrderStore";
 
 const { Option } = Select;
 
@@ -40,12 +41,9 @@ const Calendar = ({ designers = [], onAddNew }) => {
   const [form] = Form.useForm();
 
   // Lấy dữ liệu từ store
-  const { 
-    getAllActiveTasks,
-    getTasksByDate,
-    isLoading,
-    addTask
-  } = useScheduleStore();
+  const { getAllActiveTasks, getTasksByDate, isLoading, addTask } =
+    useScheduleStore();
+  const { designOrders } = useDesignOrderStore();
 
   // Xử lý khi chọn designer
   const handleDesignerChange = (value) => {
@@ -59,23 +57,33 @@ const Calendar = ({ designers = [], onAddNew }) => {
 
   // Xử lý khi submit form thêm task
   const handleAddTaskSubmit = () => {
-    form.validateFields().then(values => {
-      const newTask = {
-        title: values.title,
-        customer: values.customer,
-        deadline: values.date.format('YYYY-MM-DD'),
-        status: 'thiết kế',
-        notes: values.notes || ''
+    form.validateFields().then((values) => {
+      // Filter pending custom orders
+      const pendingCustomOrders = designOrders.filter(
+        (order) => order.isCustom === true && order.status === "Pending"
+      );
+
+      if (pendingCustomOrders.length === 0) {
+        message.warning(
+          "Không có đơn hàng thiết kế tùy chỉnh nào đang chờ xử lý"
+        );
+        return;
+      }
+
+      const taskData = {
+        serviceOrderId: pendingCustomOrders[0].id,
+        userId: values.designerId,
+        note: values.notes || "",
       };
 
-      addTask(values.designerId, newTask)
+      addTask(taskData)
         .then(() => {
-          message.success('Đã thêm công việc mới');
+          message.success("Đã thêm công việc mới");
           setAddTaskModal(false);
           form.resetFields();
         })
-        .catch(error => {
-          message.error('Không thể thêm công việc: ' + error.message);
+        .catch((error) => {
+          message.error("Không thể thêm công việc: " + error.message);
         });
     });
   };
@@ -97,12 +105,14 @@ const Calendar = ({ designers = [], onAddNew }) => {
   // Render nội dung của mỗi ô ngày
   const dateCellRender = (value) => {
     // Lấy tất cả tasks trong ngày này
-    const dateString = value.format('YYYY-MM-DD');
+    const dateString = value.format("YYYY-MM-DD");
     let tasksOnDate = getTasksByDate(dateString);
 
     // Lọc theo designer nếu có chọn
-    if (selectedDesignerId !== 'all') {
-      tasksOnDate = tasksOnDate.filter(task => task.designerId == selectedDesignerId);
+    if (selectedDesignerId !== "all") {
+      tasksOnDate = tasksOnDate.filter(
+        (task) => task.designerId == selectedDesignerId
+      );
     }
 
     if (tasksOnDate.length === 0) {
@@ -117,9 +127,9 @@ const Calendar = ({ designers = [], onAddNew }) => {
             id: task.designerId,
             name: task.designerName,
             avatar: task.designerAvatar,
-            email: task.designerEmail
+            email: task.designerEmail,
           },
-          tasks: []
+          tasks: [],
         };
       }
       acc[task.designerId].tasks.push(task);
@@ -129,16 +139,21 @@ const Calendar = ({ designers = [], onAddNew }) => {
     return (
       <div className="date-cell-content">
         {Object.values(tasksByDesigner).map(({ designer, tasks }) => (
-          <Tooltip 
+          <Tooltip
             key={designer.id}
             title={
               <div>
-                <div><strong>{designer.name}</strong></div>
+                <div>
+                  <strong>{designer.name}</strong>
+                </div>
                 <ul className="tooltip-tasks">
-                  {tasks.map(task => (
+                  {tasks.map((task) => (
                     <li key={task.task_id}>
                       {task.title} - {task.customer}
-                      <Tag color={getStatusColor(task.task_status)} style={{ marginLeft: 4 }}>
+                      <Tag
+                        color={getStatusColor(task.task_status)}
+                        style={{ marginLeft: 4 }}
+                      >
                         {capitalizeFirstLetter(task.task_status)}
                       </Tag>
                     </li>
@@ -155,7 +170,12 @@ const Calendar = ({ designers = [], onAddNew }) => {
                   {designer.email.charAt(0).toUpperCase()}
                 </Avatar>
               )}
-              <Tag className="designer-name" color={getStatusColor(tasks.task_status)}>{designer.name}</Tag>
+              <Tag
+                className="designer-name"
+                color={getStatusColor(tasks.task_status)}
+              >
+                {designer.name}
+              </Tag>
               {/* <Badge count={tasks.length} size="small" /> */}
             </div>
           </Tooltip>
@@ -198,6 +218,8 @@ const Calendar = ({ designers = [], onAddNew }) => {
       </Row>
 
       <AddTaskModal
+        open={addTaskModal}
+        title="Thêm công việc mới"
         visible={addTaskModal}
         onCancel={() => setAddTaskModal(false)}
         onOk={handleAddTaskSubmit}
@@ -212,10 +234,14 @@ const Calendar = ({ designers = [], onAddNew }) => {
 // Hàm helper để lấy màu cho trạng thái
 const getStatusColor = (status) => {
   switch (status) {
-    case 'hoàn thành': return 'green';
-    case 'thiết kế': return 'blue';
-    case 'tư vấn': return 'orange';
-    default: return 'default';
+    case "hoàn thành":
+      return "green";
+    case "thiết kế":
+      return "blue";
+    case "tư vấn":
+      return "orange";
+    default:
+      return "default";
   }
 };
 

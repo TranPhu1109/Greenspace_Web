@@ -127,7 +127,7 @@ const Login = () => {
                     size="large"
                     className="auth-input"
                   />
-                  <Link
+                  {/* <Link
                     to="/forgot-password"
                     className="forgot-password"
                     style={{
@@ -137,9 +137,19 @@ const Login = () => {
                     }}
                   >
                     Quên mật khẩu?
-                  </Link>
+                  </Link> */}
                 </Form.Item>
-
+                <Link
+                  to="/forgot-password"
+                  className="forgot-password"
+                  style={{
+                    float: "right",
+                    fontWeight: "bold",
+                    marginTop: "5px",
+                  }}
+                >
+                  Quên mật khẩu?
+                </Link>
                 <Form.Item name="rememberMe" valuePropName="checked">
                   <Checkbox className="remember-checkbox">
                     Ghi nhớ đăng nhập

@@ -11,12 +11,13 @@ const useScheduleStore = create((set, get) => ({
   fetchDesigners: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('api/schedule');
+      const response = await api.get('api/users');
+      const designersOnly = response.data.filter(user => user.roleName === 'Designer');
       set({ 
-        designers: response.data,
+        designers: designersOnly,
         isLoading: false 
       });
-      return response.data;
+      return designersOnly;
     } catch (error) {
       set({ 
         error: error.message || 'Không thể tải dữ liệu designers', 
@@ -43,43 +44,11 @@ const useScheduleStore = create((set, get) => ({
   },
 
   // Thêm task mới cho designer
-  addTask: async (designerId, taskData) => {
+  addTask: async (taskData) => {
     set({ isLoading: true, error: null });
     try {
-      // Lấy designer hiện tại
-      const designer = get().designers.find(d => d.id == designerId);
-      if (!designer) throw new Error('Không tìm thấy designer');
-
-      // Tạo task mới với ID tự tạo
-      const newTask = {
-        task_id: Date.now(), // Tạo ID tạm thời
-        title: taskData.title,
-        customer: taskData.customer,
-        deadline: taskData.deadline,
-        task_status: taskData.status || 'thiết kế',
-        notes: taskData.notes || ''
-      };
-
-      // Cập nhật trạng thái designer thành "đang bận"
-      const updatedDesigner = {
-        ...designer,
-        status: 'đang bận',
-        tasks: [...(designer.tasks || []), newTask]
-      };
-
-      // Gọi API để cập nhật
-      const response = await api.put(`https://67d3cec08bca322cc26b1d5e.mockapi.io/schedule/${designerId}`, updatedDesigner);
-
-      // Cập nhật state
-      const updatedDesigners = get().designers.map(d => 
-        d.id == designerId ? response.data : d
-      );
-
-      set({ 
-        designers: updatedDesigners,
-        isLoading: false 
-      });
-
+      const response = await api.post('api/worktask', taskData);
+      set({ isLoading: false });
       return response.data;
     } catch (error) {
       set({ 
@@ -89,6 +58,52 @@ const useScheduleStore = create((set, get) => ({
       throw error;
     }
   },
+  // addTask: async (designerId, taskData) => {
+  //   set({ isLoading: true, error: null });
+  //   try {
+  //     // Lấy designer hiện tại
+  //     const designer = get().designers.find(d => d.id == designerId);
+  //     if (!designer) throw new Error('Không tìm thấy designer');
+
+  //     // Tạo task mới với ID tự tạo
+  //     const newTask = {
+  //       task_id: Date.now(), // Tạo ID tạm thời
+  //       title: taskData.title,
+  //       customer: taskData.customer,
+  //       deadline: taskData.deadline,
+  //       task_status: taskData.status || 'thiết kế',
+  //       notes: taskData.notes || ''
+  //     };
+
+  //     // Cập nhật trạng thái designer thành "đang bận"
+  //     const updatedDesigner = {
+  //       ...designer,
+  //       status: 'đang bận',
+  //       tasks: [...(designer.tasks || []), newTask]
+  //     };
+
+  //     // Gọi API để cập nhật
+  //     const response = await api.put(`https://67d3cec08bca322cc26b1d5e.mockapi.io/schedule/${designerId}`, updatedDesigner);
+
+  //     // Cập nhật state
+  //     const updatedDesigners = get().designers.map(d => 
+  //       d.id == designerId ? response.data : d
+  //     );
+
+  //     set({ 
+  //       designers: updatedDesigners,
+  //       isLoading: false 
+  //     });
+
+  //     return response.data;
+  //   } catch (error) {
+  //     set({ 
+  //       error: error.message || 'Không thể thêm task mới', 
+  //       isLoading: false 
+  //     });
+  //     throw error;
+  //   }
+  // },
 
   // Cập nhật task
   updateTask: async (designerId, taskId, taskData) => {

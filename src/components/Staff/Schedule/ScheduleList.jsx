@@ -24,6 +24,7 @@ import Calendar from './Calendar';
 import DesignerSchedule from './DesignerSchedule';
 import useScheduleStore from '../../../stores/useScheduleStore';
 import './Schedule.scss';
+import useDesignOrderStore from '@/stores/useDesignOrderStore';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -45,18 +46,13 @@ const ScheduleList = () => {
     addTask,
     getAllTasks
   } = useScheduleStore();
+  const{designOrders, fetchDesignOrders} = useDesignOrderStore();
 
   // Fetch dữ liệu khi component mount
   useEffect(() => {
     fetchDesigners();
-  }, [fetchDesigners]);
-
-  // Hiển thị thông báo lỗi nếu có
-  useEffect(() => {
-    if (error) {
-      message.error(error);
-    }
-  }, [error]);
+    fetchDesignOrders();
+  }, [fetchDesigners, fetchDesignOrders]);
 
   // Xử lý phân công task mới
   const handleAssignTask = (designerId) => {
@@ -67,14 +63,23 @@ const ScheduleList = () => {
   // Xử lý submit form phân công
   const handleAssignSubmit = () => {
     form.validateFields().then((values) => {
-      const newTask = {
-        title: values.title,
-        customer: values.customer,
-        deadline: values.deadline.format("YYYY-MM-DD"),
-        status: "chưa bắt đầu"
+      const pendingCustomOrders = designOrders.filter(order => 
+        order.isCustom === true && 
+        order.status === "Pending"
+      );
+  
+      if (pendingCustomOrders.length === 0) {
+        message.warning("Không có đơn hàng thiết kế tùy chỉnh nào đang chờ xử lý");
+        return;
+      }
+  
+      const taskData = {
+        serviceOrderId: pendingCustomOrders[0].id,
+        userId: values.designerId,
+        note: values.notes || ''
       };
-
-      addTask(selectedDesignerId, newTask)
+  
+      addTask(taskData)
         .then(() => {
           message.success("Đã phân công công việc mới");
           setAssignModalVisible(false);
@@ -225,7 +230,7 @@ const ScheduleList = () => {
 
       <Modal
         title="Phân công công việc mới"
-        visible={assignModalVisible}
+        open={assignModalVisible}  // Change from 'visible' to 'open'
         onCancel={() => setAssignModalVisible(false)}
         onOk={handleAssignSubmit}
         okText="Phân công"
@@ -282,4 +287,4 @@ const ScheduleList = () => {
   );
 };
 
-export default ScheduleList; 
+export default ScheduleList;

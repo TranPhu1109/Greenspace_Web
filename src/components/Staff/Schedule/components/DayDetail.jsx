@@ -10,6 +10,10 @@ import {
   Divider,
   Empty,
   Spin,
+  Form,
+  Modal,
+  Input,
+  Select,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -20,12 +24,43 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import useScheduleStore from "../../../../stores/useScheduleStore";
+import useDesignOrderStore from "@/stores/useDesignOrderStore";
 
 const { Title, Text } = Typography;
 
 const DayDetail = ({ selectedDate, designers = [], selectedDesignerId }) => {
+  const [addTaskModal, setAddTaskModal] = useState(false);
+  const [selectedDesigner, setSelectedDesigner] = useState(null);
+  const [form] = Form.useForm();
+
   const { getTasksByDate, getAvailableDesigners, isLoading, updateTask } =
     useScheduleStore();
+  const { designOrders } = useDesignOrderStore();
+
+  const handleAddTask = (designer) => {
+    setSelectedDesigner(designer);
+    setAddTaskModal(true);
+  };
+
+  const handleAddTaskSubmit = () => {
+    form.validateFields().then((values) => {
+      const taskData = {
+        serviceOrderId: values.serviceOrderId,
+        userId: selectedDesigner.id,
+        note: values.notes || "",
+      };
+
+      addTask(taskData)
+        .then(() => {
+          message.success("Đã thêm công việc mới");
+          setAddTaskModal(false);
+          form.resetFields();
+        })
+        .catch((error) => {
+          message.error("Không thể thêm công việc: " + error.message);
+        });
+    });
+  };
 
   // Lấy ngày được chọn dưới dạng string
   const dateString = selectedDate.format("YYYY-MM-DD");
@@ -108,7 +143,7 @@ const DayDetail = ({ selectedDate, designers = [], selectedDesignerId }) => {
                     size="small"
                     icon={<PlusOutlined />}
                     onClick={() => {
-                      /* Xử lý thêm task */
+                      handleAddTask(designer);
                     }}
                   >
                     Thêm task
@@ -173,23 +208,23 @@ const DayDetail = ({ selectedDate, designers = [], selectedDesignerId }) => {
                 dataSource={tasks}
                 renderItem={(task) => (
                   <List.Item
-                    actions={[
-                      task.task_status !== "hoàn thành" && (
-                        <Button
-                          type="link"
-                          size="small"
-                          onClick={() =>
-                            handleStatusChange(
-                              designer.id,
-                              task.task_id,
-                              "hoàn thành"
-                            )
-                          }
-                        >
-                          Hoàn thành
-                        </Button>
-                      ),
-                    ]}
+                  // actions={[
+                  //   task.task_status !== "hoàn thành" && (
+                  //     <Button
+                  //       type="link"
+                  //       size="small"
+                  //       onClick={() =>
+                  //         handleStatusChange(
+                  //           designer.id,
+                  //           task.task_id,
+                  //           "hoàn thành"
+                  //         )
+                  //       }
+                  //     >
+                  //       Hoàn thành
+                  //     </Button>
+                  //   ),
+                  // ]}
                   >
                     <List.Item.Meta
                       title={<span>{task.title}</span>}
@@ -221,6 +256,39 @@ const DayDetail = ({ selectedDate, designers = [], selectedDesignerId }) => {
           <Empty description="Không có công việc nào trong ngày này" />
         )}
       </div>
+
+      <Modal
+        title="Thêm công việc mới"
+        open={addTaskModal}
+        onCancel={() => setAddTaskModal(false)}
+        onOk={handleAddTaskSubmit}
+        okText="Thêm"
+        cancelText="Hủy"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="serviceOrderId"
+            label="Đơn hàng"
+            rules={[{ required: true, message: "Vui lòng chọn đơn hàng" }]}
+          >
+            <Select placeholder="Chọn đơn hàng">
+              {designOrders
+                .filter(
+                  (order) =>
+                    order.isCustom === true && order.status === "Pending"
+                )
+                .map((order) => (
+                  <Select.Option key={order.id} value={order.id}>
+                    {order.orderCode} - {order.customerName}
+                  </Select.Option>
+                ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="notes" label="Ghi chú">
+            <Input.TextArea rows={4} placeholder="Nhập ghi chú (nếu có)" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 };
