@@ -1,6 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
-import Home from "../pages/Home";
+// import Home from "../pages/Home";
 import ErrorPage from "../pages/Error";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
@@ -11,17 +11,31 @@ import { accountantRoutes } from "./accountantRoutes";
 import { staffRoutes } from "./staffRoutes";
 import { designerRoutes } from "./designerRoutes";
 import LandingPage from "@/pages/LandingPage";
+import Home from "@/pages/Home/index";
+import DesignsPage from "@/pages/Designs";
+import ScrollToTop from '@/components/ScrollToTop';
+import ProductsPage from "@/pages/Products";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <LandingPage />,
+    element: (
+      <>
+        <ScrollToTop />
+        <LandingPage />
+      </>
+    ),
     // element: <Home />,
     errorElement: <ErrorPage />,
   },
   {
     path: "/home",
-    element: <Home />,
+    element: (
+      <>
+        <ScrollToTop />
+        <Home />
+      </>
+    ),
     errorElement: <ErrorPage />,  
   },
   {
@@ -49,6 +63,24 @@ const router = createBrowserRouter([
       staffRoutes,
       designerRoutes,
     ],
+  },
+  {
+    path: "/designs",
+    element: (
+      <>
+        <ScrollToTop />
+        <DesignsPage />
+      </>
+    ),
+  },
+  {
+    path: "/products",
+    element: (
+      <>
+        <ScrollToTop />
+        <ProductsPage />
+      </>
+    ),
   },
   {
     path: "*",

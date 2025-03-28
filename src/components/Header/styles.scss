@@ -1,11 +1,32 @@
 .header {
-  // ===============================
-  // 1. TOP BAR (phone, login, cart)
-  // ===============================
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #fff;
+
+  &.scrolled {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  // Top header - collapsible
   &-top {
     background-color: #fff;
     border-bottom: 1px solid #eee;
-    padding: 8px 0;
+    padding: 15px 0 5px 0;
+    height: 55px;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.2s ease-out;
+
+    &.collapsed {
+      height: 0;
+      padding: 0;
+      opacity: 0;
+      visibility: hidden;
+      margin: 0;
+    }
 
     .container {
       display: flex;
@@ -86,12 +107,14 @@
     }
   }
 
-  // ================================
-  // 2. MAIN BAR (logo, search)
-  // ================================
+  // Main header - always visible
   &-main {
     background-color: #fff;
     padding: 16px 0;
+    border-bottom: 1px solid #eee;
+    height: auto;
+    opacity: 1;
+    transition: all 0.3s ease;
 
     .container {
       display: flex;
@@ -143,7 +166,7 @@
       }
     }
     .search-button {
-      background-color: #8bc349;
+      background-color: #4caf50;
       color: #fff;
       border: none;
       height: 40px;
@@ -154,18 +177,20 @@
       justify-content: center;
 
       &:hover {
-        background-color: #4caf50;
+        background-color: #8bc349;
       }
     }
   }
 
-  // ================================
-  // 3. NAV BAR (menu, links, support)
-  // ================================
+  // Navigation menu - always visible
   &-nav {
-    background-color: #f5f5f5;
-    border-top: 1px solid #eee;
+    background-color: #fff;
+    margin-top: 10px;
     border-bottom: 1px solid #eee;
+    height: 32px;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.3s ease;
 
     .container {
       display: flex;
@@ -213,14 +238,48 @@
 
         .nav-item {
           .nav-link {
-            display: block;
-            padding: 12px 16px;
+            position: relative;
             color: #333;
-            font-weight: 500;
-            transition: color 0.3s;
+            text-decoration: none;
+            padding: 8px 16px;
+            transition: color 0.3s ease;
+
+            &::after {
+              content: '';
+              position: absolute;
+              bottom: -2px;
+              left: 0;
+              width: 100%;
+              height: 2px;
+              background-color: #52c41a;
+              transform: scaleX(0);
+              transition: transform 0.3s ease;
+            }
 
             &:hover {
-              color: #8BC349;
+              color: #52c41a;
+
+              &::after {
+                transform: scaleX(1);
+              }
+            }
+          }
+
+          &.active {
+            .nav-link {
+              color: #52c41a;
+              font-weight: 500;
+              
+              &::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0;
+                width: 100%;
+                height: 2px;
+                background-color: #52c41a;
+                transform: scaleX(1);
+              }
             }
           }
         }
@@ -286,5 +345,157 @@
         height: 32px;
       }
     }
+  }
+
+  .right-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .auth-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .ant-btn {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+
+        &.ant-btn-link {
+          color: #333;
+          
+          &:hover {
+            color: #52c41a;
+            background: rgba(82, 196, 26, 0.1);
+          }
+        }
+
+        &.ant-btn-primary {
+          background: #52c41a;
+          border-color: #52c41a;
+
+          &:hover {
+            background: #49ad18;
+            border-color: #49ad18;
+            transform: translateY(-2px);
+          }
+        }
+      }
+    }
+
+    .user-profile-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid #e8e8e8;
+
+      &:hover {
+        background: #f5f5f5;
+        border-color: #d9d9d9;
+      }
+
+      .user-avatar {
+        background: #52c41a;
+      }
+
+      .user-name {
+        color: #333;
+        font-size: 14px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .cart-button {
+      .ant-btn {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #333;
+
+        &:hover {
+          color: #52c41a;
+        }
+
+        .anticon {
+          font-size: 18px;
+        }
+      }
+
+      .ant-badge-count {
+        background: #52c41a;
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .header {
+    &.scrolled {
+      .header-top {
+        padding: 8px 0;
+      }
+    }
+
+    .right-section {
+      .auth-buttons {
+        .ant-btn {
+          padding: 4px 8px;
+
+          .anticon + span {
+            display: none;
+          }
+        }
+      }
+
+      .user-profile-trigger {
+        padding: 4px 8px;
+
+        .user-name {
+          display: none;
+        }
+      }
+
+      .cart-button {
+        .ant-btn {
+          span {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .header-nav {
+      .nav-menu {
+        .nav-item {
+          &.active {
+            background-color: rgba(82, 196, 26, 0.1);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Adjust margin-top for the hero section to account for fixed headers
+.hero-section {
+  margin-top: calc(132px); // Tổng chiều cao của header-main và header-nav
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    margin-top: calc(110px); // Điều chỉnh cho mobile
   }
 }

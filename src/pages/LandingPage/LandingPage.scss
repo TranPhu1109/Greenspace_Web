@@ -41,10 +41,12 @@ html {
   right: 0;
   z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   
   .nav-links {
     display: flex;
@@ -54,6 +56,7 @@ html {
   .auth-links {
     display: flex;
     gap: 1rem;
+    align-items: center;
 
     .login-link,
     .register-link {
@@ -77,6 +80,43 @@ html {
         transform: translateY(-2px);
       }
     }
+
+    // Styles for user dropdown
+    .ant-dropdown-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
+
+    // Style for user button
+    .ant-btn {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #e8e8e8;
+      
+      &:hover {
+        color: #52c41a;
+        border-color: #52c41a;
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
   }
 
   a {
@@ -92,26 +132,54 @@ html {
 
     &.active {
       color: #52c41a;
-      border-bottom: 2px solid #52c41a;
     }
-    position: relative;
-    // padding-bottom: 5px;
+  }
+}
 
-    &::after {
-      content: "";
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: 0;
-      left: 50%;
-      background-color: #52c41a;
-      transition: all 0.3s ease;
+// Style for dropdown menu
+.ant-dropdown {
+  .ant-dropdown-menu {
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12),
+                0 6px 16px 0 rgba(0, 0, 0, 0.08),
+                0 9px 28px 8px rgba(0, 0, 0, 0.05);
+
+    .ant-dropdown-menu-item {
+      padding: 8px 12px;
+      border-radius: 4px;
+      
+      .anticon {
+        margin-right: 8px;
+      }
+
+      &:hover {
+        background: rgba(82, 196, 26, 0.1);
+        color: #52c41a;
+      }
     }
+  }
+}
 
-    &:hover::after,
-    &.active::after {
-      width: 100%;
-      left: 0;
+// Responsive styles
+@media (max-width: 768px) {
+  .navigation {
+    padding: 8px 16px;
+    
+    .nav-links {
+      display: none; // Hide navigation links on mobile
+    }
+    
+    .auth-links {
+      margin-left: auto; // Push auth links to the right
+      
+      .ant-btn {
+        padding: 4px 8px;
+        
+        span {
+          display: none; // Hide button text on mobile
+        }
+      }
     }
   }
 }
@@ -250,16 +318,6 @@ html {
   .products-section,
   .cta-section {
     padding: 40px 20px;
-  }
-
-  .navigation {
-    flex-direction: column;
-    gap: 1rem;
-    
-    .nav-links, .auth-links {
-      width: 100%;
-      justify-content: center;
-    }
   }
 }
 
