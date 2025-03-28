@@ -15,6 +15,7 @@ import Home from "@/pages/Home/index";
 import DesignsPage from "@/pages/Designs";
 import ScrollToTop from '@/components/ScrollToTop';
 import ProductsPage from "@/pages/Products";
+import ProductDetail from "@/pages/Products/ProductDetail";
 
 const router = createBrowserRouter([
   {
@@ -79,6 +80,15 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <ProductsPage />
+      </>
+    ),
+  },
+  {
+    path: "/products/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <ProductDetail />
       </>
     ),
   },
