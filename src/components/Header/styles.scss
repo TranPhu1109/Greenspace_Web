@@ -1,0 +1,290 @@
+.header {
+  // ===============================
+  // 1. TOP BAR (phone, login, cart)
+  // ===============================
+  &-top {
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    padding: 8px 0;
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .phone-number {
+      display: flex;
+      align-items: center;
+      color: #333;
+      font-weight: bold;
+
+      .anticon {
+        margin-right: 6px;
+        font-size: 16px;
+      }
+
+      span {
+        font-size: 14px;
+      }
+    }
+
+    .auth-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .login-link {
+        color: #333;
+        font-size: 14px;
+        transition: color 0.3s;
+        padding: 4px 12px;
+        border-radius: 4px;
+        border: 1px solid #8bc349;
+        width: 69px;
+        text-align: center;
+        &:hover {
+          color: #8bc349;
+          border-color: #4caf50;
+        }
+      }
+
+      .register-link {
+        color: #fff;
+        background-color: #8bc349;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        width: 69px;
+        text-align: center;
+        border: 1px solid #8bc349;
+
+        &:hover {
+          background-color: #4caf50;
+          border-color: #4caf50;
+        }
+      }
+
+      .cart-link {
+        display: flex;
+        align-items: center;
+        color: #333;
+        font-size: 14px;
+        transition: color 0.3s;
+        margin-left: 8px;
+
+        .anticon {
+          margin-right: 4px;
+          font-size: 18px;
+        }
+
+        &:hover {
+          color: #7bb701;
+        }
+      }
+    }
+  }
+
+  // ================================
+  // 2. MAIN BAR (logo, search)
+  // ================================
+  &-main {
+    background-color: #fff;
+    padding: 16px 0;
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      height: 50px;
+      width: auto;
+    }
+
+    .search-container {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      max-width: 1200px;
+      flex: 1;
+
+      .ant-input {
+        border: none;
+        box-shadow: none;
+        padding: 8px 12px;
+        height: 40px;
+
+        &:focus {
+          outline: none;
+        }
+      }
+
+      .ant-select {
+        border: none;
+        min-width: 140px;
+
+        .ant-select-selector {
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          height: 40px !important;
+          padding: 0 12px !important;
+          display: flex;
+          align-items: center;
+          border-left: 1px solid #ddd !important;
+          border-right: 1px solid #ddd !important;
+        }
+      }
+    }
+    .search-button {
+      background-color: #8bc349;
+      color: #fff;
+      border: none;
+      height: 40px;
+      padding: 0 20px;
+      transition: background-color 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background-color: #4caf50;
+      }
+    }
+  }
+
+  // ================================
+  // 3. NAV BAR (menu, links, support)
+  // ================================
+  &-nav {
+    background-color: #f5f5f5;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .menu-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      justify-content: space-between;
+
+      // Nút "Menu" cho mobile
+      .mobile-menu-button {
+        display: none;
+        @media (max-width: 768px) {
+          display: inline-flex;
+          align-items: center;
+          margin-right: 16px;
+          background: none;
+          border: none;
+          color: #333;
+
+          .anticon {
+            margin-right: 4px;
+          }
+        }
+      }
+
+      // Menu desktop
+      .nav-menu {
+        display: flex;
+
+        @media (max-width: 768px) {
+          display: none;
+        }
+
+        ul {
+          display: flex;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .nav-item {
+          .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+
+            &:hover {
+              color: #8BC349;
+            }
+          }
+        }
+      }
+
+      // Nút "Support" bên phải
+      .support-link {
+        display: flex;
+        align-items: center;
+        color: #333;
+        font-weight: 500;
+        transition: color 0.3s;
+
+        .anticon {
+          margin-right: 4px;
+        }
+
+        &:hover {
+          color: #8BC349;
+        }
+
+        @media (max-width: 768px) {
+          display: none;
+        }
+      }
+    }
+  }
+
+  // ================================
+  // 4. RESPONSIVE
+  // ================================
+  @media (max-width: 768px) {
+    &-top {
+      .phone-number {
+        span {
+          font-size: 12px;
+        }
+      }
+
+      .auth-links {
+        gap: 8px;
+        .login-link,
+        .register-link,
+        .cart-link {
+          font-size: 12px;
+        }
+      }
+    }
+
+    &-main {
+      .search-container {
+        max-width: 100%;
+        .ant-select {
+          display: none;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 576px) {
+    &-main {
+      .logo {
+        height: 32px;
+      }
+    }
+  }
+}

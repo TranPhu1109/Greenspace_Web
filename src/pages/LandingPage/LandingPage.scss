@@ -1,0 +1,364 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  width: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+// Add these new animations
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Update navigation styles
+.navigation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .auth-links {
+    display: flex;
+    gap: 1rem;
+
+    .login-link,
+    .register-link {
+      padding: 8px 16px;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .login-link {
+      color: #52c41a;
+      &:hover {
+        background: rgba(82, 196, 26, 0.1);
+      }
+    }
+
+    .register-link {
+      background: #52c41a;
+      color: white;
+      &:hover {
+        background: #49ad18;
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  a {
+    cursor: pointer;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s;
+    font-size: 16px;
+
+    &:hover {
+      color: #52c41a;
+    }
+
+    &.active {
+      color: #52c41a;
+      border-bottom: 2px solid #52c41a;
+    }
+    position: relative;
+    // padding-bottom: 5px;
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 50%;
+      background-color: #52c41a;
+      transition: all 0.3s ease;
+    }
+
+    &:hover::after,
+    &.active::after {
+      width: 100%;
+      left: 0;
+    }
+  }
+}
+
+// Update card animations
+.feature-card,
+.design-card,
+.product-card {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Hero section enhancements
+.hero-section {
+  min-height: 100vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url("../../../src/assets/login.png") center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  padding: 0 20px;
+
+  .hero-content {
+    max-width: 800px;
+
+    h1 {
+      color: white;
+      font-size: 48px;
+      margin-bottom: 24px;
+    }
+
+    .ant-typography {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 18px;
+      margin-bottom: 32px;
+    }
+    animation: fadeInUp 1s ease-out;
+
+    .ant-btn {
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+}
+.hero-section,
+.features-section,
+.designs-section,
+.products-section,
+.cta-section {
+  min-height: 100vh; // Make sections fill viewport height
+  padding-top: 60px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  scroll-margin-top: 60px;
+
+  .ant-row {
+    width: 100%;
+    max-width: 1200px; // Control maximum width of content
+  }
+}
+
+.features-section {
+  padding: 80px 20px;
+  background: #f8f9fa;
+
+  .feature-card {
+    text-align: center;
+    padding: 32px;
+
+    .feature-icon {
+      font-size: 36px;
+      color: #52c41a;
+      margin-bottom: 16px;
+    }
+  }
+}
+
+.designs-section,
+.products-section {
+  padding: 80px 20px;
+
+  .ant-typography {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .design-card,
+  .product-card {
+    .ant-card-meta {
+      margin-bottom: 16px;
+    }
+
+    .price {
+      font-size: 18px;
+      color: #52c41a;
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+  }
+}
+
+.cta-section {
+  padding: 80px 20px;
+  background: #f0f2f5;
+  text-align: center;
+
+  .ant-typography {
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    height: 400px;
+
+    .hero-content h1 {
+      font-size: 32px;
+    }
+  }
+
+  .features-section,
+  .designs-section,
+  .products-section,
+  .cta-section {
+    padding: 40px 20px;
+  }
+
+  .navigation {
+    flex-direction: column;
+    gap: 1rem;
+    
+    .nav-links, .auth-links {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+// Add hover effects to buttons
+.ant-btn {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Add smooth transitions for images
+img {
+  transition: all 0.3s ease;
+}
+
+.design-card,
+.product-card {
+  overflow: hidden;
+
+  img {
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}
+
+// Add loading animation
+.loading-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.designs-section,
+.products-section {
+  .container {
+    .ant-carousel {
+      position: relative;
+      
+      .slick-dots {
+        bottom: -30px;
+        li {
+          button {
+            background: #d9d9d9;
+          }
+          &.slick-active button {
+            background: #1890ff;
+          }
+        }
+      }
+      
+      .slick-slide {
+        padding: 0 10px;
+      }
+
+      .slick-arrow {
+        width: 40px;
+        height: 40px;
+        background: #52c41a !important;
+        border-radius: 50%;
+        z-index: 2;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.5);
+        }
+
+        &::before {
+          color: white;
+          font-size: 20px;
+          line-height: 40px;
+        }
+      }
+
+      .slick-prev {
+        left: -50px;
+        &::after {
+          position: absolute;
+          top: 35%;
+          left: 38%; 
+        }
+      }
+
+      .slick-next {
+        right: -50px;
+        &::after {
+          position: absolute;
+          top: 35%;
+          left: 30%; 
+        }
+      }
+
+      &:hover {
+        .slick-arrow {
+          opacity: 1;
+        }
+      }
+    }
+  }
+}

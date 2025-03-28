@@ -1,0 +1,81 @@
+.calendar-header {
+  padding: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+
+  .today-button {
+    margin-right: 8px;
+  }
+  
+  .month-navigation {
+    display: flex;
+    justify-content: center;
+    
+    .ant-btn-group {
+      display: flex;
+      
+      .month-display {
+        min-width: 140px;
+        pointer-events: none;
+        font-weight: 500;
+        // color: ;
+        // background-color: #f0f7ff;
+        border-color: #d9d9d9;
+      }
+    }
+  }
+  
+  .designer-filter {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-header {
+    .ant-row {
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .ant-col {
+      width: 100%;
+      text-align: center;
+      
+      &.month-navigation {
+        order: 1;
+      }
+      
+      &:first-child {
+        order: 2;
+      }
+      
+      &.designer-filter {
+        order: 3;
+      }
+    }
+    
+    .today-button {
+      width: 100%;
+      margin-right: 0;
+    }
+    
+    .month-navigation {
+      .ant-btn-group {
+        width: 100%;
+        
+        .ant-btn {
+          flex: 1;
+        }
+      }
+    }
+    
+    .designer-filter {
+      justify-content: center;
+      
+      .ant-select {
+        width: 100% !important;
+      }
+    }
+  }
+} 

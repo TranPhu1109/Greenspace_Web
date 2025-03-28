@@ -1,0 +1,72 @@
+.delivery-section {
+  margin-top: 24px;
+
+  .delivery-steps {
+    margin-bottom: 24px;
+  }
+
+  .delivery-info {
+    margin-bottom: 24px;
+
+    .ant-descriptions {
+      background: white;
+
+      .ant-descriptions-item-label {
+        min-width: 150px;
+        
+        .anticon {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  .delivery-form {
+    margin-bottom: 24px;
+    background: #fafafa;
+
+    .ant-card-head {
+      background: white;
+    }
+
+    .form-actions {
+      margin-bottom: 0;
+      text-align: right;
+    }
+
+    .ant-upload-list-picture {
+      .ant-upload-list-item {
+        padding: 8px;
+      }
+    }
+  }
+
+  .delivery-timeline {
+    padding: 24px;
+    background: #fafafa;
+    border-radius: 4px;
+
+    .timeline-item {
+      .timeline-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+
+        .timeline-date {
+          margin-right: 16px;
+          color: #8c8c8c;
+          font-size: 13px;
+        }
+      }
+
+      .timeline-content {
+        margin-top: 12px;
+        
+        .ant-image {
+          border-radius: 4px;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+} 
