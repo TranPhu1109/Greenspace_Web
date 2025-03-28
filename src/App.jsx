@@ -1,10 +1,14 @@
 import AppRoutes from "./routes";
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
-    <div className="p-4">
-      <AppRoutes />
-    </div>
+    <>
+      <ScrollToTop />
+      <div className="p-4">
+        <AppRoutes />
+      </div>
+    </>
   );
 }
 

@@ -2,13 +2,14 @@ import React, { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import { Link as ScrollLink, Element, Events, scrollSpy } from "react-scroll";
-import { Layout, Typography, Card, Button, Row, Col, Carousel } from "antd";
-import { ArrowRightOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Layout, Typography, Card, Button, Row, Col, Carousel, Dropdown } from "antd";
+import { ArrowRightOutlined, CheckCircleOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import "./LandingPage.scss";
 import Footer from "@/components/Footer";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useProductStore from "@/stores/useProductStore";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
+import useAuthStore from '../../stores/useAuthStore';
 
 const { Content } = Layout;
 const { Title, Paragraph } = Typography;
@@ -17,33 +18,14 @@ const { Meta } = Card;
 const LandingPage = () => {
   const { products, fetchProducts } = useProductStore();
   const { designIdeas, fetchDesignIdeas } = useDesignIdeaStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
     fetchDesignIdeas();
   }, [fetchProducts, fetchDesignIdeas]);
-  // const designs = [
-  //   {
-  //     id: 1,
-  //     title: "Vườn Ban Công Hiện Đại",
-  //     image: "/images/designs/balcony-garden.jpg",
-  //     description: "Thiết kế không gian xanh cho ban công chung cư",
-  //     price: "2,500,000₫",
-  //   },
-  //   // Add more designs...
-  // ];
-
-  // const products = [
-  //   {
-  //     id: 1,
-  //     title: "Chậu Cây Composite",
-  //     image: "/images/products/pot.jpg",
-  //     description: "Chậu trồng cây cao cấp",
-  //     price: "350,000₫",
-  //   },
-  //   // Add more products...
-  // ];
-
+  
   useEffect(() => {
     Events.scrollEvent.register("begin", () => {});
     Events.scrollEvent.register("end", () => {});
@@ -332,72 +314,120 @@ const LandingPage = () => {
   );
 };
 
-// Add a navigation component at the top of your page
-const Navigation = () => (
-  <div className="navigation">
-    <Link to="/home" className="logo-link">
-      <img
-        src="../../../src/assets/logo.png"
-        alt="Logo"
-        style={{ width: "120px", height: "auto" }}
-      />
-    </Link>
-    <div className="nav-links">
-      <ScrollLink
-        to="hero"
-        spy={true}
-        smooth={true}
-        duration={500}
-        activeClass="active"
-      >
-        Trang chủ
-      </ScrollLink>
-      <ScrollLink
-        to="features"
-        spy={true}
-        smooth={true}
-        duration={500}
-        activeClass="active"
-      >
-        Tính năng
-      </ScrollLink>
-      <ScrollLink
-        to="designs"
-        spy={true}
-        smooth={true}
-        duration={500}
-        activeClass="active"
-      >
-        Thiết kế
-      </ScrollLink>
-      <ScrollLink
-        to="products"
-        spy={true}
-        smooth={true}
-        duration={500}
-        activeClass="active"
-      >
-        Sản phẩm
-      </ScrollLink>
-      <ScrollLink
-        to="cta"
-        spy={true}
-        smooth={true}
-        duration={500}
-        activeClass="active"
-      >
-        Liên hệ
-      </ScrollLink>
-    </div>
-    <div className="auth-links">
-      <Link to="/login" className="login-link">
-        Đăng nhập
+// Update the Navigation component
+const Navigation = () => {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  // Debug log để kiểm tra user
+  console.log("Current user:", user);
+
+  const userMenuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Thông tin tài khoản',
+      onClick: () => navigate('/profile')
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Đăng xuất',
+      onClick: () => {
+        logout();
+        navigate('/');
+      },
+    },
+  ];
+
+  // Kiểm tra user từ localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      console.log("User from localStorage:", JSON.parse(storedUser));
+    }
+  }, []);
+
+  return (
+    <div className="navigation">
+      <Link to="/home" className="logo-link">
+        <img
+          src="../../../src/assets/logo.png"
+          alt="Logo"
+          style={{ width: "120px", height: "auto" }}
+        />
       </Link>
-      <Link to="/register" className="register-link">
-        Đăng ký
-      </Link>
+      <div className="nav-links">
+        <ScrollLink
+          to="hero"
+          spy={true}
+          smooth={true}
+          duration={500}
+          activeClass="active"
+        >
+          Trang chủ
+        </ScrollLink>
+        <ScrollLink
+          to="features"
+          spy={true}
+          smooth={true}
+          duration={500}
+          activeClass="active"
+        >
+          Tính năng
+        </ScrollLink>
+        <ScrollLink
+          to="designs"
+          spy={true}
+          smooth={true}
+          duration={500}
+          activeClass="active"
+        >
+          Thiết kế
+        </ScrollLink>
+        <ScrollLink
+          to="products"
+          spy={true}
+          smooth={true}
+          duration={500}
+          activeClass="active"
+        >
+          Sản phẩm
+        </ScrollLink>
+        <ScrollLink
+          to="cta"
+          spy={true}
+          smooth={true}
+          duration={500}
+          activeClass="active"
+        >
+          Liên hệ
+        </ScrollLink>
+      </div>
+      <div className="auth-links">
+        {user || localStorage.getItem('user') ? (
+          <Dropdown
+            menu={{ items: userMenuItems }}
+            placement="bottomRight"
+            arrow
+          >
+            <Button icon={<UserOutlined />} className="flex items-center">
+              {user?.name || JSON.parse(localStorage.getItem('user'))?.name || 'Tài khoản'}
+            </Button>
+          </Dropdown>
+        ) : (
+          <>
+            <Link to="/login" className="login-link">
+              Đăng nhập
+            </Link>
+            <Link to="/register" className="register-link">
+              Đăng ký
+            </Link>
+          </>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default LandingPage;
