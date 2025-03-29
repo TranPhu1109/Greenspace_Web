@@ -16,6 +16,7 @@ import DesignsPage from "@/pages/Designs";
 import ScrollToTop from '@/components/ScrollToTop';
 import ProductsPage from "@/pages/Products";
 import ProductDetail from "@/pages/Products/ProductDetail";
+import DesignDetailPage from "@/pages/Designs/Detail";
 
 const router = createBrowserRouter([
   {
@@ -71,6 +72,15 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <DesignsPage />
+      </>
+    ),
+  },
+  {
+    path: "/designs/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <DesignDetailPage />
       </>
     ),
   },

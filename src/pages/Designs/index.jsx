@@ -14,7 +14,9 @@ const { Option } = Select;
 
 const DesignsPage = () => {
   const { designIdeas, fetchDesignIdeas, isLoading } = useDesignIdeaStore();
+  
   const { categories, fetchCategories } = useDesignCategoryStore();
+  
   const [filteredDesigns, setFilteredDesigns] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
@@ -166,7 +168,7 @@ const DesignsPage = () => {
                           </div>
                         }
                       />
-                      <Button type="primary" block href={`/designs/${design.id}`}>
+                      <Button type="Link" block href={`/designs/${design.id}`}>
                         Xem Chi Tiết
                       </Button>
                     </Card>

@@ -3,6 +3,7 @@ import axios from '../api/api';
 
 const useDesignIdeaStore = create((set) => ({
   designIdeas: [],
+  currentDesign: null,
   isLoading: false,
   error: null,
 
@@ -57,6 +58,30 @@ const useDesignIdeaStore = create((set) => ({
       }));
       return true;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  fetchDesignIdeaById: async (id) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.get(`/api/designidea/${id}`);
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+      set({ 
+        currentDesign: response.data,
+        isLoading: false,
+        error: null
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching design:', error);
+      set({ 
+        currentDesign: null,
+        isLoading: false,
+        error: error.response?.data?.message || error.message || 'Failed to fetch design'
+      });
       throw error;
     }
   }
