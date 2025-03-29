@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Button, Drawer, Menu, Input, Select, Dropdown, Avatar, Badge } from "antd";
+import {
+  Button,
+  Drawer,
+  Menu,
+  Input,
+  Select,
+  Dropdown,
+  Avatar,
+  Badge,
+} from "antd";
 import {
   MenuOutlined,
   ShoppingCartOutlined,
@@ -11,10 +20,11 @@ import {
   LogoutOutlined,
   LoginOutlined,
   UserAddOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import reactLogo from "../../assets/logo.png";
 import "./styles.scss";
-import useAuthStore from '../../stores/useAuthStore';
+import useAuthStore from "../../stores/useAuthStore";
 
 const { Option } = Select;
 
@@ -31,17 +41,17 @@ const Header = () => {
     const handleScroll = () => {
       const currentScrollPos = window.pageYOffset;
       const scrollingDown = currentScrollPos > prevScrollPos;
-      
+
       // Chỉ cần cuộn 20px sẽ kích hoạt
       if (Math.abs(currentScrollPos - prevScrollPos) > 10) {
         setScrolled(scrollingDown);
       }
-      
+
       setPrevScrollPos(currentScrollPos);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [prevScrollPos]);
 
   const showDrawer = () => {
@@ -66,21 +76,28 @@ const Header = () => {
 
   const userMenuItems = [
     {
-      key: 'profile',
+      key: "profile",
       icon: <UserOutlined />,
-      label: 'Thông tin tài khoản',
-      onClick: () => navigate('/profile')
+      label: "Thông tin tài khoản",
+      onClick: () => navigate("/profile"),
     },
     {
-      type: 'divider'
+      key: "wallet",
+      icon: <WalletOutlined />,
+      label: "Ví tiền",
+      onClick: () => navigate("/userwallets"),
     },
     {
-      key: 'logout',
+      type: "divider",
+    },
+
+    {
+      key: "logout",
       icon: <LogoutOutlined />,
-      label: 'Đăng xuất',
+      label: "Đăng xuất",
       onClick: () => {
         logout();
-        navigate('/');
+        navigate("/");
       },
     },
   ];
@@ -89,20 +106,23 @@ const Header = () => {
     if (user) {
       return (
         <div className="auth-section">
-          <Dropdown 
-            menu={{ items: userMenuItems }} 
-            placement="bottomRight" 
+          <Dropdown
+            menu={{ items: userMenuItems }}
+            placement="bottomRight"
             arrow
-            trigger={['click']}
+            trigger={["click"]}
           >
             <div className="user-profile-trigger">
-              <Avatar 
-                size="small" 
-                icon={<UserOutlined />} 
+              <Avatar
+                size="small"
+                icon={<UserOutlined />}
                 src={user.avatar}
                 className="user-avatar"
+                style={{
+                  marginRight: "5px",
+                }}
               />
-              <span className="user-name">{user.name || 'Tài khoản'}</span>
+              <span className="user-name">{user.name || "Tài khoản"}</span>
             </div>
           </Dropdown>
         </div>
@@ -111,7 +131,7 @@ const Header = () => {
 
     return (
       <div className="auth-buttons">
-        <Link to="/login" style={{ marginRight: '10px' }}>
+        <Link to="/login" style={{ marginRight: "10px" }}>
           <Button type="dashed" icon={<LoginOutlined />}>
             Đăng nhập
           </Button>
@@ -126,9 +146,9 @@ const Header = () => {
   };
 
   return (
-    <header className={`header ${scrolled ? 'scrolled' : ''}`}>
+    <header className={`header ${scrolled ? "scrolled" : ""}`}>
       {/* Top header - collapsible */}
-      <div className={`header-top ${scrolled ? 'collapsed' : ''}`}>
+      <div className={`header-top ${scrolled ? "collapsed" : ""}`}>
         <div className="container">
           <div className="phone-number">
             <PhoneOutlined />
@@ -197,9 +217,11 @@ const Header = () => {
             <nav className="nav-menu">
               <ul>
                 {menuItems.map((item) => (
-                  <li 
-                    key={item.key} 
-                    className={`nav-item ${isActivePath(item.path) ? 'active' : ''}`}
+                  <li
+                    key={item.key}
+                    className={`nav-item ${
+                      isActivePath(item.path) ? "active" : ""
+                    }`}
                   >
                     <Link to={item.path} className="nav-link">
                       {item.label}
@@ -222,9 +244,11 @@ const Header = () => {
               onClose={onClose}
               open={open}
             >
-              <Menu 
+              <Menu
                 mode="vertical"
-                selectedKeys={[menuItems.find(item => isActivePath(item.path))?.key]}
+                selectedKeys={[
+                  menuItems.find((item) => isActivePath(item.path))?.key,
+                ]}
               >
                 {menuItems.map((item) => (
                   <Menu.Item key={item.key}>
