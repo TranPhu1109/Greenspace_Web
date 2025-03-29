@@ -79,6 +79,7 @@
           display: flex;
           flex-direction: column;
           padding: 12px;
+          
           .ant-card-meta {
             flex: 1;
             margin-bottom: 16px;
@@ -96,7 +97,6 @@
               color: #52c41a;
               border-radius: 4px;
               font-size: 0.9rem;
-              // margin-bottom: 8px;
             }
 
             .product-description {
@@ -121,14 +121,21 @@
         }
 
         .ant-card-actions {
-          background: #fff;
+          background: #fafafa;
           border-top: 1px solid #f0f0f0;
 
-          .ant-btn {
-            height: 32px;
-            padding: 0 15px;
+          .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
 
-            &.ant-btn-primary {
+            .quantity-input {
+              width: 80px;
+            }
+
+            .add-to-cart-btn {
+              flex: 1;
               background: #52c41a;
               border-color: #52c41a;
 
@@ -136,13 +143,16 @@
                 background: #49ad18;
                 border-color: #49ad18;
               }
-            }
 
-            &.ant-btn-link {
-              color: #52c41a;
+              &[disabled] {
+                background: #d9d9d9;
+                border-color: #d9d9d9;
+                color: rgba(0, 0, 0, 0.25);
 
-              &:hover {
-                color: #49ad18;
+                &:hover {
+                  background: #d9d9d9;
+                  border-color: #d9d9d9;
+                }
               }
             }
           }
@@ -172,7 +182,7 @@
   .products-layout {
     .products-hero {
       margin-top: 110px;
-      padding: 60px 0;
+      padding: 40px 0;
 
       h1.ant-typography {
         font-size: 2rem;
@@ -180,10 +190,8 @@
     }
 
     .products-content {
-      padding: 24px 0;
-
       .filters-section {
-        gap: 12px;
+        flex-direction: column;
 
         .search-input,
         .filter-select,
@@ -192,14 +200,21 @@
         }
       }
 
-      .product-card {
-        .ant-card-actions {
-          li {
-            margin: 6px 0;
-          }
+      .products-grid {
+        .product-card {
+          .ant-card-actions {
+            .card-actions {
+              flex-direction: column;
+              padding: 8px 12px;
 
-          .ant-btn {
-            width: 100%;
+              .quantity-input {
+                width: 100%;
+              }
+
+              .add-to-cart-btn {
+                width: 100%;
+              }
+            }
           }
         }
       }

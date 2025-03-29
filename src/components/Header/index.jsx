@@ -25,6 +25,7 @@ import {
 import reactLogo from "../../assets/logo.png";
 import "./styles.scss";
 import useAuthStore from "../../stores/useAuthStore";
+import useCartStore from "../../stores/useCartStore";
 
 const { Option } = Select;
 
@@ -33,8 +34,15 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [prevScrollPos, setPrevScrollPos] = useState(0);
   const { user, logout } = useAuthStore();
+  const { cartItems, fetchCartItems } = useCartStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (user) {
+      fetchCartItems();
+    }
+  }, [user, fetchCartItems]);
 
   // Cập nhật logic scroll để nhạy hơn
   useEffect(() => {
@@ -90,7 +98,6 @@ const Header = () => {
     {
       type: "divider",
     },
-
     {
       key: "logout",
       icon: <LogoutOutlined />,
@@ -145,6 +152,17 @@ const Header = () => {
     );
   };
 
+  const getCartItemsCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const handleCartClick = (e) => {
+    if (!user) {
+      e.preventDefault();
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  };
+
   return (
     <header className={`header ${scrolled ? "scrolled" : ""}`}>
       {/* Top header - collapsible */}
@@ -156,13 +174,15 @@ const Header = () => {
           </div>
           <div className="auth-links">
             {renderAuthButtons()}
-            <Link to="/cart" className="cart-link">
-              <Badge count={5}>
-                <Button type="text" icon={<ShoppingCartOutlined />}>
-                  Giỏ hàng
-                </Button>
-              </Badge>
-            </Link>
+            {user && (
+              <Link to="/cart" className="cart-link" onClick={handleCartClick}>
+                <Badge count={getCartItemsCount()} showZero>
+                  <Button type="text" icon={<ShoppingCartOutlined />}>
+                    Giỏ hàng
+                  </Button>
+                </Badge>
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -231,11 +251,22 @@ const Header = () => {
               </ul>
             </nav>
 
-            {/* Support link */}
-            <Link to="/support" className="support-link">
-              <CustomerServiceOutlined />
-              <span>Support</span>
-            </Link>
+            {/* Right section with wallet and support */}
+            <div className="right-nav-section">
+              {/* Wallet link */}
+              {user && (
+                <Link to="/userwallets" className="wallet-link">
+                  <WalletOutlined />
+                  <span>Ví tiền</span>
+                </Link>
+              )}
+
+              {/* Support link */}
+              <Link to="/support" className="support-link">
+                <CustomerServiceOutlined />
+                <span>Support</span>
+              </Link>
+            </div>
 
             {/* Mobile Navigation Drawer */}
             <Drawer
@@ -263,6 +294,13 @@ const Header = () => {
                     <CustomerServiceOutlined /> Support
                   </Link>
                 </Menu.Item>
+                {user && (
+                  <Menu.Item key="wallet">
+                    <Link to="/wallet" onClick={onClose}>
+                      <WalletOutlined /> Ví tiền
+                    </Link>
+                  </Menu.Item>
+                )}
               </Menu>
             </Drawer>
           </div>

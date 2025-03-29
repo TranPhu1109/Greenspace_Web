@@ -1,6 +1,6 @@
-import React from "react";
-import { Layout, Card, Tabs, message } from "antd";
-import { WalletOutlined, TransactionOutlined } from "@ant-design/icons";
+import React, { useState } from 'react';
+import { Layout, Card, Tabs, message, Button, Space } from "antd";
+import { WalletOutlined, TransactionOutlined, QrcodeOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WalletBalance from "./components/WalletBalance";
@@ -12,6 +12,8 @@ const { Content } = Layout;
 const { TabPane } = Tabs;
 
 const WalletPage = () => {
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+
   // Mock data
   const mockTransactions = [
     {
@@ -55,6 +57,14 @@ const WalletPage = () => {
                 >
                   <WalletBalance balance={0} />
                   <RechargeForm onFinish={handleRecharge} />
+                  {/* <Button
+                    type="default"
+                    icon={<QrcodeOutlined />}
+                    onClick={() => setQrModalVisible(true)}
+                    block
+                  >
+                    Thanh toán bằng QR VNPay
+                  </Button> */}
                 </TabPane>
                 <TabPane 
                   tab={

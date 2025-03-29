@@ -10,13 +10,13 @@ import {
   Select,
   Empty,
   message,
+  InputNumber,
 } from "antd";
 import { SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
-// TODO: Implement cart feature
-// import useCartStore from "@/stores/useCartStore";
+import useCartStore from "@/stores/useCartStore";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -27,18 +27,18 @@ const { Option } = Select;
 const ProductsPage = () => {
   const { products, fetchProducts, categories, fetchCategories, isLoading } =
     useProductStore();
-  // TODO: Implement cart feature
-  // const { addToCart } = useCartStore();
+  const { addToCart } = useCartStore();
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
     category: "all",
     sort: "newest",
   });
+  const [quantities, setQuantities] = useState({});
 
   // Scroll to top when component mounts
   useEffect(() => {
-    window.scrollTo(0, 260);
+    window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
@@ -83,6 +83,15 @@ const ProductsPage = () => {
     }
 
     setFilteredProducts(result);
+    
+    // Initialize quantities for new products
+    const newQuantities = {};
+    result.forEach(product => {
+      if (!quantities[product.id]) {
+        newQuantities[product.id] = 1;
+      }
+    });
+    setQuantities(prev => ({ ...prev, ...newQuantities }));
   }, [products, filters]);
 
   const handleSearchChange = (e) => {
@@ -97,10 +106,19 @@ const ProductsPage = () => {
     setFilters((prev) => ({ ...prev, sort: value }));
   };
 
-  // TODO: Implement cart feature
-  const handleAddToCart = (product) => {
-    // Temporary message until cart feature is implemented
-    message.info("Tính năng giỏ hàng đang được phát triển");
+  const handleQuantityChange = (productId, value) => {
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: value
+    }));
+  };
+
+  const handleAddToCart = async (product) => {
+    try {
+      await addToCart(product.id, quantities[product.id] || 1);
+    } catch (error) {
+      // Error handling is done in the store
+    }
   };
 
   return (
@@ -176,14 +194,24 @@ const ProductsPage = () => {
                         <Button type="link" href={`/products/${product.id}`}>
                           Xem Chi Tiết
                         </Button>,
-                        // TODO: Enable when cart feature is implemented
-                        <Button
-                          type="primary"
-                          icon={<ShoppingCartOutlined />}
-                          onClick={() => handleAddToCart(product)}
-                        >
-                          Thêm vào giỏ
-                        </Button>,
+                        <div className="card-actions">
+                          <InputNumber
+                            min={1}
+                            max={product.stock}
+                            value={quantities[product.id] || 1}
+                            onChange={(value) => handleQuantityChange(product.id, value)}
+                            className="quantity-input"
+                          />
+                          <Button
+                            type="primary"
+                            icon={<ShoppingCartOutlined />}
+                            onClick={() => handleAddToCart(product)}
+                            disabled={product.stock === 0}
+                            className="add-to-cart-btn"
+                          >
+                            Thêm vào giỏ
+                          </Button>
+                        </div>
                       ]}
                     >
                       <Meta

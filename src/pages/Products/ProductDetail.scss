@@ -114,28 +114,40 @@
       .ant-tag {
         margin: 0;
         font-size: 14px;
-        // padding: 4px 12px;
         border-radius: 4px;
       }
     }
 
     .product-actions {
       display: flex;
+      flex-direction: column;
       gap: 16px;
 
-      .ant-btn {
+      .quantity-selector {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .label {
+          color: #666;
+          font-size: 1rem;
+        }
+
+        .quantity-input {
+          width: 120px;
+        }
+      }
+
+      .add-to-cart-btn {
         height: 48px;
         font-size: 1.1rem;
         padding: 0 32px;
+        background: #52c41a;
+        border-color: #52c41a;
 
-        &.ant-btn-primary {
-          background: #52c41a;
-          border-color: #52c41a;
-
-          &:hover {
-            background: #49ad18;
-            border-color: #49ad18;
-          }
+        &:hover {
+          background: #49ad18;
+          border-color: #49ad18;
         }
 
         &[disabled] {
@@ -199,9 +211,7 @@
       }
 
       .product-actions {
-        flex-direction: column;
-
-        .ant-btn {
+        .add-to-cart-btn {
           width: 100%;
         }
       }

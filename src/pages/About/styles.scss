@@ -1,0 +1,391 @@
+.about-layout {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .section-title {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, #52c41a, #1890ff);
+      border-radius: 3px;
+    }
+  }
+
+  // Hero Section
+  .hero-section {
+    padding: 4rem 0;
+    background: linear-gradient(135deg, rgba(82, 196, 26, 0.1), rgba(24, 144, 255, 0.1));
+    overflow: hidden;
+
+    .subtitle {
+      font-size: 1.5rem;
+      color: #52c41a;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-image {
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-10px);
+      }
+    }
+  }
+
+  // Stats Section
+  .stats-section {
+    padding: 4rem 0;
+    background-color: white;
+
+    .stat-card {
+      text-align: center;
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-5px);
+      }
+
+      .stat-icon {
+        font-size: 2.5rem;
+        color: #52c41a;
+        margin-bottom: 1rem;
+      }
+
+      .ant-statistic-title {
+        color: #666;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .ant-statistic-content {
+        color: #1890ff;
+        font-size: 2rem;
+        font-weight: bold;
+      }
+    }
+  }
+
+  // Services Section
+  .services-section {
+    padding: 4rem 0;
+    background: linear-gradient(135deg, rgba(82, 196, 26, 0.05), rgba(24, 144, 255, 0.05));
+
+    .service-card {
+      height: 100%;
+      border-radius: 15px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+
+        .service-icon-wrapper {
+          background: linear-gradient(135deg, #52c41a, #1890ff);
+          
+          .service-icon {
+            color: white;
+            transform: scale(1.1);
+          }
+        }
+      }
+
+      .service-icon-wrapper {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #f0f5ff;
+        transition: all 0.3s ease;
+
+        .service-icon {
+          font-size: 2rem;
+          color: #1890ff;
+          transition: all 0.3s ease;
+        }
+      }
+
+      h4 {
+        text-align: center;
+        margin-bottom: 1rem;
+        color: #333;
+      }
+
+      .ant-typography {
+        color: #666;
+        text-align: center;
+      }
+    }
+  }
+
+  // Values Section
+  .values-section {
+    padding: 4rem 0;
+    background-color: white;
+
+    .value-card {
+      height: 100%;
+      border-radius: 15px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .value-header {
+        padding: 2rem;
+        text-align: center;
+        
+        h3 {
+          color: white;
+          margin: 0;
+        }
+      }
+
+      .ant-card-body {
+        padding: 2rem;
+      }
+
+      .ant-typography {
+        text-align: center;
+        color: #666;
+      }
+    }
+  }
+
+  // Features Section
+  .features-section {
+    padding: 4rem 0;
+    background: linear-gradient(135deg, rgba(82, 196, 26, 0.05), rgba(24, 144, 255, 0.05));
+
+    .features-list {
+      .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateX(10px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+          font-size: 1.5rem;
+          color: #52c41a;
+          margin-right: 1rem;
+        }
+
+        .ant-typography {
+          color: #666;
+          margin: 0;
+        }
+      }
+    }
+
+    .team-image-wrapper {
+      text-align: center;
+      padding: 2rem;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+
+      .team-icon {
+        font-size: 4rem;
+        color: #1890ff;
+        margin-bottom: 1.5rem;
+      }
+
+      h3 {
+        color: #333;
+        margin-bottom: 1rem;
+      }
+
+      .ant-typography {
+        color: #666;
+      }
+    }
+  }
+
+  // CTA Section
+  .cta-section {
+    padding: 6rem 0;
+    background: linear-gradient(135deg, #52c41a, #1890ff);
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('/images/pattern.png') repeat;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+
+    h2 {
+      color: white;
+      margin-bottom: 1.5rem;
+      font-size: 2.5rem;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .ant-typography {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.2rem;
+      max-width: 800px;
+      margin: 0 auto 3rem;
+      line-height: 1.6;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+
+      .ant-btn {
+        min-width: 220px;
+        height: 54px;
+        font-size: 1.1rem;
+        border-radius: 27px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        &-primary {
+          background: white;
+          border: none;
+          color: #1890ff;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+
+          &:hover {
+            transform: translateY(-2px);
+            background: white;
+            color: #52c41a;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+          }
+
+          &:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+        }
+
+        &:not(.ant-btn-primary) {
+          background: transparent;
+          border: 2px solid white;
+          color: white;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          backdrop-filter: blur(5px);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+          }
+
+          &:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive Styles
+@media (max-width: 768px) {
+  .about-layout {
+    .hero-section {
+      padding: 3rem 0;
+
+      .subtitle {
+        font-size: 1.2rem;
+      }
+    }
+
+    .stats-section {
+      .stat-card {
+        margin-bottom: 1rem;
+      }
+    }
+
+    .service-card {
+      margin-bottom: 1.5rem;
+    }
+
+    .features-section {
+      .team-image-wrapper {
+        margin-top: 2rem;
+      }
+    }
+
+    .cta-section {
+      padding: 4rem 0;
+
+      h2 {
+        font-size: 2rem;
+      }
+
+      .ant-typography {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem;
+
+        .ant-btn {
+          width: 100%;
+          max-width: 300px;
+          margin: 0 auto;
+        }
+      }
+    }
+  }
+} 

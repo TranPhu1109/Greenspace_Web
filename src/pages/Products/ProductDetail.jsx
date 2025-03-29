@@ -13,11 +13,13 @@ import {
   message,
   Spin,
   Tag,
+  InputNumber,
 } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
+import useCartStore from "@/stores/useCartStore";
 import "./ProductDetail.scss";
 
 const { Content } = Layout;
@@ -26,7 +28,9 @@ const { Title, Paragraph } = Typography;
 const ProductDetail = () => {
   const { id } = useParams();
   const { getProductById, isLoading } = useProductStore();
+  const { addToCart } = useCartStore();
   const [product, setProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -34,7 +38,7 @@ const ProductDetail = () => {
         const data = await getProductById(id);
         setProduct(data);
       } catch (error) {
-        // message.error("Không thể tải thông tin sản phẩm");
+        message.error("Không thể tải thông tin sản phẩm");
       }
     };
 
@@ -43,9 +47,12 @@ const ProductDetail = () => {
     }
   }, [id, getProductById]);
 
-  // TODO: Implement cart feature
-  const handleAddToCart = () => {
-    message.info("Tính năng giỏ hàng đang được phát triển");
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product.id, quantity);
+    } catch (error) {
+      // Error handling is done in the store
+    }
   };
 
   const getStockStatus = (stock) => {
@@ -146,12 +153,23 @@ const ProductDetail = () => {
                     </Descriptions>
                     <Divider />
                     <div className="product-actions">
+                      <div className="quantity-selector">
+                        <span className="label">Số lượng:</span>
+                        <InputNumber
+                          min={1}
+                          max={product.stock}
+                          value={quantity}
+                          onChange={setQuantity}
+                          className="quantity-input"
+                        />
+                      </div>
                       <Button
                         type="primary"
                         size="large"
                         icon={<ShoppingCartOutlined />}
                         onClick={handleAddToCart}
                         disabled={product.stock === 0}
+                        className="add-to-cart-btn"
                       >
                         {product.stock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
                       </Button>
