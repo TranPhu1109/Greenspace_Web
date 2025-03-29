@@ -18,41 +18,50 @@ const DesignShowcase = ({ designs }) => {
         </div>
 
         <Row gutter={[24, 24]}>
-          {designs.map((design) => (
-            <Col xs={24} sm={12} key={design.id}>
-              <Card
-                hoverable
-                className="design-card"
-                cover={
-                  <img
-                    alt={design.name}
-                    src={design.image.imageUrl}
-                    className="design-image"
-                  />
-                }
-              >
-                <Meta
-                  title={design.name}
-                  description={
-                    <div className="design-info">
-                      <p className="design-description">{design.description}</p>
-                      <p className="design-price">
-                        {design.totalPrice.toLocaleString("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        })}
-                      </p>
-                    </div>
-                  }
-                />
-                <Link to={`/designs/${design.id}`}>
-                  <Button type="primary" block>
-                    Xem Chi Tiết
-                  </Button>
-                </Link>
-              </Card>
-            </Col>
-          ))}
+          {designs.length === 0
+            ? // Skeleton loading
+              [...Array(6)].map((_, index) => (
+                <Col xs={24} sm={12} md={8} key={index}>
+                  <Card loading={true} className="product-card" />
+                </Col>
+              ))
+            : designs.map((design) => (
+                <Col xs={24} sm={12} key={design.id}>
+                  <Card
+                    hoverable
+                    className="design-card"
+                    cover={
+                      <img
+                        alt={design.name}
+                        src={design.image.imageUrl}
+                        className="design-image"
+                      />
+                    }
+                  >
+                    <Meta
+                      title={design.name}
+                      description={
+                        <div className="design-info">
+                          <p className="design-description">
+                            {design.description}
+                          </p>
+                          <p className="design-price">
+                            {design.totalPrice.toLocaleString("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            })}
+                          </p>
+                        </div>
+                      }
+                    />
+                    <Link to={`/designs/${design.id}`}>
+                      <Button type="primary" block>
+                        Xem Chi Tiết
+                      </Button>
+                    </Link>
+                  </Card>
+                </Col>
+              ))}
         </Row>
 
         <div className="section-footer">
@@ -67,4 +76,4 @@ const DesignShowcase = ({ designs }) => {
   );
 };
 
-export default DesignShowcase; 
+export default DesignShowcase;
