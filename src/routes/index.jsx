@@ -16,6 +16,8 @@ import DesignsPage from "@/pages/Designs";
 import ScrollToTop from '@/components/ScrollToTop';
 import ProductsPage from "@/pages/Products";
 import ProductDetail from "@/pages/Products/ProductDetail";
+import WalletPage from "@/pages/Wallet";
+import PaymentCallback from '@/pages/Wallet/components/PaymentCallback';
 
 const router = createBrowserRouter([
   {
@@ -89,6 +91,24 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <ProductDetail />
+      </>
+    ),
+  },
+  {
+    path: "/userwallets",
+    element: (
+      <>
+        <ScrollToTop />
+        <WalletPage />
+      </>
+    ),
+  },
+  {
+    path: "/api/userwallets/vn-pay/response",
+    element: (
+      <>
+        <ScrollToTop />
+        <PaymentCallback />
       </>
     ),
   },
