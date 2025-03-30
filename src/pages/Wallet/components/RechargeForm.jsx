@@ -10,6 +10,7 @@ import {
   Card,
   Typography,
   Space,
+  message,
 } from "antd";
 import {
   QrcodeOutlined,
@@ -19,6 +20,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import useWalletStore from "@/stores/useWalletStore";
 import "../styles/RechargeForm.scss";
+import { QRPay } from "vietnam-qr-pay";
 
 const { Title, Text } = Typography;
 
@@ -27,7 +29,8 @@ const RechargeForm = () => {
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [qrUrl, setQrUrl] = useState("");
   const [qrData, setQrData] = useState("");
-  const { createVNPayQR, loading } = useWalletStore();
+  const createVNPayQR = useWalletStore((state) => state.createVNPayQR);
+  const loading = useWalletStore((state) => state.loading);
 
   const predefinedAmounts = [
     { value: 100000, label: "100,000" },
@@ -47,64 +50,50 @@ const RechargeForm = () => {
     return number.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
-  // Hàm xử lý URL VNPay thành dữ liệu QR theo chuẩn EMV
-  const formatVNPayQRData = (url) => {
-    try {
-      const [baseUrl, queryString] = url.split("?");
-      const params = new URLSearchParams(queryString);
-
-      // Lấy thông tin từ URL
-      const amount = (
-        parseInt(params.get("vnp_Amount") || "0") / 100
-      ).toString(); // Chuyển về VND
-      const createDate = params.get("vnp_CreateDate") || "";
-      const tmnCode = params.get("vnp_TmnCode") || "";
-      const orderInfo = params.get("vnp_OrderInfo") || "";
-      const txnRef = params.get("vnp_TxnRef") || "";
-
-      // Tên merchant và thông tin bổ sung
-      const merchantName = "GREEN SPACE";
-      const merchantCity = "HANOI";
-      const additionalData = `${orderInfo}|${txnRef}`; // Thông tin đơn hàng và mã giao dịch
-
-      // Format theo chuẩn EMV QR Code
-      const qrData = [
-        "00020101", // ID và phiên bản
-        "021238570010", // Merchant account information tag
-        "A000000775", // VNPay ID
-        `0115${tmnCode}`, // Merchant ID với độ dài
-        "5802VN", // Country code
-        `5914${merchantName}`, // Merchant name với độ dài
-        `6005${merchantCity}`, // City
-        `54${amount.length.toString().padStart(2, "0")}${amount}`, // Amount với độ dài
-        `62${(additionalData.length + 2)
-          .toString()
-          .padStart(2, "0")}05${additionalData}`, // Additional data với độ dài
-        "6304", // CRC
-        "00", // Checksum (tạm thời để 00)
-      ].join("");
-
-      return qrData;
-    } catch (error) {
-      console.error("Error formatting QR data:", error);
-      return url;
-    }
-  };
-
   const handleGenerateQR = async () => {
     try {
       const values = await form.validateFields();
       const amount = parseInt(values.amount.replace(/\D/g, ""));
 
-      const response = await createVNPayQR(amount);
-      if (response) {
-        setQrUrl(response);
-        // Tạo dữ liệu QR từ URL
-        const formattedQRData = formatVNPayQRData(response);
-        setQrData(formattedQRData);
+      // Gọi API để lấy URL VNPay
+      const vnpayUrl = await createVNPayQR(amount);
+      console.log("vnpayUrl", vnpayUrl);
+
+      if (!vnpayUrl) {
+        throw new Error("Không thể tạo URL thanh toán");
       }
+
+      // Parse URL để lấy thông tin
+      const url = new URL(vnpayUrl);
+      const params = new URLSearchParams(url.search);
+
+      // Khởi tạo QR VNPay với thông tin từ URL
+      const qrPay = QRPay.initVNPayQR({
+        merchantId: params.get("vnp_TmnCode"),
+        merchantName: "GreenSpace",
+        store: "GreenSpace Store",
+        // terminal: "GREENSPACE01",
+        purpose: params.get("vnp_OrderInfo"),
+        amount: (parseInt(params.get("vnp_Amount")) / 100).toString(),
+        txnRef: params.get("vnp_TxnRef"),
+        orderInfo: params.get("vnp_OrderInfo"),
+        createDate: params.get("vnp_CreateDate")
+      });
+
+      // Tạo nội dung QR
+      const content = qrPay.build();
+      console.log("QR Content:", content);
+      
+      // Lưu URL và QR data
+      setQrUrl(vnpayUrl);
+      setQrData(content);
+      
     } catch (error) {
       console.error("Error generating QR:", error);
+      message.error({
+        content: "Không thể tạo mã QR. Vui lòng thử lại sau.",
+        duration: 5,
+      });
     }
   };
 
@@ -201,12 +190,12 @@ const RechargeForm = () => {
                 <div className="qr-loading">
                   <Spin size="large" tip="Đang tạo mã QR..." />
                 </div>
-              ) : qrUrl ? (
+              ) : qrData ? (
                 <>
                   <Title level={4}>Quét mã để thanh toán</Title>
                   <div className="qr-code-wrapper">
                     <QRCodeSVG
-                      value={qrData || qrUrl} // Sử dụng qrData nếu có, ngược lại dùng qrUrl
+                      value={qrData}
                       size={240}
                       level="H"
                       includeMargin={true}
@@ -216,16 +205,17 @@ const RechargeForm = () => {
                       size="small"
                       className="qr-actions"
                     >
-                      <Button
-                        type="link"
-                        icon={<LinkOutlined />}
-                        onClick={() => window.open(qrUrl, "_blank")}
-                      >
-                        Mở trang thanh toán VNPay
-                      </Button>
+                      {qrUrl && (
+                        <Button
+                          type="link"
+                          icon={<LinkOutlined />}
+                          onClick={() => window.open(qrUrl, "_blank")}
+                        >
+                          Mở trang thanh toán VNPay Sandbox
+                        </Button>
+                      )}
                       <Text type="secondary" className="qr-note">
-                        Bạn có thể quét mã QR hoặc click vào link phía trên để
-                        thanh toán
+                        Sử dụng ứng dụng Mobile Banking hoặc VNPay để quét mã QR
                       </Text>
                     </Space>
                   </div>

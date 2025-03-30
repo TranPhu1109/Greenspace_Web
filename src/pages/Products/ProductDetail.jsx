@@ -308,7 +308,7 @@ const ProductDetail = () => {
                         <div className="feedback-item-meta">
                           <Text strong>{item.userName}</Text>
                           <Text type="secondary">
-                            {dayjs(item.createdAt).format('DD/MM/YYYY HH:mm')}
+                            {dayjs(item.creationDate).format('DD/MM/YYYY HH:mm')}
                           </Text>
                         </div>
                       </div>
