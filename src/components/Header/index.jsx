@@ -201,12 +201,12 @@ const Header = () => {
           {/* Search bar */}
           <div className="search-container">
             <Input placeholder="Search for..." size="large" />
-            <Select defaultValue="all" size="large">
+            {/* <Select defaultValue="all" size="large">
               <Option value="all">All Categories</Option>
               <Option value="plants">Plants</Option>
               <Option value="pots">Pots</Option>
               <Option value="tools">Tools</Option>
-            </Select>
+            </Select> */}
           </div>
           <div>
             <Button
