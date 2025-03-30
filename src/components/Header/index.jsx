@@ -75,6 +75,7 @@ const Header = () => {
     { key: "design", label: "Thiết kế", path: "/designs" },
     { key: "products", label: "Sản phẩm", path: "/products" },
     { key: "about", label: "Giới thiệu", path: "/about" },
+    { key: "userwallets", label: "Ví tiền", path: "/userwallets" },
   ];
 
   // Kiểm tra active path
@@ -90,7 +91,7 @@ const Header = () => {
       onClick: () => navigate("/profile"),
     },
     {
-      key: "wallet",
+      key: "userwallets",
       icon: <WalletOutlined />,
       label: "Ví tiền",
       onClick: () => navigate("/userwallets"),
@@ -295,8 +296,8 @@ const Header = () => {
                   </Link>
                 </Menu.Item>
                 {user && (
-                  <Menu.Item key="wallet">
-                    <Link to="/wallet" onClick={onClose}>
+                  <Menu.Item key="userwallets">
+                    <Link to="/userwallets" onClick={onClose}>
                       <WalletOutlined /> Ví tiền
                     </Link>
                   </Menu.Item>

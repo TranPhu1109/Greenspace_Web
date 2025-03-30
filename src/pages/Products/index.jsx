@@ -164,7 +164,7 @@ const ProductsPage = () => {
                 className="sort-select"
               >
                 <Option value="newest">Mới nhất</Option>
-                <Option value="popular">Phổ biến nhất</Option>
+                {/* <Option value="popular">Phổ biến nhất</Option> */}
                 <Option value="price-asc">Giá tăng dần</Option>
                 <Option value="price-desc">Giá giảm dần</Option>
               </Select>
@@ -195,13 +195,13 @@ const ProductsPage = () => {
                           Xem Chi Tiết
                         </Button>,
                         <div className="card-actions">
-                          <InputNumber
+                          {/* <InputNumber
                             min={1}
                             max={product.stock}
                             value={quantities[product.id] || 1}
                             onChange={(value) => handleQuantityChange(product.id, value)}
                             className="quantity-input"
-                          />
+                          /> */}
                           <Button
                             type="primary"
                             icon={<ShoppingCartOutlined />}

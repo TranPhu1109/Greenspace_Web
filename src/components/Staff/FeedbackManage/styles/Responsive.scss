@@ -1,0 +1,25 @@
+@media screen and (max-width: 768px) {
+  .feedback-management {
+    padding: 8px;
+
+    .ant-row {
+      height: auto;
+      margin: 0 -8px;
+    }
+
+    .ant-col {
+      padding: 0 8px;
+      margin-bottom: 16px;
+    }
+
+    .ant-list {
+      padding: 6px 8px;
+    }
+
+    .feedback-comment {
+      .feedback-comment-nested {
+        margin-left: 24px;
+      }
+    }
+  }
+} 

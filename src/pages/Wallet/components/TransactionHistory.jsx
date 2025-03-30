@@ -48,9 +48,9 @@ const TransactionHistory = () => {
   return (
     <div className="transaction-history">
       <div className="history-header">
-        <Title level={4}>
+        {/* <Title level={4}>
           <HistoryOutlined /> Lịch sử giao dịch
-        </Title>
+        </Title> */}
         <div className="history-filters">
           {/* Add filters here if needed */}
         </div>

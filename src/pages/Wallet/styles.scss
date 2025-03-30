@@ -10,7 +10,7 @@
 
   .wallet-content {
     padding: 40px 0;
-    margin-top: 180px;
+    margin-top: 160px;
 
     .wallet-card {
       border-radius: 8px;
@@ -25,7 +25,7 @@
       }
 
       .wallet-balance {
-        margin-top: 24px;
+        margin-top: 14px;
         text-align: center;
 
         .ant-typography {
@@ -134,11 +134,12 @@
       }
 
       .transaction-history {
+        min-height: 550px;
         .history-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          // margin-bottom: 14px;
 
           .ant-typography {
             margin: 0;
@@ -152,7 +153,7 @@
 
         .history-table {
           .ant-table-thead > tr > th {
-            background: #fafafa;
+            background: #e0e0e0;
             font-weight: 500;
           }
 
@@ -247,6 +248,55 @@
           }
         }
       }
+
+      .wallet-tabs {
+        .ant-tabs-nav {
+          margin-bottom: 24px;
+          
+          &::before {
+            border-bottom: 1px solid #f0f0f0;
+          }
+
+          .ant-tabs-nav-wrap {
+            .ant-tabs-nav-list {
+              .ant-tabs-tab {
+                padding: 12px 0;
+                margin: 0 24px 0 0;
+                transition: all 0.3s ease;
+                
+                .tab-label {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-size: 14px;
+                  color: #8c8c8c;
+                  
+                  .anticon {
+                    font-size: 16px;
+                  }
+                }
+                
+                &:hover {
+                  color: #52c41a;
+                }
+                
+                &.ant-tabs-tab-active {
+                  .tab-label {
+                    color: #52c41a;
+                    font-weight: 500;
+                  }
+                }
+              }
+            }
+          }
+
+          .ant-tabs-ink-bar {
+            background: #52c41a;
+            height: 2px;
+            border-radius: 2px;
+          }
+        }
+      }
     }
   }
 
@@ -320,6 +370,26 @@
       padding: 20px 0;
 
       .wallet-card {
+        .wallet-tabs {
+          .ant-tabs-nav {
+            .ant-tabs-nav-wrap {
+              .ant-tabs-nav-list {
+                .ant-tabs-tab {
+                  margin: 0 16px 0 0;
+                  
+                  .tab-label {
+                    font-size: 13px;
+                    
+                    .anticon {
+                      font-size: 15px;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
         .wallet-balance {
           .balance-amount {
             font-size: 1.5rem;
