@@ -13,39 +13,108 @@ import {
   message,
   Spin,
   Tag,
+  InputNumber,
+  Rate,
+  Form,
+  Input,
+  List,
+  Avatar,
+  Space,
 } from "antd";
-import { ShoppingCartOutlined } from "@ant-design/icons";
+import { ShoppingCartOutlined, StarOutlined, UserOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
+import useCartStore from "@/stores/useCartStore";
+import useAuthStore from "@/stores/useAuthStore";
+import dayjs from 'dayjs';
 import "./ProductDetail.scss";
 
 const { Content } = Layout;
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
+const { TextArea } = Input;
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { getProductById, isLoading } = useProductStore();
+  const { getProductById, isLoading, createProductFeedback, feedbackLoading, getProductFeedbacks } = useProductStore();
+  const { addToCart } = useCartStore();
+  const { user } = useAuthStore();
   const [product, setProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [form] = Form.useForm();
+  const [showError, setShowError] = useState(false);
+
+  const fetchFeedbacks = async () => {
+    try {
+      const data = await getProductFeedbacks(id);
+      if (data) {
+        setFeedbacks(data);
+      }
+    } catch (error) {
+      if (error.response && error.response.status !== 404) {
+        message.error("Không thể tải đánh giá sản phẩm");
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const data = await getProductById(id);
-        setProduct(data);
+        if (data) {
+          setProduct(data);
+          await fetchFeedbacks();
+        }
       } catch (error) {
-        // message.error("Không thể tải thông tin sản phẩm");
+        if (error.response && error.response.status !== 404) {
+          message.error("Không thể tải thông tin sản phẩm");
+        }
       }
     };
 
     if (id) {
+      // Reset states when fetching new product
+      setShowError(false);
       fetchProduct();
+      
+      // Set timer to show error message after 2 seconds if product is not found
+      const timer = setTimeout(() => {
+        setShowError(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
     }
   }, [id, getProductById]);
 
-  // TODO: Implement cart feature
-  const handleAddToCart = () => {
-    message.info("Tính năng giỏ hàng đang được phát triển");
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product.id, quantity);
+    } catch (error) {
+      // Error handling is done in the store
+    }
+  };
+
+  const handleFeedbackSubmit = async (values) => {
+    if (!user) {
+      message.warning("Vui lòng đăng nhập để gửi đánh giá");
+      return;
+    }
+
+    try {
+      await createProductFeedback({
+        userId: user.id,
+        productId: id,
+        rating: values.rating,
+        description: values.description
+      });
+      message.success("Cảm ơn bạn đã gửi đánh giá!");
+      form.resetFields();
+      // Refresh feedbacks after submitting
+      await fetchFeedbacks();
+    } catch (error) {
+      message.error("Không thể gửi đánh giá. Vui lòng thử lại sau.");
+    }
   };
 
   const getStockStatus = (stock) => {
@@ -58,24 +127,38 @@ const ProductDetail = () => {
     }
   };
 
-  if (isLoading) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.submit();
+    }
+  };
+
+  // Show loading state
+  if (isLoading || (!product && !showError)) {
     return (
       <Layout>
         <Header />
         <Content className="product-detail-loading">
-          <Spin size="large" />
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <Spin size="large" tip="Đang tải thông tin sản phẩm..." />
+          </div>
         </Content>
         <Footer />
       </Layout>
     );
   }
 
-  if (!product) {
+  // Show error state
+  if (!product && showError) {
     return (
       <Layout>
         <Header />
         <Content className="product-detail-error">
-          <Title level={3}>Không tìm thấy sản phẩm</Title>
+          <div style={{ textAlign: 'center', padding: '50px 0' }}>
+            <Title level={3}>Không tìm thấy sản phẩm</Title>
+            <Text type="secondary">Sản phẩm không tồn tại hoặc đã bị xóa</Text>
+          </div>
         </Content>
         <Footer />
       </Layout>
@@ -134,7 +217,7 @@ const ProductDetail = () => {
                     <Divider />
                     <Descriptions column={1} bordered>
                       <Descriptions.Item label="Kích thước">
-                        {product.size}
+                        {product.size} cm
                       </Descriptions.Item>
                       <Descriptions.Item label="Danh mục">
                         {product.categoryName}
@@ -146,19 +229,134 @@ const ProductDetail = () => {
                     </Descriptions>
                     <Divider />
                     <div className="product-actions">
-                      <Button
-                        type="primary"
-                        size="large"
-                        icon={<ShoppingCartOutlined />}
-                        onClick={handleAddToCart}
-                        disabled={product.stock === 0}
-                      >
-                        {product.stock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
-                      </Button>
+                      <div className="quantity-selector">
+                        <span className="label">Số lượng:</span>
+                        <InputNumber
+                          min={1}
+                          max={product.stock}
+                          value={quantity}
+                          onChange={setQuantity}
+                          className="quantity-input"
+                        />
+                      </div>
+                      <Space size="middle">
+                        <Button
+                          type="primary"
+                          size="large"
+                          icon={<ShoppingCartOutlined />}
+                          onClick={handleAddToCart}
+                          disabled={product.stock === 0}
+                          className="add-to-cart-btn"
+                        >
+                          {product.stock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                        </Button>
+                      </Space>
                     </div>
                   </div>
                 </Col>
               </Row>
+            </Card>
+
+            {/* Feedback Section */}
+            <Card bordered={false} className="feedback-section" style={{ marginTop: 24 }}>
+              <Title level={4}>Đánh giá sản phẩm</Title>
+              
+              {/* Feedback List */}
+              <List
+                className="feedback-list"
+                itemLayout="horizontal"
+                dataSource={feedbacks}
+                locale={{ emptyText: "Chưa có đánh giá nào" }}
+                renderItem={item => (
+                  <List.Item>
+                    <div className="feedback-item">
+                      <div className="feedback-item-header">
+                        <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
+                        <div className="feedback-item-meta">
+                          <Text strong>{item.userName}</Text>
+                          <Text type="secondary">
+                            {dayjs(item.createdAt).format('DD/MM/YYYY HH:mm')}
+                          </Text>
+                        </div>
+                      </div>
+                      <div className="feedback-content">
+                        <Rate disabled defaultValue={item.rating} />
+                        <Paragraph>{item.description}</Paragraph>
+                        {item.reply && (
+                          <div className="feedback-reply">
+                            <div className="reply-header">
+                              <Avatar 
+                                src="https://img.icons8.com/color/48/000000/shop.png"
+                                style={{ backgroundColor: 'white' }}
+                              />
+                              <Text type="success" strong>Phản hồi từ shop</Text>
+                            </div>
+                            <div className="reply-content">
+                              <Paragraph>{item.reply}</Paragraph>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </List.Item>
+                )}
+              />
+
+              <Divider />
+
+              {/* Feedback Form */}
+              {user ? (
+                <div className="feedback-form-container">
+                  <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleFeedbackSubmit}
+                    initialValues={{ rating: 5 }}
+                    className="feedback-form"
+                  >
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Form.Item
+                        name="rating"
+                        rules={[{ required: true, message: "Vui lòng chọn số sao" }]}
+                      >
+                        <Rate className="rating-stars" />
+                      </Form.Item>
+                      <Form.Item
+                        name="description"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập nhận xét" },
+                          { min: 3, message: "Nhận xét phải có ít nhất 3 ký tự" }
+                        ]}
+                      >
+                        <TextArea
+                          rows={3}
+                          placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm... (Enter để gửi, Shift + Enter để xuống dòng)"
+                          maxLength={500}
+                          showCount
+                          onKeyDown={handleKeyDown}
+                        />
+                      </Form.Item>
+                      <Form.Item className="submit-section">
+                        <Button 
+                          type="primary" 
+                          htmlType="submit" 
+                          loading={feedbackLoading}
+                          icon={<StarOutlined />}
+                          style={{ marginTop: 10 }}
+                        >
+                          Gửi đánh giá
+                        </Button>
+                      </Form.Item>
+                    </Space>
+                  </Form>
+                </div>
+              ) : (
+                <div className="login-prompt">
+                  <Text type="secondary">
+                    Vui lòng <a href="/login">đăng nhập</a> để gửi đánh giá về sản phẩm
+                  </Text>
+                </div>
+              )}
             </Card>
           </div>
         </div>

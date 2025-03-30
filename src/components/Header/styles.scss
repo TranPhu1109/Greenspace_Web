@@ -204,7 +204,55 @@
       width: 100%;
       justify-content: space-between;
 
-      // Nút "Menu" cho mobile
+      // Right section containing wallet and support links
+      .right-nav-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        @media (max-width: 768px) {
+          display: none;
+        }
+
+        .wallet-link {
+          display: flex;
+          align-items: center;
+          color: #333;
+          font-weight: 500;
+          transition: color 0.3s;
+
+          .anticon {
+            margin-right: 4px;
+            font-size: 16px;
+            color: #52c41a;
+          }
+
+          &:hover {
+            color: #8BC349;
+            .anticon {
+              color: #8BC349;
+            }
+          }
+        }
+
+        .support-link {
+          display: flex;
+          align-items: center;
+          color: #333;
+          font-weight: 500;
+          transition: color 0.3s;
+
+          .anticon {
+            margin-right: 4px;
+          }
+
+          &:hover {
+            color: #8BC349;
+          }
+        }
+      }
+
+      // Mobile menu button
       .mobile-menu-button {
         display: none;
         @media (max-width: 768px) {
@@ -282,27 +330,6 @@
               }
             }
           }
-        }
-      }
-
-      // Nút "Support" bên phải
-      .support-link {
-        display: flex;
-        align-items: center;
-        color: #333;
-        font-weight: 500;
-        transition: color 0.3s;
-
-        .anticon {
-          margin-right: 4px;
-        }
-
-        &:hover {
-          color: #8BC349;
-        }
-
-        @media (max-width: 768px) {
-          display: none;
         }
       }
     }
@@ -438,6 +465,24 @@
       }
     }
   }
+
+  .ant-menu {
+    .ant-menu-item {
+      &[key="wallet"] {
+        .anticon-wallet {
+          font-size: 16px;
+          margin-right: 6px;
+          color: #52c41a;
+        }
+
+        &:hover {
+          .anticon-wallet {
+            color: #1890ff;
+          }
+        }
+      }
+    }
+  }
 }
 
 // Responsive styles
@@ -482,6 +527,17 @@
         .nav-item {
           &.active {
             background-color: rgba(82, 196, 26, 0.1);
+          }
+        }
+      }
+    }
+
+    .ant-drawer {
+      .ant-menu-item {
+        &[key="wallet"] {
+          .anticon-wallet {
+            font-size: 18px;
+            margin-right: 10px;
           }
         }
       }
