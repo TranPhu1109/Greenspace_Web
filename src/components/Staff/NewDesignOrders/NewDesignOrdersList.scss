@@ -1,0 +1,25 @@
+.new-design-orders-list {
+  .filters-section {
+    margin-bottom: 24px;
+  }
+
+  .order-number {
+    font-weight: 500;
+    color: #1890ff;
+  }
+
+  .customer-contact {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  .requirements-preview {
+    color: #666;
+    max-width: 300px;
+  }
+
+  .ant-table-cell {
+    vertical-align: top;
+  }
+} 

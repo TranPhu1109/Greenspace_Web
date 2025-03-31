@@ -1,0 +1,65 @@
+.material-suggestions-section {
+  margin-top: 16px;
+  
+  .material-name {
+    display: flex;
+    flex-direction: column;
+
+    .material-price {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+  }
+
+  .ant-table-cell {
+    vertical-align: top;
+  }
+  
+  .recommended-material {
+    background-color: #f6ffed;
+  }
+  
+  .material-suggestions-summary {
+    margin-top: 24px;
+    
+    .cost-summary {
+      max-width: 500px;
+      margin-left: auto;
+      
+      .category-cost {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        
+        .category-name {
+          color: #666;
+        }
+        
+        .category-price {
+          font-weight: 500;
+        }
+      }
+      
+      .total-cost {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+        padding-top: 8px;
+        border-top: 1px solid #f0f0f0;
+        
+        .total-price {
+          color: #52c41a;
+          font-size: 16px;
+        }
+      }
+    }
+  }
+  
+  .empty-materials {
+    padding: 24px;
+    text-align: center;
+    background: #f9f9f9;
+    border-radius: 4px;
+  }
+} 

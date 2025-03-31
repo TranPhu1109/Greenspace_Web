@@ -1,0 +1,272 @@
+.auth-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // background-color: #f5f8f5;
+//   padding: 20px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4CAF50, #8BC34A);
+  transition: background 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #45a049, #7CB342);
+  }
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 1000px;
+  height: auto;
+}
+
+.auth-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.auth-content {
+  display: flex;
+  height: 600px;
+  
+  @media (max-width: 768px) {
+    flex-direction: column-reverse;
+    height: auto;
+  }
+}
+
+.auth-form-section {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 600px;
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #e3f0e1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #e3f0e1;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 20px 15px;
+    max-height: 400px;
+  }
+}
+
+.auth-image-section {
+  flex: 1;
+  background-color: #ffffff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  
+  .auth-logo {
+    width: 70%;
+    max-width: 250px;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .leaf-background {
+    position: absolute;
+    top: 33%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-size: cover;
+    background-position: center top;
+    opacity: 0.9;
+    z-index: 1;
+    border-radius: 40px 0 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 33%;
+    z-index: 0;
+  }
+  
+  @media (max-width: 768px) {
+    min-height: 200px;
+    
+    .auth-logo {
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    
+    .leaf-background {
+      top: 40%;
+    }
+  }
+}
+
+.auth-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+//   margin-bottom: 20px;
+    gap: 16px;
+  
+}
+
+.auth-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 0;
+    color: #8bc349;
+  }
+
+.back-link {
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 14px;
+  
+  &:hover {
+    color: #8bc349;
+  }
+}
+
+.auth-logo-small {
+  height: 40px;
+}
+
+
+
+.auth-subtitle {
+  display: block;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.login-form, .register-form {
+  .ant-form-item {
+    margin-bottom: 16px;
+  }
+  
+  .ant-form-item-label > label {
+    color: #555;
+    font-weight: 500;
+  }
+}
+
+.auth-input {
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  height: 42px;
+  
+  &:hover, &:focus {
+    border-color: #8bc349;
+    box-shadow: 0 0 0 2px rgba(139, 195, 73, 0.2);
+  }
+}
+
+.password-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.forgot-password {
+  font-size: 14px;
+  color: #8bc349;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.remember-checkbox, .terms-checkbox {
+  color: #666;
+  
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #8bc349;
+    border-color: #8bc349;
+  }
+}
+
+.login-button, .register-button {
+  height: 48px;
+  border-radius: 8px;
+  background-color: #8bc349;
+  border-color: #8bc349;
+  font-weight: 500;
+  font-size: 16px;
+  
+  &:hover, &:focus {
+    background-color: #7ab33d;
+    border-color: #7ab33d;
+  }
+}
+
+.divider-container {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: #e8e8e8;
+}
+
+.divider-text {
+  padding: 0 16px;
+  color: #999;
+  font-size: 14px;
+}
+
+.google-button {
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9d9d9;
+  
+  &:hover {
+    border-color: #8bc349;
+    color: #8bc349;
+  }
+}
+
+.auth-footer {
+  margin-top: 24px;
+  text-align: center;
+  color: #666;
+}
+
+.register-link {
+  color: #8bc349;
+  font-weight: 500;
+  margin-left: 5px;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}

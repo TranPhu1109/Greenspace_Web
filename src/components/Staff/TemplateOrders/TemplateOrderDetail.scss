@@ -1,0 +1,38 @@
+.template-order-detail {
+  .ant-card {
+    margin-bottom: 24px;
+  }
+
+  .payment-card {
+    .ant-statistic {
+      text-align: center;
+      
+      .ant-statistic-title {
+        font-size: 16px;
+        color: #1890ff;
+      }
+      
+      .ant-statistic-content {
+        font-size: 24px;
+        color: #52c41a;
+      }
+    }
+  }
+
+  .ant-descriptions {
+    margin-bottom: 24px;
+    
+    .ant-descriptions-title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .ant-timeline {
+    padding: 16px;
+  }
+} 

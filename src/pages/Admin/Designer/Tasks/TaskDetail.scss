@@ -1,0 +1,43 @@
+.task-detail-container {
+  .page-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    
+    h4 {
+      margin: 0 0 0 16px;
+    }
+  }
+  
+  .ant-descriptions {
+    margin-bottom: 16px;
+    
+    .ant-descriptions-item-label {
+      font-weight: 500;
+    }
+  }
+  
+  .upload-container {
+    .ant-upload-list {
+      margin-bottom: 16px;
+    }
+  }
+  
+  .task-actions-card {
+    .ant-space {
+      margin-bottom: 16px;
+    }
+    
+    p {
+      margin-bottom: 8px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .task-detail-container {
+    .ant-col {
+      margin-bottom: 16px;
+    }
+  }
+} 

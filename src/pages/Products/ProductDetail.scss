@@ -1,0 +1,504 @@
+.product-detail-layout {
+  margin-top: 20px;
+  min-height: 100vh;
+  background: #f5f5f5;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .product-detail-content {
+    padding: 40px 0;
+    margin-top: 132px;
+
+    .ant-card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .product-images {
+    display: flex;
+    gap: 16px;
+    height: 500px;
+
+    .main-image {
+      flex: 2;
+      margin: 0;
+      height: 100%;
+
+      .ant-image {
+        width: 100%;
+        height: 100%;
+        
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 8px;
+          transition: transform 0.3s ease;
+
+          &:hover {
+            transform: scale(1.02);
+          }
+        }
+      }
+    }
+
+    .thumbnail-images {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+
+      .ant-image {
+        width: 100%;
+        height: calc(50% - 8px);
+        
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 8px;
+          transition: transform 0.3s ease;
+
+          &:hover {
+            transform: scale(1.02);
+          }
+        }
+
+        &:hover {
+          cursor: pointer;
+        }
+      }
+    }
+  }
+
+  .product-info {
+    .product-category {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(82, 196, 26, 0.1);
+      color: #52c41a;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    .ant-typography {
+      margin-bottom: 16px;
+    }
+
+    .product-price {
+      font-size: 2rem;
+      color: #52c41a;
+      font-weight: bold;
+      margin: 16px 0;
+    }
+
+    .product-description {
+      color: #666;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .ant-descriptions {
+      .ant-descriptions-item-label {
+        color: #666;
+        width: 120px;
+      }
+
+      .ant-tag {
+        margin: 0;
+        font-size: 14px;
+        border-radius: 4px;
+      }
+    }
+
+    .product-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .quantity-selector {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .label {
+          min-width: 80px;
+          color: rgba(0, 0, 0, 0.85);
+        }
+
+        .quantity-input {
+          width: 120px;
+        }
+      }
+
+      .ant-space {
+        display: flex;
+        gap: 12px;
+
+        .ant-btn {
+          flex: 1;
+          min-width: 160px;
+          
+          &.add-to-cart-btn {
+            background: #52c41a;
+            border-color: #52c41a;
+            
+            &:hover {
+              background: #49ad18;
+              border-color: #49ad18;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Feedback Section Styles
+  .feedback-section {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    
+    .ant-card-body {
+      padding: 24px;
+      
+      h4.ant-typography {
+        margin-bottom: 24px;
+        color: rgba(0, 0, 0, 0.85);
+      }
+
+      // Feedback List
+      .feedback-list {
+        .ant-list-item {
+          padding: 16px 0;
+          
+          &:first-child {
+            padding-top: 0;
+          }
+
+          .feedback-item {
+            width: 100%;
+            
+            .feedback-item-header {
+              display: flex;
+              align-items: flex-start;
+              margin-bottom: 12px;
+              
+              .ant-avatar {
+                background-color: #52c41a;
+                margin-right: 12px;
+              }
+              
+              .feedback-item-meta {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                
+                .ant-typography {
+                  &:first-child {
+                    color: rgba(0, 0, 0, 0.85);
+                    font-size: 14px;
+                  }
+                  
+                  &:last-child {
+                    font-size: 12px;
+                  }
+                }
+              }
+            }
+
+            .feedback-content {
+              margin-left: 36px;
+              
+              .ant-rate {
+                font-size: 16px;
+                color: #faad14;
+                margin-bottom: 8px;
+              }
+
+              .ant-typography {
+                color: rgba(0, 0, 0, 0.65);
+                margin-bottom: 0;
+              }
+
+              .feedback-reply {
+                margin-top: 12px;
+                padding: 12px;
+                background-color: #f5f5f5;
+                border-radius: 8px;
+
+                .reply-header {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
+
+                  .ant-avatar {
+                    width: 24px;
+                    height: 24px;
+                    border: 1px solid #e8e8e8;
+                    
+                    img {
+                      object-fit: contain;
+                      padding: 2px;
+                    }
+                  }
+
+                  .ant-typography {
+                    color: #52c41a;
+                    font-size: 13px;
+                  }
+                }
+
+                .reply-content {
+                  margin-left: 32px;
+                  
+                  .ant-typography {
+                    color: rgba(0, 0, 0, 0.65);
+                    margin-bottom: 0;
+                    font-size: 14px;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .ant-divider {
+        margin: 24px 0;
+      }
+
+      // Feedback Form
+      .feedback-form-container {
+        background: #fafafa;
+        padding: 24px;
+        border-radius: 8px;
+        
+        .feedback-form {
+          .ant-form-item {
+            margin-bottom: 16px;
+            
+            &:last-child {
+              margin-bottom: 0;
+            }
+            
+            .rating-stars {
+              font-size: 24px;
+              color: #faad14;
+            }
+            
+            .ant-input-textarea {
+              background: white;
+              border-radius: 4px;
+              
+              &:hover, &:focus {
+                border-color: #52c41a;
+              }
+              
+              textarea {
+                font-size: 14px;
+                
+                &::placeholder {
+                  color: rgba(0, 0, 0, 0.25);
+                }
+              }
+            }
+          }
+          
+          .submit-section {
+            text-align: right;
+            
+            .ant-btn {
+              height: 40px;
+              padding: 0 24px;
+              font-size: 14px;
+              background: #52c41a;
+              border-color: #52c41a;
+              
+              &:hover {
+                background: #49ad18;
+                border-color: #49ad18;
+              }
+              
+              .anticon {
+                font-size: 16px;
+              }
+            }
+          }
+        }
+      }
+      
+      .login-prompt {
+        padding: 32px;
+        text-align: center;
+        background: #fafafa;
+        border-radius: 8px;
+        
+        .ant-typography {
+          font-size: 14px;
+          
+          a {
+            color: #52c41a;
+            font-weight: 500;
+            
+            &:hover {
+              color: #49ad18;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.product-detail-loading,
+.product-detail-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 64px);
+  margin-top: 132px;
+}
+
+// Feedback Modal Styles
+.feedback-modal {
+  .ant-modal-content {
+    border-radius: 8px;
+    
+    .ant-modal-header {
+      border-radius: 8px 8px 0 0;
+      padding: 16px 24px;
+      
+      .ant-modal-title {
+        font-size: 18px;
+        font-weight: 600;
+      }
+    }
+    
+    .ant-modal-body {
+      padding: 24px;
+      
+      .ant-form {
+        .ant-form-item-label {
+          font-weight: 500;
+        }
+        
+        .ant-rate {
+          font-size: 24px;
+          color: #faad14;
+        }
+        
+        .ant-input-textarea {
+          border-radius: 4px;
+          
+          &:hover, &:focus {
+            border-color: #52c41a;
+          }
+        }
+        
+        .form-actions {
+          margin-bottom: 0;
+          margin-top: 24px;
+          text-align: right;
+          
+          .ant-btn {
+            min-width: 100px;
+            
+            &-primary {
+              background: #52c41a;
+              border-color: #52c41a;
+              
+              &:hover {
+                background: #49ad18;
+                border-color: #49ad18;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .product-detail-layout {
+    .product-detail-content {
+      margin-top: 110px;
+      padding: 20px 0;
+    }
+
+    .product-images {
+      flex-direction: column;
+      height: auto;
+
+      .main-image {
+        width: 100%;
+        height: 300px;
+
+        .ant-image {
+          height: 100%;
+        }
+      }
+
+      .thumbnail-images {
+        flex-direction: row;
+        height: 100px;
+
+        .ant-image {
+          height: 100%;
+          width: calc(50% - 8px);
+        }
+      }
+    }
+
+    .product-info {
+      .product-price {
+        font-size: 1.5rem;
+      }
+
+      .product-actions {
+        .ant-space {
+          flex-direction: column;
+          width: 100%;
+
+          .ant-btn {
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    .feedback-section {
+      .ant-card-body {
+        padding: 16px;
+        
+        .feedback-list {
+          .ant-list-item {
+            padding: 12px 0;
+          }
+        }
+        
+        .feedback-form-container {
+          padding: 16px;
+          
+          .feedback-form {
+            .rating-stars {
+              font-size: 20px;
+            }
+          }
+        }
+        
+        .login-prompt {
+          padding: 24px 16px;
+        }
+      }
+    }
+  }
+} 
