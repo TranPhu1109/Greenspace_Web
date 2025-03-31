@@ -120,7 +120,9 @@ const useProductStore = create((set, get) => ({
   },
 
   // API Actions
+
   fetchProducts: async (componentId) => {
+
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/product", {
@@ -128,6 +130,7 @@ const useProductStore = create((set, get) => ({
           pageNumber: 0,
           pageSize: 100, // Increased to load more products
         },
+
         componentId,
         allowDuplicate: false
       });
@@ -293,7 +296,17 @@ const useProductStore = create((set, get) => ({
         set({ selectedProduct: formattedProduct, isLoading: false });
         return formattedProduct;
       }
-      throw new Error("Failed to fetch product");
+
+      const processedProduct = {
+        ...response.data,
+        image: {
+          imageUrl: response.data.image?.imageUrl || "",
+          image2: response.data.image?.image2 || "",
+          image3: response.data.image?.image3 || "",
+        }
+      };
+
+      return processedProduct;
     } catch (error) {
       // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
@@ -308,6 +321,7 @@ const useProductStore = create((set, get) => ({
   },
 
   fetchCategories: async (componentId) => {
+
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/categories", {
@@ -324,11 +338,12 @@ const useProductStore = create((set, get) => ({
         set({ isLoading: false });
         return [];
       }
-      
+
       const categoriesArray = Array.isArray(response.data) ? response.data : [];
       set({ categories: categoriesArray, isLoading: false, abortController: null });
       return categoriesArray;
     } catch (error) {
+
       // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
         console.error("Error fetching categories:", error);
@@ -338,6 +353,7 @@ const useProductStore = create((set, get) => ({
       // Reset loading state for cancellations
       set({ isLoading: false });
       return [];
+
     }
   },
 

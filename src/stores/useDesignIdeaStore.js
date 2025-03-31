@@ -3,8 +3,10 @@ import axios from '../api/api';
 
 const useDesignIdeaStore = create((set, get) => ({
   designIdeas: [],
+
   currentDesign: null,
-  designIdeaById:{},
+ designIdeaById:{},
+
   isLoading: false,
   error: null,
   abortController: null,

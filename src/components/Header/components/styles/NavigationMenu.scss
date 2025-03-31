@@ -49,7 +49,9 @@
 
     .nav-item {
       position: relative;
+
       margin: 0 14px;
+
 
       &.active {
         .nav-link {
@@ -92,6 +94,7 @@
       }
     }
 
+
     .dropdown-link {
       display: flex;
       align-items: center;
@@ -110,6 +113,7 @@
         font-size: 12px;
       }
     }
+
   }
 
   .right-nav-section {
@@ -168,6 +172,7 @@
       }
     }
   }
+
 }
 
 // Override Ant Design dropdown styles
@@ -198,4 +203,5 @@
       }
     }
   }
+
 } 
