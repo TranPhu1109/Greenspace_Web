@@ -119,7 +119,7 @@ const useProductStore = create((set, get) => ({
   },
 
   // API Actions
-  fetchProducts: async () => {
+  fetchProducts: async (componentId) => {
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/product", {
@@ -127,7 +127,16 @@ const useProductStore = create((set, get) => ({
           pageNumber: 0,
           pageSize: 100, // Increased to load more products
         },
+        componentId,
+        allowDuplicate: false
       });
+      
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return [];
+      }
+      
       const productsArray = Array.isArray(response.data)
         ? response.data.map((product) => ({
             ...product,
@@ -141,9 +150,15 @@ const useProductStore = create((set, get) => ({
       set({ products: productsArray, isLoading: false });
       return productsArray;
     } catch (error) {
-      console.error("Error fetching products:", error);
-      set({ error: error.message, isLoading: false });
-      throw error;
+      // Only handle non-cancellation errors
+      if (!axios.isCancel(error)) {
+        console.error("Error fetching products:", error);
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
+      // Reset loading state for cancellations
+      set({ isLoading: false });
+      return [];
     }
   },
 
