@@ -22,7 +22,12 @@ import CartPage from "@/pages/Cart";
 import AboutPage from "@/pages/About";
 import VNPayCallback from "@/pages/Wallet/components/VNPayCallback";
 import DesignDetailPage from "@/pages/Designs/Detail";
-import OrderServiceNoCustom from "@/pages/Order/OrderServiceNoCustom";
+import OrderHistoryDetail from "@/pages/ServiceOrder/OrderHistoryDetail";
+import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
+import OrderService from "@/pages/ServiceOrder/OrderService";
+
+
+
 
 const router = createBrowserRouter([
   {
@@ -95,7 +100,27 @@ const router = createBrowserRouter([
     element: (
       <>
         <ScrollToTop />
-        <OrderServiceNoCustom />
+        <OrderService />
+      </>
+    ),
+  },
+  
+  {
+    path: "/serviceorderhistory",
+    element: (
+      <>
+        <ScrollToTop />
+        <DesignOrderHistory />
+      </>
+    ),
+  },
+  
+  {
+    path: "/serviceorderhistory/detail/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <OrderHistoryDetail />
       </>
     ),
   },

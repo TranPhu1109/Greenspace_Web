@@ -23,6 +23,26 @@ const useDesignOrderStore = create((set) => ({
     }
   },
 
+  createDesignOrder: async (orderData) => {
+    console.log('orderData', orderData);
+    
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.post('/api/serviceorder', orderData);
+      set({ 
+        isLoading: false,
+        designOrders: [...useDesignOrderStore.getState().designOrders, response.data]
+      });
+      return response.data; 
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
   getDesignOrderById: async (id) => {
     try {
       set({ isLoading: true });

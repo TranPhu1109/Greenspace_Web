@@ -49,7 +49,7 @@
 
     .nav-item {
       position: relative;
-      margin: 0 4px;
+      margin: 0 14px;
 
       &.active {
         .nav-link {
@@ -89,6 +89,25 @@
             transform: scaleX(1);
           }
         }
+      }
+    }
+
+    .dropdown-link {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: inherit;
+      cursor: pointer;
+      padding: 8px 20px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        color: #52c41a;
+      }
+
+      .anticon {
+        font-size: 12px;
       }
     }
   }
@@ -146,6 +165,36 @@
 
       .anticon {
         font-size: 20px;
+      }
+    }
+  }
+}
+
+// Override Ant Design dropdown styles
+.design-dropdown {
+  .ant-dropdown-menu {
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    text-align: center;
+
+    .ant-dropdown-menu-item {
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      
+      a {
+        color: rgba(0, 0, 0, 0.85);
+        display: block;
+        
+        &:hover {
+          color: #52c41a;
+        }
+      }
+
+      &:hover {
+        background-color: #f5f5f5;
       }
     }
   }

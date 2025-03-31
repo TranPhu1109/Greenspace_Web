@@ -220,20 +220,21 @@ const DesignDetailPage = () => {
                   </div>
                   
                   <div className="design-actions">
-                    <Link to={`/order-service/${currentDesign.id}`}>
+                    <Link to={`/order-service/${currentDesign.id}`} state={{ isCustom: false }}>
                       <Button type="primary" block>
                         Mua thiết kế
                       </Button>
                     </Link>
-                    <Button 
-                      type="default" 
-                      size="large" 
-                      block
-                      style={{ marginTop: '10px' }}
-                      onClick={() => window.location.href = `/customize/${currentDesign.id}`}
-                    >
-                      Tùy chỉnh
-                    </Button>
+                    <Link to={`/order-service/${currentDesign.id}`} state={{ isCustom: true }}>
+                      <Button 
+                        type="default" 
+                        size="large" 
+                        block
+                        style={{ marginTop: '10px' }}
+                      >
+                        Tùy chỉnh
+                      </Button>
+                    </Link>
                   </div>
 
                   <div className="product-details">

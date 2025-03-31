@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
-import { Button } from 'antd';
-import { CustomerServiceOutlined, WalletOutlined, MenuOutlined } from '@ant-design/icons';
+import { Button, Dropdown } from 'antd';
+import { CustomerServiceOutlined, WalletOutlined, MenuOutlined, DownOutlined } from '@ant-design/icons';
 import MobileMenu from './MobileMenu';
 import './styles/NavigationMenu.scss';
 
@@ -10,14 +10,43 @@ function NavigationMenu({ user }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+  const designMenuItems = [
+    {
+      key: 'designs',
+      label: <Link to="/designs">Thiết kế mẫu</Link>,
+    },
+    {
+      key: 'create-design',
+      label: <Link to="/create-design">Tạo thiết kế mới</Link>,
+    },
+  ];
+
   const menuItems = React.useMemo(() => [
     { key: "home", label: "Trang chủ", path: "/home" },
-    { key: "design", label: "Thiết kế", path: "/designs" },
+    {
+      key: "design",
+      label: (
+        <Dropdown
+          menu={{ items: designMenuItems }}
+          placement="bottom"
+          overlayClassName="design-dropdown"
+        >
+          <span className="dropdown-link">
+            Thiết kế <DownOutlined />
+          </span>
+        </Dropdown>
+      ),
+      path: "/designs"
+    },
     { key: "products", label: "Sản phẩm", path: "/products" },
+    { key: "serviceOrder", label: "Lịch sử đặt hàng", path: "/serviceorderhistory" },
     { key: "about", label: "Giới thiệu", path: "/about" },
   ], []);
 
   const isActivePath = React.useCallback((path) => {
+    if (path === '/designs') {
+      return location.pathname.includes('/design');
+    }
     return location.pathname === path;
   }, [location.pathname]);
 
@@ -57,9 +86,13 @@ function NavigationMenu({ user }) {
                     isActivePath(item.path) ? "active" : ""
                   }`}
                 >
-                  <Link to={item.path} className="nav-link">
-                    {item.label}
-                  </Link>
+                  {item.key === "design" ? (
+                    item.label
+                  ) : (
+                    <Link to={item.path} className="nav-link">
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
