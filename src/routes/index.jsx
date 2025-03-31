@@ -18,6 +18,9 @@ import ProductsPage from "@/pages/Products";
 import ProductDetail from "@/pages/Products/ProductDetail";
 import WalletPage from "@/pages/Wallet";
 import PaymentCallback from '@/pages/Wallet/components/PaymentCallback';
+import CartPage from "@/pages/Cart";
+import AboutPage from "@/pages/About";
+import VNPayCallback from "@/pages/Wallet/components/VNPayCallback";
 import DesignDetailPage from "@/pages/Designs/Detail";
 import OrderServiceNoCustom from "@/pages/Order/OrderServiceNoCustom";
 
@@ -115,6 +118,24 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/cart",
+    element: (
+      <>
+        <ScrollToTop />
+        <CartPage />
+      </>
+    ),
+  },
+  {
+    path: "/about",
+    element: (
+      <>
+        <ScrollToTop />
+        <AboutPage />
+      </>
+    ),
+  },
+  {
     path: "/userwallets",
     element: (
       <>
@@ -125,12 +146,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/api/userwallets/vn-pay/response",
-    element: (
-      <>
-        <ScrollToTop />
-        <PaymentCallback />
-      </>
-    ),
+    element: <VNPayCallback />,
   },
   {
     path: "*",

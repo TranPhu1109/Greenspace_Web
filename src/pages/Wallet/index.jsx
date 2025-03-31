@@ -1,6 +1,6 @@
-import React from "react";
-import { Layout, Card, Tabs, message } from "antd";
-import { WalletOutlined, TransactionOutlined } from "@ant-design/icons";
+import React, { useState } from 'react';
+import { Layout, Card, Tabs, message, Button, Space } from "antd";
+import { WalletOutlined, TransactionOutlined, QrcodeOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WalletBalance from "./components/WalletBalance";
@@ -12,6 +12,8 @@ const { Content } = Layout;
 const { TabPane } = Tabs;
 
 const WalletPage = () => {
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+
   // Mock data
   const mockTransactions = [
     {
@@ -44,29 +46,37 @@ const WalletPage = () => {
         <div className="wallet-content">
           <div className="container">
             <Card className="wallet-card">
-              <Tabs defaultActiveKey="recharge">
-                <TabPane 
-                  tab={
-                    <span>
-                      <WalletOutlined /> Nạp tiền
-                    </span>
-                  } 
-                  key="recharge"
-                >
-                  <WalletBalance balance={0} />
-                  <RechargeForm onFinish={handleRecharge} />
-                </TabPane>
-                <TabPane 
-                  tab={
-                    <span>
-                      <TransactionOutlined /> Lịch sử giao dịch
-                    </span>
-                  } 
-                  key="history"
-                >
-                  <TransactionHistory transactions={mockTransactions} />
-                </TabPane>
-              </Tabs>
+              <Tabs 
+                defaultActiveKey="recharge"
+                className="wallet-tabs"
+                items={[
+                  {
+                    key: 'recharge',
+                    label: (
+                      <span className="tab-label">
+                        <WalletOutlined />
+                        <span>Nạp tiền</span>
+                      </span>
+                    ),
+                    children: (
+                      <>
+                        <WalletBalance balance={0} />
+                        <RechargeForm onFinish={handleRecharge} />
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'history',
+                    label: (
+                      <span className="tab-label">
+                        <TransactionOutlined />
+                        <span>Lịch sử giao dịch</span>
+                      </span>
+                    ),
+                    children: <TransactionHistory transactions={mockTransactions} />,
+                  },
+                ]}
+              />
             </Card>
           </div>
         </div>
