@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Table,
   Card,
@@ -35,6 +35,7 @@ import { Popover } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import StatusTag from "@/pages/Admin/DesignOrders/components/StatusTag";
+import api from "@/api/api";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -48,6 +49,7 @@ const TemplateOrdersList = () => {
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const componentId = useRef(`template-orders-list-${Date.now()}`).current;
 
   const { getBasePath } = useRoleBasedPath();
   const { designOrders, isLoading, error, fetchDesignOrders } =
@@ -58,12 +60,16 @@ const TemplateOrdersList = () => {
   };
 
   useEffect(() => {
-    fetchDesignOrders();
-  }, []);
+    fetchDesignOrders(componentId);
+    
+    // Cleanup function to abort any pending requests when component unmounts
+    return () => {
+      api.clearPendingRequests(componentId);
+    };
+  }, [fetchDesignOrders, componentId]);
 
   // Filter design orders to only get non-custom orders
-
-  const filteredOrders = designOrders
+  const filteredOrders = (designOrders || [])
     .filter((order) => !order.isCustom)
     .filter(
       (order) =>

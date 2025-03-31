@@ -7,6 +7,9 @@ const api = axios.create({
   }
 });
 
+// Export isCancel function từ axios
+export const isCancel = axios.isCancel;
+
 // Track pending requests with a more robust approach
 const pendingRequests = new Map();
 
@@ -70,7 +73,7 @@ api.interceptors.response.use(
     }
     
     // Don't reject if it's just a cancellation - this is expected behavior
-    if (axios.isCancel(error)) {
+    if (isCancel(error)) {
       console.log('Request canceled:', error.message);
       return Promise.resolve({ data: null, status: 'canceled' });
     }
