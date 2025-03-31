@@ -19,6 +19,7 @@ import ProductDetail from "@/pages/Products/ProductDetail";
 import WalletPage from "@/pages/Wallet";
 import PaymentCallback from '@/pages/Wallet/components/PaymentCallback';
 import DesignDetailPage from "@/pages/Designs/Detail";
+import OrderServiceNoCustom from "@/pages/Order/OrderServiceNoCustom";
 
 const router = createBrowserRouter([
   {
@@ -83,6 +84,15 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <DesignDetailPage />
+      </>
+    ),
+  },
+  {
+    path: "/order-service/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <OrderServiceNoCustom />
       </>
     ),
   },

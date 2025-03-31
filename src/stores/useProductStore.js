@@ -8,6 +8,7 @@ const useProductStore = create((set, get) => ({
   isLoading: false,
   error: null,
   selectedProduct: null,
+  abortController: null,
 
   // Actions
   setProducts: (products) => set({ products }),
@@ -17,6 +18,15 @@ const useProductStore = create((set, get) => ({
 
   // API Actions
   fetchProducts: async () => {
+    // Cancel any existing request
+    if (get().abortController) {
+      get().abortController.abort();
+    }
+
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    set({ abortController: controller });
+
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/product", {
@@ -24,22 +34,41 @@ const useProductStore = create((set, get) => ({
           pageNumber: 0,
           pageSize: 10,
         },
+        signal: controller.signal
       });
-      const productsArray = Array.isArray(response.data)
-        ? response.data.map((product) => ({
-            ...product,
-            image: {
-              imageUrl: product.image?.imageUrl || "",
-              image2: product.image?.image2 || "",
-              image3: product.image?.image3 || "",
-            },
-          }))
-        : [];
-      set({ products: productsArray, isLoading: false });
-      return productsArray;
+      
+      // Handle the response data
+      let productsArray = [];
+      
+      // Check if response.data is an array
+      if (Array.isArray(response.data)) {
+        productsArray = response.data;
+      }
+      // Check if response.data has a data property that's an array
+      else if (response.data && Array.isArray(response.data.data)) {
+        productsArray = response.data.data;
+      }
+      // Check if response.data has a content property that's an array
+      else if (response.data && Array.isArray(response.data.content)) {
+        productsArray = response.data.content;
+      }
+      
+      // Process the products array
+      const processedProducts = productsArray.map((product) => ({
+        ...product,
+        image: {
+          imageUrl: product.image?.imageUrl || "",
+          image2: product.image?.image2 || "",
+          image3: product.image?.image3 || "",
+        },
+      }));
+      
+      set({ products: processedProducts, isLoading: false, abortController: null });
+      return processedProducts;
     } catch (error) {
-      console.error("Error fetching products:", error);
-      set({ error: error.message, isLoading: false });
+      if (error.name !== 'CanceledError') {
+        set({ error: error.message, isLoading: false, abortController: null });
+      }
       throw error;
     }
   },
@@ -73,7 +102,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to create product");
     } catch (error) {
-      console.error("Error creating product:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -91,61 +119,6 @@ const useProductStore = create((set, get) => ({
     } catch (error) {
       throw error;
     }
-    // try {
-    //   const requestBody = {
-    //     id: id,
-    //     name: productData.name,
-    //     categoryId: productData.categoryId,
-    //     price: productData.price,
-    //     stock: productData.stock,
-    //     description: productData.description,
-    //     size: productData.size || 0,
-    //     image: {
-    //       imageUrl: productData.image.imageUrl,
-    //       image2: productData.image.image2,
-    //       image3: productData.image.image3
-    //     }
-    //   };
-
-    //   const response = await axios.put(`/api/product/${id}`, requestBody, {
-    //     headers: {
-    //       'Content-Type': 'application/json'
-    //     }
-    //   });
-
-    //   if (response.status === 200) {
-    //     const updatedProduct = {
-    //       id: id,
-    //       name: productData.name,
-    //       categoryId: productData.categoryId,
-    //       price: productData.price,
-    //       stock: productData.stock,
-    //       description: productData.description,
-    //       size: productData.size || 0,
-    //       image: productData.image
-    //     };
-    //     set(state => ({
-    //       products: state.products.map(product => product.id === id ? updatedProduct : product),
-    //       isLoading: false
-    //     }));
-    //     return response.data;
-    //   }
-    //   throw new Error('Failed to update product');
-    // } catch (error) {
-    //   console.error('Error updating product:', error);
-    //   set({ error: error.message, isLoading: false });
-    //   throw error;
-    // } finally {
-    //   set({
-    //     selectedProduct: {
-    //       image: {
-    //         imageUrl: productData.image.imageUrl || '',
-    //         image2: productData.image.image2 || '',
-    //         image3: productData.image.image3 || ''
-    //       }
-    //     }
-    //   })
-    // }
   },
 
   deleteProduct: async (id) => {
@@ -161,29 +134,51 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to delete product");
     } catch (error) {
-      console.error("Error deleting product:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
   },
 
+  // Simplified getProductById function
   getProductById: async (id) => {
-    set({ isLoading: true, error: null });
     try {
-      const response = await axios.get(`/api/product/${id}`);
-      if (response.status === 200) {
-        set({ selectedProduct: response.data, isLoading: false });
-        return response.data;
+      const response = await axios.get(`/api/product/${id}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      });
+      
+      if (!response.data) {
+        return null;
       }
-      throw new Error("Failed to fetch product");
+
+      const processedProduct = {
+        ...response.data,
+        image: {
+          imageUrl: response.data.image?.imageUrl || "",
+          image2: response.data.image?.image2 || "",
+          image3: response.data.image?.image3 || "",
+        }
+      };
+
+      return processedProduct;
     } catch (error) {
-      console.error("Error fetching product:", error);
-      set({ error: error.message, isLoading: false });
       throw error;
     }
   },
 
   fetchCategories: async () => {
+    // Cancel any existing request
+    if (get().abortController) {
+      get().abortController.abort();
+    }
+
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    set({ abortController: controller });
+
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/categories", {
@@ -191,13 +186,17 @@ const useProductStore = create((set, get) => ({
           pageNumber: 0,
           pageSize: 10,
         },
+        signal: controller.signal
       });
+      
+      // Handle the response data directly
       const categoriesArray = Array.isArray(response.data) ? response.data : [];
-      set({ categories: categoriesArray, isLoading: false });
+      set({ categories: categoriesArray, isLoading: false, abortController: null });
       return categoriesArray;
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      set({ error: error.message, isLoading: false });
+      if (error.name !== 'CanceledError') {
+        set({ error: error.message, isLoading: false, abortController: null });
+      }
       throw error;
     }
   },
@@ -233,7 +232,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to create category");
     } catch (error) {
-      console.error("Error creating category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -270,7 +268,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to update category");
     } catch (error) {
-      console.error("Error updating category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -289,7 +286,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to delete category");
     } catch (error) {
-      console.error("Error deleting category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }

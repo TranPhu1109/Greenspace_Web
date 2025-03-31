@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import axios from '../api/api';
 
-const useDesignIdeaStore = create((set) => ({
+const useDesignIdeaStore = create((set, get) => ({
   designIdeas: [],
   currentDesign: null,
   isLoading: false,
   error: null,
+  abortController: null,
 
   fetchDesignIdeas: async () => {
     try {
@@ -63,25 +64,43 @@ const useDesignIdeaStore = create((set) => ({
   },
 
   fetchDesignIdeaById: async (id) => {
+    // Cancel any existing request
+    if (get().abortController) {
+      get().abortController.abort();
+    }
+
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    set({ abortController: controller });
+
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`/api/designidea/${id}`);
+      const response = await axios.get(`/api/designidea/${id}`, {
+        signal: controller.signal
+      });
+      
       if (!response.data) {
         throw new Error('No data received from server');
       }
+      
       set({ 
         currentDesign: response.data,
         isLoading: false,
-        error: null
+        error: null,
+        abortController: null
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching design:', error);
-      set({ 
-        currentDesign: null,
-        isLoading: false,
-        error: error.response?.data?.message || error.message || 'Failed to fetch design'
-      });
+      // Only update state if the error is not from cancellation
+      if (error.name !== 'CanceledError') {
+        console.error('Error fetching design:', error);
+        set({ 
+          currentDesign: null,
+          isLoading: false,
+          error: error.response?.data?.message || error.message || 'Failed to fetch design',
+          abortController: null
+        });
+      }
       throw error;
     }
   }

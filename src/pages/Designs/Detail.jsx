@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Layout, Typography, Row, Col, Card, Spin, Empty } from "antd";
+import { Layout, Typography, Row, Col, Card, Spin, Empty, Button } from "antd";
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
@@ -14,61 +15,98 @@ const DesignDetailPage = () => {
   const { id } = useParams();
   const { currentDesign, fetchDesignIdeaById, isLoading: designLoading, error: designError } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
+  const mountedRef = useRef(true);
   const [productDetails, setProductDetails] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productError, setProductError] = useState(null);
 
+  // Cleanup on unmount
   useEffect(() => {
-    const loadDesign = async () => {
-      try {
-        await fetchDesignIdeaById(id);
-      } catch (error) {
-        console.error("Error loading design:", error);
-      }
+    return () => {
+      mountedRef.current = false;
     };
+  }, []);
 
-    if (id) {
-      loadDesign();
+  // Load design data
+  const loadDesign = useCallback(async () => {
+    if (!id || !mountedRef.current) return;
+    
+    try {
+      const design = await fetchDesignIdeaById(id);
+    } catch (error) {
+      if (error.name !== 'CanceledError' && mountedRef.current) {
+        // Handle error silently
+      }
     }
   }, [id, fetchDesignIdeaById]);
 
+  // Initial load of design
   useEffect(() => {
-    const loadProductDetails = async () => {
-      if (!currentDesign?.productDetails?.length) return;
+    loadDesign();
+  }, [loadDesign]);
+
+  // Load products when design data is available
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      if (!isMounted) return;
+      
+      if (!currentDesign?.productDetails?.length) {
+        setProductDetails([]);
+        setIsLoadingProducts(false);
+        return;
+      }
 
       setIsLoadingProducts(true);
       setProductError(null);
-
+      
       try {
+        // Create an array to store all product promises
         const productPromises = currentDesign.productDetails.map(async (detail) => {
           try {
             const product = await getProductById(detail.productId);
-            return {
-              ...detail,
-              product: product
-            };
+            
+            if (!isMounted) return null;
+            
+            if (product) {
+              return {
+                detail,
+                product
+              };
+            } else {
+              return null;
+            }
           } catch (error) {
-            console.error(`Error fetching product ${detail.productId}:`, error);
-            return {
-              ...detail,
-              product: null
-            };
+            return null;
           }
         });
 
+        // Wait for all promises to resolve
         const results = await Promise.all(productPromises);
-        setProductDetails(results);
+        
+        if (isMounted) {
+          const validResults = results.filter(Boolean);
+          setProductDetails(validResults);
+          setProductError(null);
+        }
       } catch (error) {
-        console.error("Error loading product details:", error);
-        setProductError(error.message);
+        if (isMounted) {
+          setProductError("Failed to load products");
+          setProductDetails([]);
+        }
       } finally {
-        setIsLoadingProducts(false);
+        if (isMounted) {
+          setIsLoadingProducts(false);
+        }
       }
     };
 
-    if (currentDesign?.productDetails) {
-      loadProductDetails();
-    }
+    loadProducts();
+
+    return () => {
+      isMounted = false;
+    };
   }, [currentDesign, getProductById]);
 
   if (designLoading) {
@@ -127,20 +165,24 @@ const DesignDetailPage = () => {
                     }
                   />
                   <Row gutter={[16, 16]} className="sub-images">
-                    <Col span={8}>
-                      <img
-                        alt="Sub 1"
-                        src={currentDesign.image.image2}
-                        className="sub-image"
-                      />
-                    </Col>
-                    <Col span={8}>
-                      <img
-                        alt="Sub 2"
-                        src={currentDesign.image.image3}
-                        className="sub-image"
-                      />
-                    </Col>
+                    {currentDesign.image.image2 && (
+                      <Col span={8}>
+                        <img
+                          alt="Sub 1"
+                          src={currentDesign.image.image2}
+                          className="sub-image"
+                        />
+                      </Col>
+                    )}
+                    {currentDesign.image.image3 && (
+                      <Col span={8}>
+                        <img
+                          alt="Sub 2"
+                          src={currentDesign.image.image3}
+                          className="sub-image"
+                        />
+                      </Col>
+                    )}
                   </Row>
                 </div>
               </Col>
@@ -176,44 +218,57 @@ const DesignDetailPage = () => {
                     <Title level={4}>Danh mục</Title>
                     <Paragraph>{currentDesign.categoryName}</Paragraph>
                   </div>
+                  
+                  <div className="design-actions">
+                    <Link to={`/order-service/${currentDesign.id}`}>
+                      <Button type="primary" block>
+                        Mua thiết kế
+                      </Button>
+                    </Link>
+                    <Button 
+                      type="default" 
+                      size="large" 
+                      block
+                      style={{ marginTop: '10px' }}
+                      onClick={() => window.location.href = `/customize/${currentDesign.id}`}
+                    >
+                      Tùy chỉnh
+                    </Button>
+                  </div>
 
                   <div className="product-details">
                     <Title level={4}>Chi tiết sản phẩm</Title>
                     {isLoadingProducts ? (
-                      <Spin />
+                      <div className="loading-container">
+                        <Spin />
+                      </div>
                     ) : productError ? (
                       <Paragraph type="danger">{productError}</Paragraph>
-                    ) : (
-                      productDetails.map((detail, index) => (
+                    ) : productDetails.length > 0 ? (
+                      productDetails.map(({ detail, product }) => (
                         <div key={detail.productId} className="product-item">
-                          {detail.product ? (
-                            <>
-                              <div className="product-info">
-                                <img 
-                                  src={detail.product.image?.imageUrl} 
-                                  alt={detail.product.name}
-                                  className="product-image"
-                                />
-                                <div className="product-text">
-                                  <span className="product-name">{detail.product.name}</span>
-                                  <span className="product-description">{detail.product.description}</span>
-                                </div>
-                              </div>
-                              <div className="product-meta">
-                                <span>Số lượng: {detail.quantity}</span>
-                                <span>{detail.price.toLocaleString("vi-VN", {
-                                  style: "currency",
-                                  currency: "VND",
-                                })}</span>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="product-error">
-                              Không thể tải thông tin sản phẩm
+                          <div className="product-info">
+                            <img 
+                              src={product.image?.imageUrl} 
+                              alt={product.name}
+                              className="product-image"
+                            />
+                            <div className="product-text">
+                              <span className="product-name">{product.name}</span>
+                              <span className="product-description">{product.description}</span>
                             </div>
-                          )}
+                          </div>
+                          <div className="product-meta">
+                            <span>Số lượng: {detail.quantity}</span>
+                            <span>{detail.price.toLocaleString("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            })}</span>
+                          </div>
                         </div>
                       ))
+                    ) : (
+                      <Empty description="Không có sản phẩm nào" />
                     )}
                   </div>
                 </Card>

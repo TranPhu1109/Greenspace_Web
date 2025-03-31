@@ -1,0 +1,169 @@
+.order-service-layout {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.order-service-content {
+  padding: 40px 0;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .order-form {
+    .form-section {
+      margin-bottom: 24px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .design-image {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .product-item {
+      .product-image {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 4px;
+      }
+
+      .product-price {
+        font-weight: 600;
+        color: #1890ff;
+      }
+    }
+
+    .price-summary {
+      .price-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 16px;
+
+        &.total {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #f0f0f0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1890ff;
+        }
+      }
+    }
+
+    .form-actions {
+      margin-top: 32px;
+      text-align: center;
+
+      .ant-btn {
+        min-width: 200px;
+      }
+    }
+  }
+}
+
+.order-service-loading,
+.order-service-error {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.user-info-card {
+  margin-bottom: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .ant-card-head {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+
+    .ant-card-head-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .ant-card-extra {
+      padding: 0;
+    }
+  }
+
+  .ant-card-body {
+    padding: 24px;
+
+    .ant-form-item {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .ant-input-affix-wrapper {
+      border-radius: 4px;
+    }
+
+    .ant-input {
+      border-radius: 4px;
+    }
+  }
+
+  .ant-form-item-label > label {
+    font-weight: 500;
+    color: #333;
+  }
+
+  .ant-input-prefix {
+    color: #999;
+    margin-right: 8px;
+  }
+
+  .ant-btn-link {
+    padding: 0;
+    height: auto;
+    color: #1890ff;
+    font-weight: 500;
+
+    &:hover {
+      color: #40a9ff;
+    }
+  }
+
+  .ant-btn {
+    border-radius: 4px;
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .order-service-content {
+    padding: 24px 0;
+
+    .order-form {
+      .product-item {
+        .ant-row {
+          flex-direction: column;
+          align-items: flex-start !important;
+        }
+
+        .ant-col {
+          width: 100%;
+          margin-bottom: 12px;
+        }
+      }
+    }
+  }
+} 

@@ -19,27 +19,52 @@ const useAuthStore = create(
       login: async (email, password) => {
         set({ loading: true, error: null });
         try {
+          console.log('Starting login process...');
+          
           // First, authenticate with Firebase
-          const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-          );
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          console.log('Firebase authentication successful');
 
           // Then authenticate with backend using Firebase token
-          const userData = await useAuthStore
-            .getState()
-            .authenticateWithFirebase(userCredential.user);
+          const userData = await useAuthStore.getState().authenticateWithFirebase(userCredential.user);
+          console.log('Backend authentication successful', { 
+            userId: userData.id,
+            email: userData.email,
+            role: userData.roleName
+          });
 
           // Store user data and token in localStorage
-          localStorage.setItem("user", JSON.stringify(userData));
+          const userToStore = {
+            id: userData.id,
+            email: userData.email,
+            name: userData.name,
+            roleName: userData.roleName,
+            phone: userData.phone,
+            address: userData.address,
+            avatarUrl: userData.avatarUrl,
+            backendToken: userData.backendToken
+          };
+          
+          localStorage.setItem("user", JSON.stringify(userToStore));
           localStorage.setItem("token", userData.backendToken);
           localStorage.setItem("selectedRole", userData.roleName.toLowerCase());
+          console.log('User data stored in localStorage');
 
-          set({ user: userData, isAuthenticated: true, loading: false });
-          return userData;
+          set({ 
+            user: userToStore, 
+            isAuthenticated: true, 
+            loading: false 
+          });
+          
+          return userToStore;
         } catch (err) {
-          set({ error: err.message, loading: false });
+          console.error('Login error:', err);
+          set({ 
+            error: err.message, 
+            loading: false,
+            user: null,
+            isAuthenticated: false 
+          });
           throw err;
         }
       },
