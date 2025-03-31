@@ -14,6 +14,7 @@ import {
   Descriptions,
   Input,
 } from "antd";
+import { useNavigate } from "react-router-dom";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import useDesignIdeaStore from "../../../stores/useDesignIdeaStore";
 import useDesignCategoryStore from "../../../stores/useDesignCategoryStore";
@@ -36,6 +37,7 @@ const DesignTemplates = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentDesign, setCurrentDesign] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDesignIdeas();
@@ -89,6 +91,10 @@ const DesignTemplates = () => {
         }
       },
     });
+  };
+
+  const handleRowClick = (record) => {
+    navigate(`/designer/designs/templates/${record.id}`);
   };
 
   // Định nghĩa các cột cho bảng
@@ -198,6 +204,10 @@ const DesignTemplates = () => {
             )
             .map((idea) => ({ ...idea, key: idea.id }))}
           loading={isLoading}
+          onRow={(record) => ({
+            onClick: () => handleRowClick(record),
+            style: { cursor: 'pointer' }
+          })}
           expandable={{
             expandedRowRender: (record) => (
               <div style={{ padding: 16 }}>
