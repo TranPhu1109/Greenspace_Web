@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Layout,
   Typography,
@@ -13,6 +13,7 @@ import {
   InputNumber,
 } from "antd";
 import { SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
@@ -34,7 +35,14 @@ const ProductsPage = () => {
     category: "all",
     sort: "newest",
   });
-  const [quantities, setQuantities] = useState({});
+  const mountedRef = useRef(true);
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -42,11 +50,27 @@ const ProductsPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
+    const loadData = async () => {
+      if (!mountedRef.current) return;
+
+      try {
+        await Promise.all([
+          fetchProducts(),
+          fetchCategories()
+        ]);
+      } catch (error) {
+        if (error.name !== 'CanceledError' && mountedRef.current) {
+          message.error("Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau.");
+        }
+      }
+    };
+
+    loadData();
   }, [fetchProducts, fetchCategories]);
 
   useEffect(() => {
+    if (!mountedRef.current) return;
+
     let result = [...products];
 
     if (filters.search) {
@@ -191,27 +215,20 @@ const ProductsPage = () => {
                         />
                       }
                       actions={[
-                        <Button type="link" href={`/products/${product.id}`}>
-                          Xem Chi Tiết
-                        </Button>,
-                        <div className="card-actions">
-                          {/* <InputNumber
-                            min={1}
-                            max={product.stock}
-                            value={quantities[product.id] || 1}
-                            onChange={(value) => handleQuantityChange(product.id, value)}
-                            className="quantity-input"
-                          /> */}
-                          <Button
-                            type="primary"
-                            icon={<ShoppingCartOutlined />}
-                            onClick={() => handleAddToCart(product)}
-                            disabled={product.stock === 0}
-                            className="add-to-cart-btn"
-                          >
-                            Thêm vào giỏ
+                        <Link to={`/products/${product.id}`} key="view">
+                          <Button type="link">
+                            Xem Chi Tiết
                           </Button>
-                        </div>
+                        </Link>,
+                        // TODO: Enable when cart feature is implemented
+                        <Button
+                          key="cart"
+                          type="primary"
+                          icon={<ShoppingCartOutlined />}
+                          onClick={() => handleAddToCart(product)}
+                        >
+                          Thêm vào giỏ
+                        </Button>,
                       ]}
                     >
                       <Meta

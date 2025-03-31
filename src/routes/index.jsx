@@ -21,6 +21,13 @@ import PaymentCallback from '@/pages/Wallet/components/PaymentCallback';
 import CartPage from "@/pages/Cart";
 import AboutPage from "@/pages/About";
 import VNPayCallback from "@/pages/Wallet/components/VNPayCallback";
+import DesignDetailPage from "@/pages/Designs/Detail";
+import OrderHistoryDetail from "@/pages/ServiceOrder/OrderHistoryDetail";
+import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
+import OrderService from "@/pages/ServiceOrder/OrderService";
+
+
+
 
 const router = createBrowserRouter([
   {
@@ -76,6 +83,44 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <DesignsPage />
+      </>
+    ),
+  },
+  {
+    path: "/designs/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <DesignDetailPage />
+      </>
+    ),
+  },
+  {
+    path: "/order-service/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <OrderService />
+      </>
+    ),
+  },
+  
+  {
+    path: "/serviceorderhistory",
+    element: (
+      <>
+        <ScrollToTop />
+        <DesignOrderHistory />
+      </>
+    ),
+  },
+  
+  {
+    path: "/serviceorderhistory/detail/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <OrderHistoryDetail />
       </>
     ),
   },

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Layout, Typography, Row, Col, Card, Button, Input, Select, Empty } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
@@ -14,7 +15,9 @@ const { Option } = Select;
 
 const DesignsPage = () => {
   const { designIdeas, fetchDesignIdeas, isLoading } = useDesignIdeaStore();
+  
   const { categories, fetchCategories } = useDesignCategoryStore();
+  
   const [filteredDesigns, setFilteredDesigns] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
@@ -166,9 +169,11 @@ const DesignsPage = () => {
                           </div>
                         }
                       />
-                      <Button type="primary" block href={`/designs/${design.id}`}>
-                        Xem Chi Tiết
-                      </Button>
+                      <Link to={`/designs/${design.id}`}>
+                        <Button type="primary" block>
+                          Xem Chi Tiết
+                        </Button>
+                      </Link>
                     </Card>
                   </Col>
                 ))

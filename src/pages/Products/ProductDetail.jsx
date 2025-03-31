@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   Layout,
@@ -60,18 +60,34 @@ const ProductDetail = () => {
       }
     }
   };
+  const mountedRef = useRef(true);
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id || !mountedRef.current) return;
+
       try {
         const data = await getProductById(id);
         if (data) {
           setProduct(data);
           await fetchFeedbacks();
         }
+        if (mountedRef.current) {
+          setProduct(data);
+        }
       } catch (error) {
         if (error.response && error.response.status !== 404) {
           message.error("Không thể tải thông tin sản phẩm");
+        }
+        if (error.name !== 'CanceledError' && mountedRef.current) {
+          console.error("Error loading product:", error);
         }
       }
     };
@@ -88,6 +104,7 @@ const ProductDetail = () => {
 
       return () => clearTimeout(timer);
     }
+    fetchProduct();
   }, [id, getProductById]);
 
   const handleAddToCart = async () => {

@@ -8,6 +8,7 @@ const useProductStore = create((set, get) => ({
   isLoading: false,
   error: null,
   selectedProduct: null,
+  abortController: null,
 
   // Add new state for feedback
   productFeedbacks: {}, // Change to object to store feedbacks by productId
@@ -191,7 +192,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to create product");
     } catch (error) {
-      console.error("Error creating product:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -326,7 +326,7 @@ const useProductStore = create((set, get) => ({
       }
       
       const categoriesArray = Array.isArray(response.data) ? response.data : [];
-      set({ categories: categoriesArray, isLoading: false });
+      set({ categories: categoriesArray, isLoading: false, abortController: null });
       return categoriesArray;
     } catch (error) {
       // Only handle non-cancellation errors
@@ -372,7 +372,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to create category");
     } catch (error) {
-      console.error("Error creating category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -409,7 +408,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to update category");
     } catch (error) {
-      console.error("Error updating category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -428,7 +426,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to delete category");
     } catch (error) {
-      console.error("Error deleting category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }

@@ -40,6 +40,52 @@ const useDesignOrderStore = create((set) => ({
     }
   },
 
+  createDesignOrder: async (orderData) => {
+    console.log('orderData', orderData);
+    
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.post('/api/serviceorder', orderData);
+      set({ 
+        isLoading: false,
+        designOrders: [...useDesignOrderStore.getState().designOrders, response.data]
+      });
+      return response.data; 
+    } catch (error) {
+      // Only handle non-cancellation errors
+      if (!isCancel(error)) {
+        // console.error("Error fetching design orders:", error);
+        set({ 
+          error: error.message,
+          isLoading: false 
+        });
+      } else {
+        // Reset loading state for cancellations
+        set({ isLoading: false });
+      }
+    }
+  },
+
+  createDesignOrder: async (orderData) => {
+    console.log('orderData', orderData);
+    
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.post('/api/serviceorder', orderData);
+      set({ 
+        isLoading: false,
+        designOrders: [...useDesignOrderStore.getState().designOrders, response.data]
+      });
+      return response.data; 
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
   getDesignOrderById: async (id, componentId) => {
     try {
       set({ isLoading: true, error: null });
