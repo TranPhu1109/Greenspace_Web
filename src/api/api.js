@@ -7,18 +7,48 @@ const api = axios.create({
   }
 });
 
-// Add request deduplication
+// Export isCancel function từ axios
+export const isCancel = axios.isCancel;
+
+// Track pending requests with a more robust approach
 const pendingRequests = new Map();
 
+// Create a function to generate unique request identifiers
+const getRequestKey = (config) => {
+  // Add a custom param to differentiate between different component instances
+  // if it exists in the config
+  const componentId = config.componentId ? `:${config.componentId}` : '';
+  return `${config.method}:${config.url}${componentId}`;
+};
+
+// Thêm Bearer token vào header của mỗi request
 api.interceptors.request.use(
   (config) => {
-    const requestKey = `${config.method}:${config.url}`;
-    if (pendingRequests.has(requestKey)) {
+    // Thêm token vào header nếu có trong localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Only deduplicate GET requests
+    if (config.method === 'get' && !config.allowDuplicate) {
+      const requestKey = getRequestKey(config);
+      
+      // If there's a pending request and it's the same request (not from cleanup)
+      if (pendingRequests.has(requestKey) && !config.isCleanupRequest) {
+        const controller = pendingRequests.get(requestKey);
+        // Abort the previous request
+        controller.abort();
+        // Remove the aborted request
+        pendingRequests.delete(requestKey);
+      }
+      
+      // Create a new controller for this request
       const controller = new AbortController();
       config.signal = controller.signal;
-      controller.abort();
+      pendingRequests.set(requestKey, controller);
     }
-    pendingRequests.set(requestKey, true);
+    
     return config;
   },
   (error) => {
@@ -28,15 +58,72 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    const requestKey = `${response.config.method}:${response.config.url}`;
+    // Clean up the pending request map on success
+    const requestKey = getRequestKey(response.config);
     pendingRequests.delete(requestKey);
     return response;
   },
   (error) => {
-    const requestKey = `${error.config?.method}:${error.config?.url}`;
-    pendingRequests.delete(requestKey);
+    // Xử lý lỗi 401 (Unauthorized) - token hết hạn hoặc không hợp lệ
+    if (error.response && error.response.status === 401) {
+      // Xóa token không hợp lệ
+      localStorage.removeItem('token');
+      // Có thể chuyển hướng người dùng về trang đăng nhập
+      // window.location.href = '/login';
+    }
+    
+    // Don't reject if it's just a cancellation - this is expected behavior
+    if (isCancel(error)) {
+      console.log('Request canceled:', error.message);
+      return Promise.resolve({ data: null, status: 'canceled' });
+    }
+    
+    // Clean up the pending request map on error
+    if (error.config) {
+      const requestKey = getRequestKey(error.config);
+      pendingRequests.delete(requestKey);
+    }
+    
     return Promise.reject(error);
   }
 );
+
+// Add a method to clear all pending requests when a component unmounts
+api.clearPendingRequests = (componentId) => {
+  // If componentId is provided, only clear requests from that component
+  if (componentId) {
+    pendingRequests.forEach((controller, key) => {
+      if (key.includes(`:${componentId}`)) {
+        controller.abort();
+        pendingRequests.delete(key);
+      }
+    });
+  } else {
+    // Otherwise clear all
+    pendingRequests.forEach((controller) => {
+      controller.abort();
+    });
+    pendingRequests.clear();
+  }
+};
+
+// Thêm helper function để cập nhật token
+api.setAuthToken = (token) => {
+  if (token) {
+    localStorage.setItem('token', token);
+  } else {
+    localStorage.removeItem('token');
+  }
+};
+
+// Thêm helper function để lấy token hiện tại
+api.getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Thêm helper function để kiểm tra nếu đã đăng nhập
+api.isAuthenticated = () => {
+  return !!localStorage.getItem('token');
+};
 
 export default api;
