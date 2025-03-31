@@ -120,15 +120,8 @@ const useProductStore = create((set, get) => ({
   },
 
   // API Actions
-  fetchProducts: async () => {
-    // Cancel any existing request
-    if (get().abortController) {
-      get().abortController.abort();
-    }
 
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    set({ abortController: controller });
+  fetchProducts: async (componentId) => {
 
     set({ isLoading: true, error: null });
     try {
@@ -137,42 +130,39 @@ const useProductStore = create((set, get) => ({
           pageNumber: 0,
           pageSize: 100, // Increased to load more products
         },
-        signal: controller.signal
+
+        componentId,
+        allowDuplicate: false
       });
       
-      // Handle the response data
-      let productsArray = [];
-      
-      // Check if response.data is an array
-      if (Array.isArray(response.data)) {
-        productsArray = response.data;
-      }
-      // Check if response.data has a data property that's an array
-      else if (response.data && Array.isArray(response.data.data)) {
-        productsArray = response.data.data;
-      }
-      // Check if response.data has a content property that's an array
-      else if (response.data && Array.isArray(response.data.content)) {
-        productsArray = response.data.content;
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return [];
       }
       
-      // Process the products array
-      const processedProducts = productsArray.map((product) => ({
-        ...product,
-        image: {
-          imageUrl: product.image?.imageUrl || "",
-          image2: product.image?.image2 || "",
-          image3: product.image?.image3 || "",
-        },
-      }));
-      
-      set({ products: processedProducts, isLoading: false, abortController: null });
-      return processedProducts;
+      const productsArray = Array.isArray(response.data)
+        ? response.data.map((product) => ({
+            ...product,
+            image: {
+              imageUrl: product.image?.imageUrl || "",
+              image2: product.image?.image2 || "",
+              image3: product.image?.image3 || "",
+            },
+          }))
+        : [];
+      set({ products: productsArray, isLoading: false });
+      return productsArray;
     } catch (error) {
-      if (error.name !== 'CanceledError') {
-        set({ error: error.message, isLoading: false, abortController: null });
+      // Only handle non-cancellation errors
+      if (!axios.isCancel(error)) {
+        console.error("Error fetching products:", error);
+        set({ error: error.message, isLoading: false });
+        throw error;
       }
-      throw error;
+      // Reset loading state for cancellations
+      set({ isLoading: false });
+      return [];
     }
   },
 
@@ -210,24 +200,55 @@ const useProductStore = create((set, get) => ({
     }
   },
 
-  updateProduct: async (id, productData) => {
+  updateProduct: async (id, productData, componentId) => {
     set({ isLoading: true, error: null });
     try {
       const response = await axios.put(`/api/product/${id}`, productData, {
         headers: {
           "Content-Type": "application/json",
         },
+        componentId,
       });
+      
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return null;
+      }
+      
+      // Update the product in the products list
+      set((state) => ({
+        products: state.products.map(product => 
+          product.id === id ? { ...product, ...productData } : product
+        ),
+        isLoading: false
+      }));
+      
       return response.data;
     } catch (error) {
-      throw error;
+      // Only handle non-cancellation errors
+      if (!axios.isCancel(error)) {
+        console.error("Error updating product:", error);
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
+      // Reset loading state for cancellations
+      set({ isLoading: false });
+      return null;
     }
   },
 
-  deleteProduct: async (id) => {
+  deleteProduct: async (id, componentId) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.delete(`/api/product/${id}`);
+      const response = await axios.delete(`/api/product/${id}`, {
+        componentId
+      });
+      
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return null;
+      }
+      
       if (response.status === 200) {
         set((state) => ({
           products: state.products.filter((product) => product.id !== id),
@@ -237,24 +258,43 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to delete product");
     } catch (error) {
-      set({ error: error.message, isLoading: false });
-      throw error;
+      // Only handle non-cancellation errors
+      if (!axios.isCancel(error)) {
+        console.error("Error deleting product:", error);
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
+      // Reset loading state for cancellations
+      set({ isLoading: false });
+      return null;
     }
   },
 
-  // Simplified getProductById function
-  getProductById: async (id) => {
+  getProductById: async (id, componentId) => {
+    set({ isLoading: true, error: null, selectedProduct: null });
     try {
       const response = await axios.get(`/api/product/${id}`, {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        }
+        componentId,
+        allowDuplicate: false
       });
       
-      if (!response.data) {
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
         return null;
+      }
+      
+      if (response.status === 200 || response.data) {
+        const formattedProduct = {
+          ...response.data,
+          image: {
+            imageUrl: response.data.image?.imageUrl || "",
+            imageUrl2: response.data.image?.image2 || "",
+            imageUrl3: response.data.image?.image3 || "",
+          }
+        };
+        set({ selectedProduct: formattedProduct, isLoading: false });
+        return formattedProduct;
       }
 
       const processedProduct = {
@@ -268,39 +308,52 @@ const useProductStore = create((set, get) => ({
 
       return processedProduct;
     } catch (error) {
-      throw error;
+      // Only handle non-cancellation errors
+      if (!axios.isCancel(error)) {
+        console.error("Error fetching product:", error);
+        set({ error: error.message, isLoading: false });
+        throw error;
+      }
+      // Reset loading state for cancellations
+      set({ isLoading: false });
+      return null;
     }
   },
 
-  fetchCategories: async () => {
-    // Cancel any existing request
-    if (get().abortController) {
-      get().abortController.abort();
-    }
-
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    set({ abortController: controller });
+  fetchCategories: async (componentId) => {
 
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/categories", {
         params: {
           pageNumber: 0,
-          pageSize: 10,
+          pageSize: 100,
         },
-        signal: controller.signal
+        componentId,
+        allowDuplicate: false
       });
       
-      // Handle the response data directly
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return [];
+      }
+
       const categoriesArray = Array.isArray(response.data) ? response.data : [];
       set({ categories: categoriesArray, isLoading: false, abortController: null });
       return categoriesArray;
     } catch (error) {
-      if (error.name !== 'CanceledError') {
-        set({ error: error.message, isLoading: false, abortController: null });
+
+      // Only handle non-cancellation errors
+      if (!axios.isCancel(error)) {
+        console.error("Error fetching categories:", error);
+        set({ error: error.message, isLoading: false });
+        throw error;
       }
-      throw error;
+      // Reset loading state for cancellations
+      set({ isLoading: false });
+      return [];
+
     }
   },
 

@@ -3,25 +3,75 @@ import axios from '../api/api';
 
 const useDesignIdeaStore = create((set, get) => ({
   designIdeas: [],
+
   currentDesign: null,
+ designIdeaById:{},
+
   isLoading: false,
   error: null,
   abortController: null,
 
-  fetchDesignIdeas: async () => {
+  fetchDesignIdeas: async (componentId) => {
     try {
       set({ isLoading: true });
-      const response = await axios.get('/api/designidea');
+      const response = await axios.get('/api/designidea', {
+        componentId,
+        allowDuplicate: false
+      });
       set({ 
         designIdeas: Array.isArray(response.data) ? response.data : [],
         isLoading: false 
       });
     } catch (error) {
+      // Skip setting error state if it's just a cancellation
+      if (!axios.isCancel(error)) {
+        set({ 
+          designIdeas: [],
+          isLoading: false,
+          error: error.message 
+        });
+      }
+    }
+  },
+
+  fetchDesignIdeaById: async (id, componentId) => {
+    try {
       set({ 
-        designIdeas: [],
-        isLoading: false,
-        error: error.message 
+        isLoading: true,
+        designIdeaById: {},
+        error: null
       });
+      const response = await axios.get(`/api/designidea/${id}`, {
+        componentId,
+        allowDuplicate: false
+      });
+      
+      // Only update state if we got successful data
+      if (response.status !== 'canceled' && response.data) {
+        set({ 
+          designIdeaById: response.data,
+          isLoading: false 
+        });
+        return response.data;
+      }
+      
+      // If request was canceled, just stop the loading state
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return null;
+      }
+    } catch (error) {
+      // Skip setting error state if it's just a cancellation
+      if (!axios.isCancel(error)) {
+        set({ 
+          isLoading: false,
+          error: error.message,
+          designIdeaById: {}
+        });
+        throw error;
+      }
+      // If canceled, just reset the loading state
+      set({ isLoading: false });
     }
   },
 
