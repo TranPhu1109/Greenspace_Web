@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from '../api/api';
+import axios, { isCancel } from '../api/api';
 
 const useDesignOrderStore = create((set) => ({
   designOrders: [],
@@ -7,35 +7,69 @@ const useDesignOrderStore = create((set) => ({
   isLoading: false,
   error: null,
 
-  fetchDesignOrders: async () => {
+  fetchDesignOrders: async (componentId) => {
     try {
-      set({ isLoading: true });
-      const response = await axios.get('/api/serviceorder/usingidea');
+      set({ isLoading: true, error: null });
+      const response = await axios.get('/api/serviceorder/usingidea', {
+        componentId,
+        allowDuplicate: false
+      });
+      
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return;
+      }
+      
       set({ 
-        designOrders: response.data,
+        designOrders: Array.isArray(response.data) ? response.data : [],
         isLoading: false 
       });
     } catch (error) {
-      set({ 
-        error: error.message,
-        isLoading: false 
-      });
+      // Only handle non-cancellation errors
+      if (!isCancel(error)) {
+        // console.error("Error fetching design orders:", error);
+        set({ 
+          error: error.message,
+          isLoading: false 
+        });
+      } else {
+        // Reset loading state for cancellations
+        set({ isLoading: false });
+      }
     }
   },
 
-  getDesignOrderById: async (id) => {
+  getDesignOrderById: async (id, componentId) => {
     try {
-      set({ isLoading: true });
-      const response = await axios.get(`/api/serviceorder/${id}`);
+      set({ isLoading: true, error: null });
+      const response = await axios.get(`/api/serviceorder/${id}`, {
+        componentId,
+        allowDuplicate: false
+      });
+      
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        set({ isLoading: false });
+        return;
+      }
+      
       set({ 
         selectedOrder: response.data,
         isLoading: false 
       });
     } catch (error) {
-      set({
-        error: error.message,
-        isLoading: false
-      });
+      // Only handle non-cancellation errors
+      if (!isCancel(error)) {
+        console.error("Error fetching design order:", error);
+        set({
+          error: error.message,
+          isLoading: false
+        });
+      } else {
+        // Reset loading state for cancellations
+        set({ isLoading: false });
+      }
     }
   },
 }));

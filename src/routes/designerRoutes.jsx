@@ -3,6 +3,7 @@ import DesignerScheduleView from "../pages/Admin/Designer/Schedule/DesignerSched
 import TaskDetail from "../pages/Admin/Designer/Tasks/TaskDetail";
 import DesignCategories from "@/components/Designer/Designs/DesignCategories";
 import DesignTemplates from "@/components/Designer/Designs/DesignTemplates";
+import DesignTemplateDetail from "@/components/Designer/Designs/DesignTemplateDetail";
 
 export const designerRoutes = {
   path: "/designer",
@@ -21,6 +22,10 @@ export const designerRoutes = {
         {
           path: "templates",
           element: <DesignTemplates />,
+        },
+        {
+          path: "templates/:id",
+          element: <DesignTemplateDetail />,
         },
         {
           path: "categories",

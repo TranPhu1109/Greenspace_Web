@@ -11,7 +11,7 @@ import {
   Upload,
   message,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 import useProductStore from "../../../../stores/useProductStore";
 
@@ -33,32 +33,14 @@ const EditDesignModal = ({
     imageUrl: null,
     image2: null,
     image3: null,
+    designImage1URL: null,
+    designImage2URL: null,
+    designImage3URL: null,
   });
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
-  // useEffect(() => {
-  //   if (initialValues && visible) {
-  //     // Transform productDetails to match the format expected by the Select component
-  //     const transformedProductDetails = initialValues.productDetails?.map(
-  //       (detail) => ({
-  //         label:
-  //           products.find((p) => p.id === detail.productId)?.name ||
-  //           "Unknown Product",
-  //         value: detail.productId,
-  //         productId: detail.productId,
-  //         quantity: detail.quantity,
-  //       })
-  //     );
-
-  //     form.setFieldsValue({
-  //       ...initialValues,
-  //       productDetails: transformedProductDetails,
-  //     });
-  //   }
-  // }, [initialValues, visible, form, products]);
 
   useEffect(() => {
     if (initialValues && visible) {
@@ -85,7 +67,6 @@ const EditDesignModal = ({
       const loadingMessage = message.loading("Đang xử lý...", 0);
 
       const uploadPromises = [];
-      // Khởi tạo imageUrls với giá trị rỗng nếu đã chọn file mới, hoặc giữ giá trị cũ nếu không
       const imageUrls = {
         imageUrl: selectedFiles.imageUrl
           ? ""
@@ -94,6 +75,13 @@ const EditDesignModal = ({
         image3: selectedFiles.image3 ? "" : initialValues?.image?.image3 || "",
       };
 
+      const designImages = {
+        designImage1URL: selectedFiles.designImage1URL ? "" : initialValues?.designImage1URL || "",
+        designImage2URL: selectedFiles.designImage2URL ? "" : initialValues?.designImage2URL || "",
+        designImage3URL: selectedFiles.designImage3URL ? "" : initialValues?.designImage3URL || "",
+      };
+
+      // Upload main images
       if (selectedFiles.imageUrl) {
         uploadPromises.push(
           uploadImages([selectedFiles.imageUrl]).then((urls) => {
@@ -118,6 +106,32 @@ const EditDesignModal = ({
         );
       }
 
+      // Upload design images
+      if (selectedFiles.designImage1URL) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.designImage1URL]).then((urls) => {
+            designImages.designImage1URL = urls[0];
+          })
+        );
+      }
+
+      if (selectedFiles.designImage2URL) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.designImage2URL]).then((urls) => {
+            designImages.designImage2URL = urls[0];
+          })
+        );
+      }
+
+      // Upload design file
+      if (selectedFiles.designImage3URL) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.designImage3URL]).then((urls) => {
+            designImages.designImage3URL = urls[0];
+          })
+        );
+      }
+
       await Promise.all(uploadPromises);
 
       const designData = {
@@ -127,17 +141,9 @@ const EditDesignModal = ({
         productDetails: selectedProducts.map(productId => ({
           productId: productId,
           quantity: productQuantities[productId] || 1
-        }))
+        })),
+        ...designImages
       };
-      // const designData = {
-      //   ...values,
-      //   id: initialValues.id,
-      //   image: imageUrls,
-      //   productDetails: values.productDetails.map((product) => ({
-      //     productId: product.productId || product.value,
-      //     quantity: product.quantity || 1,
-      //   })),
-      // };
 
       await onSubmit(designData);
       loadingMessage();
@@ -145,6 +151,9 @@ const EditDesignModal = ({
         imageUrl: null,
         image2: null,
         image3: null,
+        designImage1URL: null,
+        designImage2URL: null,
+        designImage3URL: null,
       });
     } catch (error) {
       message.error("Có lỗi xảy ra: " + error.message);
@@ -177,9 +186,7 @@ const EditDesignModal = ({
             <Form.Item
               name="name"
               label="Tên mẫu thiết kế"
-              rules={[
-                { required: true, message: "Vui lòng nhập tên mẫu thiết kế" },
-              ]}
+              rules={[{ required: true, message: "Vui lòng nhập tên mẫu thiết kế" }]}
             >
               <Input />
             </Form.Item>
@@ -216,12 +223,7 @@ const EditDesignModal = ({
             <Form.Item
               name="productDetails"
               label="Sản phẩm"
-              rules={[
-                {
-                  required: true,
-                  message: "Vui lòng chọn ít nhất một sản phẩm",
-                },
-              ]}
+              rules={[{ required: true, message: "Vui lòng chọn ít nhất một sản phẩm" }]}
             >
               <div>
                 <Select
@@ -325,112 +327,6 @@ const EditDesignModal = ({
                 )}
               </div>
             </Form.Item>
-
-            {/* <Form.Item
-              name="productDetails"
-              label="Sản phẩm"
-              rules={[
-                {
-                  required: true,
-                  message: "Vui lòng chọn ít nhất một sản phẩm",
-                },
-              ]}
-            >
-              <Select
-                mode="multiple"
-                placeholder="Chọn sản phẩm"
-                optionLabelProp="label"
-                labelInValue
-                onChange={(values) => {
-                  // Transform the selected values to include productId and quantity
-                  const productDetails = values.map((item) => ({
-                    ...item,
-                    productId: item.value,
-                    quantity: item.quantity || 1,
-                  }));
-                  form.setFieldsValue({ productDetails });
-                }}
-              >
-                {products.map((product) => (
-                  <Option
-                    key={product.id}
-                    value={product.id}
-                    label={`${product.name} (${
-                      product.price
-                        ? product.price.toLocaleString() + " đ"
-                        : "N/A"
-                    })`}
-                  >
-                    <Row
-                      justify="space-between"
-                      align="middle"
-                      style={{ width: "100%" }}
-                    >
-                      <Col span={16}>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          {product.image?.imageUrl && (
-                            <img
-                              src={product.image.imageUrl}
-                              alt={product.name}
-                              style={{
-                                width: 40,
-                                height: 40,
-                                marginRight: 10,
-                                objectFit: "cover",
-                              }}
-                            />
-                          )}
-                          <div>
-                            <div style={{ fontWeight: "bold" }}>
-                              {product.name}
-                            </div>
-                            <div style={{ fontSize: "12px", color: "#888" }}>
-                              {product.price
-                                ? product.price.toLocaleString() + " đ"
-                                : "N/A"}
-                            </div>
-                          </div>
-                        </div>
-                      </Col>
-                      <Col span={8} style={{ textAlign: "right" }}>
-                        <InputNumber
-                          min={1}
-                          defaultValue={1}
-                          style={{ width: "80px" }}
-                          onChange={(quantity) => {
-                            // Update the quantity in the form values
-                            const currentDetails =
-                              form.getFieldValue("productDetails") || [];
-                            const updatedDetails = currentDetails.map(
-                              (detail) =>
-                                detail.productId === product.id
-                                  ? { ...detail, quantity }
-                                  : detail
-                            );
-                            form.setFieldsValue({
-                              productDetails: updatedDetails,
-                            });
-
-                            // Also update the quantity in the select's internal state
-                            const selectedValues =
-                              form.getFieldValue("productDetails");
-                            if (selectedValues) {
-                              const found = selectedValues.find(
-                                (item) => item.productId === product.id
-                              );
-                              if (found) {
-                                found.quantity = quantity;
-                              }
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </Col>
-                    </Row>
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item> */}
           </Col>
         </Row>
 
@@ -443,42 +339,191 @@ const EditDesignModal = ({
         </Form.Item>
 
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={24}>
             <Form.Item
-              name="imageUrl"
-              label="Ảnh chính"
+              name="images"
+              label="Ảnh thiết kế"
               rules={[
                 {
-                  required: initialValues?.image?.imageUrl ? false : true,
-                  message: "Vui lòng tải lên ảnh chính!",
+                  required: !initialValues?.image?.imageUrl && !initialValues?.image?.image2 && !initialValues?.image?.image3,
+                  message: "Vui lòng tải lên ít nhất 3 ảnh!",
+                },
+              ]}
+            >
+              <div style={{ 
+                border: '1px dashed #d9d9d9', 
+                borderRadius: '2px', 
+                background: '#ffffff',
+                width: '100%',
+                minHeight: '180px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}>
+                <Upload
+                  listType="picture"
+                  maxCount={3}
+                  multiple
+                  accept="image/*"
+                  style={{ width: '100%', textAlign: 'center' }}
+                  beforeUpload={(file, fileList) => {
+                    if (fileList.length > 1) {
+                      const files = fileList.slice(0, 3);
+                      const imageKeys = ['imageUrl', 'image2', 'image3'];
+                      const newSelectedFiles = { ...selectedFiles };
+                      
+                      files.forEach((file, index) => {
+                        if (index < 3) {
+                          newSelectedFiles[imageKeys[index]] = file;
+                        }
+                      });
+                      
+                      setSelectedFiles(newSelectedFiles);
+                    } else {
+                      const emptyKey = Object.keys(selectedFiles).find(
+                        (key) => !selectedFiles[key] && ['imageUrl', 'image2', 'image3'].includes(key)
+                      );
+                      if (emptyKey) {
+                        setSelectedFiles(prev => ({
+                          ...prev,
+                          [emptyKey]: file
+                        }));
+                      }
+                    }
+                    return false;
+                  }}
+                  onRemove={(file) => {
+                    if (file.originFileObj) {
+                      const fileUrl = URL.createObjectURL(file.originFileObj);
+                      const entries = Object.entries(selectedFiles);
+                      for (const [key, value] of entries) {
+                        if (value && URL.createObjectURL(value) === fileUrl) {
+                          setSelectedFiles(prev => ({
+                            ...prev,
+                            [key]: null
+                          }));
+                          break;
+                        }
+                      }
+                    } else {
+                      const keyMap = {
+                        'imageUrl': ['1', 'imageUrl'],
+                        'image2': ['2', 'image2'],
+                        'image3': ['3', 'image3']
+                      };
+                      
+                      for (const [key, [uid, fieldName]] of Object.entries(keyMap)) {
+                        if (file.uid === uid) {
+                          setSelectedFiles(prev => ({
+                            ...prev,
+                            [key]: null
+                          }));
+                          
+                          const imageUrls = { ...initialValues?.image };
+                          imageUrls[fieldName] = '';
+                          form.setFieldsValue({ image: imageUrls });
+                          break;
+                        }
+                      }
+                    }
+                    return true;
+                  }}
+                  fileList={[
+                    ...Object.entries(selectedFiles)
+                      .filter(([key, value]) => ['imageUrl', 'image2', 'image3'].includes(key) && value !== null)
+                      .map(([key, value]) => ({
+                        uid: key,
+                        name: `Ảnh mới ${key === 'imageUrl' ? '1' : key === 'image2' ? '2' : '3'}`,
+                        status: 'done',
+                        originFileObj: value,
+                        url: URL.createObjectURL(value)
+                      })),
+                    ...(!selectedFiles.imageUrl && initialValues?.image?.imageUrl ? [{
+                      uid: "1",
+                      name: "Ảnh 1",
+                      status: "done",
+                      url: initialValues.image.imageUrl,
+                    }] : []),
+                    ...(!selectedFiles.image2 && initialValues?.image?.image2 ? [{
+                      uid: "2",
+                      name: "Ảnh 2",
+                      status: "done",
+                      url: initialValues.image.image2,
+                    }] : []),
+                    ...(!selectedFiles.image3 && initialValues?.image?.image3 ? [{
+                      uid: "3",
+                      name: "Ảnh 3",
+                      status: "done",
+                      url: initialValues.image.image3,
+                    }] : [])
+                  ]}
+                >
+                  <div
+                    style={{
+                      padding: "24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <UploadOutlined
+                      style={{ fontSize: "32px", color: "#999" }}
+                    />
+                    <div
+                      style={{
+                        color: "#666666",
+                        fontSize: "14px",
+                        marginTop: "8px",
+                      }}
+                    >
+                      Nhấp hoặc kéo thả file vào khu vực này để tải lên
+                    </div>
+                    <div>Tối đa 3 ảnh</div>
+                  </div>
+                </Upload>
+              </div>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="designImage1URL"
+              label="Ảnh thiết kế 1"
+              rules={[
+                {
+                  required: initialValues?.designImage1URL ? false : true,
+                  message: "Vui lòng tải lên ảnh thiết kế 1!",
                 },
               ]}
             >
               <Upload
                 listType="picture-card"
                 maxCount={1}
+                accept="image/*"
                 fileList={
-                  selectedFiles.imageUrl
+                  selectedFiles.designImage1URL
                     ? [
                         {
                           uid: "-1",
                           name: "Ảnh mới",
                           status: "done",
-                          url: URL.createObjectURL(selectedFiles.imageUrl),
+                          url: URL.createObjectURL(selectedFiles.designImage1URL),
                         },
                       ]
-                    : getFileList(initialValues?.image?.imageUrl, "Ảnh chính")
+                    : getFileList(initialValues?.designImage1URL, "Ảnh thiết kế 1")
                 }
                 beforeUpload={(file) => {
-                  setSelectedFiles((prev) => ({ ...prev, imageUrl: file }));
+                  setSelectedFiles((prev) => ({ ...prev, designImage1URL: file }));
                   return false;
                 }}
                 onRemove={() => {
-                  setSelectedFiles((prev) => ({ ...prev, imageUrl: null }));
-                  // Đánh dấu là đã xóa ảnh cũ
-                  const imageUrls = { ...initialValues?.image };
-                  imageUrls.imageUrl = "";
-                  form.setFieldsValue({ image: imageUrls });
+                  setSelectedFiles((prev) => ({ ...prev, designImage1URL: null }));
+                  form.setFieldsValue({ designImage1URL: "" });
                 }}
               >
                 <div>
@@ -489,32 +534,39 @@ const EditDesignModal = ({
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="image2" label="Ảnh phụ 1">
+            <Form.Item
+              name="designImage2URL"
+              label="Ảnh thiết kế 2"
+              rules={[
+                {
+                  required: initialValues?.designImage2URL ? false : true,
+                  message: "Vui lòng tải lên ảnh thiết kế 2!",
+                },
+              ]}
+            >
               <Upload
                 listType="picture-card"
                 maxCount={1}
+                accept="image/*"
                 fileList={
-                  selectedFiles.image2
+                  selectedFiles.designImage2URL
                     ? [
                         {
                           uid: "-1",
                           name: "Ảnh mới",
                           status: "done",
-                          url: URL.createObjectURL(selectedFiles.image2),
+                          url: URL.createObjectURL(selectedFiles.designImage2URL),
                         },
                       ]
-                    : getFileList(initialValues?.image?.image2, "Ảnh phụ 1")
+                    : getFileList(initialValues?.designImage2URL, "Ảnh thiết kế 2")
                 }
                 beforeUpload={(file) => {
-                  setSelectedFiles((prev) => ({ ...prev, image2: file }));
+                  setSelectedFiles((prev) => ({ ...prev, designImage2URL: file }));
                   return false;
                 }}
                 onRemove={() => {
-                  setSelectedFiles((prev) => ({ ...prev, image2: null }));
-                  // Đánh dấu là đã xóa ảnh cũ
-                  const imageUrls = { ...initialValues?.image };
-                  imageUrls.image2 = "";
-                  form.setFieldsValue({ image: imageUrls });
+                  setSelectedFiles((prev) => ({ ...prev, designImage2URL: null }));
+                  form.setFieldsValue({ designImage2URL: "" });
                 }}
               >
                 <div>
@@ -525,38 +577,40 @@ const EditDesignModal = ({
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="image3" label="Ảnh phụ 2">
+            <Form.Item
+              name="designImage3URL"
+              label="File thiết kế"
+              rules={[
+                {
+                  required: initialValues?.designImage3URL ? false : true,
+                  message: "Vui lòng tải lên file thiết kế!",
+                },
+              ]}
+            >
               <Upload
-                listType="picture-card"
                 maxCount={1}
+                accept=".pdf,.doc,.docx,.dwg,.skp"
                 fileList={
-                  selectedFiles.image3
+                  selectedFiles.designImage3URL
                     ? [
                         {
                           uid: "-1",
-                          name: "Ảnh mới",
+                          name: "File mới",
                           status: "done",
-                          url: URL.createObjectURL(selectedFiles.image3),
                         },
                       ]
-                    : getFileList(initialValues?.image?.image3, "Ảnh phụ 2")
+                    : getFileList(initialValues?.designImage3URL, "File thiết kế")
                 }
                 beforeUpload={(file) => {
-                  setSelectedFiles((prev) => ({ ...prev, image3: file }));
+                  setSelectedFiles((prev) => ({ ...prev, designImage3URL: file }));
                   return false;
                 }}
                 onRemove={() => {
-                  setSelectedFiles((prev) => ({ ...prev, image3: null }));
-                  // Đánh dấu là đã xóa ảnh cũ
-                  const imageUrls = { ...initialValues?.image };
-                  imageUrls.image3 = "";
-                  form.setFieldsValue({ image: imageUrls });
+                  setSelectedFiles((prev) => ({ ...prev, designImage3URL: null }));
+                  form.setFieldsValue({ designImage3URL: "" });
                 }}
               >
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Tải lên</div>
-                </div>
+                <Button icon={<UploadOutlined />}>Tải lên file thiết kế</Button>
               </Upload>
             </Form.Item>
           </Col>
