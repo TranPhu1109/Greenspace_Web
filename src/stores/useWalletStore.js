@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import axios from '../api/api';
 
-const useWalletStore = create((set, get) => ({
+const useWalletStore = create((set) => ({
   balance: 0,
   transactions: [],
   loading: false,
@@ -12,7 +12,7 @@ const useWalletStore = create((set, get) => ({
     try {
       set({ loading: true, error: null });
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/wallets/vn-pay', amount, {
+      const response = await axios.post('/api/wallets/vn-pay',  amount , {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

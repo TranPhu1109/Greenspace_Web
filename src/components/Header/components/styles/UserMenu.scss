@@ -1,0 +1,33 @@
+.user-profile-trigger {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .user-avatar {
+    border: 1px solid #e8e8e8;
+  }
+
+  .user-name {
+    color: #333;
+    margin-left: 8px;
+    font-size: 14px;
+  }
+}
+
+.ant-dropdown-menu {
+  .ant-dropdown-menu-item {
+    padding: 8px 16px;
+
+    .anticon {
+      margin-right: 8px;
+      font-size: 16px;
+    }
+  }
+} 

@@ -20,6 +20,7 @@ import {
   List,
   Avatar,
   Space,
+  notification,
 } from "antd";
 import { ShoppingCartOutlined, StarOutlined, UserOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
@@ -29,6 +30,7 @@ import useCartStore from "@/stores/useCartStore";
 import useAuthStore from "@/stores/useAuthStore";
 import dayjs from 'dayjs';
 import "./ProductDetail.scss";
+import { checkToxicContent } from "@/services/moderationService";
 
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -44,6 +46,7 @@ const ProductDetail = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [form] = Form.useForm();
   const [showError, setShowError] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   const fetchFeedbacks = async () => {
     try {
@@ -113,24 +116,54 @@ const ProductDetail = () => {
   };
 
   const handleFeedbackSubmit = async (values) => {
-    if (!user) {
-      message.warning("Vui lòng đăng nhập để gửi đánh giá");
-      return;
-    }
-
+    setIsChecking(true);
     try {
+      if (!user) {
+        message.warning("Vui lòng đăng nhập để gửi đánh giá");
+        return;
+      }
+
+      const moderationResult = await checkToxicContent(values.description);
+      
+      if (moderationResult.isToxic) {
+        notification.error({
+          message: 'Không thể gửi đánh giá',
+          description: moderationResult.reason,
+          duration: 3,
+          placement: 'topRight',
+          showProgress: true,
+          pauseOnHover: true,
+        });
+        return;
+      }
+
       await createProductFeedback({
         userId: user.id,
         productId: id,
         rating: values.rating,
         description: values.description
       });
-      message.success("Cảm ơn bạn đã gửi đánh giá!");
+      message.success({
+        content: "Cảm ơn bạn đã gửi đánh giá!",
+        duration: 3,
+        style: {
+          marginTop: '20vh',
+        },
+      });
       form.resetFields();
       // Refresh feedbacks after submitting
       await fetchFeedbacks();
     } catch (error) {
-      message.error("Không thể gửi đánh giá. Vui lòng thử lại sau.");
+      console.log(error);
+      message.error({
+        content: "Không thể gửi đánh giá. Vui lòng thử lại sau.",
+        duration: 3,
+        style: {
+          marginTop: '20vh',
+        },
+      });
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -292,7 +325,7 @@ const ProductDetail = () => {
                         <div className="feedback-item-meta">
                           <Text strong>{item.userName}</Text>
                           <Text type="secondary">
-                            {dayjs(item.createdAt).format('DD/MM/YYYY HH:mm')}
+                            {dayjs(item.creationDate).format('DD/MM/YYYY HH:mm')}
                           </Text>
                         </div>
                       </div>
@@ -357,7 +390,7 @@ const ProductDetail = () => {
                         <Button 
                           type="primary" 
                           htmlType="submit" 
-                          loading={feedbackLoading}
+                          loading={isChecking || feedbackLoading}
                           icon={<StarOutlined />}
                           style={{ marginTop: 10 }}
                         >
