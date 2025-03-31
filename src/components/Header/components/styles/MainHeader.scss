@@ -27,23 +27,105 @@
     .search-container {
       flex: 1;
       
-      .ant-input {
-        border-radius: 4px;
+      .search-autocomplete {
+        width: 100%;
+
+        .ant-select-selector {
+          border-radius: 4px;
+          height: 40px !important;
+          padding: 4px 11px !important;
+          display: flex;
+          align-items: center;
+        }
+
+        .ant-select-selection-search-input {
+          height: 38px !important;
+        }
       }
     }
 
     .search-button {
       min-width: 100px;
       white-space: nowrap;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      
+      .anticon {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+// Styles cho kết quả tìm kiếm
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+
+  .item-image {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .item-info {
+    flex: 1;
+    min-width: 0;
+
+    .item-name {
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-category {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .item-price {
+      font-weight: 500;
+      color: #52c41a;
+      font-size: 14px;
+    }
+  }
+}
+
+// Override Ant Design AutoComplete styles
+.ant-select-dropdown {
+  .ant-select-item {
+    padding: 8px 12px;
+
+    &:hover {
+      background-color: #f6ffed;
     }
   }
 }
 
 @media (max-width: 768px) {
   .header-main {
+    padding: 12px 0;
+    
     .container {
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 12px;
     }
 
     .logo {
@@ -58,11 +140,53 @@
 
       .search-container {
         flex: 1;
+        height: 40px;
+        min-width: 0; // Để tránh overflow
+
+        .search-autocomplete {
+          .ant-select-selector {
+            height: 36px !important;
+          }
+
+          .ant-select-selection-search-input {
+            height: 34px !important;
+          }
+        }
       }
 
       .search-button {
-        min-width: auto;
-        padding: 0 15px;
+        min-width: unset;
+        padding: 0 12px;
+        height: 36px;
+        flex-shrink: 0;
+
+        span + span {
+          display: none; // Ẩn text trên mobile, chỉ hiện icon
+        }
+      }
+    }
+  }
+
+  // Điều chỉnh kích thước kết quả tìm kiếm trên mobile
+  .search-result-item {
+    padding: 6px 0;
+    
+    .item-image {
+      width: 40px;
+      height: 40px;
+    }
+
+    .item-info {
+      .item-name {
+        font-size: 14px;
+      }
+
+      .item-category {
+        font-size: 11px;
+      }
+
+      .item-price {
+        font-size: 13px;
       }
     }
   }
