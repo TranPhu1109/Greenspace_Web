@@ -1,116 +1,130 @@
 import React, { useEffect } from 'react';
-import { Typography, Table, Card, Space, Tag, Badge } from 'antd';
-import { HistoryOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { Table, Tag, Spin } from 'antd';
 import useWalletStore from '@/stores/useWalletStore';
-
-const { Title, Text } = Typography;
+import dayjs from 'dayjs';
 
 const TransactionHistory = () => {
-  const { transactions, fetchTransactions, loading } = useWalletStore();
+  const { transactions, transactionsLoading, transactionsError, fetchTransactions } = useWalletStore();
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case 'success':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  if (transactionsLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <Spin />
+      </div>
+    );
+  }
+
+  if (transactionsError) {
+    return <div className="text-red-500">{transactionsError}</div>;
+  }
 
   const columns = [
     {
-      title: 'Mã giao dịch',
-      dataIndex: 'id',
-      key: 'id',
-      width: 100,
-      render: (text) => (
-        <Badge count={text.slice(0, 8)} style={{ backgroundColor: '#1890ff' }} />
-      ),
-    },
-    {
-      title: 'Ngày',
-      dataIndex: 'date',
-      key: 'date',
-      render: (date) => new Date(date).toLocaleDateString('vi-VN'),
+      title: 'Ngày giao dịch',
+      dataIndex: 'creationDate',
+      key: 'creationDate',
+      render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss'),
+      sorter: (a, b) => dayjs(a.creationDate).unix() - dayjs(b.creationDate).unix(),
+      defaultSortOrder: 'descend'
     },
     {
       title: 'Loại giao dịch',
       dataIndex: 'type',
       key: 'type',
-      render: (type) => (
-        <Tag color={type === 'deposit' ? 'blue' : 'red'}>
-          {type === 'deposit' ? 'Nạp tiền' : 'Rút tiền'}
-        </Tag>
-      ),
+      filters: [
+        { text: 'Nạp tiền', value: 'Deposit' },
+        { text: 'Thanh toán', value: 'Payment' },
+        { text: 'Hoàn tiền', value: 'Refund' }
+      ],
+      onFilter: (value, record) => record.type === value,
+      render: (type) => {
+        let color = 'blue';
+        let text = type;
+
+        switch (type) {
+          case 'Deposit':
+            color = 'green';
+            text = 'Nạp tiền';
+            break;
+          case 'Payment':
+            color = 'blue';
+            text = 'Thanh toán';
+            break;
+          case 'Refund':
+            color = 'orange';
+            text = 'Hoàn tiền';
+            break;
+          default:
+            color = 'default';
+        }
+
+        return <Tag color={color}>{text}</Tag>;
+      },
     },
     {
       title: 'Số tiền',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount, record) => (
-        <Space>
-          {record.type === 'deposit' ? (
-            <ArrowUpOutlined style={{ color: '#52c41a' }} />
-          ) : (
-            <ArrowDownOutlined style={{ color: '#ff4d4f' }} />
+      sorter: (a, b) => a.amount - b.amount,
+      render: (amount, record) => {
+        const isPositive = record.type === 'Deposit' || record.type === 'Refund';
+        return (
+          <span className={isPositive ? 'text-green-500' : 'text-blue-500'}>
+            {isPositive ? '+' : '-'}{Math.abs(amount).toLocaleString('vi-VN')}đ
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Nguồn',
+      dataIndex: 'source',
+      key: 'source',
+      filters: [
+        { text: 'VNPay', value: 'VNPay' },
+        { text: 'Hệ thống', value: 'System' }
+      ],
+      onFilter: (value, record) => record.source === value,
+      render: (source) => (
+        <Tag color="purple">{source}</Tag>
+      ),
+    },
+    {
+      title: 'Mã giao dịch',
+      dataIndex: 'transactionNo',
+      key: 'transactionNo',
+      render: (transactionNo, record) => (
+        <span className="font-mono">
+          {transactionNo}
+          {record.txnRef && (
+            <span className="text-gray-500 text-xs block">
+              Mã tham chiếu: {record.txnRef}
+            </span>
           )}
-          <Text strong style={{ color: record.type === 'deposit' ? '#52c41a' : '#ff4d4f' }}>
-            {amount.toLocaleString('vi-VN')} VND
-          </Text>
-        </Space>
+        </span>
       ),
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag color={getStatusColor(status)} style={{ padding: '4px 8px' }}>
-          {status === 'success' ? 'Thành công' : status === 'pending' ? 'Đang xử lý' : 'Thất bại'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Phương thức',
-      dataIndex: 'method',
-      key: 'method',
-      render: (method) => (
-        <Tag color="purple">
-          {method === 'bank' ? 'Chuyển khoản' : method === 'card' ? 'Thẻ tín dụng' : method}
-        </Tag>
-      ),
-    },
+    }
   ];
 
   return (
-    <Card className="transaction-history">
-      <div className="history-header">
-        <Title level={4}>
-          <HistoryOutlined /> Lịch sử giao dịch
-        </Title>
-      </div>
-      <Table 
-        loading={loading}
-        columns={columns} 
+    <div className="transaction-history">
+      <Table
         dataSource={transactions}
-        pagination={{ 
+        columns={columns}
+        rowKey={(record) => `${record.transactionNo}-${record.txnRef}`}
+        pagination={{
           pageSize: 10,
           showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
           showTotal: (total) => `Tổng số ${total} giao dịch`,
         }}
-        scroll={{ x: 1200 }}
-        rowClassName={(record) => record.status.toLowerCase() === 'pending' ? 'highlight-row' : ''}
+        className="w-full"
       />
-    </Card>
+    </div>
   );
 };
 
-export default TransactionHistory; 
+export default TransactionHistory;

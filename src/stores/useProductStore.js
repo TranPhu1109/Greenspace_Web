@@ -120,7 +120,6 @@ const useProductStore = create((set, get) => ({
   },
 
   // API Actions
-
   fetchProducts: async (componentId) => {
     set({ isLoading: true, error: null });
     try {
@@ -320,7 +319,7 @@ const useProductStore = create((set, get) => ({
         set({ selectedProduct: formattedProduct, isLoading: false });
         return formattedProduct;
       }
-
+      
       const processedProduct = {
         ...response.data,
         image: {
@@ -345,7 +344,6 @@ const useProductStore = create((set, get) => ({
   },
 
   fetchCategories: async (componentId) => {
-
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/categories", {
@@ -362,12 +360,10 @@ const useProductStore = create((set, get) => ({
         set({ isLoading: false });
         return [];
       }
-
       const categoriesArray = Array.isArray(response.data) ? response.data : [];
       set({ categories: categoriesArray, isLoading: false, abortController: null });
       return categoriesArray;
     } catch (error) {
-
       // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
         console.error("Error fetching categories:", error);
@@ -377,7 +373,6 @@ const useProductStore = create((set, get) => ({
       // Reset loading state for cancellations
       set({ isLoading: false });
       return [];
-
     }
   },
 

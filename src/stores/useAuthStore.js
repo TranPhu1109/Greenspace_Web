@@ -55,6 +55,10 @@ const useAuthStore = create(
             isAuthenticated: true, 
             loading: false 
           });
+
+          // Fetch wallet balance after successful login
+          const walletStore = (await import('./useWalletStore')).default;
+          await walletStore.getState().fetchBalance();
           
           return userToStore;
         } catch (err) {
@@ -102,6 +106,10 @@ const useAuthStore = create(
 
           // Reset store state
           set({ user: null, isAuthenticated: false });
+
+          // Reset wallet store state
+          const walletStore = (await import('./useWalletStore')).default;
+          walletStore.getState().reset();
         } catch (err) {
           console.error("Logout error:", err);
           throw err;

@@ -170,7 +170,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/api/userwallets/vn-pay/response",
+    path: "/userwallets/response",
     element: <VNPayCallback />,
   },
   {
