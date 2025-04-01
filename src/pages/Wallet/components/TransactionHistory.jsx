@@ -25,14 +25,22 @@ const TransactionHistory = () => {
   const columns = [
     {
       title: 'Ngày giao dịch',
-      dataIndex: 'createdDate',
-      key: 'createdDate',
+      dataIndex: 'creationDate',
+      key: 'creationDate',
       render: (date) => dayjs(date).format('DD/MM/YYYY HH:mm:ss'),
+      sorter: (a, b) => dayjs(a.creationDate).unix() - dayjs(b.creationDate).unix(),
+      defaultSortOrder: 'descend'
     },
     {
       title: 'Loại giao dịch',
       dataIndex: 'type',
       key: 'type',
+      filters: [
+        { text: 'Nạp tiền', value: 'Deposit' },
+        { text: 'Thanh toán', value: 'Payment' },
+        { text: 'Hoàn tiền', value: 'Refund' }
+      ],
+      onFilter: (value, record) => record.type === value,
       render: (type) => {
         let color = 'blue';
         let text = type;
@@ -61,6 +69,7 @@ const TransactionHistory = () => {
       title: 'Số tiền',
       dataIndex: 'amount',
       key: 'amount',
+      sorter: (a, b) => a.amount - b.amount,
       render: (amount, record) => {
         const isPositive = record.type === 'Deposit' || record.type === 'Refund';
         return (
@@ -71,54 +80,51 @@ const TransactionHistory = () => {
       },
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        let color = 'default';
-        let text = status;
-
-        switch (status) {
-          case 'Success':
-            color = 'success';
-            text = 'Thành công';
-            break;
-          case 'Pending':
-            color = 'processing';
-            text = 'Đang xử lý';
-            break;
-          case 'Failed':
-            color = 'error';
-            text = 'Thất bại';
-            break;
-          default:
-            color = 'default';
-        }
-
-        return <Tag color={color}>{text}</Tag>;
-      },
+      title: 'Nguồn',
+      dataIndex: 'source',
+      key: 'source',
+      filters: [
+        { text: 'VNPay', value: 'VNPay' },
+        { text: 'Hệ thống', value: 'System' }
+      ],
+      onFilter: (value, record) => record.source === value,
+      render: (source) => (
+        <Tag color="purple">{source}</Tag>
+      ),
     },
     {
-      title: 'Ghi chú',
-      dataIndex: 'description',
-      key: 'description',
-    },
+      title: 'Mã giao dịch',
+      dataIndex: 'transactionNo',
+      key: 'transactionNo',
+      render: (transactionNo, record) => (
+        <span className="font-mono">
+          {transactionNo}
+          {record.txnRef && (
+            <span className="text-gray-500 text-xs block">
+              Mã tham chiếu: {record.txnRef}
+            </span>
+          )}
+        </span>
+      ),
+    }
   ];
 
   return (
     <div className="transaction-history">
-      
-        <Table
-          dataSource={transactions}
-          columns={columns}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: false,
-          }}
-        />
+      <Table
+        dataSource={transactions}
+        columns={columns}
+        rowKey={(record) => `${record.transactionNo}-${record.txnRef}`}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50'],
+          showTotal: (total) => `Tổng số ${total} giao dịch`,
+        }}
+        className="w-full"
+      />
     </div>
   );
 };
 
-export default TransactionHistory; 
+export default TransactionHistory;

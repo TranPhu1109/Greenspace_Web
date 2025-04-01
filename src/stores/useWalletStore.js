@@ -1,7 +1,8 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import axios from '../api/api';
 
-const useWalletStore = create((set, get) => ({
+const useWalletStore = create(persist((set, get) => ({
   balance: 0,
   walletId: null,
   walletName: null,
@@ -172,6 +173,9 @@ const useWalletStore = create((set, get) => ({
       transactionsError: null
     });
   }
+}), {
+  name: 'wallet-storage',
+  getStorage: () => localStorage
 }));
 
-export default useWalletStore; 
+export default useWalletStore;
