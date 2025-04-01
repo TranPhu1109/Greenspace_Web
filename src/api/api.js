@@ -4,7 +4,7 @@ const api = axios.create({
   baseURL: 'http://localhost:8080',
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
 });
 
 // Export isCancel function từ axios
@@ -21,13 +21,16 @@ const getRequestKey = (config) => {
   return `${config.method}:${config.url}${componentId}`;
 };
 
-// Thêm Bearer token vào header của mỗi request
+// Add request interceptor
 api.interceptors.request.use(
   (config) => {
-    // Thêm token vào header nếu có trong localStorage
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Get token from localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user.backendToken) {
+        config.headers.Authorization = `Bearer ${user.backendToken}`;
+      }
     }
     
     // Only deduplicate GET requests

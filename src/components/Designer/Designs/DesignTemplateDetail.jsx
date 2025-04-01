@@ -56,6 +56,8 @@ const DesignTemplateDetail = () => {
     };
   }, [id, componentId, fetchDesignIdeaById, fetchProducts]);
 
+  console.log(designIdeaById);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">

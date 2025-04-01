@@ -30,6 +30,7 @@ const ProductsPage = () => {
     useProductStore();
   const { addToCart } = useCartStore();
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [quantities, setQuantities] = useState({});
   const [filters, setFilters] = useState({
     search: "",
     category: "all",
