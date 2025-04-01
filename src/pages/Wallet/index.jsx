@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Layout, Card, Tabs, message, Button, Space } from "antd";
-import { WalletOutlined, TransactionOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { Layout, Card, Tabs, message } from "antd";
+import { WalletOutlined, TransactionOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WalletBalance from "./components/WalletBalance";
@@ -9,31 +9,8 @@ import TransactionHistory from "./components/TransactionHistory";
 import "./styles.scss";
 
 const { Content } = Layout;
-const { TabPane } = Tabs;
 
 const WalletPage = () => {
-  const [qrModalVisible, setQrModalVisible] = useState(false);
-
-  // Mock data
-  const mockTransactions = [
-    {
-      key: '1',
-      date: '2024-03-15',
-      type: 'Nạp tiền',
-      amount: '+500,000đ',
-      status: 'Thành công',
-      method: 'Chuyển khoản ngân hàng'
-    },
-    {
-      key: '2',
-      date: '2024-03-14',
-      type: 'Thanh toán',
-      amount: '-200,000đ',
-      status: 'Thành công',
-      method: 'Ví điện tử'
-    },
-  ];
-
   const handleRecharge = (values) => {
     console.log("Form values:", values);
     message.info("Đang tạo mã QR VNPay...");
@@ -60,7 +37,7 @@ const WalletPage = () => {
                     ),
                     children: (
                       <>
-                        <WalletBalance balance={0} />
+                        <WalletBalance />
                         <RechargeForm onFinish={handleRecharge} />
                       </>
                     ),
@@ -73,7 +50,7 @@ const WalletPage = () => {
                         <span>Lịch sử giao dịch</span>
                       </span>
                     ),
-                    children: <TransactionHistory transactions={mockTransactions} />,
+                    children: <TransactionHistory />,
                   },
                 ]}
               />
