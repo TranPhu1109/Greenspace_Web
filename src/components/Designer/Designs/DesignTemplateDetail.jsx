@@ -56,7 +56,7 @@ const DesignTemplateDetail = () => {
     };
   }, [id, componentId, fetchDesignIdeaById, fetchProducts]);
 
-  console.log(designIdeaById);
+
 
   if (isLoading) {
     return (

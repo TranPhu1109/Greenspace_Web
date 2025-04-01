@@ -68,7 +68,6 @@ const useDesignOrderStore = create((set) => ({
 
 
   getDesignOrderById: async (id, componentId) => {
-
     try {
       set({ isLoading: true, error: null });
       const response = await axios.get(`/api/serviceorder/${id}`, {

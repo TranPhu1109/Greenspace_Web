@@ -3,10 +3,8 @@ import axios from "../api/api";
 
 const useDesignIdeaStore = create((set, get) => ({
   designIdeas: [],
-
   currentDesign: null,
   designIdeaById: null,
-
   isLoading: false,
   error: null,
   abortController: null,
@@ -14,6 +12,7 @@ const useDesignIdeaStore = create((set, get) => ({
   fetchDesignIdeas: async (componentId) => {
     try {
       set({ isLoading: true });
+
       const response = await axios.get("/api/designidea", {
         componentId,
         allowDuplicate: false,

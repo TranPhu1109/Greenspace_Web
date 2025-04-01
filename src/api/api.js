@@ -21,6 +21,7 @@ const getRequestKey = (config) => {
   return `${config.method}:${config.url}${componentId}`;
 };
 
+
 // Add request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -31,6 +32,7 @@ api.interceptors.request.use(
       if (user.backendToken) {
         config.headers.Authorization = `Bearer ${user.backendToken}`;
       }
+
     }
     
     // Only deduplicate GET requests
