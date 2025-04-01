@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Layout,
   Typography,
@@ -11,6 +11,7 @@ import {
   Empty,
   Button,
   Divider,
+  message,
 } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -22,6 +23,7 @@ import {
   DollarOutlined,
   BulbOutlined,
   ShoppingOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -29,6 +31,7 @@ import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
 import useProductStore from "@/stores/useProductStore";
 import "./styles.scss";
+import StatusTracking from '@/components/StatusTracking/StatusTracking';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -36,46 +39,60 @@ const { Title, Text } = Typography;
 const OrderHistoryDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { designOrders, isLoading } = useDesignOrderStore();
+  const { designOrders, isLoading, fetchDesignOrders, updateStatus } = useDesignOrderStore();
   const { fetchDesignIdeaById } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
   
   const [designIdea, setDesignIdea] = useState(null);
   const [products, setProducts] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const order = designOrders?.find(order => order.id === id);
 
-  useEffect(() => {
-    const fetchDetails = async () => {
-      if (!order) return;
+  const fetchDetails = useCallback(async () => {
+    if (!order) return;
 
-      try {
-        setLoadingDetails(true);
-        
-        // Fetch design idea
-        if (order.designIdeaId) {
-          const designData = await fetchDesignIdeaById(order.designIdeaId);
-          setDesignIdea(designData);
-        }
-
-        // Fetch products
-        if (order.serviceOrderDetails?.length > 0) {
-          const productPromises = order.serviceOrderDetails.map(detail => 
-            getProductById(detail.productId)
-          );
-          const productsData = await Promise.all(productPromises);
-          setProducts(productsData);
-        }
-      } catch (error) {
-        console.error('Error fetching details:', error);
-      } finally {
-        setLoadingDetails(false);
+    try {
+      setLoadingDetails(true);
+      
+      // Fetch design idea
+      if (order.designIdeaId) {
+        const designData = await fetchDesignIdeaById(order.designIdeaId);
+        setDesignIdea(designData);
       }
-    };
 
-    fetchDetails();
+      // Fetch products
+      if (order.serviceOrderDetails?.length > 0) {
+        const productPromises = order.serviceOrderDetails.map(detail => 
+          getProductById(detail.productId)
+        );
+        const productsData = await Promise.all(productPromises);
+        setProducts(productsData);
+      }
+    } catch (error) {
+      console.error('Error fetching details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
   }, [order, fetchDesignIdeaById, getProductById]);
+
+  useEffect(() => {
+    fetchDetails();
+  }, [fetchDetails]);
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchDesignOrders();
+      await fetchDetails();
+      message.success('Đã cập nhật thông tin đơn hàng');
+    } catch (error) {
+      message.error('Không thể cập nhật thông tin đơn hàng');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getStatusTag = (status) => {
     const statusConfig = {
@@ -195,6 +212,13 @@ const OrderHistoryDetail = () => {
               <Space direction="horizontal" align="center" justify="space-between" style={{ width: '100%' }}>
                 <Title level={2}>Chi tiết đơn hàng #{id.slice(0, 8)}</Title>
                 <Space>
+                  <Button 
+                    icon={<ReloadOutlined />} 
+                    onClick={handleRefresh}
+                    loading={refreshing}
+                  >
+                    Làm mới
+                  </Button>
                   {getCustomTag(order.isCustom)}
                   {getStatusTag(order.status)}
                 </Space>
@@ -278,47 +302,69 @@ const OrderHistoryDetail = () => {
                 } 
                 type="inner"
               >
-                <Table
-                  columns={productColumns}
-                  dataSource={order.serviceOrderDetails}
-                  pagination={false}
-                  rowKey="productId"
-                  summary={() => (
-                    <Table.Summary fixed>
-                      <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={2}>
-                          <Text strong>Tổng cộng</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={2}>
-                          <Text strong>Phí thiết kế:</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={3}>
-                          <Text type="success" strong>{formatPrice(order.designPrice)}</Text>
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
-                      <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={2} />
-                        <Table.Summary.Cell index={2}>
-                          <Text strong>Phí vật liệu:</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={3}>
-                          <Text type="success" strong>{formatPrice(order.materialPrice)}</Text>
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
-                      <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={2} />
-                        <Table.Summary.Cell index={2}>
-                          <Text strong>Tổng thanh toán:</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={3}>
-                          <Text type="danger" strong style={{ fontSize: '16px' }}>
-                            {formatPrice(order.designPrice + order.materialPrice)}
-                          </Text>
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
-                    </Table.Summary>
-                  )}
-                />
+                {order.isCustom ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <Text type="secondary" style={{ 
+                      fontSize: '18px',
+                      fontWeight: 500,
+                      display: 'block',
+                      padding: '24px',
+                      backgroundColor: '#f5f5f5',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      border: '1px dashed #d9d9d9'
+                    }}>
+                      Giá thiết kế, danh sách vật liệu và tổng giá sẽ được chúng tôi cập nhập sau khi Designer hoàn tất bản vẽ hoàn chỉnh
+                    </Text>
+                  </div>
+                ) : (
+                  <Table
+                    columns={productColumns}
+                    dataSource={order.serviceOrderDetails}
+                    pagination={false}
+                    rowKey="productId"
+                    summary={() => (
+                      <Table.Summary fixed>
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0} colSpan={2}>
+                            <Text strong>Tổng cộng</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2}>
+                            <Text strong>Phí thiết kế:</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={3}>
+                            <Text type="success" strong>{formatPrice(order.designPrice)}</Text>
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0} colSpan={2} />
+                          <Table.Summary.Cell index={2}>
+                            <Text strong>Phí vật liệu:</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={3}>
+                            <Text type="success" strong>{formatPrice(order.materialPrice)}</Text>
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0} colSpan={2} />
+                          <Table.Summary.Cell index={2}>
+                            <Text strong>Tổng thanh toán:</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={3}>
+                            <Text type="danger" strong style={{ fontSize: '16px' }}>
+                              {formatPrice(order.designPrice + order.materialPrice)}
+                            </Text>
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
+                      </Table.Summary>
+                    )}
+                  />
+                )}
+              </Card>
+
+              {/* Status Tracking */}
+              <Card title="Trạng thái đơn hàng" type="inner">
+                <StatusTracking currentStatus={order.status} />
               </Card>
 
               {/* Actions */}

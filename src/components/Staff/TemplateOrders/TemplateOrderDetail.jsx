@@ -87,20 +87,21 @@ const TemplateOrderDetail = () => {
         <Col span={24}>
           <Card
             title="Tiến độ đơn hàng"
-            bordered={true}
             style={{
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               borderRadius: "12px",
-              border: "none",
+              border: "1px solid #f0f0f0",
             }}
-            headStyle={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0",
-              padding: "16px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              border: "none",
+            styles={{
+              header: {
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }
             }}
           >
             <Steps
@@ -138,20 +139,21 @@ const TemplateOrderDetail = () => {
         <Col span={16}>
           <Card
             title="Thông tin đơn hàng"
-            bordered={true}
             style={{
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               borderRadius: "12px",
-              border: "none",
+              border: "1px solid #f0f0f0",
             }}
-            headStyle={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0",
-              padding: "16px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              border: "none",
+            styles={{
+              header: {
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }
             }}
           >
             <div>
@@ -288,16 +290,18 @@ const TemplateOrderDetail = () => {
             style={{
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               borderRadius: "12px",
-              border: "none",
+              border: "1px solid #f0f0f0",
             }}
-            headStyle={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0",
-              padding: "16px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              border: "none",
+            styles={{
+              header: {
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }
             }}
           >
             <Descriptions column={1} size="small" layout="horizontal" bordered>

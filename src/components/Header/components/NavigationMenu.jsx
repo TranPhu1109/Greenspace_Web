@@ -42,8 +42,8 @@ function NavigationMenu({ user }) {
       path: "/designs"
     },
     { key: "products", label: "Sản phẩm", path: "/products" },
-    { key: "serviceOrder", label: "Lịch sử đặt hàng", path: "/serviceorderhistory" },
-
+    { key: "serviceOrder", label: "Đơn hàng thiết kế", path: "/serviceorderhistory" },
+    { key: "materialOrder", label: "Đơn hàng vật liệu", path: "/materialorderhistory" },
     { key: "about", label: "Giới thiệu", path: "/about" },
   ], []);
 

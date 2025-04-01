@@ -144,11 +144,7 @@ const DesignOrderHistory = () => {
               columns={columns}
               dataSource={designOrders}
               rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: false,
-                showTotal: (total) => `Tổng số ${total} đơn hàng`,
-              }}
+              pagination={false}
               onRow={(record) => ({
                 onClick: () => navigate(`/serviceorderhistory/detail/${record.id}`),
               })}

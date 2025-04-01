@@ -36,6 +36,8 @@ const ProductsPage = () => {
     sort: "newest",
   });
   const mountedRef = useRef(true);
+  const [quantities, setQuantities] = useState({});
+  const componentId = useRef(`products-page-${Date.now()}`).current;
 
   // Cleanup function
   useEffect(() => {
@@ -54,11 +56,19 @@ const ProductsPage = () => {
       if (!mountedRef.current) return;
 
       try {
+        console.log('Starting to load data with componentId:', componentId);
+        console.log('Current products state:', products);
+        console.log('Current categories state:', categories);
+        
         await Promise.all([
-          fetchProducts(),
-          fetchCategories()
+          fetchProducts(componentId),
+          fetchCategories(componentId)
         ]);
+        
+        console.log('After fetching - Products:', products);
+        console.log('After fetching - Categories:', categories);
       } catch (error) {
+        console.error('Error loading data:', error);
         if (error.name !== 'CanceledError' && mountedRef.current) {
           message.error("Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau.");
         }
@@ -66,11 +76,14 @@ const ProductsPage = () => {
     };
 
     loadData();
-  }, [fetchProducts, fetchCategories]);
+  }, [fetchProducts, fetchCategories, componentId]);
 
   useEffect(() => {
     if (!mountedRef.current) return;
 
+    console.log('Filtering products - Current products:', products);
+    console.log('Current filters:', filters);
+    
     let result = [...products];
 
     if (filters.search) {
@@ -81,12 +94,14 @@ const ProductsPage = () => {
           product.description.toLowerCase().includes(searchLower) ||
           product.categoryName.toLowerCase().includes(searchLower)
       );
+      console.log('After search filter:', result);
     }
 
     if (filters.category !== "all") {
       result = result.filter(
         (product) => product.categoryId === filters.category
       );
+      console.log('After category filter:', result);
     }
 
     switch (filters.sort) {
@@ -106,6 +121,7 @@ const ProductsPage = () => {
         break;
     }
 
+    console.log('Final filtered products:', result);
     setFilteredProducts(result);
     
     // Initialize quantities for new products

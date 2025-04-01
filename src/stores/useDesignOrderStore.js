@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import axios, { isCancel } from '../api/api';
 
-const useDesignOrderStore = create((set) => ({
+const useDesignOrderStore = create((set, get) => ({
   designOrders: [],
   selectedOrder: null,
   isLoading: false,
@@ -37,6 +37,29 @@ const useDesignOrderStore = create((set) => ({
         // Reset loading state for cancellations
         set({ isLoading: false });
       }
+    }
+  },
+
+  updateStatus: async (orderId, newStatus) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.put(`/api/serviceorder/${orderId}/status`, { status: newStatus });
+      
+      // Update the order in the store
+      set(state => ({
+        designOrders: state.designOrders.map(order => 
+          order.id === orderId ? { ...order, status: newStatus } : order
+        ),
+        isLoading: false
+      }));
+
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
     }
   },
 
