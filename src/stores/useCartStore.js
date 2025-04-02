@@ -11,8 +11,25 @@ const useCartStore = create((set, get) => ({
   addToCart: async (productId, quantity = 1) => {
     try {
       set({ loading: true });
-      const response = await axios.post('/api/cart/add', { productId, quantity });
-      set({ cartItems: response.data.cartItems });
+      // Get product details first
+      const productResponse = await axios.get(`/api/product/${productId}`);
+      const product = productResponse.data;
+
+      // Get current user ID from auth store or local storage
+      const userId = localStorage.getItem('userId'); // Adjust this based on how you store user ID
+      
+      const cartData = {
+        userId: userId,
+        items: [{
+          productId: productId,
+          productName: product.name,
+          price: product.price,
+          quantity: quantity
+        }]
+      };
+
+      const response = await axios.post('/api/carts', cartData);
+      set({ cartItems: response.data.items || [] });
       message.success('Thêm vào giỏ hàng thành công');
     } catch (error) {
       message.error('Không thể thêm vào giỏ hàng');
@@ -55,11 +72,42 @@ const useCartStore = create((set, get) => ({
   fetchCartItems: async () => {
     try {
       set({ loading: true });
-      const response = await axios.get('/api/cart');
-      set({ cartItems: response.data.cartItems });
+      const response = await axios.get('/api/carts');
+      
+      if (!response.data?.items) {
+        set({ cartItems: [] });
+        return;
+      }
+      
+      const cartItemsPromises = response.data.items.map(async item => {
+        try {
+          const productResponse = await axios.get(`/api/product/${item.productId}`);
+          const product = productResponse.data;
+          
+          return {
+            id: item.productId,
+            name: product.name || 'Không có tên',
+            quantity: item.quantity || 1,
+            price: product.price || 0,
+            image: product.image || { imageUrl: '' }
+          };
+        } catch (error) {
+          console.error(`Error fetching product ${item.productId}:`, error);
+          return {
+            id: item.productId,
+            name: 'Sản phẩm không khả dụng',
+            quantity: item.quantity || 1,
+            price: 0,
+            image: { imageUrl: '' }
+          };
+        }
+      });
+      
+      const cartItems = await Promise.all(cartItemsPromises);
+      set({ cartItems });
     } catch (error) {
-      // message.error('Không thể tải giỏ hàng');
-      set({ error: error.message });
+      console.error('Error fetching cart items:', error);
+      set({ error: error.message, cartItems: [] });
     } finally {
       set({ loading: false });
     }
@@ -86,4 +134,4 @@ const useCartStore = create((set, get) => ({
   clearCart: () => set({ cartItems: [] }),
 }));
 
-export default useCartStore; 
+export default useCartStore;

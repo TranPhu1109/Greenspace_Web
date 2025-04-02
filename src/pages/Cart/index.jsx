@@ -20,13 +20,20 @@ const CartPage = () => {
     fetchCartItems();
   }, [fetchCartItems]);
 
+  console.log('cartItems:', cartItems);
+
   const handleQuantityChange = async (productId, quantity) => {
     if (quantity < 1) return;
     await updateQuantity(productId, quantity);
   };
 
+
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => {
+      const price = item?.price || 0;
+      const quantity = item?.quantity || 0;
+      return total + (price * quantity);
+    }, 0);
   };
 
   const handleCheckout = async () => {
@@ -65,7 +72,7 @@ const CartPage = () => {
       title: 'Giá',
       dataIndex: 'price',
       key: 'price',
-      render: (price) => `${price.toLocaleString('vi-VN')}đ`,
+      render: (price) => `${(price || 0).toLocaleString('vi-VN')}đ`,
     },
     {
       title: 'Số lượng',
@@ -82,7 +89,7 @@ const CartPage = () => {
     {
       title: 'Tổng',
       key: 'total',
-      render: (_, record) => `${(record.price * record.quantity).toLocaleString('vi-VN')}đ`,
+      render: (_, record) => `${((record?.price || 0) * (record?.quantity || 0)).toLocaleString('vi-VN')}đ`,
     },
     {
       title: 'Thao tác',
@@ -173,4 +180,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage; 
+export default CartPage;

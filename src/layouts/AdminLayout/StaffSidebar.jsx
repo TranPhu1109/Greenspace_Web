@@ -7,6 +7,9 @@ import {
   SettingOutlined,
   AppstoreOutlined,
   CalendarOutlined,
+  FileTextOutlined,
+  SignatureOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import "./AdminSidebar.scss";
@@ -19,16 +22,17 @@ const StaffSidebar = ({ collapsed }) => {
   const location = useLocation();
 
   const getSelectedKey = (pathname) => {
+    // For blog section
+    if (pathname.startsWith("/staff/blog/")) {
+      return pathname === "/staff/blog/new-blog" ? pathname : "/staff/blog";
+    }
     // For design orders section
-    if (pathname.includes("/design-orders")) {
-      // Return the parent path for design order details
-      if (pathname.includes("/custom-template-orders/")) {
-        return "/staff/design-orders/custom-template-orders";
-      }
-      return pathname;
+    if (pathname.startsWith("/staff/design-orders/")) {
+      const subPath = pathname.split("/")[3];
+      return `/staff/design-orders/${subPath}`;
     }
     // For other sections
-    return pathname.split("/").slice(0, 3).join("/");
+    return pathname;
   };
 
   // Get open keys based on current path
@@ -98,19 +102,22 @@ const StaffSidebar = ({ collapsed }) => {
             <Menu.Item key="/staff/schedule" icon={<CalendarOutlined />}>
               <Link to="/staff/schedule">Lịch làm việc</Link>
             </Menu.Item>
-            {/* 
-        <Menu.Item key="/staff/messages" icon={<MessageOutlined />}>
-          <Link to="/staff/messages">Tin nhắn</Link>
-        </Menu.Item> */}
 
             <Menu.Item key="/staff/feedback" icon={<MdOutlineFeedback />}>
               <Link to="/staff/feedback">Phản hồi</Link>
             </Menu.Item>
-
-            {/* <Menu.Item key="/designer/schedule" icon={<CalendarOutlined />}>
-          <Link to="/designer/schedule">Lịch làm việc</Link>
-        </Menu.Item> */}
-
+            <SubMenu
+              key="blog"
+              icon={<FileTextOutlined />}
+              title="Quản lý Blog"
+            >
+              <Menu.Item key="/staff/blog" icon={<UnorderedListOutlined />}>
+                <Link to="/staff/blog">Danh sách bài đăng</Link>
+              </Menu.Item>
+              <Menu.Item key="/staff/blog/new-blog" icon={<SignatureOutlined />}>
+                <Link to="/staff/blog/new-blog">Tạo bài viết</Link>
+              </Menu.Item>
+            </SubMenu>
             <Menu.Item key="/staff/settings" icon={<SettingOutlined />}>
               <Link to="/staff/settings">Cài đặt</Link>
             </Menu.Item>

@@ -14,14 +14,14 @@ import ProductsList from "../components/Staff/Products/ProductsList";
 import ProductDetail from "../components/Staff/Products/ProductDetail";
 import Categories from "../components/Staff/Products/Categories";
 import FeedbackManagement from "@/components/Staff/FeedbackManage/FeedbackManagement";
+import BlogManagement from "@/components/Staff/Blog/BlogManagement";
+import NewBlog from "@/components/Staff/Blog/NewBlog";
+import EditBlog from "@/components/Staff/Blog/EditBlog";
+import BlogDetail from "@/components/Staff/Blog/BlogDetail";
 
 export const staffRoutes = {
   path: "/staff",
   children: [
-    {
-      index: true,
-      element: <Dashboard />,
-    },
     {
       path: "dashboard",
       element: <Dashboard />,
@@ -116,5 +116,26 @@ export const staffRoutes = {
       path: "feedback",
       element: <FeedbackManagement />,
     },
+    {
+      path: "blog",
+      children: [
+        {
+          index: true,
+          element: <BlogManagement />,
+        },
+        {
+          path: "new-blog",
+          element: <NewBlog />,
+        },
+        {
+          path: "edit/:id",
+          element: <EditBlog />,
+        },
+        {
+          path: ":id",
+          element: <BlogDetail />,
+        },
+      ]
+    }
   ],
 };
