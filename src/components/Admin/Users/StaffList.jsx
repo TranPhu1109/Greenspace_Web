@@ -214,12 +214,13 @@ const StaffList = () => {
 
       <Table
         columns={columns}
-        dataSource={users
+        dataSource={(users || [])
           .filter(user => 
             user.roleName !== 'Customer' &&
+            user.roleName !== 'Admin' &&
             (selectedRole === 'all' || user.roleName === selectedRole) &&
-            (user.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchText.toLowerCase()))
+            (user.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchText.toLowerCase()))
           )
           .map((user) => ({ ...user, key: user.id }))}
         loading={isLoading}
