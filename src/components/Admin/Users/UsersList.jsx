@@ -186,7 +186,7 @@ const UsersList = () => {
 
       <Table
         columns={columns}
-        dataSource={users
+        dataSource={(users || [])
           .filter(
             (user) =>
               // First filter by role

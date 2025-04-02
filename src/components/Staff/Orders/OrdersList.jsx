@@ -22,10 +22,10 @@ const OrdersList = () => {
 
   // Lọc dữ liệu khi orders, searchText, filterStatus, filterPayment hoặc dateRange thay đổi
   useEffect(() => {
-    let result = [...orders];
+    let result = orders ? [...orders] : [];
 
     // Lọc theo searchText
-    if (searchText) {
+    if (searchText && result.length > 0) {
       const lowercasedSearch = searchText.toLowerCase();
       result = result.filter(
         (order) =>
@@ -37,17 +37,17 @@ const OrdersList = () => {
     }
 
     // Lọc theo trạng thái đơn hàng
-    if (filterStatus) {
+    if (filterStatus && result.length > 0) {
       result = result.filter((order) => order.orderStatus === filterStatus);
     }
 
     // Lọc theo trạng thái thanh toán
-    if (filterPayment) {
+    if (filterPayment && result.length > 0) {
       result = result.filter((order) => order.payment.status === filterPayment);
     }
 
     // Lọc theo khoảng thời gian
-    if (dateRange && dateRange[0] && dateRange[1]) {
+    if (dateRange && dateRange[0] && dateRange[1] && result.length > 0) {
       result = result.filter((order) => {
         const orderDate = new Date(
           order.orderDate.split("/").reverse().join("-")

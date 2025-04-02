@@ -57,8 +57,10 @@ const useAuthStore = create(
           });
 
           // Fetch wallet balance after successful login
-          const walletStore = (await import('./useWalletStore')).default;
-          await walletStore.getState().fetchBalance();
+          if (userData.roleName === 'Customer') {
+            const walletStore = (await import('./useWalletStore')).default;
+            await walletStore.getState().fetchBalance();
+          }
           
           return userToStore;
         } catch (err) {

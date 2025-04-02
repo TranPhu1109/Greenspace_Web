@@ -1,7 +1,8 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import axios from "../api/api";
 
-const useProductStore = create((set, get) => ({
+const useProductStore = create(persist((set, get) => ({
   // State
   products: [],
   categories: [],
@@ -9,6 +10,8 @@ const useProductStore = create((set, get) => ({
   error: null,
   selectedProduct: null,
   abortController: null,
+  lastFetch: null,
+  cacheTimeout: 5 * 60 * 1000, // 5 minutes cache
 
   // Add new state for feedback
   productFeedbacks: {}, // Change to object to store feedbacks by productId
@@ -121,6 +124,17 @@ const useProductStore = create((set, get) => ({
 
   // API Actions
   fetchProducts: async (componentId) => {
+    const { products, isLoading, lastFetch, cacheTimeout } = get();
+    
+    // Return cached data if within timeout
+    if (lastFetch && Date.now() - lastFetch < cacheTimeout && products.length > 0) {
+      return products;
+    }
+
+    if (isLoading) {
+      return products;
+    }
+    
     set({ isLoading: true, error: null });
     try {
       console.log('Fetching products with componentId:', componentId);
@@ -165,7 +179,7 @@ const useProductStore = create((set, get) => ({
       console.log('Processed products array:', productsArray);
       console.log('Number of products:', productsArray.length);
       
-      set({ products: productsArray, isLoading: false });
+      set({ products: productsArray, isLoading: false, lastFetch: Date.now() });
       return productsArray;
     } catch (error) {
       console.error('Error in fetchProducts:', error);
@@ -572,6 +586,6 @@ const useProductStore = create((set, get) => ({
       throw error;
     }
   },
-}));
+})));
 
 export default useProductStore;
