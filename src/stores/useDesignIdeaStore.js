@@ -38,6 +38,7 @@ const useDesignIdeaStore = create((set, get) => ({
         isLoading: true,
         error: null,
         designIdeaById: null,
+        currentDesign: null
       });
 
       const response = await axios.get(`/api/designidea/${id}`, {
@@ -51,6 +52,7 @@ const useDesignIdeaStore = create((set, get) => ({
 
       set({
         designIdeaById: response.data,
+        currentDesign: response.data,
         isLoading: false,
         error: null,
         abortController: null,
@@ -63,6 +65,7 @@ const useDesignIdeaStore = create((set, get) => ({
         console.error("Error fetching design:", error);
         set({
           designIdeaById: null,
+          currentDesign: null,
           isLoading: false,
           error: error.message,
         });

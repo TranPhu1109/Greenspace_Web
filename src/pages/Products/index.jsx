@@ -37,7 +37,6 @@ const ProductsPage = () => {
     sort: "newest",
   });
   const mountedRef = useRef(true);
-  const [quantities, setQuantities] = useState({});
   const componentId = useRef(`products-page-${Date.now()}`).current;
 
   // Cleanup function

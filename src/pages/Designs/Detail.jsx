@@ -13,6 +13,7 @@ const { Title, Paragraph } = Typography;
 
 const DesignDetailPage = () => {
   const { id } = useParams();
+  const componentId = useRef(`design-detail-${id}`);
   const { currentDesign, fetchDesignIdeaById, isLoading: designLoading, error: designError } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
   const mountedRef = useRef(true);
@@ -32,8 +33,11 @@ const DesignDetailPage = () => {
     if (!id || !mountedRef.current) return;
     
     try {
-      const design = await fetchDesignIdeaById(id);
+      console.log('Fetching design details for ID:', id);
+      const design = await fetchDesignIdeaById(id, componentId.current);
+      console.log('Design details received:', design);
     } catch (error) {
+      console.error('Error loading design:', error);
       if (error.name !== 'CanceledError' && mountedRef.current) {
         // Handle error silently
       }

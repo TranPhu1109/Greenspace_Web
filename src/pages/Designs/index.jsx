@@ -31,11 +31,13 @@ const DesignsPage = () => {
   }, []);
 
   useEffect(() => {
+    console.log('Fetching design ideas...');
     fetchDesignIdeas();
     fetchCategories();
   }, [fetchDesignIdeas, fetchCategories]);
 
   useEffect(() => {
+    console.log('Design ideas received:', designIdeas);
     let result = [...designIdeas];
 
     if (filters.search) {

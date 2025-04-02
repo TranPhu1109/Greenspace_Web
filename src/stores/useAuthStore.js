@@ -62,7 +62,12 @@ const useAuthStore = create(
           
           return userToStore;
         } catch (err) {
-          console.error('Login error:', err);
+          console.error('Login error details:', {
+            message: err.message,
+            code: err.code,
+            response: err.response?.data,
+            status: err.response?.status
+          });
           set({ 
             error: err.message, 
             loading: false,
@@ -76,12 +81,17 @@ const useAuthStore = create(
       authenticateWithFirebase: async (firebaseUser, role = "string") => {
         try {
           const idToken = await firebaseUser.getIdToken();
+          console.log('Firebase ID token obtained');
 
-          const response = await axios.post("/api/auth", {
+          const requestData = {
             token: idToken,
             fcmToken: "",
             role: role,
-          });
+          };
+          console.log('Sending authentication request with data:', requestData);
+
+          const response = await axios.post("/api/auth", requestData);
+          console.log('Backend authentication response:', response.data);
 
           const userData = {
             ...response.data.user,
@@ -90,6 +100,11 @@ const useAuthStore = create(
 
           return userData;
         } catch (err) {
+          console.error('Backend authentication error:', {
+            message: err.message,
+            response: err.response?.data,
+            status: err.response?.status
+          });
           throw err;
         }
       },
