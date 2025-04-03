@@ -26,6 +26,7 @@ const CartPage = () => {
   const handleQuantityChange = async (productId, quantity) => {
     if (quantity < 1) return;
     await updateQuantity(productId, quantity);
+    fetchCartItems();
   };
 
 

@@ -4,6 +4,7 @@ import axios from '@/api/api';
 
 const useCartStore = create((set, get) => ({
   cartItems: [],
+  cartId: null,
   loading: false,
   error: null,
 
@@ -49,8 +50,24 @@ const useCartStore = create((set, get) => ({
   updateQuantity: async (productId, quantity) => {
     try {
       set({ loading: true });
-      const response = await axios.put(`/api/cart/${productId}`, { quantity });
-      set({ cartItems: response.data.cartItems });
+      const currentItems = get().cartItems;
+      
+      // Tạo mảng items mới với số lượng đã cập nhật cho sản phẩm được chọn
+      const updatedItems = currentItems.map(item => ({
+        productId: item.id,
+        quantity: item.id === productId ? quantity : item.quantity
+      }));
+
+      const cartData = {
+        model: {
+          id: get().cartId,
+          items: updatedItems
+        }
+      };
+      
+      const response = await axios.put('/api/carts', cartData);
+      set({ cartItems: response.data.items || [] });
+      message.success('Cập nhật số lượng thành công');
     } catch (error) {
       message.error('Không thể cập nhật số lượng');
       set({ error: error.message });
@@ -66,9 +83,11 @@ const useCartStore = create((set, get) => ({
       const response = await axios.get('/api/carts');
       
       if (!response.data?.items) {
-        set({ cartItems: [] });
+        set({ cartItems: [], cartId: null });
         return;
       }
+      
+      set({ cartId: response.data.id });
       
       const cartItemsPromises = response.data.items.map(async item => {
         try {
