@@ -16,7 +16,6 @@ import {
   Select,
   Modal,
 } from "antd";
-import axios from "@/api/api";
 import {
   EnvironmentOutlined,
   HomeOutlined,
@@ -146,6 +145,8 @@ const Checkout = () => {
   const handleFinish = async (values) => {
     try {
       const userId = JSON.parse(localStorage.getItem('user')).id;
+      const walletStorage = JSON.parse(localStorage.getItem('wallet-storage'));
+      const walletId = walletStorage.state.walletId;
       const address = `${values.streetAddress}, ${values.ward}, ${values.district}, ${values.provinces}`;
 
       // Create order using store
@@ -157,33 +158,23 @@ const Checkout = () => {
       });
 
       if (orderResponse.status === 200) {
-        message.success('Đặt hàng thành công!');
-        // Show confirmation modal for payment
-        Modal.confirm({
-          title: 'Xác nhận thanh toán',
-          content: 'Bạn có muốn thanh toán đơn hàng này không?',
-          okText: 'Thanh toán',
-          cancelText: 'Hủy',
-          onOk: async () => {
-            try {
-              // Create bill using store
-              const billResponse = await createBill({
-                walletId: userId,
-                orderId: orderResponse.data.id,
-                serviceOrderId: null,
-                amount: calculateTotal() + shippingFee,
-                description: 'Thanh toán đơn hàng'
-              });
-              
-              if (billResponse.status === 200) {
-                message.success('Thanh toán thành công!');
-                navigate('/orders');
-              }
-            } catch (error) {
-              message.error('Có lỗi xảy ra khi thanh toán');
-            }
+        try {
+          // Create bill using store
+          const billResponse = await createBill({
+            walletId: walletId,
+            orderId: orderResponse.data.id,
+            serviceOrderId: null,
+            amount: calculateTotal() + shippingFee,
+            description: 'Thanh toán đơn hàng'
+          });
+          
+          if (billResponse.status === 200) {
+            message.success('Đặt hàng và thanh toán thành công!');
+            navigate('/Home');
           }
-        });
+        } catch (error) {
+          message.error('Có lỗi xảy ra khi thanh toán');
+        }
       }
     } catch (error) {
       message.error('Có lỗi xảy ra khi đặt hàng');

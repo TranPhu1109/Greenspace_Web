@@ -110,7 +110,6 @@ const ProductDetail = () => {
   const handleAddToCart = async () => {
     try {
       await addToCart(product.id, quantity);
-      message.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
     } catch (error) {
       // Error handling is done in the store
     }
