@@ -126,9 +126,9 @@ const useProductStore = create(persist((set, get) => ({
   fetchProducts: async (componentId) => {
     const { products, isLoading, lastFetch, cacheTimeout } = get();
     
-    // Return cached data if within timeout
-    if (lastFetch && Date.now() - lastFetch < cacheTimeout && products.length > 0) {
-      return products;
+    // Luôn fetch lại data khi component được mount
+    if (products.length === 0) {
+      set({ lastFetch: null });
     }
 
     if (isLoading) {

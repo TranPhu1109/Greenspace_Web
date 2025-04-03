@@ -33,7 +33,7 @@ const CreateProductModal = ({
   const { createCategory } = useProductStore();
   const [isDuplicateCategory, setIsDuplicateCategory] = useState(false);
   const [isDuplicateProduct, setIsDuplicateProduct] = useState(false);
-  const { products, fetchCategories } = useProductStore();
+  const { products, fetchCategories, fetchProducts } = useProductStore();
 
   const handleCreateCategory = async () => {
     try {
@@ -113,6 +113,8 @@ const CreateProductModal = ({
         image2: null,
         image3: null,
       });
+
+      fetchProducts();
     } catch (error) {
       console.error("Error submitting product:", error);
       message.error("Có lỗi xảy ra: " + error.message);

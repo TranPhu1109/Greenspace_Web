@@ -13,11 +13,11 @@ import { designerRoutes } from "./designerRoutes";
 import LandingPage from "@/pages/LandingPage";
 import Home from "@/pages/Home/index";
 import DesignsPage from "@/pages/Designs";
-import ScrollToTop from '@/components/ScrollToTop';
+import ScrollToTop from "@/components/ScrollToTop";
 import ProductsPage from "@/pages/Products";
 import ProductDetail from "@/pages/Products/ProductDetail";
 import WalletPage from "@/pages/Wallet";
-import PaymentCallback from '@/pages/Wallet/components/PaymentCallback';
+import PaymentCallback from "@/pages/Wallet/components/PaymentCallback";
 import CartPage from "@/pages/Cart";
 import AboutPage from "@/pages/About";
 import VNPayCallback from "@/pages/Wallet/components/VNPayCallback";
@@ -25,9 +25,7 @@ import DesignDetailPage from "@/pages/Designs/Detail";
 import OrderHistoryDetail from "@/pages/ServiceOrder/OrderHistoryDetail";
 import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
 import OrderService from "@/pages/ServiceOrder/OrderService";
-
-
-
+import Checkout from "@/pages/Cart/Checkout";
 
 const router = createBrowserRouter([
   {
@@ -49,7 +47,7 @@ const router = createBrowserRouter([
         <Home />
       </>
     ),
-    errorElement: <ErrorPage />,  
+    errorElement: <ErrorPage />,
   },
   {
     path: "/login",
@@ -104,7 +102,7 @@ const router = createBrowserRouter([
       </>
     ),
   },
-  
+
   {
     path: "/serviceorderhistory",
     element: (
@@ -114,7 +112,7 @@ const router = createBrowserRouter([
       </>
     ),
   },
-  
+
   {
     path: "/serviceorderhistory/detail/:id",
     element: (
@@ -148,6 +146,15 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <CartPage />
+      </>
+    ),
+  },
+  {
+    path: "/cart/checkout",
+    element: (
+      <>
+        <ScrollToTop /> 
+        <Checkout />
       </>
     ),
   },

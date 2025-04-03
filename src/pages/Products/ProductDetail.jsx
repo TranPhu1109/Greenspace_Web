@@ -261,6 +261,15 @@ const ProductDetail = () => {
                         currency: "VND",
                       })}
                     </div>
+                    <div className="quantity-selector" style={{ margin: '16px 0' }}>
+                      <span style={{ marginRight: '8px' }}>Số lượng:</span>
+                      <InputNumber 
+                        min={1} 
+                        max={product.stock} 
+                        defaultValue={1} 
+                        onChange={(value) => setQuantity(value)}
+                      />
+                    </div>
                     <Paragraph className="product-description">
                       {product.description}
                     </Paragraph>
