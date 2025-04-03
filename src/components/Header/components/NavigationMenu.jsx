@@ -24,6 +24,17 @@ function NavigationMenu({ user }) {
     },
   ];
 
+  const historyMenuItems = [
+    {
+      key: 'product-history',
+      label: <Link to="/orderhistory">Lịch sử đặt sản phẩm</Link>,
+    },
+    {
+      key: 'service-history',
+      label: <Link to="/serviceorderhistory">Lịch sử đặt dịch vụ</Link>,
+    },
+  ];
+
   const menuItems = React.useMemo(() => [
     { key: "home", label: "Trang chủ", path: "/home" },
     {
@@ -42,8 +53,21 @@ function NavigationMenu({ user }) {
       path: "/designs"
     },
     { key: "products", label: "Sản phẩm", path: "/products" },
-    { key: "serviceOrder", label: "Lịch sử đặt hàng", path: "/serviceorderhistory" },
-
+    {
+      key: "orderHistory",
+      label: (
+        <Dropdown
+          menu={{ items: historyMenuItems }}
+          placement="bottom"
+          overlayClassName="history-dropdown"
+        >
+          <span className="dropdown-link">
+            Lịch sử đặt hàng <DownOutlined />
+          </span>
+        </Dropdown>
+      ),
+      path: "/orderhistory"
+    },
     { key: "about", label: "Giới thiệu", path: "/about" },
   ], []);
 
@@ -52,6 +76,7 @@ function NavigationMenu({ user }) {
     if (path === '/designs') {
       return location.pathname.includes('/design');
     }
+
 
     return location.pathname === path;
   }, [location.pathname]);
@@ -93,7 +118,7 @@ function NavigationMenu({ user }) {
                   }`}
                 >
 
-                  {item.key === "design" ? (
+                  {item.key === "design" || item.key === "orderHistory" ? (
                     item.label
                   ) : (
                     <Link to={item.path} className="nav-link">
@@ -139,4 +164,4 @@ NavigationMenu.defaultProps = {
   user: null,
 };
 
-export default React.memo(NavigationMenu); 
+export default React.memo(NavigationMenu);
