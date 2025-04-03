@@ -77,23 +77,28 @@ const useOrderStore = create((set, get) => ({
     set({ selectedOrder: order });
   },
   
-  updateOrderStatus: async (id, newStatus, note = '') => {
+  updateOrderStatus: async (id, data) => {
     set({ isLoading: true, error: null });
     try {
-      // Trong thực tế sẽ gọi API để cập nhật
-      const updatedOrders = get().orders.map(order => 
-        order.id === id ? { ...order, status: newStatus } : order
-      );
-      
-      set({ 
-        orders: updatedOrders,
-        selectedOrder: get().selectedOrder?.id === id ? 
-          { ...get().selectedOrder, status: newStatus } : 
-          get().selectedOrder,
-        isLoading: false 
-      });
-      
-      return true;
+      // Gọi API để cập nhật trạng thái đơn hàng
+      const response = await axios.put(`/api/orderproducts/status/${id}`, data);
+
+      if (response.status === 200) {
+        const updatedOrders = get().orders.map(order => 
+          order.id === id ? { ...order, status: data.status } : order
+        );
+        
+        set({ 
+          orders: updatedOrders,
+          selectedOrder: get().selectedOrder?.id === id ? 
+            { ...get().selectedOrder, status: data.status } : 
+            get().selectedOrder,
+          isLoading: false 
+        });
+        
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error updating order status:', error);
       set({ error: error.message, isLoading: false });

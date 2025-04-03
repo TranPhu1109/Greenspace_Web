@@ -35,8 +35,8 @@ const OrdersTable = ({
 products,
 }) => {
   const navigate = useNavigate();
-  const { updateOrderStatus } = useOrderStore();
-  const { createShippingOrder } = useShippingStore();
+  const { updateOrderStatus, fetchOrders } = useOrderStore();
+  const { createShippingOrder, order_code } = useShippingStore();
   const { getBasePath } = useRoleBasedPath();
 
   const handleViewOrderDetail = (record) => {
@@ -79,14 +79,27 @@ products,
             })
           };
 
-          await createShippingOrder(shippingData);
-
-          // Cập nhật trạng thái đơn hàng
-          const success = await updateOrderStatus(record.id, "2");
-          if (success) {
-            message.success(`Đã nhận đơn hàng ${record.id}`);
+          const shippingResponse = await createShippingOrder(shippingData);
+          console.log('shippingResponse', shippingResponse);
+          
+          if (shippingResponse.data?.code === 200) {
+            // Cập nhật trạng thái đơn hàng với mã vận đơn
+            console.log('record.id', record.id);
+            console.log('deliveryCode', shippingResponse.data?.data?.order_code);
+            
+            const success = await updateOrderStatus(record.id, {
+              status: 1,
+              deliveryCode: shippingResponse.data?.data?.order_code
+            });
+            
+            if (success) {
+              message.success(`Đã nhận đơn hàng ${record.id}`);
+              fetchOrders(); // Gọi lại fetchOrders để cập nhật danh sách đơn hàng
+            } else {
+              throw new Error('Không thể cập nhật trạng thái đơn hàng');
+            }
           } else {
-            throw new Error('Không thể cập nhật trạng thái đơn hàng');
+            throw new Error('Tạo đơn vận chuyển thất bại');
           }
         } catch (error) {
           message.error(error.message || "Có lỗi xảy ra khi xử lý đơn hàng");
@@ -176,25 +189,45 @@ products,
       render: (status) => {
         let color;
         switch (status) {
-          case "1":
+          case "0":
             color = "warning";
-            status = "Chờ xác nhận";
+            status = "Chờ xử lý";
+            break;
+          case "1":
+            color = "processing";
+            status = "Đang xử lý";
             break;
           case "2":
-            color = "processing";
-            status = "Đã xác nhận";
+            color = "blue";
+            status = "Đã xử lý";
             break;
           case "3":
-            color = "blue";
-            status = "Đang giao hàng";
-            break;
-          case "4":
-            color = "success";
-            status = "Đã giao hàng";
-            break;
-          case "5":
             color = "error";
             status = "Đã hủy";
+            break;
+          case "4":
+            color = "purple";
+            status = "Đã hoàn tiền";
+            break;
+          case "5":
+            color = "cyan";
+            status = "Đã hoàn tiền xong";
+            break;
+          case "6":
+            color = "geekblue";
+            status = "Đã lấy hàng & đang giao";
+            break;
+          case "7":
+            color = "red";
+            status = "Giao hàng thất bại";
+            break;
+          case "8":
+            color = "orange";
+            status = "Giao lại";
+            break;
+          case "9":
+            color = "success";
+            status = "Đã giao hàng thành công";
             break;
           default:
             color = "default";
@@ -233,7 +266,7 @@ products,
 
               <Button
                 type="primary"
-                disabled={record.status !== "1"}
+                disabled={record.status !== "0"}
                 onClick={(e) => handleAcceptOrder(e, record)}
                 style={{
                   marginBottom: "5px",
@@ -245,7 +278,7 @@ products,
               </Button>
               <Button
                 danger
-                disabled={record.status !== "1"}
+                disabled={record.status !== "0"}
                 onClick={(e) => handleRejectOrder(e, record)}
                 style={{
                   marginBottom: "5px",
