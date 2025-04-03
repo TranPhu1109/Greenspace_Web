@@ -160,6 +160,36 @@ const useWalletStore = create(persist((set, get) => ({
     }
   },
 
+  // Create new bill
+  createBill: async (serviceOrderId, amount) => {
+    try {
+      set({ loading: true, error: null });
+      const walletId = get().walletId;
+      
+      if (!walletId) {
+        throw new Error('Không tìm thấy thông tin ví');
+      }
+
+      const billData = {
+        walletId: walletId,
+        orderId: null,
+        serviceOrderId: serviceOrderId,
+        amount: amount,
+        description: "Thanh toán đơn hàng"
+      };
+
+      const response = await axios.post('/api/bill', billData);
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      set({ 
+        loading: false, 
+        error: error.response?.data?.message || 'Có lỗi xảy ra khi tạo hóa đơn' 
+      });
+      throw error;
+    }
+  },
+
   // Reset state
   reset: () => {
     set({

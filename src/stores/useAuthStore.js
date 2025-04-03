@@ -127,6 +127,10 @@ const useAuthStore = create(
           // Reset wallet store state
           const walletStore = (await import('./useWalletStore')).default;
           walletStore.getState().reset();
+
+          // Reset design order store state
+          const designOrderStore = (await import('./useDesignOrderStore')).default;
+          designOrderStore.getState().reset();
         } catch (err) {
           console.error("Logout error:", err);
           throw err;

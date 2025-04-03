@@ -12,6 +12,7 @@ import {
   Button,
   Divider,
   message,
+  Image,
 } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -39,7 +40,7 @@ const { Title, Text } = Typography;
 const OrderHistoryDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { designOrders, isLoading, fetchDesignOrders, updateStatus } = useDesignOrderStore();
+  const { selectedOrder, isLoading, getDesignOrderById, updateStatus } = useDesignOrderStore();
   const { fetchDesignIdeaById } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
   
@@ -48,23 +49,23 @@ const OrderHistoryDetail = () => {
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const order = designOrders?.find(order => order.id === id);
+  const componentId = React.useRef('order-detail');
 
   const fetchDetails = useCallback(async () => {
-    if (!order) return;
+    if (!selectedOrder) return;
 
     try {
       setLoadingDetails(true);
       
-      // Fetch design idea
-      if (order.designIdeaId) {
-        const designData = await fetchDesignIdeaById(order.designIdeaId);
+      // Fetch design idea only if status is not Pending
+      if (selectedOrder.designIdeaId && selectedOrder.status !== "Pending") {
+        const designData = await fetchDesignIdeaById(selectedOrder.designIdeaId);
         setDesignIdea(designData);
       }
 
       // Fetch products
-      if (order.serviceOrderDetails?.length > 0) {
-        const productPromises = order.serviceOrderDetails.map(detail => 
+      if (selectedOrder.serviceOrderDetails?.length > 0) {
+        const productPromises = selectedOrder.serviceOrderDetails.map(detail => 
           getProductById(detail.productId)
         );
         const productsData = await Promise.all(productPromises);
@@ -75,7 +76,13 @@ const OrderHistoryDetail = () => {
     } finally {
       setLoadingDetails(false);
     }
-  }, [order, fetchDesignIdeaById, getProductById]);
+  }, [selectedOrder, fetchDesignIdeaById, getProductById]);
+
+  useEffect(() => {
+    if (id) {
+      getDesignOrderById(id, componentId.current);
+    }
+  }, [id, getDesignOrderById]);
 
   useEffect(() => {
     fetchDetails();
@@ -84,34 +91,16 @@ const OrderHistoryDetail = () => {
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      await fetchDesignOrders();
+      await getDesignOrderById(id, componentId.current);
       await fetchDetails();
-      message.success('Đã cập nhật thông tin đơn hàng');
+      //message.success('Đã cập nhật thông tin đơn hàng');
     } catch (error) {
-      message.error('Không thể cập nhật thông tin đơn hàng');
+      //message.error('Không thể cập nhật thông tin đơn hàng');
+      console.log(error);
+      
     } finally {
       setRefreshing(false);
     }
-  };
-
-  const getStatusTag = (status) => {
-    const statusConfig = {
-      Pending: { color: 'orange', text: 'Chờ xác nhận' },
-      Confirmed: { color: 'green', text: 'Đã xác nhận' },
-      Cancelled: { color: 'red', text: 'Đã hủy' },
-    };
-    const config = statusConfig[status] || statusConfig.Pending;
-    return <Tag color={config.color}>{config.text}</Tag>;
-  };
-
-  const getCustomTag = (isCustom) => {
-    const customConfig = {
-      false: { color: 'blue', text: 'Không tùy chỉnh' },
-      true: { color: 'green', text: 'Tùy chỉnh' },
-      'full': { color: 'purple', text: 'Tùy chỉnh hoàn toàn' }
-    };
-    const config = customConfig[isCustom] || customConfig.false;
-    return <Tag color={config.color}>{config.text}</Tag>;
   };
 
   const formatPrice = (price) => {
@@ -180,7 +169,7 @@ const OrderHistoryDetail = () => {
     );
   }
 
-  if (!order) {
+  if (!selectedOrder) {
     return (
       <Layout className="order-detail-layout">
         <Header />
@@ -209,38 +198,37 @@ const OrderHistoryDetail = () => {
           <Card className="order-detail-card">
             <Space direction="vertical" size={24} style={{ width: '100%' }}>
               {/* Header */}
-              <Space direction="horizontal" align="center" justify="space-between" style={{ width: '100%' }}>
-                <Title level={2}>Chi tiết đơn hàng #{id.slice(0, 8)}</Title>
+              <Space direction="horizontal" align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
                 <Space>
-                  <Button 
-                    icon={<ReloadOutlined />} 
-                    onClick={handleRefresh}
-                    loading={refreshing}
-                  >
-                    Làm mới
-                  </Button>
-                  {getCustomTag(order.isCustom)}
-                  {getStatusTag(order.status)}
+                  <Title level={2}>Chi tiết đơn hàng #{id.slice(0, 8)}</Title>
+                  
                 </Space>
+                <Button 
+                  icon={<ReloadOutlined />} 
+                  onClick={handleRefresh}
+                  loading={refreshing}
+                >
+                  Làm mới
+                </Button>
               </Space>
 
               {/* Customer Information */}
               <Card title="Thông tin khách hàng" type="inner">
                 <Descriptions column={{ xs: 1, sm: 2, md: 3 }}>
                   <Descriptions.Item label={<><UserOutlined /> Tên khách hàng</>}>
-                    {order.userName}
+                    {selectedOrder.userName}
                   </Descriptions.Item>
                   <Descriptions.Item label={<><MailOutlined /> Email</>}>
-                    {order.email}
+                    {selectedOrder.email}
                   </Descriptions.Item>
                   <Descriptions.Item label={<><PhoneOutlined /> Số điện thoại</>}>
-                    {order.cusPhone}
+                    {selectedOrder.cusPhone}
                   </Descriptions.Item>
                   <Descriptions.Item label={<><EnvironmentOutlined /> Địa chỉ</>}>
-                    {order.address}
+                    {selectedOrder.address}
                   </Descriptions.Item>
                   <Descriptions.Item label={<><ClockCircleOutlined /> Ngày đặt</>}>
-                    {new Date(order.creationDate).toLocaleDateString('vi-VN', {
+                    {new Date(selectedOrder.creationDate).toLocaleDateString('vi-VN', {
                       year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',
@@ -269,13 +257,13 @@ const OrderHistoryDetail = () => {
                     <Descriptions.Item label="Mô tả">
                       {designIdea.description || 'Không có mô tả'}
                     </Descriptions.Item>
-                    {order.length > 0 && order.width > 0 && (
+                    {selectedOrder.length > 0 && selectedOrder.width > 0 && (
                       <>
                         <Descriptions.Item label="Chiều dài">
-                          {order.length}m
+                          {selectedOrder.length}m
                         </Descriptions.Item>
                         <Descriptions.Item label="Chiều rộng">
-                          {order.width}m
+                          {selectedOrder.width}m
                         </Descriptions.Item>
                       </>
                     )}
@@ -292,6 +280,75 @@ const OrderHistoryDetail = () => {
                 </Card>
               )}
 
+              {/* Design Images Section */}
+              {designIdea && selectedOrder.status !== "Pending" && (
+                <Card 
+                  title={
+                    <Space>
+                      <BulbOutlined />
+                      <span>Danh sách bản vẽ thiết kế</span>
+                    </Space>
+                  } 
+                  type="inner"
+                >
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: '16px',
+                    padding: '16px'
+                  }}>
+                    {designIdea.designImage1URL && (
+                      <div>
+                        <Image
+                          src={designIdea.designImage1URL}
+                          alt="Bản vẽ thiết kế 1"
+                          style={{ width: '100%', height: 'auto' }}
+                          preview={{
+                            mask: 'Phóng to',
+                            maskClassName: 'custom-mask'
+                          }}
+                        />
+                        <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                          <Text type="secondary">Bản vẽ thiết kế 1</Text>
+                        </div>
+                      </div>
+                    )}
+                    {designIdea.designImage2URL && (
+                      <div>
+                        <Image
+                          src={designIdea.designImage2URL}
+                          alt="Bản vẽ thiết kế 2"
+                          style={{ width: '100%', height: 'auto' }}
+                          preview={{
+                            mask: 'Phóng to',
+                            maskClassName: 'custom-mask'
+                          }}
+                        />
+                        <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                          <Text type="secondary">Bản vẽ thiết kế 2</Text>
+                        </div>
+                      </div>
+                    )}
+                    {designIdea.designImage3URL && (
+                      <div>
+                        <Image
+                          src={designIdea.designImage3URL}
+                          alt="Bản vẽ thiết kế 3"
+                          style={{ width: '100%', height: 'auto' }}
+                          preview={{
+                            mask: 'Phóng to',
+                            maskClassName: 'custom-mask'
+                          }}
+                        />
+                        <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                          <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
               {/* Order Details */}
               <Card 
                 title={
@@ -302,7 +359,7 @@ const OrderHistoryDetail = () => {
                 } 
                 type="inner"
               >
-                {order.isCustom ? (
+                {selectedOrder.isCustom ? (
                   <div style={{ textAlign: 'center', padding: '20px' }}>
                     <Text type="secondary" style={{ 
                       fontSize: '18px',
@@ -320,7 +377,7 @@ const OrderHistoryDetail = () => {
                 ) : (
                   <Table
                     columns={productColumns}
-                    dataSource={order.serviceOrderDetails}
+                    dataSource={selectedOrder.serviceOrderDetails}
                     pagination={false}
                     rowKey="productId"
                     summary={() => (
@@ -333,7 +390,7 @@ const OrderHistoryDetail = () => {
                             <Text strong>Phí thiết kế:</Text>
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>{formatPrice(order.designPrice)}</Text>
+                            <Text type="success" strong>{formatPrice(selectedOrder.designPrice)}</Text>
                           </Table.Summary.Cell>
                         </Table.Summary.Row>
                         <Table.Summary.Row>
@@ -342,7 +399,7 @@ const OrderHistoryDetail = () => {
                             <Text strong>Phí vật liệu:</Text>
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>{formatPrice(order.materialPrice)}</Text>
+                            <Text type="success" strong>{formatPrice(selectedOrder.materialPrice)}</Text>
                           </Table.Summary.Cell>
                         </Table.Summary.Row>
                         <Table.Summary.Row>
@@ -352,7 +409,18 @@ const OrderHistoryDetail = () => {
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3}>
                             <Text type="danger" strong style={{ fontSize: '16px' }}>
-                              {formatPrice(order.designPrice + order.materialPrice)}
+                              {formatPrice(selectedOrder.designPrice + selectedOrder.materialPrice)}
+                            </Text>
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0} colSpan={2} />
+                          <Table.Summary.Cell index={2}>
+                            <Text strong>Đã thanh toán:</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={3}>
+                            <Text type='danger' strong style={{ fontSize: '26px' }}>
+                              {formatPrice(selectedOrder.designPrice + selectedOrder.materialPrice)}
                             </Text>
                           </Table.Summary.Cell>
                         </Table.Summary.Row>
@@ -364,7 +432,7 @@ const OrderHistoryDetail = () => {
 
               {/* Status Tracking */}
               <Card title="Trạng thái đơn hàng" type="inner">
-                <StatusTracking currentStatus={order.status} />
+                <StatusTracking currentStatus={selectedOrder.status} />
               </Card>
 
               {/* Actions */}

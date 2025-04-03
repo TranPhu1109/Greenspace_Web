@@ -32,10 +32,9 @@ const StatusTracking = ({ currentStatus }) => {
         items={orderStatuses.map((status, index) => ({
           title: status.title,
           status: index === currentStatusIndex 
-            ? 'process'
-            : index < currentStatusIndex 
-              ? 'finish' 
-              : 'wait'
+            ? (currentStatus === 'OrderCancelled' ? 'error' : 'process')
+            : 'wait',
+          icon: currentStatus === 'OrderCancelled' ? null : undefined  // Remove check mark for cancelled orders
         }))}
       />
     </div>

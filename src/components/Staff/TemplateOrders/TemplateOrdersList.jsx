@@ -84,13 +84,55 @@ const TemplateOrdersList = () => {
           : true)
     );
 
-  const statusOptions = [
-    { value: "Pending", label: "Chờ xử lý" },
-    { value: "Processing", label: "Đang xử lý" },
-    { value: "Completed", label: "Hoàn thành" },
-    { value: "Cancelled", label: "Đã hủy" },
-  ];
+  const getStatusDisplay = (status) => {
+    switch (status) {
+      case "Pending":
+        return "Chờ xử lý";
+      case "PaymentSuccess":
+        return "Đã thanh toán";
+      case "Processing":
+        return "Đang xử lý";
+      case "PickedPackageAndDelivery":
+        return "Đang giao hàng";
+      case "DeliveryFail":
+        return "Giao hàng thất bại";
+      case "ReDelivery":
+        return "Giao hàng lại";
+      case "DeliveredSuccessfully":
+        return "Đã giao hàng";
+      case "CompleteOrder":
+        return "Hoàn thành";
+      case "OrderCancelled":
+        return "Đã hủy";
+      default:
+        return "Không xác định";
+    }
+  };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending":
+        return "default";
+      case "PaymentSuccess":
+        return "processing";
+      case "Processing":
+        return "processing";
+      case "PickedPackageAndDelivery":
+        return "processing";
+      case "DeliveryFail":
+        return "error";
+      case "ReDelivery":
+        return "warning";
+      case "DeliveredSuccessfully":
+        return "success";
+      case "CompleteOrder":
+        return "success";
+      case "OrderCancelled":
+        return "error";
+      default:
+        return "default";
+    }
+  };
 
   const handleAssignOrder = (order) => {
     setSelectedOrder(order);
@@ -122,6 +164,18 @@ const TemplateOrdersList = () => {
     setIsRejectModalVisible(false);
   };
 
+  const statusOptions = [
+    { value: "Pending", label: "Chờ xử lý" },
+    { value: "PaymentSuccess", label: "Đã thanh toán" },
+    { value: "Processing", label: "Đang xử lý" },
+    { value: "PickedPackageAndDelivery", label: "Đang giao hàng" },
+    { value: "DeliveryFail", label: "Giao hàng thất bại" },
+    { value: "ReDelivery", label: "Giao hàng lại" },
+    { value: "DeliveredSuccessfully", label: "Đã giao hàng" },
+    { value: "CompleteOrder", label: "Hoàn thành" },
+    { value: "OrderCancelled", label: "Đã hủy" }
+  ];
+
   const columns = [
     {
       title: "Mã đơn",
@@ -147,15 +201,24 @@ const TemplateOrdersList = () => {
     },
     {
       title: "Tổng tiền",
-      dataIndex: "totalCost",
       key: "totalCost",
-      render: (value) => `${value.toLocaleString()}đ`,
+      render: (_, record) => {
+        const totalCost = (record.designPrice || 0) + (record.materialPrice || 0);
+        return totalCost.toLocaleString("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        });
+      },
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => <StatusTag status={status.toLowerCase()} />,
+      render: (status) => (
+        <Tag color={getStatusColor(status)}>
+          {getStatusDisplay(status)}
+        </Tag>
+      ),
     },
     {
       title: "Thao tác",
