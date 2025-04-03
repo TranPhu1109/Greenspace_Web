@@ -48,9 +48,12 @@ const AdminLayout = () => {
 
   useEffect(() => {
     const savedRole = localStorage.getItem("selectedRole");
-    if (savedRole) {
+    const location = window.location.pathname;
+    if (savedRole && location === `/${savedRole}`) {
       setRole(savedRole);
       navigate(`/${savedRole}/dashboard`);
+    } else if (savedRole) {
+      setRole(savedRole);
     }
   }, []);
 

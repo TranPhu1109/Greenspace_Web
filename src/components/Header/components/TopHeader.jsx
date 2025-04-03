@@ -11,7 +11,7 @@ function TopHeader({ user, scrolled, cartItems }) {
   const navigate = useNavigate();
 
   const getCartItemsCount = React.useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
+    return cartItems?.length || 0;
   }, [cartItems]);
 
   const handleCartClick = (e) => {
@@ -76,11 +76,11 @@ TopHeader.propTypes = {
     avatar: PropTypes.string,
   }),
   scrolled: PropTypes.bool.isRequired,
-  cartItems: PropTypes.arrayOf(
-    PropTypes.shape({
-      quantity: PropTypes.number.isRequired,
-    })
-  ).isRequired,
+  // cartItems: PropTypes.arrayOf(
+  //   PropTypes.shape({
+  //     // id: PropTypes.string,
+  //   })
+  // ).isRequired,
 };
 
 TopHeader.defaultProps = {
@@ -88,4 +88,4 @@ TopHeader.defaultProps = {
   cartItems: [],
 };
 
-export default React.memo(TopHeader); 
+export default React.memo(TopHeader);

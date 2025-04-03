@@ -60,6 +60,10 @@ const useAuthStore = create(
           if (userData.roleName === 'Customer') {
             const walletStore = (await import('./useWalletStore')).default;
             await walletStore.getState().fetchBalance();
+            
+            // Fetch cart items after successful login
+            const cartStore = (await import('./useCartStore')).default;
+            await cartStore.getState().fetchCartItems();
           }
           
           return userToStore;

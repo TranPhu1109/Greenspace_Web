@@ -14,19 +14,28 @@ const { Title, Text } = Typography;
 const CartPage = () => {
   const navigate = useNavigate();
   const { cartItems, loading, fetchCartItems, removeFromCart, updateQuantity, checkout } = useCartStore();
-  const { balance } = useWalletStore();
+  const { balance, fetchBalance } = useWalletStore();
 
   useEffect(() => {
+    fetchBalance();
     fetchCartItems();
   }, [fetchCartItems]);
+
+  console.log('cartItems:', cartItems);
 
   const handleQuantityChange = async (productId, quantity) => {
     if (quantity < 1) return;
     await updateQuantity(productId, quantity);
+    fetchCartItems();
   };
 
+
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => {
+      const price = item?.price || 0;
+      const quantity = item?.quantity || 0;
+      return total + (price * quantity);
+    }, 0);
   };
 
   const handleCheckout = async () => {
@@ -36,13 +45,8 @@ const CartPage = () => {
       return;
     }
 
-    try {
-      await checkout();
-      message.success('Thanh toán thành công');
-      navigate('/orders');
-    } catch (error) {
-      // Error handling is done in the store
-    }
+    // Chuyển hướng đến trang thanh toán
+    navigate('/cart/checkout');
   };
 
   const columns = [
@@ -52,11 +56,15 @@ const CartPage = () => {
       key: 'name',
       render: (text, record) => (
         <Space>
-          <img 
-            src={record.image.imageUrl} 
-            alt={text} 
-            style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} 
-          />
+          {record.image ? (
+            <img 
+              src={record.image?.imageUrl || ''} 
+              alt={text} 
+              style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} 
+            />
+          ) : (
+            <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', borderRadius: 4 }} />
+          )}
           <Text>{text}</Text>
         </Space>
       ),
@@ -65,7 +73,7 @@ const CartPage = () => {
       title: 'Giá',
       dataIndex: 'price',
       key: 'price',
-      render: (price) => `${price.toLocaleString('vi-VN')}đ`,
+      render: (price) => `${(price || 0).toLocaleString('vi-VN')}đ`,
     },
     {
       title: 'Số lượng',
@@ -82,7 +90,7 @@ const CartPage = () => {
     {
       title: 'Tổng',
       key: 'total',
-      render: (_, record) => `${(record.price * record.quantity).toLocaleString('vi-VN')}đ`,
+      render: (_, record) => `${((record?.price || 0) * (record?.quantity || 0)).toLocaleString('vi-VN')}đ`,
     },
     {
       title: 'Thao tác',
@@ -173,4 +181,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage; 
+export default CartPage;
