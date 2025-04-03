@@ -3,6 +3,7 @@ import api from '../api/api';
 
 const useShippingStore = create((set) => ({
   shippingFee: 0,
+  order_code: '',
   loading: false,
   error: null,
 
@@ -19,6 +20,25 @@ const useShippingStore = create((set) => ({
     } catch (error) {
       set({ error: error.message });
       console.error('Error calculating shipping fee:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  createShippingOrder: async (shippingData) => {
+    try {
+      set({ loading: true, error: null });
+      const response = await api.post('/api/shipping/create-order', shippingData);
+      
+      if (response.data?.data?.code === 200) {
+        set({ order_code: response.data.data.data.order_code });
+        return response.data;
+      }
+      throw new Error('Không thể tạo đơn vận chuyển');
+    } catch (error) {
+      set({ error: error.message });
+      console.error('Error creating shipping order:', error);
       throw error;
     } finally {
       set({ loading: false });

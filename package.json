@@ -39,6 +39,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary-react": "^1.8.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "dompurify": "^3.2.4",
     "file-saver": "^2.0.5",

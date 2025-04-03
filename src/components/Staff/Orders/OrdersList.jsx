@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Typography, Row, Col, Alert } from "antd";
 import useOrderStore from "../../../stores/orderStore";
+import useProductStore from "../../../stores/useProductStore";
 import OrdersTable from "./components/OrdersTable";
 import OrdersFilter from "./components/OrdersFilter";
 
@@ -8,6 +9,7 @@ const { Title } = Typography;
 
 const OrdersList = () => {
   const { orders, isLoading, error, fetchOrders } = useOrderStore();
+  const { products, fetchProducts } = useProductStore();
   const [searchText, setSearchText] = useState("");
   const [filterStatus, setFilterStatus] = useState(null);
   const [filterPayment, setFilterPayment] = useState(null);
@@ -15,10 +17,11 @@ const OrdersList = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
-  // Fetch orders khi component mount
+  // Fetch orders và products khi component mount
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+    fetchProducts();
+  }, [fetchOrders, fetchProducts]);
 
   // Lọc dữ liệu khi orders, searchText, filterStatus, filterPayment hoặc dateRange thay đổi
   useEffect(() => {
@@ -71,9 +74,9 @@ const OrdersList = () => {
         className="mb-4"
       />
     );
-        }
+  }
 
-        return (
+  return (
     <div className="w-full">
       <Card className="shadow-sm rounded-lg">
         <Title level={4} className="mb-6">Danh sách đơn hàng</Title>
@@ -91,6 +94,7 @@ const OrdersList = () => {
         
         <OrdersTable 
           data={filteredData}
+          products={products}
           isLoading={isLoading}
           expandedRowKeys={expandedRowKeys}
           setExpandedRowKeys={setExpandedRowKeys}

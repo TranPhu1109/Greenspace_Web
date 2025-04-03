@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  Card, 
-  Descriptions, 
-  Table, 
-  Tag, 
-  Button, 
-  Space, 
-  Divider, 
-  Typography, 
+import {
+  Card,
+  Descriptions,
+  Table,
+  Tag,
+  Button,
+  Space,
+  Divider,
+  Typography,
   Steps,
-  Row, 
+  Row,
   Col,
   Spin,
   message,
@@ -21,8 +21,8 @@ import {
   DatePicker,
   Alert,
 } from "antd";
-import { 
-  ArrowLeftOutlined, 
+import {
+  ArrowLeftOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   DollarOutlined,
@@ -274,6 +274,8 @@ const OrderDetail = () => {
     orderStatus,
     details = [],
     payment,
+    shipPrice = 0,
+    totalAmount = 0,
   } = selectedOrder;
 
   // Tính tổng tiền
@@ -282,18 +284,17 @@ const OrderDetail = () => {
       (sum, item) => sum + Number(item.price) * item.quantity,
       0
     ) || 0;
-  const shippingFee = 0; // Giả sử phí vận chuyển là 0 nếu không có trong API
-  const discount = 0; // Giả sử giảm giá là 0 nếu không có trong API
-  const total = subtotal + shippingFee - discount;
+  const shippingFee = shipPrice || 0;
+  const total = totalAmount || subtotal + shippingFee;
 
   return (
     <div className="order-detail-container">
       {/* Header */}
       <Card className="page-header-card">
         <div className="page-header">
-            <Button 
+          <Button
             type="default"
-              icon={<ArrowLeftOutlined />} 
+            icon={<ArrowLeftOutlined />}
             onClick={handleBack}
             className="back-button"
           />
@@ -329,7 +330,7 @@ const OrderDetail = () => {
               >
                 {customer.name}
               </Descriptions.Item>
-              <Descriptions.Item
+              {/* <Descriptions.Item
                 label={
                   <span style={{ fontWeight: "bold" }}>
                     <MailOutlined /> Email
@@ -337,7 +338,7 @@ const OrderDetail = () => {
                 }
               >
                 {customer.email}
-              </Descriptions.Item>
+              </Descriptions.Item> */}
               <Descriptions.Item
                 label={
                   <span style={{ fontWeight: "bold" }}>
@@ -366,56 +367,43 @@ const OrderDetail = () => {
                 {customer.address}
               </Descriptions.Item>
             </Descriptions>
-        
-        <Divider />
-        
+
+            <Divider />
+
             <div className="order-items">
               <Title level={5}>Sản phẩm</Title>
-        <Table 
+              <Table
                 dataSource={details}
-          columns={columns} 
-          pagination={false}
+                columns={columns}
+                pagination={false}
                 rowKey="product"
                 className="products-table"
                 summary={(pageData) => {
                   return (
                     <>
-              <Table.Summary.Row>
+                      <Table.Summary.Row>
                         <Table.Summary.Cell
                           colSpan={3}
                           className="summary-label"
                         >
                           Tạm tính
-                </Table.Summary.Cell>
+                        </Table.Summary.Cell>
                         <Table.Summary.Cell align="right">
                           {subtotal.toLocaleString("vi-VN")}đ
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
+                        </Table.Summary.Cell>
+                      </Table.Summary.Row>
                       {shippingFee > 0 && (
-              <Table.Summary.Row>
+                        <Table.Summary.Row>
                           <Table.Summary.Cell
                             colSpan={3}
                             className="summary-label"
                           >
                             Phí vận chuyển
-                </Table.Summary.Cell>
+                          </Table.Summary.Cell>
                           <Table.Summary.Cell align="right">
                             {shippingFee.toLocaleString("vi-VN")}đ
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
-                      )}
-                      {discount > 0 && (
-              <Table.Summary.Row>
-                          <Table.Summary.Cell
-                            colSpan={3}
-                            className="summary-label"
-                          >
-                            Giảm giá
-                </Table.Summary.Cell>
-                          <Table.Summary.Cell align="right">
-                            -{discount.toLocaleString("vi-VN")}đ
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
                       )}
                       <Table.Summary.Row className="total-row">
                         <Table.Summary.Cell
@@ -423,11 +411,11 @@ const OrderDetail = () => {
                           className="summary-label"
                         >
                           Tổng cộng
-                </Table.Summary.Cell>
+                        </Table.Summary.Cell>
                         <Table.Summary.Cell align="right">
                           {total.toLocaleString("vi-VN")}đ
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
+                        </Table.Summary.Cell>
+                      </Table.Summary.Row>
                     </>
                   );
                 }}
@@ -612,7 +600,7 @@ const OrderDetail = () => {
                 />
               </Steps>
             </div>
-      </Card>
+          </Card>
         </Col>
       </Row>
 
@@ -690,4 +678,4 @@ const OrderDetail = () => {
   );
 };
 
-export default OrderDetail; 
+export default OrderDetail;
