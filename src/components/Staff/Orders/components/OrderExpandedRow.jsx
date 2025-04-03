@@ -48,8 +48,11 @@ const OrderExpandedRow = ({ order }) => {
 
   // Tính tổng tiền đơn hàng
   const calculateTotal = () => {
+    if (!order || !order.details || !Array.isArray(order.details)) {
+      return 0;
+    }
     return order.details.reduce(
-      (total, item) => total + Number(item.price) * item.quantity,
+      (total, item) => total + Number(item?.price || 0) * (item?.quantity || 0),
       0
     );
   };
@@ -135,17 +138,17 @@ const OrderExpandedRow = ({ order }) => {
                 </span>
               }
             >
-              {order.customer.name}
+              {order.userName}
             </Descriptions.Item>
-            <Descriptions.Item
+            {/* <Descriptions.Item
               label={
                 <span style={{ fontWeight: "bold" }}>
                   <MailOutlined /> Email
                 </span>
               }
             >
-              {order.customer.email}
-            </Descriptions.Item>
+              {order.email}
+            </Descriptions.Item> */}
             <Descriptions.Item 
             label={
                 <span style={{ fontWeight: "bold" }}>
@@ -153,10 +156,10 @@ const OrderExpandedRow = ({ order }) => {
                 </span>
               }
             >
-              {order.customer.phone}
+              {order.phone}
             </Descriptions.Item>
             
-            <Descriptions.Item 
+            {/* <Descriptions.Item 
               label={
                 <span style={{ fontWeight: "bold" }}>
                   <MdOutlinePayments /> Phương thức thanh toán
@@ -164,11 +167,11 @@ const OrderExpandedRow = ({ order }) => {
               }
             >
               <Tag
-                color={order.payment.method === "Banking" ? "green" : "blue"}
+                color={order.payment?.method === "Banking" ? "green" : "blue"}
               >
-                {capitalizeFirstLetter(order.payment.method)}
+                {capitalizeFirstLetter(order.payment?.method || "Chưa có")}
               </Tag>
-            </Descriptions.Item>
+            </Descriptions.Item> */}
             <Descriptions.Item 
               label={
                 <span style={{ fontWeight: "bold" }}>
@@ -178,13 +181,12 @@ const OrderExpandedRow = ({ order }) => {
             >
               <Tag
                 color={
-                  order.payment.status === "đã thanh toán" ? "green" : "gold"
+                  order.payment?.status === "đã thanh toán" ? "green" : "gold"
                 }
               >
-                {capitalizeFirstLetter(order.payment.status)}
+                {capitalizeFirstLetter(order.payment?.status || "Chưa thanh toán")}
               </Tag>
             </Descriptions.Item>
-            {/* {order.payment.date && ( */}
             <Descriptions.Item 
               label={
                 <span style={{ fontWeight: "bold" }}>
@@ -192,7 +194,7 @@ const OrderExpandedRow = ({ order }) => {
                 </span>
               }
             >
-              {order.payment.date || 'Chưa thanh toán'}
+              {order.payment?.date || "Chưa thanh toán"}
             </Descriptions.Item>
             {/* )} */}
             <Descriptions.Item 
@@ -202,7 +204,7 @@ const OrderExpandedRow = ({ order }) => {
                 </span>
               }
             >
-              {order.customer.address}
+              {order.address}
             </Descriptions.Item>
           </Descriptions>
         </div>

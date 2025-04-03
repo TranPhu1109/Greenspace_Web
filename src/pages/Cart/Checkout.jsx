@@ -147,7 +147,12 @@ const Checkout = () => {
       const userId = JSON.parse(localStorage.getItem('user')).id;
       const walletStorage = JSON.parse(localStorage.getItem('wallet-storage'));
       const walletId = walletStorage.state.walletId;
-      const address = `${values.streetAddress}, ${values.ward}, ${values.district}, ${values.provinces}`;
+
+      const selectedProvince = provinces.find(p => p.value === values.provinces);
+      const selectedDistrict = districts.find(d => d.value === values.district);
+      const selectedWard = wards.find(w => w.value === values.ward);
+
+      const address = `${values.streetAddress}, ${selectedWard?.label}, ${selectedDistrict?.label}, ${selectedProvince?.label}`;
 
       // Create order using store
       const orderResponse = await createOrderProducts({

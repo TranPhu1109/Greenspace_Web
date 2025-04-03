@@ -25,6 +25,24 @@ const useShippingStore = create((set) => ({
     }
   },
 
+  createShippingOrder: async (shippingData) => {
+    try {
+      set({ loading: true, error: null });
+      const response = await api.post('/api/shipping/create-order', shippingData);
+      
+      if (response.data?.success) {
+        return response.data;
+      }
+      throw new Error('Không thể tạo đơn vận chuyển');
+    } catch (error) {
+      set({ error: error.message });
+      console.error('Error creating shipping order:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   resetShippingFee: () => set({ shippingFee: 0, error: null })
 }));
 

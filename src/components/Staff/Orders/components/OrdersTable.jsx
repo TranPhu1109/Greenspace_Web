@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import useOrderStore from "../../../../stores/orderStore";
+import useShippingStore from "../../../../stores/useShippingStore";
 import OrderExpandedRow from "./OrderExpandedRow";
 import { Popover } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
@@ -34,6 +35,7 @@ const OrdersTable = ({
 }) => {
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderStore();
+  const { createShippingOrder } = useShippingStore();
   const { getBasePath } = useRoleBasedPath();
 
   const handleViewOrderDetail = (record) => {
@@ -46,13 +48,35 @@ const OrdersTable = ({
     confirm({
       title: "Xác nhận nhận đơn hàng",
       icon: <ExclamationCircleOutlined />,
-      content: `Bạn có chắc chắn muốn nhận đơn hàng ${record.orderNumber} không?`,
+      content: `Bạn có chắc chắn muốn nhận đơn hàng ${record.id} không?`,
       onOk: async () => {
-        const success = await updateOrderStatus(record.id, "đã xác nhận");
-        if (success) {
-          message.success(`Đã nhận đơn hàng ${record.orderNumber}`);
-        } else {
-          message.error("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng");
+        try {
+          // Tạo đơn ship
+          const shippingData = {
+            toName: record.userName,
+            toPhone: record.phone,
+            toAddress: record.address,
+            toProvince: record.province,
+            toDistrict: record.district,
+            toWard: record.ward,
+            items: record.orderDetails.map(item => ({
+              name: item.productName,
+              code: item.productId,
+              quantity: item.quantity
+            }))
+          };
+
+          await createShippingOrder(shippingData);
+
+          // Cập nhật trạng thái đơn hàng
+          const success = await updateOrderStatus(record.id, "2");
+          if (success) {
+            message.success(`Đã nhận đơn hàng ${record.id}`);
+          } else {
+            throw new Error('Không thể cập nhật trạng thái đơn hàng');
+          }
+        } catch (error) {
+          message.error(error.message || "Có lỗi xảy ra khi xử lý đơn hàng");
         }
       },
     });
@@ -63,11 +87,11 @@ const OrdersTable = ({
     confirm({
       title: "Xác nhận từ chối đơn hàng",
       icon: <ExclamationCircleOutlined />,
-      content: `Bạn có chắc chắn muốn từ chối đơn hàng ${record.orderNumber} không?`,
+      content: `Bạn có chắc chắn muốn từ chối đơn hàng ${record.id} không?`,
       onOk: async () => {
-        const success = await updateOrderStatus(record.id, "đơn bị từ chối");
+        const success = await updateOrderStatus(record.id, "5");
         if (success) {
-          message.success(`Đã từ chối đơn hàng ${record.orderNumber}`);
+          message.success(`Đã từ chối đơn hàng ${record.id}`);
         } else {
           message.error("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng");
         }
@@ -86,27 +110,31 @@ const OrdersTable = ({
   const columns = [
     {
       title: "Mã đơn hàng",
-      dataIndex: "orderNumber",
-      key: "orderNumber",
-      render: (text) => <span className="font-medium">{text}</span>,
+      dataIndex: "id",
+      key: "id",
+      render: (text) => (
+        <span className="font-medium">
+          #{text.substring(0, 8)}
+        </span>
+      ),
     },
     {
       title: "Khách hàng",
-      dataIndex: ["customer", "name"],
-      key: "customerName",
+      dataIndex: "userName",
+      key: "userName",
       render: (_, record) => (
         <div className="flex flex-col">
-          <span className="font-medium">{record.customer.name}</span>
-          <span className="text-xs text-gray-500">{record.customer.phone}</span>
+          <span className="font-medium">{record.userName}</span>
+          <span className="text-xs text-gray-500">{record.phone}</span>
         </div>
       ),
     },
     {
       title: "Địa chỉ giao hàng",
-      dataIndex: ["customer", "address"],
+      dataIndex: "address",
       key: "address",
-      render: (_, record) => (
-        <span className="text-xs text-gray-500">{record.customer.address}</span>
+      render: (text) => (
+        <span className="text-xs text-gray-500">{text}</span>
       ),
     },
     {
@@ -115,70 +143,49 @@ const OrdersTable = ({
       key: "orderDate",
     },
     {
-      title: "Thanh toán",
-      key: "payment",
-      render: (_, record) => {
-        const statusColor =
-          record.payment.status === "đã thanh toán" ? "success" : "warning";
-        const methodColor =
-          record.payment.method === "COD" ? "processing" : "success";
-
-        return (
-          <div className="flex flex-row gap-1">
-            <Tag color={statusColor}>
-              {capitalizeFirstLetter(record.payment.status)}
-            </Tag>
-            <Tag color={methodColor}>
-              {capitalizeFirstLetter(record.payment.method)}
-            </Tag>
-          </div>
-        );
-      },
+      title: "Tổng tiền",
+      key: "totalAmount",
+      render: (_, record) => (
+        <div className="flex flex-col">
+          <span className="font-medium">
+            {record.totalAmount.toLocaleString("vi-VN")} đ
+          </span>
+          <span className="text-xs text-gray-500">
+            Phí ship: {record.shipPrice.toLocaleString("vi-VN")} đ
+          </span>
+        </div>
+      ),
     },
-    // {
-    //   title: "Thanh toán",
-    //   dataIndex: ["payment", "status"],
-    //   key: "paymentStatus",
-    //   render: (status) => {
-    //     const color = status === "đã thanh toán" ? "success" : "warning";
-    //     return <Tag color={color}>{capitalizeFirstLetter(status)}</Tag>;
-    //   },
-    // },
-    // {
-    //   title: "Phương thức thanh toán",
-    //   dataIndex: ["payment", "method"],
-    //   key: "paymentMethod",
-    //   render: (method) => {
-    //     const color = method === "COD" ? "processing" : "success";
-    //     return <Tag color={color}>{capitalizeFirstLetter(method)}</Tag>;
-    //   },
-    // },
     {
       title: "Trạng thái",
-      dataIndex: "orderStatus",
-      key: "orderStatus",
+      dataIndex: "status",
+      key: "status",
       render: (status) => {
         let color;
         switch (status) {
-          case "chờ xác nhận":
+          case "1":
             color = "warning";
+            status = "Chờ xác nhận";
             break;
-          case "đã xác nhận":
+          case "2":
             color = "processing";
+            status = "Đã xác nhận";
             break;
-          case "đã giao cho đơn vị vận chuyển":
-          case "đang giao hàng":
+          case "3":
             color = "blue";
+            status = "Đang giao hàng";
             break;
-          case "đã giao hàng":
+          case "4":
             color = "success";
+            status = "Đã giao hàng";
             break;
-          case "đơn bị từ chối":
-          case "đã hủy":
+          case "5":
             color = "error";
+            status = "Đã hủy";
             break;
           default:
             color = "default";
+            status = "Không xác định";
         }
 
         return <Tag color={color}>{capitalizeFirstLetter(status)}</Tag>;
@@ -213,7 +220,7 @@ const OrdersTable = ({
 
               <Button
                 type="primary"
-                disabled={record.orderStatus !== "chờ xác nhận"}
+                disabled={record.status !== "1"}
                 onClick={(e) => handleAcceptOrder(e, record)}
                 style={{
                   marginBottom: "5px",
@@ -225,7 +232,7 @@ const OrdersTable = ({
               </Button>
               <Button
                 danger
-                disabled={record.orderStatus !== "chờ xác nhận"}
+                disabled={record.status !== "1"}
                 onClick={(e) => handleRejectOrder(e, record)}
                 style={{
                   marginBottom: "5px",

@@ -12,9 +12,14 @@ const useOrderStore = create((set, get) => ({
   fetchOrders: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.get('/api/orders');
-      // API trả về mảng orders trực tiếp
-      set({ orders: response.data, isLoading: false });
+      const response = await axios.get('/api/orderProducts');
+      // Chuyển đổi dữ liệu từ API để phù hợp với cấu trúc hiện tại
+      const formattedOrders = response.data.map(order => ({
+        ...order,
+        // Thêm các trường mặc định nếu cần
+        orderDate: new Date().toLocaleDateString('vi-VN')
+      }));
+      set({ orders: formattedOrders, isLoading: false });
     } catch (error) {
       console.error('Error fetching orders:', error);
       set({ error: error.message, isLoading: false });
@@ -24,17 +29,38 @@ const useOrderStore = create((set, get) => ({
   getOrderById: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      // Tìm trong danh sách orders trước
-      const existingOrder = get().orders.find(order => order.id === id);
-      if (existingOrder) {
-        set({ selectedOrder: existingOrder, isLoading: false });
-        return;
-      }
+      // Gọi API để lấy chi tiết đơn hàng
+      const response = await axios.get(`/api/orderproducts/${id}`);
+      const orderData = response.data;
 
-      // Nếu không tìm thấy, gọi API để lấy chi tiết đơn hàng
-      const response = await axios.get(`/api/orders/${id}`);
+      // Định dạng lại dữ liệu đơn hàng
+      const formattedOrder = {
+        id: orderData.id,
+        orderNumber: orderData.id.slice(0, 8),
+        customer: {
+          name: orderData.userName,
+          email: orderData.email || '',
+          phone: orderData.phone,
+          address: orderData.address
+        },
+        orderDate: new Date().toLocaleDateString('vi-VN'),
+        orderStatus: orderData.status === '1' ? 'chờ xác nhận' : 'đã xác nhận',
+        payment: {
+          method: 'Banking',
+          status: 'chưa thanh toán',
+          date: null
+        },
+        details: orderData.orderDetails.map(detail => ({
+          product: detail.productId,
+          price: detail.price,
+          quantity: detail.quantity
+        })),
+        shipPrice: orderData.shipPrice || 0,
+        totalAmount: orderData.totalAmount || 0
+      };
+
       set({ 
-        selectedOrder: response.data,
+        selectedOrder: formattedOrder,
         isLoading: false 
       });
     } catch (error) {
@@ -56,13 +82,13 @@ const useOrderStore = create((set, get) => ({
     try {
       // Trong thực tế sẽ gọi API để cập nhật
       const updatedOrders = get().orders.map(order => 
-        order.id === id ? { ...order, orderStatus: newStatus } : order
+        order.id === id ? { ...order, status: newStatus } : order
       );
       
       set({ 
         orders: updatedOrders,
         selectedOrder: get().selectedOrder?.id === id ? 
-          { ...get().selectedOrder, orderStatus: newStatus } : 
+          { ...get().selectedOrder, status: newStatus } : 
           get().selectedOrder,
         isLoading: false 
       });
@@ -115,4 +141,4 @@ const useOrderStore = create((set, get) => ({
   }
 }));
 
-export default useOrderStore; 
+export default useOrderStore;
