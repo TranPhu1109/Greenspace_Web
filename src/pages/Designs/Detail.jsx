@@ -144,8 +144,10 @@ const DesignDetailPage = () => {
   }
 
   return (
+    <>
+    
     <Layout className="design-detail-layout">
-      <Header />
+    <Header />
       <Content>
         <div className="design-detail-hero">
           <div className="container">
@@ -284,6 +286,7 @@ const DesignDetailPage = () => {
       </Content>
       <Footer />
     </Layout>
+    </>
   );
 };
 
