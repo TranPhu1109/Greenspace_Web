@@ -32,6 +32,7 @@ const OrdersTable = ({
   isLoading,
   expandedRowKeys,
   setExpandedRowKeys,
+products,
 }) => {
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderStore();
@@ -52,18 +53,30 @@ const OrdersTable = ({
       onOk: async () => {
         try {
           // Tạo đơn ship
+          // Tách địa chỉ thành các phần
+          const addressParts = record.address.split(',').map(part => part.trim());
+          const toAddress = addressParts[0];
+          const toWard = addressParts[1];
+          const toDistrict = addressParts[2];
+          const toProvince = addressParts[3];
+
           const shippingData = {
             toName: record.userName,
             toPhone: record.phone,
-            toAddress: record.address,
-            toProvince: record.province,
-            toDistrict: record.district,
-            toWard: record.ward,
-            items: record.orderDetails.map(item => ({
-              name: item.productName,
-              code: item.productId,
-              quantity: item.quantity
-            }))
+            toAddress: toAddress,
+            toProvince: toProvince,
+            toDistrict: toDistrict,
+            toWard: toWard,
+            items: record.orderDetails.map(item => {
+              // Tìm thông tin sản phẩm từ products
+              const product = products.find(p => p.id === item.productId);
+              const productName = product ? product.name : item.productName;
+              return {
+                name: productName,
+                code: item.productId,
+                quantity: item.quantity
+              };
+            })
           };
 
           await createShippingOrder(shippingData);

@@ -26,6 +26,7 @@ import OrderHistoryDetail from "@/pages/ServiceOrder/OrderHistoryDetail";
 import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
 import OrderService from "@/pages/ServiceOrder/OrderService";
 import Checkout from "@/pages/Cart/Checkout";
+import OrderHistory from "@/pages/Order/OrderHistory";
 
 const router = createBrowserRouter([
   {
@@ -119,6 +120,15 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <OrderHistoryDetail />
+      </>
+    ),
+  },
+  {
+    path: "/orderhistory",
+    element: (
+      <>
+        <ScrollToTop />
+        <OrderHistory />
       </>
     ),
   },
