@@ -11,19 +11,10 @@ const useCartStore = create((set, get) => ({
   addToCart: async (productId, quantity = 1) => {
     try {
       set({ loading: true });
-      // Get product details first
-      const productResponse = await axios.get(`/api/product/${productId}`);
-      const product = productResponse.data;
-
-      // Get current user ID from auth store or local storage
-      const userId = localStorage.getItem('userId'); // Adjust this based on how you store user ID
       
       const cartData = {
-        userId: userId,
         items: [{
           productId: productId,
-          productName: product.name,
-          price: product.price,
           quantity: quantity
         }]
       };
@@ -113,14 +104,34 @@ const useCartStore = create((set, get) => ({
     }
   },
 
-  // Checkout cart
-  checkout: async () => {
+  // Create order
+  createOrderProducts: async (orderData) => {
     try {
       set({ loading: true });
-      const response = await axios.post('/api/cart/checkout');
-      set({ cartItems: [] }); // Clear cart after successful checkout
-      message.success('Thanh toán thành công');
-      return response.data;
+      const response = await axios.post('/api/orderproducts', orderData);
+      if (response.status === 200) {
+        return response;
+      }
+      throw new Error('Tạo đơn hàng thất bại');
+    } catch (error) {
+      message.error('Không thể tạo đơn hàng: ' + error.message);
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // Create bill
+  createBill: async (billData) => {
+    try {
+      set({ loading: true });
+      const response = await axios.post('/api/bill', billData);
+      if (response.status === 200) {
+        set({ cartItems: [] }); // Clear cart after successful payment
+        return response;
+      }
+      throw new Error('Thanh toán thất bại');
     } catch (error) {
       message.error('Thanh toán thất bại: ' + error.message);
       set({ error: error.message });

@@ -110,6 +110,7 @@ const ProductDetail = () => {
   const handleAddToCart = async () => {
     try {
       await addToCart(product.id, quantity);
+      message.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
     } catch (error) {
       // Error handling is done in the store
     }
@@ -260,6 +261,15 @@ const ProductDetail = () => {
                         style: "currency",
                         currency: "VND",
                       })}
+                    </div>
+                    <div className="quantity-selector" style={{ margin: '16px 0' }}>
+                      <span style={{ marginRight: '8px' }}>Số lượng:</span>
+                      <InputNumber 
+                        min={1} 
+                        max={product.stock} 
+                        defaultValue={1} 
+                        onChange={(value) => setQuantity(value)}
+                      />
                     </div>
                     <Paragraph className="product-description">
                       {product.description}

@@ -14,9 +14,10 @@ const { Title, Text } = Typography;
 const CartPage = () => {
   const navigate = useNavigate();
   const { cartItems, loading, fetchCartItems, removeFromCart, updateQuantity, checkout } = useCartStore();
-  const { balance } = useWalletStore();
+  const { balance, fetchBalance } = useWalletStore();
 
   useEffect(() => {
+    fetchBalance();
     fetchCartItems();
   }, [fetchCartItems]);
 
@@ -43,13 +44,8 @@ const CartPage = () => {
       return;
     }
 
-    try {
-      await checkout();
-      message.success('Thanh toán thành công');
-      navigate('/orders');
-    } catch (error) {
-      // Error handling is done in the store
-    }
+    // Chuyển hướng đến trang thanh toán
+    navigate('/cart/checkout');
   };
 
   const columns = [
@@ -59,11 +55,15 @@ const CartPage = () => {
       key: 'name',
       render: (text, record) => (
         <Space>
-          <img 
-            src={record.image.imageUrl} 
-            alt={text} 
-            style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} 
-          />
+          {record.image ? (
+            <img 
+              src={record.image?.imageUrl || ''} 
+              alt={text} 
+              style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} 
+            />
+          ) : (
+            <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', borderRadius: 4 }} />
+          )}
           <Text>{text}</Text>
         </Space>
       ),
