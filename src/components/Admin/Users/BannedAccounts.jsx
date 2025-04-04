@@ -147,11 +147,13 @@ const BannedAccounts = () => {
       <Table
         columns={columns}
         dataSource={bannedUsers
-          .filter(user =>
-            user.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchText.toLowerCase())
-          )
-          .map(user => ({ ...user, key: user.id }))}
+          ? bannedUsers
+            .filter(user =>
+              user.name.toLowerCase().includes(searchText.toLowerCase()) ||
+              user.email.toLowerCase().includes(searchText.toLowerCase())
+            )
+            .map(user => ({ ...user, key: user.id }))
+          : []}
         loading={isLoading}
       />
     </Card>

@@ -282,9 +282,6 @@ const DesignTemplates = () => {
                       <Descriptions.Item label="Danh mục">
                         {record.categoryName}
                       </Descriptions.Item>
-                      <Descriptions.Item label="Mô tả">
-                        {record.description}
-                      </Descriptions.Item>
                     </Descriptions>
                     {record.productDetails &&
                       record.productDetails.length > 0 && (

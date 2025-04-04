@@ -13,6 +13,7 @@ import {
   Divider,
   Space,
 } from "antd";
+import EditorComponent from "@/components/Common/EditorComponent";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 import { PlusOutlined } from "@ant-design/icons";
 import useProductStore from "@/stores/useProductStore";
@@ -238,20 +239,6 @@ const CreateProductModal = ({
                 ))}
               </Select>
             </Form.Item>
-
-            {/* <Form.Item
-              name="categoryId"
-              label="Danh mục"
-              rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
-            >
-              <Select placeholder="Chọn danh mục">
-                {categories.map((category) => (
-                  <Option key={category.id} value={category.id}>
-                    {category.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item> */}
           </Col>
 
           <Col span={12}>
@@ -285,19 +272,6 @@ const CreateProductModal = ({
             </Form.Item>
           </Col>
         </Row>
-
-        <Form.Item
-          name="description"
-          label="Mô tả"
-          rules={[
-            {
-              required: true,
-              message: "Vui lòng nhập mô tả!",
-            },
-          ]}
-        >
-          <Input.TextArea placeholder="Nhập mô tả" />
-        </Form.Item>
 
         {/* Image Upload Section */}
         <Row gutter={16}>
@@ -368,7 +342,22 @@ const CreateProductModal = ({
             </Form.Item>
           </Col>
         </Row>
-
+        <Form.Item
+          name="description"
+          label="Mô tả"
+          rules={[
+            {
+              required: true,
+              message: "Vui lòng nhập mô tả!",
+            },
+          ]}
+        >
+          <EditorComponent
+            value={form.getFieldValue("description") || ""}
+            onChange={(value) => form.setFieldsValue({ description: value })}
+            height={350}
+          />
+        </Form.Item>
         <Form.Item
           className="form-actions"
           style={{ textAlign: "right", marginTop: 10 }}

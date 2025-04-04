@@ -14,7 +14,7 @@ import {
   Tag,
 } from "antd";
 import { SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
@@ -44,56 +44,60 @@ const AddToCartModal = ({
       style={{
         width: 500,
         borderRadius: 8,
-        overflow: 'hidden'
+        overflow: "hidden",
       }}
     >
-      <div style={{
-        padding: "0px 10px",
-        backgroundColor: '#fff'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          margin:0,
-        }}>
+      <div
+        style={{
+          padding: "0px 10px",
+          backgroundColor: "#fff",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            margin: 0,
+          }}
+        >
           <img
             src={product?.image?.imageUrl}
             alt={product?.name}
             style={{
               width: "100%",
               height: 300,
-              objectFit: 'cover',
+              objectFit: "cover",
               borderTopRightRadius: 8,
-              borderTopLeftRadius: 8
+              borderTopLeftRadius: 8,
             }}
           />
         </div>
-        <Typography.Title 
-          level={4} 
+        <Typography.Title
+          level={4}
           style={{
             margin: "10px 0",
-            color: '#333',
-            fontWeight: 600
+            color: "#333",
+            fontWeight: 600,
           }}
         >
           {product?.name}
         </Typography.Title>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24
-        }}>
-          <Tag color="green">
-            {product?.categoryName}
-          </Tag>
-          <Typography.Title 
-            level={3} 
-            type="danger" 
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 24,
+          }}
+        >
+          <Tag color="green">{product?.categoryName}</Tag>
+          <Typography.Title
+            level={3}
+            type="danger"
             style={{
               margin: 0,
-              color: '#52c41a',
-              fontWeight: 600
+              color: "#52c41a",
+              fontWeight: 600,
             }}
           >
             {product?.price?.toLocaleString("vi-VN", {
@@ -102,29 +106,30 @@ const AddToCartModal = ({
             })}
           </Typography.Title>
         </div>
-        <Typography.Text 
-          type="secondary" 
+        <div
+          dangerouslySetInnerHTML={{ __html: product?.description }}
           style={{
             marginBottom: 16,
-            display: 'block',
-            color: '#666'
+            color: "#666",
+          }}
+        />
+
+        <div
+          style={{
+            padding: "16px 0",
+            borderTop: "1px solid #f0f0f0",
+            borderBottom: "1px solid #f0f0f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          {product?.description}
-        </Typography.Text>
-        
-        <div style={{
-          padding: '16px 0',
-          borderTop: '1px solid #f0f0f0',
-          borderBottom: '1px solid #f0f0f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Typography.Text style={{
-            color: '#333',
-            marginRight: 12
-          }}>
+          <Typography.Text
+            style={{
+              color: "#333",
+              marginRight: 12,
+            }}
+          >
             🎉 Bạn muốn thêm bao nhiêu sản phẩm này vào giỏ hàng?
           </Typography.Text>
           <InputNumber
@@ -135,25 +140,23 @@ const AddToCartModal = ({
             style={{
               width: "80px",
               height: "auto",
-              textAlign: 'right',
+              textAlign: "right",
             }}
             size="middle"
           />
         </div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: 12,
-          marginTop: 24
-        }}>
-          <Button 
-            onClick={onClose}
-          >
-            Hủy
-          </Button>
-          <Button 
-            type="primary" 
-            onClick={onConfirm} 
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 12,
+            marginTop: 24,
+          }}
+        >
+          <Button onClick={onClose}>Hủy</Button>
+          <Button
+            type="primary"
+            onClick={onConfirm}
             icon={<ShoppingCartOutlined />}
           >
             Xác nhận
@@ -165,6 +168,7 @@ const AddToCartModal = ({
 };
 
 const ProductsPage = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { products, fetchProducts, categories, fetchCategories, isLoading } =
@@ -197,21 +201,23 @@ const ProductsPage = () => {
       if (!mountedRef.current) return;
 
       try {
-        console.log('Starting to load data with componentId:', componentId);
-        console.log('Current products state:', products);
-        console.log('Current categories state:', categories);
-        
+        console.log("Starting to load data with componentId:", componentId);
+        console.log("Current products state:", products);
+        console.log("Current categories state:", categories);
+
         await Promise.all([
           fetchProducts(componentId),
-          fetchCategories(componentId)
+          fetchCategories(componentId),
         ]);
-        
-        console.log('After fetching - Products:', products);
-        console.log('After fetching - Categories:', categories);
+
+        console.log("After fetching - Products:", products);
+        console.log("After fetching - Categories:", categories);
       } catch (error) {
-        console.error('Error loading data:', error);
-        if (error.name !== 'CanceledError' && mountedRef.current) {
-          message.error("Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau.");
+        console.error("Error loading data:", error);
+        if (error.name !== "CanceledError" && mountedRef.current) {
+          message.error(
+            "Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau."
+          );
         }
       }
     };
@@ -222,9 +228,9 @@ const ProductsPage = () => {
   useEffect(() => {
     if (!mountedRef.current) return;
 
-    console.log('Filtering products - Current products:', products);
-    console.log('Current filters:', filters);
-    
+    console.log("Filtering products - Current products:", products);
+    console.log("Current filters:", filters);
+
     let result = [...products];
 
     if (filters.search) {
@@ -235,14 +241,14 @@ const ProductsPage = () => {
           product.description.toLowerCase().includes(searchLower) ||
           product.categoryName.toLowerCase().includes(searchLower)
       );
-      console.log('After search filter:', result);
+      console.log("After search filter:", result);
     }
 
     if (filters.category !== "all") {
       result = result.filter(
         (product) => product.categoryId === filters.category
       );
-      console.log('After category filter:', result);
+      console.log("After category filter:", result);
     }
 
     switch (filters.sort) {
@@ -262,7 +268,7 @@ const ProductsPage = () => {
         break;
     }
 
-    console.log('Final filtered products:', result);
+    console.log("Final filtered products:", result);
     setFilteredProducts(result);
 
     // Initialize quantities for new products
@@ -385,6 +391,11 @@ const ProductsPage = () => {
                     <Card
                       hoverable
                       className="product-card"
+                      onClick={(e) => {
+                        // Prevent navigation when clicking on action buttons
+                        if (e.target.closest(".ant-card-actions")) return;
+                        navigate(`/products/${product.id}`);
+                      }}
                       cover={
                         <img
                           alt={product.name}
@@ -416,9 +427,18 @@ const ProductsPage = () => {
                             <span className="product-category">
                               {product.categoryName}
                             </span>
-                            <p className="product-description">
-                              {product.description}
-                            </p>
+                            {/* <p className="product-description"> */}
+                              <div
+                              className="product-description"
+                                dangerouslySetInnerHTML={{
+                                  __html: product?.description,
+                                }}
+                                style={{
+                                  marginBottom: 16,
+                                  color: "#666",
+                                }}
+                              />
+                            {/* </p> */}
                             <p className="product-price">
                               {product.price.toLocaleString("vi-VN", {
                                 style: "currency",

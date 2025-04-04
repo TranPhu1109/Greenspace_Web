@@ -14,7 +14,12 @@ const { Title, Paragraph } = Typography;
 const DesignDetailPage = () => {
   const { id } = useParams();
   const componentId = useRef(`design-detail-${id}`);
-  const { currentDesign, fetchDesignIdeaById, isLoading: designLoading, error: designError } = useDesignIdeaStore();
+  const {
+    currentDesign,
+    fetchDesignIdeaById,
+    isLoading: designLoading,
+    error: designError,
+  } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
   const mountedRef = useRef(true);
   const [productDetails, setProductDetails] = useState([]);
@@ -31,14 +36,14 @@ const DesignDetailPage = () => {
   // Load design data
   const loadDesign = useCallback(async () => {
     if (!id || !mountedRef.current) return;
-    
+
     try {
-      console.log('Fetching design details for ID:', id);
+      console.log("Fetching design details for ID:", id);
       const design = await fetchDesignIdeaById(id, componentId.current);
-      console.log('Design details received:', design);
+      console.log("Design details received:", design);
     } catch (error) {
-      console.error('Error loading design:', error);
-      if (error.name !== 'CanceledError' && mountedRef.current) {
+      console.error("Error loading design:", error);
+      if (error.name !== "CanceledError" && mountedRef.current) {
         // Handle error silently
       }
     }
@@ -55,7 +60,7 @@ const DesignDetailPage = () => {
 
     const loadProducts = async () => {
       if (!isMounted) return;
-      
+
       if (!currentDesign?.productDetails?.length) {
         setProductDetails([]);
         setIsLoadingProducts(false);
@@ -64,31 +69,33 @@ const DesignDetailPage = () => {
 
       setIsLoadingProducts(true);
       setProductError(null);
-      
+
       try {
         // Create an array to store all product promises
-        const productPromises = currentDesign.productDetails.map(async (detail) => {
-          try {
-            const product = await getProductById(detail.productId);
-            
-            if (!isMounted) return null;
-            
-            if (product) {
-              return {
-                detail,
-                product
-              };
-            } else {
+        const productPromises = currentDesign.productDetails.map(
+          async (detail) => {
+            try {
+              const product = await getProductById(detail.productId);
+
+              if (!isMounted) return null;
+
+              if (product) {
+                return {
+                  detail,
+                  product,
+                };
+              } else {
+                return null;
+              }
+            } catch (error) {
               return null;
             }
-          } catch (error) {
-            return null;
           }
-        });
+        );
 
         // Wait for all promises to resolve
         const results = await Promise.all(productPromises);
-        
+
         if (isMounted) {
           const validResults = results.filter(Boolean);
           setProductDetails(validResults);
@@ -145,149 +152,174 @@ const DesignDetailPage = () => {
 
   return (
     <>
-    
-    <Layout className="design-detail-layout">
-    <Header />
-      <Content>
-        <div className="design-detail-hero">
-          <div className="container">
-            <Title level={1}>{currentDesign.name}</Title>
-            <Paragraph>{currentDesign.description}</Paragraph>
+      <Layout className="design-detail-layout">
+        <Header />
+        <Content>
+          <div className="design-detail-hero">
+            <div className="container">
+              <Title level={1}>{currentDesign.name}</Title>
+            </div>
           </div>
-        </div>
 
-        <div className="design-detail-content">
-          <div className="container">
-            <Row gutter={[24, 24]}>
-              <Col xs={24} md={16}>
-                <div className="design-images">
-                  <Card
-                    cover={
-                      <img
-                        alt={currentDesign.name}
-                        src={currentDesign.image.imageUrl}
-                        className="main-image"
-                      />
-                    }
-                  />
-                  <Row gutter={[16, 16]} className="sub-images">
-                    {currentDesign.image.image2 && (
-                      <Col span={8}>
+          <div className="design-detail-content">
+            <div className="container">
+              <Row gutter={[24, 24]}>
+                <Col xs={24} md={16}>
+                  <div className="design-images">
+                    <Card
+                      cover={
                         <img
-                          alt="Sub 1"
-                          src={currentDesign.image.image2}
-                          className="sub-image"
+                          alt={currentDesign.name}
+                          src={currentDesign.image.imageUrl}
+                          className="main-image"
                         />
-                      </Col>
-                    )}
-                    {currentDesign.image.image3 && (
-                      <Col span={8}>
-                        <img
-                          alt="Sub 2"
-                          src={currentDesign.image.image3}
-                          className="sub-image"
-                        />
-                      </Col>
-                    )}
-                  </Row>
-                </div>
-              </Col>
-
-              <Col xs={24} md={8}>
-                <Card className="design-info-card">
-                  <Title level={3}>Thông tin thiết kế</Title>
-                  <div className="price-info">
-                    <div className="price-item">
-                      <span>Giá thiết kế:</span>
-                      <span>{currentDesign.designPrice.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })}</span>
-                    </div>
-                    <div className="price-item">
-                      <span>Giá vật liệu:</span>
-                      <span>{currentDesign.materialPrice.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })}</span>
-                    </div>
-                    <div className="price-item total">
-                      <span>Tổng giá:</span>
-                      <span>{currentDesign.totalPrice.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })}</span>
-                    </div>
-                  </div>
-
-                  <div className="category-info">
-                    <Title level={4}>Danh mục</Title>
-                    <Paragraph>{currentDesign.categoryName}</Paragraph>
-                  </div>
-                  
-                  <div className="design-actions">
-                    <Link to={`/order-service/${currentDesign.id}`} state={{ isCustom: false }}>
-                      <Button type="primary" block>
-                        Mua thiết kế
-                      </Button>
-                    </Link>
-                    <Link to={`/order-service/${currentDesign.id}`} state={{ isCustom: true }}>
-                      <Button 
-                        type="default" 
-                        size="large" 
-                        block
-                        style={{ marginTop: '10px' }}
-                      >
-                        Tùy chỉnh
-                      </Button>
-                    </Link>
-                  </div>
-
-                  <div className="product-details">
-                    <Title level={4}>Chi tiết sản phẩm</Title>
-                    {isLoadingProducts ? (
-                      <div className="loading-container">
-                        <Spin />
-                      </div>
-                    ) : productError ? (
-                      <Paragraph type="danger">{productError}</Paragraph>
-                    ) : productDetails.length > 0 ? (
-                      productDetails.map(({ detail, product }) => (
-                        <div key={detail.productId} className="product-item">
-                          <div className="product-info">
-                            <img 
-                              src={product.image?.imageUrl} 
-                              alt={product.name}
-                              className="product-image"
+                      }
+                    >
+                      <Row gutter={[16, 16]} className="sub-images">
+                        {currentDesign.image.image2 && (
+                          <Col span={8}>
+                            <img
+                              alt="Sub 1"
+                              src={currentDesign.image.image2}
+                              className="sub-image"
                             />
-                            <div className="product-text">
-                              <span className="product-name">{product.name}</span>
-                              <span className="product-description">{product.description}</span>
+                          </Col>
+                        )}
+                        {currentDesign.image.image3 && (
+                          <Col span={8}>
+                            <img
+                              alt="Sub 2"
+                              src={currentDesign.image.image3}
+                              className="sub-image"
+                            />
+                          </Col>
+                        )}
+                      </Row>
+                      
+                    </Card>
+                    <Card title="Mô tả">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: currentDesign.description,
+                        }}
+                      />
+                    </Card>
+                  </div>
+                </Col>
+
+                <Col xs={24} md={8}>
+                  <Card className="design-info-card">
+                    <Title level={3}>Thông tin thiết kế</Title>
+                    <div className="price-info">
+                      <div className="price-item">
+                        <span>Giá thiết kế:</span>
+                        <span>
+                          {currentDesign.designPrice.toLocaleString("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          })}
+                        </span>
+                      </div>
+                      <div className="price-item">
+                        <span>Giá vật liệu:</span>
+                        <span>
+                          {currentDesign.materialPrice.toLocaleString("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          })}
+                        </span>
+                      </div>
+                      <div className="price-item total">
+                        <span>Tổng giá:</span>
+                        <span>
+                          {currentDesign.totalPrice.toLocaleString("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="category-info">
+                      <Title level={4}>Danh mục</Title>
+                      <Paragraph>{currentDesign.categoryName}</Paragraph>
+                    </div>
+
+                    <div className="design-actions">
+                      <Link
+                        to={`/order-service/${currentDesign.id}`}
+                        state={{ isCustom: false }}
+                      >
+                        <Button type="primary" block>
+                          Mua thiết kế
+                        </Button>
+                      </Link>
+                      <Link
+                        to={`/order-service/${currentDesign.id}`}
+                        state={{ isCustom: true }}
+                      >
+                        <Button
+                          type="default"
+                          size="large"
+                          block
+                          style={{ marginTop: "10px" }}
+                        >
+                          Tùy chỉnh
+                        </Button>
+                      </Link>
+                    </div>
+
+                    <div className="product-details">
+                      <Title level={4}>Chi tiết sản phẩm</Title>
+                      {isLoadingProducts ? (
+                        <div className="loading-container">
+                          <Spin />
+                        </div>
+                      ) : productError ? (
+                        <Paragraph type="danger">{productError}</Paragraph>
+                      ) : productDetails.length > 0 ? (
+                        productDetails.map(({ detail, product }) => (
+                          <div key={detail.productId} className="product-item">
+                            <div className="product-info">
+                              <img
+                                src={product.image?.imageUrl}
+                                alt={product.name}
+                                className="product-image"
+                              />
+                              <div className="product-text">
+                                <span className="product-name">
+                                  {product.name}
+                                </span>
+                                <span className="product-description">
+                                  {product.description}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="product-meta">
+                              <span>Số lượng: {detail.quantity}</span>
+                              <span>
+                                {detail.price.toLocaleString("vi-VN", {
+                                  style: "currency",
+                                  currency: "VND",
+                                })}
+                              </span>
                             </div>
                           </div>
-                          <div className="product-meta">
-                            <span>Số lượng: {detail.quantity}</span>
-                            <span>{detail.price.toLocaleString("vi-VN", {
-                              style: "currency",
-                              currency: "VND",
-                            })}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <Empty description="Không có sản phẩm nào" />
-                    )}
-                  </div>
-                </Card>
-              </Col>
-            </Row>
+                        ))
+                      ) : (
+                        <Empty description="Không có sản phẩm nào" />
+                      )}
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+            </div>
           </div>
-        </div>
-      </Content>
-      <Footer />
-    </Layout>
+        </Content>
+        <Footer />
+      </Layout>
     </>
   );
 };
 
-export default DesignDetailPage; 
+export default DesignDetailPage;

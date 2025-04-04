@@ -1,4 +1,4 @@
-import React from "react";
+import React, { use, useEffect } from "react";
 import { Descriptions, Steps, Table, Typography, Divider } from "antd";
 import {
   ShoppingCartOutlined,
@@ -6,62 +6,94 @@ import {
   CarOutlined,
   InboxOutlined,
   UserOutlined,
-  MailOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
-  TagOutlined,
   CalendarOutlined,
+  MoneyCollectOutlined,
+  TagsOutlined,
 } from "@ant-design/icons";
-import { BsCashStack } from "react-icons/bs";
-import { MdOutlinePayments } from "react-icons/md";
-import { Tag } from "antd";
+import useProductStore from "@/stores/useProductStore";
+import { MdOutlineLocalShipping } from "react-icons/md";
 
 const { Step } = Steps;
 const { Text } = Typography;
 
 const OrderExpandedRow = ({ order }) => {
+  const { products, fetchProducts } = useProductStore();
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
   // Xác định bước hiện tại dựa trên trạng thái đơn hàng
   const getCurrentStep = (status) => {
     switch (status) {
-      case "chờ xác nhận":
-        return 0;
-      case "đã xác nhận":
-        return 1;
-      case "đã giao cho đơn vị vận chuyển":
-      case "đang giao hàng":
-        return 2;
-      case "đã giao hàng":
-        return 3;
-      case "đơn bị từ chối":
-      case "đã hủy":
-        return -1; // Trạng thái đặc biệt
+      case "0":
+        return 0; // Chờ xử lý
+      case "1":
+        return 1; // Đang xử lý
+      case "2":
+        return 1; // Đã xử lý
+      case "3":
+        return -1; // Đã hủy
+      case "4":
+        return -1; // Đã hoàn tiền
+      case "5":
+        return -1; // Đã hoàn tiền xong
+      case "6":
+        return 2; // Đã lấy hàng và giao hàng
+      case "7":
+        return 2; // Giao hàng thất bại
+      case "8":
+        return 2; // Giao lại
+      case "9":
+        return 3; // Đã giao hàng thành công
       default:
         return 0;
     }
   };
 
-  const currentStep = getCurrentStep(order.orderStatus);
+  const currentStep = getCurrentStep(order.status);
+  const isErrorStatus = ["3", "4", "5", "7"].includes(order.status);
+  console.log(order);
+  console.log(currentStep);
 
-  const capitalizeFirstLetter = (string) => {
-    return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
-  };
-
-  // Tính tổng tiền đơn hàng
+  // Tính tổng tiền đơn hàng (bao gồm phí vận chuyển nếu có)
   const calculateTotal = () => {
-    if (!order || !order.details || !Array.isArray(order.details)) {
+    if (!order || !order.orderDetails || !Array.isArray(order.orderDetails)) {
       return 0;
     }
-    return order.details.reduce(
+    const subtotal = order.orderDetails.reduce(
       (total, item) => total + Number(item?.price || 0) * (item?.quantity || 0),
       0
     );
+    return subtotal;
   };
 
   const columns = [
     {
       title: "Sản phẩm",
-      dataIndex: "product",
-      key: "product",
+      dataIndex: "productId",
+      key: "productId",
+      render: (productId) => {
+        const product = products.find((p) => p.id === productId);
+        return product ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <img
+              src={product.image.imageUrl}
+              alt={product.name}
+              style={{
+                width: "80px",
+                height: "80px",
+                objectFit: "cover",
+                borderRadius: "8px",
+              }}
+            />
+            <span>{product.name}</span>
+          </div>
+        ) : (
+          "Sản phẩm không tồn tại"
+        );
+      },
     },
     {
       title: "Số lượng",
@@ -90,12 +122,7 @@ const OrderExpandedRow = ({ order }) => {
       <div className="mb-6">
         <Steps
           current={currentStep}
-          status={
-            order.orderStatus === "đơn bị từ chối" ||
-            order.orderStatus === "đã hủy"
-              ? "error"
-              : "process"
-          }
+          status={isErrorStatus ? "error" : "process"}
           size="small"
           className="max-w-4xl mx-auto"
         >
@@ -127,80 +154,94 @@ const OrderExpandedRow = ({ order }) => {
           <Descriptions
             title="Thông tin khách hàng"
             bordered
-            size="middle"
+            size="small"
             column={{ xs: 2, sm: 3 }}
             className="bg-white rounded-md"
           >
             <Descriptions.Item
               label={
                 <span style={{ fontWeight: "bold" }}>
-                  <UserOutlined /> Khách hàng
+                  <UserOutlined
+                    style={{ marginRight: "4px", color: "green" }}
+                  />{" "}
+                  Khách hàng
                 </span>
               }
             >
               {order.userName}
             </Descriptions.Item>
-            {/* <Descriptions.Item
+            <Descriptions.Item
               label={
                 <span style={{ fontWeight: "bold" }}>
-                  <MailOutlined /> Email
-                </span>
-              }
-            >
-              {order.email}
-            </Descriptions.Item> */}
-            <Descriptions.Item 
-            label={
-                <span style={{ fontWeight: "bold" }}>
-                  <PhoneOutlined/> Số điện thoại
+                  <PhoneOutlined
+                    style={{ marginRight: "4px", color: "green" }}
+                  />{" "}
+                  Số điện thoại
                 </span>
               }
             >
               {order.phone}
             </Descriptions.Item>
-            
-            {/* <Descriptions.Item 
+            <Descriptions.Item
               label={
                 <span style={{ fontWeight: "bold" }}>
-                  <MdOutlinePayments /> Phương thức thanh toán
+                  <CalendarOutlined
+                    style={{ marginRight: "4px", color: "green" }}
+                  />{" "}
+                  Ngày đặt hàng
                 </span>
               }
             >
-              <Tag
-                color={order.payment?.method === "Banking" ? "green" : "blue"}
-              >
-                {capitalizeFirstLetter(order.payment?.method || "Chưa có")}
-              </Tag>
-            </Descriptions.Item> */}
-            <Descriptions.Item 
-              label={
-                <span style={{ fontWeight: "bold" }}>
-                  <BsCashStack /> Trạng thái thanh toán
-                </span>
-              }
-            >
-              <Tag
-                color={
-                  order.payment?.status === "đã thanh toán" ? "green" : "gold"
-                }
-              >
-                {capitalizeFirstLetter(order.payment?.status || "Chưa thanh toán")}
-              </Tag>
+              {new Date(order.creationDate).toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </Descriptions.Item>
-            <Descriptions.Item 
+            <Descriptions.Item
               label={
                 <span style={{ fontWeight: "bold" }}>
-                  <CalendarOutlined /> Ngày thanh toán
+                  <MdOutlineLocalShipping style={{ marginRight: "4px", color: "green" }} />{" "}
+                  Phí giao hàng
                 </span>
               }
             >
-              {order.payment?.date || "Chưa thanh toán"}
+              {order.shipPrice.toLocaleString("vi-VN")}đ
             </Descriptions.Item>
-            {/* )} */}
-            <Descriptions.Item 
-            label={
+            <Descriptions.Item
+              label={
                 <span style={{ fontWeight: "bold" }}>
-                  <EnvironmentOutlined /> Địa chỉ
+                  <MoneyCollectOutlined
+                    style={{ marginRight: "4px", color: "green" }}
+                  />{" "}
+                  Tổng tiền
+                </span>
+              }
+            >
+              {order.totalAmount.toLocaleString("vi-VN")}đ
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <span style={{ fontWeight: "bold" }}>
+                  <TagsOutlined
+                    style={{ marginRight: "4px", color: "green" }}
+                  />{" "}
+                  Mã vận đơn
+                </span>
+              }
+            >
+              {order.deliveryCode || "Chưa cập nhật"}
+            </Descriptions.Item>
+            <Descriptions.Item
+              span={3}
+              label={
+                <span style={{ fontWeight: "bold" }}>
+                  <EnvironmentOutlined
+                    style={{ marginRight: "4px", color: "green" }}
+                  />{" "}
+                  Địa chỉ
                 </span>
               }
             >
@@ -208,44 +249,13 @@ const OrderExpandedRow = ({ order }) => {
             </Descriptions.Item>
           </Descriptions>
         </div>
-
-        {/* <div>
-          <Descriptions
-            title="Thông tin thanh toán"
-            bordered
-            size="small"
-            column={1}
-            className="bg-white rounded-md"
-          >
-            <Descriptions.Item label="Phương thức thanh toán">
-              <Tag color={order.payment.method === "Banking" ? "green" : "blue"}>
-                {capitalizeFirstLetter(order.payment.method)  }
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Trạng thái thanh toán">
-              <Tag color={order.payment.status === "đã thanh toán" ? "green" : "gold"}>
-                {capitalizeFirstLetter(order.payment.status)}
-              </Tag>
-            </Descriptions.Item>
-            {order.payment.date && (
-              <Descriptions.Item label="Ngày thanh toán">
-                {order.payment.date}
-              </Descriptions.Item>
-            )}
-            <Descriptions.Item label="Tổng tiền">
-              <Text strong className="text-red-500">
-                {calculateTotal().toLocaleString("vi-VN")} đ
-              </Text>
-            </Descriptions.Item>
-          </Descriptions>
-        </div> */}
       </div>
 
       <Divider orientation="left">Chi tiết đơn hàng</Divider>
 
       <Table
         columns={columns}
-        dataSource={order.details}
+        dataSource={order.orderDetails}
         pagination={false}
         rowKey={(record) => `${record.product}-${Math.random()}`}
         className="bg-white rounded-md"

@@ -32,28 +32,25 @@ const OrdersList = () => {
       const lowercasedSearch = searchText.toLowerCase();
       result = result.filter(
         (order) =>
-          order.orderNumber.toLowerCase().includes(lowercasedSearch) ||
-          order.customer.name.toLowerCase().includes(lowercasedSearch) ||
-          order.customer.email.toLowerCase().includes(lowercasedSearch) ||
-          order.customer.phone.includes(searchText)
+          order.id.toLowerCase().includes(lowercasedSearch) ||
+          (order && (
+            (order.userName && order.userName.toLowerCase().includes(lowercasedSearch)) ||
+            (order.email && order.email.toLowerCase().includes(lowercasedSearch)) ||
+            (order.phone && order.phone.includes(searchText))
+          ))
       );
     }
 
     // Lọc theo trạng thái đơn hàng
     if (filterStatus && result.length > 0) {
-      result = result.filter((order) => order.orderStatus === filterStatus);
-    }
-
-    // Lọc theo trạng thái thanh toán
-    if (filterPayment && result.length > 0) {
-      result = result.filter((order) => order.payment.status === filterPayment);
+      result = result.filter((order) => order.status === filterStatus);
     }
 
     // Lọc theo khoảng thời gian
     if (dateRange && dateRange[0] && dateRange[1] && result.length > 0) {
       result = result.filter((order) => {
         const orderDate = new Date(
-          order.orderDate.split("/").reverse().join("-")
+          order.creationDate.split("/").reverse().join("-")
         );
         const startDate = dateRange[0].startOf("day").toDate();
         const endDate = dateRange[1].endOf("day").toDate();
@@ -62,7 +59,7 @@ const OrdersList = () => {
     }
 
     setFilteredData(result);
-  }, [orders, searchText, filterStatus, filterPayment, dateRange]);
+  }, [orders, searchText, filterStatus, dateRange]);
 
   if (error && orders.length === 0) {
     return (
@@ -86,8 +83,6 @@ const OrdersList = () => {
           setSearchText={setSearchText}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
-          filterPayment={filterPayment}
-          setFilterPayment={setFilterPayment}
           dateRange={dateRange}
           setDateRange={setDateRange}
         />

@@ -481,11 +481,16 @@ const OrderService = () => {
                       src={currentDesign?.image?.imageUrl}
                       alt={currentDesign?.name}
                       className="design-image"
+                      style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: '8px' }}
                     />
                   </Col>
                   <Col span={24}>
                     <Title level={4}>{currentDesign?.name}</Title>
-                    <Paragraph>{currentDesign?.description}</Paragraph>
+                    <div
+                        dangerouslySetInnerHTML={{
+                          __html: currentDesign.description,
+                        }}
+                      />
                   </Col>
                 </Row>
               </Card>
