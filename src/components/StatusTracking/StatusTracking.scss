@@ -1,0 +1,56 @@
+.status-tracking {
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  .ant-steps {
+    max-width: 100%;
+    
+    .ant-steps-item {
+      &-title {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      // Current status
+      &-process {
+        .ant-steps-item-icon {
+          background-color: #52c41a;
+          border-color: #52c41a;
+        }
+        .ant-steps-item-title {
+          color: #52c41a;
+        }
+      }
+
+      // Completed status
+      &-finish {
+        .ant-steps-item-icon {
+          background-color: #f0f0f0;
+          border-color: #d9d9d9;
+          .ant-steps-icon {
+            color: rgba(0, 0, 0, 0.45);
+          }
+        }
+        .ant-steps-item-title {
+          color: rgba(0, 0, 0, 0.45);
+        }
+        .ant-steps-item-tail::after {
+          background-color: #f0f0f0;
+        }
+      }
+
+      // Waiting status
+      &-wait {
+        .ant-steps-item-icon {
+          background-color: #fff;
+          border-color: #d9d9d9;
+        }
+        .ant-steps-item-title {
+          color: rgba(0, 0, 0, 0.45);
+        }
+      }
+    }
+  }
+} 

@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
+import useAuthStore from "@/stores/useAuthStore";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -20,11 +21,30 @@ const { Title, Text } = Typography;
 
 const DesignOrderHistory = () => {
   const navigate = useNavigate();
-  const { designOrders, isLoading, fetchDesignOrders } = useDesignOrderStore();
+  const { designOrders, isLoading, fetchDesignOrdersForCus } = useDesignOrderStore();
+  const { user } = useAuthStore();
+  console.log(user);
+  
+  const componentId = React.useRef('design-order-history');
 
   useEffect(() => {
-    fetchDesignOrders();
-  }, [fetchDesignOrders]);
+    if (user?.id) {
+      console.log('User changed, fetching orders for user:', user.id);
+      fetchDesignOrdersForCus(user.id, componentId.current);
+    } else {
+      console.log('No user found, clearing orders');
+      const designOrderStore = useDesignOrderStore.getState();
+      designOrderStore.reset();
+    }
+  }, [fetchDesignOrdersForCus, user?.id]);
+
+  // Add cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const designOrderStore = useDesignOrderStore.getState();
+      designOrderStore.reset();
+    };
+  }, []);
 
   const columns = [
     {
@@ -75,11 +95,19 @@ const DesignOrderHistory = () => {
       key: 'status',
       render: (status) => {
         const statusConfig = {
-          Pending: { color: 'orange', text: 'Chờ xác nhận' },
-          Confirmed: { color: 'green', text: 'Đã xác nhận' },
-          Cancelled: { color: 'red', text: 'Đã hủy' },
+          'Pending': { color: 'gold', text: 'Chờ xử lý' },
+          'PaymentSuccess': { color: 'cyan', text: 'Đã thanh toán' },
+          'Processing': { color: 'blue', text: 'Đang xử lý' },
+          'PickedPackageAndDelivery': { color: 'purple', text: 'Đang giao hàng' },
+          'DeliveryFail': { color: 'red', text: 'Giao hàng thất bại' },
+          'ReDelivery': { color: 'orange', text: 'Giao hàng lại' },
+          'DeliveredSuccessfully': { color: 'green', text: 'Đã giao hàng' },
+          'CompleteOrder': { color: 'green', text: 'Hoàn thành' },
+          'OrderCancelled': { color: 'red', text: 'Đã hủy' },
+          'Refund': { color: 'red', text: 'Hoàn tiền' },
+          'DoneRefund': { color: 'red', text: 'Đã hoàn tiền' }
         };
-        const config = statusConfig[status] || statusConfig.Pending;
+        const config = statusConfig[status] || { color: 'default', text: 'Không xác định' };
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
@@ -144,11 +172,7 @@ const DesignOrderHistory = () => {
               columns={columns}
               dataSource={designOrders}
               rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: false,
-                showTotal: (total) => `Tổng số ${total} đơn hàng`,
-              }}
+              pagination={false}
               onRow={(record) => ({
                 onClick: () => navigate(`/serviceorderhistory/detail/${record.id}`),
               })}

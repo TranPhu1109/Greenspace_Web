@@ -6,6 +6,78 @@ const useShippingStore = create((set) => ({
   order_code: '',
   loading: false,
   error: null,
+  
+  // Province state
+  provinces: [],
+  provincesLoading: false,
+  provincesError: null,
+  
+  // District state
+  districts: [],
+  districtsLoading: false,
+  districtsError: null,
+  
+  // Ward state
+  wards: [],
+  wardsLoading: false,
+  wardsError: null,
+
+  getProvinces: async () => {
+    try {
+      set({ provincesLoading: true, provincesError: null });
+      const response = await api.get('/api/shipping/provinces');
+      
+      if (response.data?.data) {
+        set({ provinces: response.data.data });
+        return response.data.data;
+      }
+      throw new Error('Không thể lấy danh sách tỉnh thành');
+    } catch (error) {
+      set({ provincesError: error.message });
+      console.error('Error fetching provinces:', error);
+      throw error;
+    } finally {
+      set({ provincesLoading: false });
+    }
+  },
+
+  getDistricts: async (provinceId) => {
+    try {
+      set({ districtsLoading: true, districtsError: null });
+      const response = await api.get(`/api/shipping/districts?provinceId=${provinceId}`);
+      
+      if (response.data?.data) {
+        set({ districts: response.data.data });
+        return response.data.data;
+      }
+      throw new Error('Không thể lấy danh sách quận/huyện');
+    } catch (error) {
+      set({ districtsError: error.message });
+      console.error('Error fetching districts:', error);
+      throw error;
+    } finally {
+      set({ districtsLoading: false });
+    }
+  },
+
+  getWards: async (districtId) => {
+    try {
+      set({ wardsLoading: true, wardsError: null });
+      const response = await api.get(`/api/shipping/wards?districtId=${districtId}`);
+      
+      if (response.data?.data) {
+        set({ wards: response.data.data });
+        return response.data.data;
+      }
+      throw new Error('Không thể lấy danh sách phường/xã');
+    } catch (error) {
+      set({ wardsError: error.message });
+      console.error('Error fetching wards:', error);
+      throw error;
+    } finally {
+      set({ wardsLoading: false });
+    }
+  },
 
   calculateShippingFee: async (addressData) => {
     try {

@@ -137,6 +137,7 @@ const useProductStore = create(persist((set, get) => ({
     
     set({ isLoading: true, error: null });
     try {
+      console.log('Fetching products with componentId:', componentId);
       const response = await axios.get("/api/product", {
         params: {
           pageNumber: 0,
@@ -146,29 +147,54 @@ const useProductStore = create(persist((set, get) => ({
         allowDuplicate: false
       });
       
+      console.log('API Response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
       // Skip processing if the request was canceled
       if (response.status === 'canceled') {
+        console.log('Request was canceled');
         set({ isLoading: false });
         return [];
       }
       
+      console.log('Response data:', response.data);
+      console.log('Response data type:', typeof response.data);
+      console.log('Is response data an array?', Array.isArray(response.data));
+      
       const productsArray = Array.isArray(response.data)
-        ? response.data.map((product) => ({
-            ...product,
-            image: {
-              imageUrl: product.image?.imageUrl || "",
-              image2: product.image?.image2 || "",
-              image3: product.image?.image3 || "",
-            },
-          }))
+        ? response.data.map((product) => {
+            console.log('Processing product:', product);
+            return {
+              ...product,
+              image: {
+                imageUrl: product.image?.imageUrl || "",
+                image2: product.image?.image2 || "",
+                image3: product.image?.image3 || "",
+              },
+            };
+          })
         : [];
+      
+      console.log('Processed products array:', productsArray);
+      console.log('Number of products:', productsArray.length);
+      
       set({ products: productsArray, isLoading: false, lastFetch: Date.now() });
       return productsArray;
     } catch (error) {
+      console.error('Error in fetchProducts:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        request: error.request
+      });
+      
       // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error fetching products:", error);
-        set({ error: error.message, isLoading: false });
+        set({ 
+          error: error.message,
+          isLoading: false 
+        });
         throw error;
       }
       // Reset loading state for cancellations
