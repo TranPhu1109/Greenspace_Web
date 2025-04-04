@@ -35,7 +35,7 @@ const useCartStore = create((set, get) => ({
   removeFromCart: async (productId) => {
     try {
       set({ loading: true });
-      const response = await axios.delete(`/api/cart/${productId}`);
+      const response = await axios.put(`/api/carts/remove-item/`, { productId });
       set({ cartItems: response.data.cartItems });
       message.success('Đã xóa sản phẩm khỏi giỏ hàng');
     } catch (error) {
@@ -134,6 +134,24 @@ const useCartStore = create((set, get) => ({
       throw new Error('Tạo đơn hàng thất bại');
     } catch (error) {
       message.error('Không thể tạo đơn hàng: ' + error.message);
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // Buy now
+  buyNow: async (orderData) => {
+    try {
+      set({ loading: true });
+      const response = await axios.post('/api/orderproducts/buy-now', orderData);
+      if (response.status === 200) {
+        return response;
+      }
+      throw new Error('Đặt hàng thất bại');
+    } catch (error) {
+      message.error('Không thể đặt hàng: ' + error.message);
       set({ error: error.message });
       throw error;
     } finally {

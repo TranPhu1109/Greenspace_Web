@@ -204,15 +204,14 @@ const ProductsList = () => {
             src={record.image.imageUrl}
             alt={text}
             className="imageUrl"
-            width={50}
-            height={50}
-            style={{ marginRight: "10px" }}
+            width={70}
+            height={70}
+            style={{ marginRight: "10px", borderRadius: "8px" }}
           />
           <Col className="product-details">
             <span className="product-name">{text}</span>
-            <Tag color="processing" className="product-category">
+            <Tag color="processing" style={{width: "100%"}}>
               {getCategoryNameById(record.categoryId)}
-              {/* {record.categoryName} */}
             </Tag>
           </Col>
         </div>
@@ -224,8 +223,13 @@ const ProductsList = () => {
       title: "Mô tả",
       dataIndex: "description",
       key: "description",
-      sorter: (a, b) => a.description.localeCompare(b.description),
-      sortOrder: sortedInfo.columnKey === "description" && sortedInfo.order,
+      render: (text) => (
+        <Tooltip title={text}>
+          <span style={{ display: 'inline-block', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {text}
+          </span>
+        </Tooltip>
+      ),
     },
     {
       title: "Giá",

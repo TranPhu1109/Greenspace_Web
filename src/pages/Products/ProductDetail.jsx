@@ -21,16 +21,22 @@ import {
   Avatar,
   Space,
   notification,
+  Tabs,
 } from "antd";
-import { ShoppingCartOutlined, StarOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  ShoppingCartOutlined,
+  StarOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
 import useCartStore from "@/stores/useCartStore";
 import useAuthStore from "@/stores/useAuthStore";
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
 import "./ProductDetail.scss";
 import { checkToxicContent } from "@/services/moderationService";
+import { useNavigate } from "react-router-dom";
 
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -38,7 +44,13 @@ const { TextArea } = Input;
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { getProductById, isLoading, createProductFeedback, feedbackLoading, getProductFeedbacks } = useProductStore();
+  const {
+    getProductById,
+    isLoading,
+    createProductFeedback,
+    feedbackLoading,
+    getProductFeedbacks,
+  } = useProductStore();
   const { addToCart } = useCartStore();
   const { user } = useAuthStore();
   const [product, setProduct] = useState(null);
@@ -47,6 +59,43 @@ const ProductDetail = () => {
   const [form] = Form.useForm();
   const [showError, setShowError] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const navigate = useNavigate();
+
+  const handleBuyNow = () => {
+    if (!user) {
+      message.warning("Vui lòng đăng nhập để mua hàng");
+      return;
+    }
+
+    const walletStorage = JSON.parse(localStorage.getItem("wallet-storage"));
+    const balance = walletStorage?.state?.balance || 0;
+    console.log("Balance:", balance);
+    const total = product.price * quantity;
+
+    if (balance < total) {
+      notification.warning({
+        message: "Số dư không đủ",
+        description: "Vui lòng nạp thêm tiền vào ví để tiếp tục mua hàng",
+        duration: 3,
+      });
+      return;
+    }
+
+    navigate("/cart/checkout", {
+      state: {
+        products: [
+          {
+            id: product.id,
+            quantity: quantity,
+            price: product.price,
+            name: product.name,
+            image: product.image.imageUrl,
+          },
+        ],
+        isBuyNow: true,
+      },
+    });
+  };
 
   const fetchFeedbacks = async () => {
     try {
@@ -86,7 +135,7 @@ const ProductDetail = () => {
         if (error.response && error.response.status !== 404) {
           message.error("Không thể tải thông tin sản phẩm");
         }
-        if (error.name !== 'CanceledError' && mountedRef.current) {
+        if (error.name !== "CanceledError" && mountedRef.current) {
           console.error("Error loading product:", error);
         }
       }
@@ -96,7 +145,7 @@ const ProductDetail = () => {
       // Reset states when fetching new product
       setShowError(false);
       fetchProduct();
-      
+
       // Set timer to show error message after 2 seconds if product is not found
       const timer = setTimeout(() => {
         setShowError(true);
@@ -115,58 +164,6 @@ const ProductDetail = () => {
     }
   };
 
-  const handleFeedbackSubmit = async (values) => {
-    setIsChecking(true);
-    try {
-      if (!user) {
-        message.warning("Vui lòng đăng nhập để gửi đánh giá");
-        return;
-      }
-
-      const moderationResult = await checkToxicContent(values.description);
-      
-      if (moderationResult.isToxic) {
-        notification.error({
-          message: 'Không thể gửi đánh giá',
-          description: moderationResult.reason,
-          duration: 3,
-          placement: 'topRight',
-          showProgress: true,
-          pauseOnHover: true,
-        });
-        return;
-      }
-
-      await createProductFeedback({
-        userId: user.id,
-        productId: id,
-        rating: values.rating,
-        description: values.description
-      });
-      message.success({
-        content: "Cảm ơn bạn đã gửi đánh giá!",
-        duration: 3,
-        style: {
-          marginTop: '20vh',
-        },
-      });
-      form.resetFields();
-      // Refresh feedbacks after submitting
-      await fetchFeedbacks();
-    } catch (error) {
-      console.log(error);
-      message.error({
-        content: "Không thể gửi đánh giá. Vui lòng thử lại sau.",
-        duration: 3,
-        style: {
-          marginTop: '20vh',
-        },
-      });
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
   const getStockStatus = (stock) => {
     if (stock === 0) {
       return <Tag color="error">Hết hàng</Tag>;
@@ -177,20 +174,20 @@ const ProductDetail = () => {
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      form.submit();
-    }
-  };
-
   // Show loading state
   if (isLoading || (!product && !showError)) {
     return (
       <Layout>
         <Header />
         <Content className="product-detail-loading">
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "60vh",
+            }}
+          >
             <Spin size="large" tip="Đang tải thông tin sản phẩm..." />
           </div>
         </Content>
@@ -205,7 +202,7 @@ const ProductDetail = () => {
       <Layout>
         <Header />
         <Content className="product-detail-error">
-          <div style={{ textAlign: 'center', padding: '50px 0' }}>
+          <div style={{ textAlign: "center", padding: "50px 0" }}>
             <Title level={3}>Không tìm thấy sản phẩm</Title>
             <Text type="secondary">Sản phẩm không tồn tại hoặc đã bị xóa</Text>
           </div>
@@ -251,9 +248,6 @@ const ProductDetail = () => {
                 </Col>
                 <Col xs={24} md={12}>
                   <div className="product-info">
-                    {/* <span className="product-category">
-                      {product.categoryName}
-                    </span> */}
                     <Title level={2}>{product.name}</Title>
                     <div className="product-price">
                       {product.price.toLocaleString("vi-VN", {
@@ -261,18 +255,19 @@ const ProductDetail = () => {
                         currency: "VND",
                       })}
                     </div>
-                    <div className="quantity-selector" style={{ margin: '16px 0' }}>
-                      <span style={{ marginRight: '8px' }}>Số lượng:</span>
-                      <InputNumber 
-                        min={1} 
-                        max={product.stock} 
-                        defaultValue={1} 
-                        onChange={(value) => setQuantity(value)}
+                    <div
+                      className="quantity-selector"
+                      style={{ margin: "16px 0" }}
+                    >
+                      <span style={{ marginRight: "8px" }}>Số lượng:</span>
+                      <InputNumber
+                        min={1}
+                        max={product.stock}
+                        value={quantity}
+                        onChange={setQuantity}
+                        className="quantity-input"
                       />
                     </div>
-                    <Paragraph className="product-description">
-                      {product.description}
-                    </Paragraph>
                     <Divider />
                     <Descriptions column={1} bordered>
                       <Descriptions.Item label="Kích thước">
@@ -288,16 +283,6 @@ const ProductDetail = () => {
                     </Descriptions>
                     <Divider />
                     <div className="product-actions">
-                      <div className="quantity-selector">
-                        <span className="label">Số lượng:</span>
-                        <InputNumber
-                          min={1}
-                          max={product.stock}
-                          value={quantity}
-                          onChange={setQuantity}
-                          className="quantity-input"
-                        />
-                      </div>
                       <Space size="middle">
                         <Button
                           type="primary"
@@ -307,7 +292,17 @@ const ProductDetail = () => {
                           disabled={product.stock === 0}
                           className="add-to-cart-btn"
                         >
-                          {product.stock === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                          {product.stock === 0
+                            ? "Hết hàng"
+                            : "Thêm vào giỏ hàng"}
+                        </Button>
+                        <Button
+                          type="default"
+                          size="large"
+                          onClick={handleBuyNow}
+                          disabled={product.stock === 0}
+                        >
+                          Mua ngay
                         </Button>
                       </Space>
                     </div>
@@ -316,107 +311,85 @@ const ProductDetail = () => {
               </Row>
             </Card>
 
-            {/* Feedback Section */}
-            <Card bordered={false} className="feedback-section" style={{ marginTop: 24 }}>
-              <Title level={4}>Đánh giá sản phẩm</Title>
-              
-              {/* Feedback List */}
-              <List
-                className="feedback-list"
-                itemLayout="horizontal"
-                dataSource={feedbacks}
-                locale={{ emptyText: "Chưa có đánh giá nào" }}
-                renderItem={item => (
-                  <List.Item>
-                    <div className="feedback-item">
-                      <div className="feedback-item-header">
-                        <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
-                        <div className="feedback-item-meta">
-                          <Text strong>{item.userName}</Text>
-                          <Text type="secondary">
-                            {dayjs(item.creationDate).format('DD/MM/YYYY HH:mm')}
-                          </Text>
-                        </div>
-                      </div>
-                      <div className="feedback-content">
-                        <Rate disabled defaultValue={item.rating} />
-                        <Paragraph>{item.description}</Paragraph>
-                        {item.reply && (
-                          <div className="feedback-reply">
-                            <div className="reply-header">
-                              <Avatar 
-                                src="https://img.icons8.com/color/48/000000/shop.png"
-                                style={{ backgroundColor: 'white' }}
-                              />
-                              <Text type="success" strong>Phản hồi từ shop</Text>
+            <Tabs
+              defaultActiveKey="1"
+              style={{
+                marginTop: 24,
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                padding: "0 16px",
+              }}
+            >
+              <Tabs.TabPane tab="Mô tả sản phẩm" key="1">
+                <Card style={{ marginBottom: "16px" }}>
+                  <div
+                    dangerouslySetInnerHTML={{ __html: product?.description }}
+                    style={{
+                      marginBottom: 16,
+                      color: "#666",
+                    }}
+                  />
+                </Card>
+              </Tabs.TabPane>
+              <Tabs.TabPane tab="Đánh giá" key="2">
+                <Card
+                  bordered={false}
+                  className="feedback-section"
+                  style={{ marginBottom: "16px" }}
+                >
+                  <List
+                    className="feedback-list"
+                    itemLayout="horizontal"
+                    dataSource={feedbacks}
+                    locale={{ emptyText: "Chưa có đánh giá nào" }}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <div className="feedback-item">
+                          <div className="feedback-item-header">
+                            <Avatar
+                              icon={<UserOutlined />}
+                              style={{ backgroundColor: "#52c41a" }}
+                            />
+                            <div
+                              className="feedback-item-meta"
+                              style={{ marginRight: "8px" }}
+                            >
+                              <Text strong>{item.userName}</Text>
+                              <Text type="secondary">
+                                {dayjs(item.creationDate).format(
+                                  "DD/MM/YYYY HH:mm"
+                                )}
+                              </Text>
                             </div>
-                            <div className="reply-content">
-                              <Paragraph>{item.reply}</Paragraph>
-                            </div>
+                            <Rate disabled defaultValue={item.rating} />
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </List.Item>
-                )}
-              />
-
-              <Divider />
-
-              {/* Feedback Form */}
-              {user ? (
-                <div className="feedback-form-container">
-                  <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleFeedbackSubmit}
-                    initialValues={{ rating: 5 }}
-                    className="feedback-form"
-                  >
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                      <Form.Item
-                        name="rating"
-                        rules={[{ required: true, message: "Vui lòng chọn số sao" }]}
-                      >
-                        <Rate className="rating-stars" />
-                      </Form.Item>
-                      <Form.Item
-                        name="description"
-                        rules={[
-                          { required: true, message: "Vui lòng nhập nhận xét" },
-                          { min: 3, message: "Nhận xét phải có ít nhất 3 ký tự" }
-                        ]}
-                      >
-                        <TextArea
-                          rows={3}
-                          placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm... (Enter để gửi, Shift + Enter để xuống dòng)"
-                          maxLength={500}
-                          showCount
-                          onKeyDown={handleKeyDown}
-                        />
-                      </Form.Item>
-                      <Form.Item className="submit-section">
-                        <Button 
-                          type="primary" 
-                          htmlType="submit" 
-                          loading={isChecking || feedbackLoading}
-                          icon={<StarOutlined />}
-                          style={{ marginTop: 10 }}
-                        >
-                          Gửi đánh giá
-                        </Button>
-                      </Form.Item>
-                    </Space>
-                  </Form>
-                </div>
-              ) : (
-                <div className="login-prompt">
-                  <Text type="secondary">
-                    Vui lòng <a href="/login">đăng nhập</a> để gửi đánh giá về sản phẩm
-                  </Text>
-                </div>
-              )}
-            </Card>
+                          <div className="feedback-content">
+                            <Paragraph>{item.description}</Paragraph>
+                            {item.reply && (
+                              <div className="feedback-reply">
+                                <div className="reply-header">
+                                  <Avatar
+                                    src="https://img.icons8.com/color/48/000000/shop.png"
+                                    style={{ backgroundColor: "white" }}
+                                  />
+                                  <Text type="success" strong>
+                                    Phản hồi từ shop
+                                  </Text>
+                                </div>
+                                <div className="reply-content">
+                                  <Paragraph>{item.reply}</Paragraph>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </Card>
+              </Tabs.TabPane>
+            </Tabs>
           </div>
         </div>
       </Content>

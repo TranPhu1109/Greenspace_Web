@@ -27,41 +27,24 @@ const useOrderStore = create((set, get) => ({
   },
   
   getOrderById: async (id) => {
+    if (!id) {
+      set({ error: 'ID đơn hàng không hợp lệ', isLoading: false, selectedOrder: null });
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
       // Gọi API để lấy chi tiết đơn hàng
       const response = await axios.get(`/api/orderproducts/${id}`);
       const orderData = response.data;
-
-      // Định dạng lại dữ liệu đơn hàng
-      const formattedOrder = {
-        id: orderData.id,
-        orderNumber: orderData.id.slice(0, 8),
-        customer: {
-          name: orderData.userName,
-          email: orderData.email || '',
-          phone: orderData.phone,
-          address: orderData.address
-        },
-        orderDate: new Date().toLocaleDateString('vi-VN'),
-        orderStatus: orderData.status === '1' ? 'chờ xác nhận' : 'đã xác nhận',
-        payment: {
-          method: 'Banking',
-          status: 'chưa thanh toán',
-          date: null
-        },
-        details: orderData.orderDetails.map(detail => ({
-          product: detail.productId,
-          price: detail.price,
-          quantity: detail.quantity
-        })),
-        shipPrice: orderData.shipPrice || 0,
-        totalAmount: orderData.totalAmount || 0
-      };
-
+      if (!orderData) {
+        set({ error: 'Không tìm thấy đơn hàng', isLoading: false, selectedOrder: null });
+        return;
+      }
       set({ 
-        selectedOrder: formattedOrder,
-        isLoading: false 
+        selectedOrder: orderData,
+        isLoading: false,
+        error: null
       });
     } catch (error) {
       console.error('Error fetching order:', error);
