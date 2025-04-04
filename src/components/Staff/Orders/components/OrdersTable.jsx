@@ -183,6 +183,11 @@ products,
       ),
     },
     {
+      title: "Mã vận đơn",
+      dataIndex: "deliveryCode",
+      key: "deliveryCode",
+    },
+    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",

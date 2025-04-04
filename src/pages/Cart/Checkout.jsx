@@ -21,7 +21,7 @@ import {
   HomeOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useCartStore from "@/stores/useCartStore";
@@ -38,8 +38,10 @@ const { Title, Text } = Typography;
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { cartItems, loading, createOrderProducts, createBill } = useCartStore();
+  const { cartItems, loading, createOrderProducts, createBill, buyNow } = useCartStore();
   const { shippingFee, calculateShippingFee } = useShippingStore();
+  const [products, setProducts] = useState([]);
+  const { state } = useLocation();
   const [form] = Form.useForm();
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -48,6 +50,15 @@ const Checkout = () => {
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingWards, setLoadingWards] = useState(false);
   const [calculatingFee, setCalculatingFee] = useState(false);
+
+  useEffect(() => {
+    // Kiểm tra và thiết lập sản phẩm từ mua ngay hoặc giỏ hàng
+    if (state?.isBuyNow && state?.products) {
+      setProducts(state.products);
+    } else {
+      setProducts(cartItems);
+    }
+  }, [state, cartItems]);
 
   useEffect(() => {
     const getProvinces = async () => {
@@ -135,7 +146,7 @@ const Checkout = () => {
   };
 
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => {
+    return products.reduce((total, item) => {
       const price = item?.price || 0;
       const quantity = item?.quantity || 0;
       return total + price * quantity;
@@ -154,13 +165,26 @@ const Checkout = () => {
 
       const address = `${values.streetAddress}, ${selectedWard?.label}, ${selectedDistrict?.label}, ${selectedProvince?.label}`;
 
-      // Create order using store
-      const orderResponse = await createOrderProducts({
-        userId: userId,
-        address: address,
-        phone: values.phone,
-        shipPrice: shippingFee
-      });
+      let orderResponse;
+      if (state?.isBuyNow) {
+        // Sử dụng API buy-now cho mua ngay
+        orderResponse = await buyNow({
+          userId: userId,
+          address: address,
+          phone: values.phone,
+          shipPrice: shippingFee,
+          productId: products[0].id,
+          quantity: products[0].quantity
+        });
+      } else {
+        // Sử dụng API createOrderProducts cho mua từ giỏ hàng
+        orderResponse = await createOrderProducts({
+          userId: userId,
+          address: address,
+          phone: values.phone,
+          shipPrice: shippingFee
+        });
+      }
 
       if (orderResponse.status === 200) {
         try {
@@ -339,7 +363,7 @@ const Checkout = () => {
               <Col xs={24} lg={8}>
                 <Card className="order-summary-card">
                   <Title level={3}>
-                    Thông tin đơn hàng ({cartItems.length} sản phẩm)
+                    Thông tin đơn hàng ({products.length} sản phẩm)
                   </Title>
 
                   <div
@@ -351,13 +375,13 @@ const Checkout = () => {
                   >
                     <List
                       itemLayout="horizontal"
-                      dataSource={cartItems}
+                      dataSource={products}
                       renderItem={(item) => (
                         <List.Item>
                           <List.Item.Meta
                             avatar={
                               <Avatar
-                                src={item.image?.imageUrl}
+                                src={typeof item.image === 'string' ? item.image : (item.image?.imageUrl || '')}
                                 shape="square"
                                 size={64}
                               />

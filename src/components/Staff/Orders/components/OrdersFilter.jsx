@@ -34,16 +34,19 @@ const OrdersFilter = ({
           value={filterStatus}
           onChange={setFilterStatus}
         >
-          <Option value="chờ xác nhận">Chờ xác nhận</Option>
-          <Option value="đã xác nhận">Đã xác nhận</Option>
-          <Option value="đã giao cho đơn vị vận chuyển">Đã giao cho ĐVVC</Option>
-          <Option value="đang giao hàng">Đang giao hàng</Option>
-          <Option value="đã giao hàng">Đã giao hàng</Option>
-          <Option value="đơn bị từ chối">Đơn bị từ chối</Option>
-          <Option value="đã hủy">Đã hủy</Option>
+          <Option value="0">Chờ xử lý</Option>
+          <Option value="1">Đang xử lý</Option>
+          <Option value="2">Đã xử lý</Option>
+          <Option value="3">Đã hủy</Option>
+          <Option value="4">Đã hoàn tiền</Option>
+          <Option value="5">Đã hoàn tiền xong</Option>
+          <Option value="6">Đã lấy hàng & đang giao</Option>
+          <Option value="7">Giao hàng thất bại</Option>
+          <Option value="8">Giao lại</Option>
+          <Option value="9">Đã giao hàng thành công</Option>
         </Select>
       </Col>
-      <Col xs={24} sm={12} md={6}>
+      {/* <Col xs={24} sm={12} md={6}>
         <Select
           placeholder="Trạng thái thanh toán"
           className="w-full"
@@ -54,7 +57,7 @@ const OrdersFilter = ({
           <Option value="đã thanh toán">Đã thanh toán</Option>
           <Option value="chưa thanh toán">Chưa thanh toán</Option>
         </Select>
-      </Col>
+      </Col> */}
       <Col xs={24} sm={12} md={6}>
         <RangePicker
           className="w-full"

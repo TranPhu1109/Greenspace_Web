@@ -12,6 +12,7 @@ import {
   Upload,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import EditorComponent from "@/components/Common/EditorComponent";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 
 const { Option } = Select;
@@ -60,7 +61,11 @@ const UpdateProductModal = ({
       };
 
       // Only process image uploads if there are new files
-      if (selectedFiles.imageUrl || selectedFiles.image2 || selectedFiles.image3) {
+      if (
+        selectedFiles.imageUrl ||
+        selectedFiles.image2 ||
+        selectedFiles.image3
+      ) {
         if (selectedFiles.imageUrl) {
           uploadPromises.push(
             uploadImages([selectedFiles.imageUrl]).then((urls) => {
@@ -99,8 +104,14 @@ const UpdateProductModal = ({
       };
 
       // Only include image data if there are either existing images or new uploads
-      if (selectedFiles.imageUrl || selectedFiles.image2 || selectedFiles.image3 || 
-          product?.image?.imageUrl || product?.image?.image2 || product?.image?.image3) {
+      if (
+        selectedFiles.imageUrl ||
+        selectedFiles.image2 ||
+        selectedFiles.image3 ||
+        product?.image?.imageUrl ||
+        product?.image?.image2 ||
+        product?.image?.image3
+      ) {
         productData.image = imageUrls;
       }
 
@@ -121,7 +132,7 @@ const UpdateProductModal = ({
 
   // Update the image upload section
   const renderImageUpload = () => (
-    <Row gutter={16}>
+    <Row gutter={16} style={{marginTop: 16}}>
       <Col span={8}>
         <Form.Item
           name="imageUrl"
@@ -224,7 +235,7 @@ const UpdateProductModal = ({
                   ]
                 : []
             }
-            >
+          >
             <div>
               <PlusOutlined />
               <div style={{ marginTop: 8 }}>Tải lên</div>
@@ -321,12 +332,15 @@ const UpdateProductModal = ({
             </Form.Item>
           </Col>
         </Row>
+        {renderImageUpload()}
 
         <Form.Item name="description" label="Mô tả">
-          <Input.TextArea placeholder="Nhập mô tả" />
+          <EditorComponent 
+            value={form.getFieldValue('description') || ''}
+            onChange={(value) => form.setFieldsValue({ description: value })}
+            height={300}
+          />
         </Form.Item>
-
-        {renderImageUpload()}
 
         <Form.Item className="form-actions">
           <Button onClick={onCancel} style={{ marginRight: 8 }}>
