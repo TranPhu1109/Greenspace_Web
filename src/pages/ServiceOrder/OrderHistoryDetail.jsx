@@ -13,6 +13,7 @@ import {
   Divider,
   message,
   Image,
+  Modal,
 } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -93,13 +94,23 @@ const OrderHistoryDetail = () => {
       setRefreshing(true);
       await getDesignOrderById(id, componentId.current);
       await fetchDetails();
-      //message.success('Đã cập nhật thông tin đơn hàng');
+      message.success('Đã cập nhật thông tin đơn hàng');
     } catch (error) {
       //message.error('Không thể cập nhật thông tin đơn hàng');
       console.log(error);
       
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleCompleteOrder = async () => {
+    try {
+      await updateStatus(selectedOrder.id, "CompleteOrder", selectedOrder.deliveryCode);
+      message.success("Đã xác nhận hoàn thành đơn hàng");
+      await getDesignOrderById(id, componentId.current);
+    } catch (error) {
+      message.error("Không thể xác nhận hoàn thành đơn hàng");
     }
   };
 
@@ -190,6 +201,12 @@ const OrderHistoryDetail = () => {
     );
   }
 
+  console.log('Current Order Status:', {
+    id: selectedOrder.id,
+    status: selectedOrder.status,
+    deliveryCode: selectedOrder.deliveryCode
+  });
+
   return (
     <Layout className="order-detail-layout">
       <Header />
@@ -203,13 +220,15 @@ const OrderHistoryDetail = () => {
                   <Title level={2}>Chi tiết đơn hàng #{id.slice(0, 8)}</Title>
                   
                 </Space>
-                <Button 
-                  icon={<ReloadOutlined />} 
-                  onClick={handleRefresh}
-                  loading={refreshing}
-                >
-                  Làm mới
-                </Button>
+                <Space>
+                  <Button 
+                    icon={<ReloadOutlined />} 
+                    onClick={handleRefresh}
+                    loading={refreshing}
+                  >
+                    Làm mới
+                  </Button>
+                </Space>
               </Space>
 
               {/* Customer Information */}
@@ -437,9 +456,27 @@ const OrderHistoryDetail = () => {
 
               {/* Actions */}
               <div style={{ textAlign: 'right' }}>
-                <Button type="default" onClick={() => navigate('/serviceorderhistory')}>
-                  Quay lại danh sách
-                </Button>
+                <Space>
+                  {selectedOrder.status === "DeliveredSuccessfully" && (
+                    <Button 
+                      type="primary"
+                      onClick={() => {
+                        Modal.confirm({
+                          title: "Xác nhận hoàn thành",
+                          content: "Bạn có chắc chắn muốn xác nhận hoàn thành đơn hàng này?",
+                          okText: "Xác nhận",
+                          cancelText: "Hủy",
+                          onOk: handleCompleteOrder,
+                        });
+                      }}
+                    >
+                      Xác nhận hoàn thành
+                    </Button>
+                  )}
+                  <Button type="default" onClick={() => navigate('/serviceorderhistory')}>
+                    Quay lại danh sách
+                  </Button>
+                </Space>
               </div>
             </Space>
           </Card>

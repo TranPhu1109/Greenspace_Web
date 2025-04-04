@@ -223,9 +223,13 @@ const OrderService = () => {
     try {
       const values = await form.validateFields();
       
-      // Construct full address from selected province, district, ward and detail
-      const fullAddress = `${addressDetail}, ${selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : ''}, ${selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : ''}, ${selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : ''}`;
+      // Construct full address in the format: "user entered address, Province, District, Ward"
+      const provinceName = selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : '';
+      const districtName = selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : '';
+      const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
       
+      const fullAddress = `${addressDetail}, ${provinceName}, ${districtName}, ${wardName}`;
+      console.log(fullAddress);
       const data = {
         userId: user.id,
         designIdeaId: currentDesign.id,

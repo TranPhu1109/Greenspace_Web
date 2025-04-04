@@ -85,7 +85,7 @@ const useDesignOrderStore = create((set, get) => ({
     }
   },
 
-  updateStatus: async (orderId, newStatus) => {
+  updateStatus: async (orderId, newStatus, deliveryCode = "") => {
     try {
       set({ isLoading: true, error: null });
       
@@ -106,16 +106,16 @@ const useDesignOrderStore = create((set, get) => ({
       
       const response = await axios.put(`/api/serviceorder/status/${orderId}`, { 
         status: numericStatus,
-        deliveryCode: "" // Empty string as requested
+        deliveryCode: deliveryCode 
       });
       
       // Update the order in the store
       set(state => ({
         designOrders: state.designOrders.map(order => 
-          order.id === orderId ? { ...order, status: newStatus } : order
+          order.id === orderId ? { ...order, status: newStatus, deliveryCode } : order
         ),
         selectedOrder: state.selectedOrder?.id === orderId 
-          ? { ...state.selectedOrder, status: newStatus }
+          ? { ...state.selectedOrder, status: newStatus, deliveryCode }
           : state.selectedOrder,
         isLoading: false
       }));

@@ -102,6 +102,7 @@ const useShippingStore = create((set) => ({
     try {
       set({ loading: true, error: null });
       const response = await api.post('/api/shipping/create-order', shippingData);
+      console.log("response create shipping order: ---",response.data);
       
       if (response.data?.data?.code === 200) {
         set({ order_code: response.data.data.data.order_code });
@@ -117,7 +118,25 @@ const useShippingStore = create((set) => ({
     }
   },
 
-  resetShippingFee: () => set({ shippingFee: 0, error: null })
+  resetShippingFee: () => set({ shippingFee: 0, error: null }),
+
+  trackOrder: async (deliveryCode) => {
+    try {
+      set({ loading: true, error: null });
+      const response = await api.get(`/api/shipping/track-order/${deliveryCode}`);
+      
+      if (response.data?.data?.code === 200) {
+        return response.data.data.data.status;
+      }
+      throw new Error('Không thể lấy trạng thái đơn hàng');
+    } catch (error) {
+      set({ error: error.message });
+      console.error('Error tracking order:', error);
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  }
 }));
 
 export default useShippingStore;
