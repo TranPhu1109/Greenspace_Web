@@ -126,7 +126,7 @@ const useShippingStore = create((set) => ({
       const response = await api.get(`/api/shipping/track-order/${deliveryCode}`);
       
       if (response.data?.data?.code === 200) {
-        return response.data.data.data.status;
+        return response.data?.data?.data?.status;
       }
       throw new Error('Không thể lấy trạng thái đơn hàng');
     } catch (error) {

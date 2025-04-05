@@ -211,7 +211,7 @@ const TemplateOrderDetail = () => {
         checkShippingStatus();
 
         // Set up interval for checking every 10 seconds
-        trackingInterval.current = setInterval(checkShippingStatus, 10000);
+        trackingInterval.current = setInterval(checkShippingStatus, 60000);
       };
 
       const checkShippingStatus = async () => {
@@ -311,7 +311,6 @@ const TemplateOrderDetail = () => {
                 current={getCurrentStep(selectedOrder.status)}
                 status={selectedOrder.status === "OrderCancelled" || selectedOrder.status === "DeliveryFail" ? "error" : "process"}
                 style={{ 
-                  
                   display: "flex",
                   flexWrap: "wrap",
                   gap: "24px"
@@ -363,6 +362,15 @@ const TemplateOrderDetail = () => {
                   }} 
                 />
                 <Step 
+                  title="Hoàn thành" 
+                  description="Đơn hàng hoàn thành" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
                   title="Giao thất bại" 
                   description="Giao hàng không thành công"
                   status={selectedOrder.status === "DeliveryFail" ? "error" : "wait"}
@@ -381,15 +389,6 @@ const TemplateOrderDetail = () => {
                     minWidth: "200px",
                     flex: "1 1 auto"
                   }}
-                />
-                <Step 
-                  title="Hoàn thành" 
-                  description="Đơn hàng hoàn thành" 
-                  style={{ 
-                    paddingRight: "16px",
-                    minWidth: "200px",
-                    flex: "1 1 auto"
-                  }} 
                 />
                 <Step 
                   title="Đã hủy" 
@@ -433,7 +432,7 @@ const TemplateOrderDetail = () => {
                 </Descriptions.Item>
 
                 <Descriptions.Item label="Mẫu thiết kế">
-                  {selectedOrder.templateName}
+                  {selectedOrder.serviceType}
                 </Descriptions.Item>
                 <Descriptions.Item label="Giá thiết kế">
                   <strong>
@@ -747,7 +746,7 @@ const TemplateOrderDetail = () => {
                     Xác nhận đơn hàng
                   </Button>
                 )}
-                {selectedOrder.status !== "DeliveredSuccessfully" && (
+                {selectedOrder.status !== "DeliveredSuccessfully" && selectedOrder.status !== "CompleteOrder" && (
                   <Button
                     danger
                     style={{

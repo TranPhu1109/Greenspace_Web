@@ -46,17 +46,22 @@ const OrderService = () => {
   const { getProductById } = useProductStore();
   const { user } = useAuthStore();
   const { createDesignOrder, isLoading: orderLoading } = useDesignOrderStore();
-  const { balance, fetchBalance, loading: walletLoading, createBill } = useWalletStore();
-  const { 
-    getProvinces, 
-    getDistricts, 
-    getWards, 
-    provinces, 
-    districts, 
+  const {
+    balance,
+    fetchBalance,
+    loading: walletLoading,
+    createBill,
+  } = useWalletStore();
+  const {
+    getProvinces,
+    getDistricts,
+    getWards,
+    provinces,
+    districts,
     wards,
     provincesLoading,
     districtsLoading,
-    wardsLoading
+    wardsLoading,
   } = useShippingStore();
   
   const [productDetails, setProductDetails] = useState([]);
@@ -178,7 +183,7 @@ const OrderService = () => {
         await getProvinces();
       } catch (error) {
         console.error("Error loading provinces:", error);
-        message.error("Không thể tải danh sách tỉnh thành");
+        //message.error("Không thể tải danh sách tỉnh thành");
       }
     };
     loadProvinces();
@@ -396,60 +401,57 @@ const OrderService = () => {
                     
                     {/* Address Selection */}
                     <Col span={24}>
-                      <Form.Item
-                        label="Tỉnh/Thành phố"
-                        required
-                      >
+                      <Form.Item label="Tỉnh/Thành phố" required>
                         <Select
                           placeholder="Chọn tỉnh/thành phố"
                           value={selectedProvince}
                           onChange={handleProvinceChange}
                           loading={provincesLoading}
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         >
                           {provinces.map((province) => (
-                            <Option key={province.provinceId} value={province.provinceId}>
+                            <Option
+                              key={province.provinceId}
+                              value={province.provinceId}
+                            >
                               {province.provinceName}
                             </Option>
                           ))}
                         </Select>
                       </Form.Item>
                     </Col>
-                    
+
                     <Col span={24}>
-                      <Form.Item
-                        label="Quận/Huyện"
-                        required
-                      >
+                      <Form.Item label="Quận/Huyện" required>
                         <Select
                           placeholder="Chọn quận/huyện"
                           value={selectedDistrict}
                           onChange={handleDistrictChange}
                           loading={districtsLoading}
                           disabled={!selectedProvince}
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         >
                           {districts.map((district) => (
-                            <Option key={district.districtId} value={district.districtId}>
+                            <Option
+                              key={district.districtId}
+                              value={district.districtId}
+                            >
                               {district.districtName}
                             </Option>
                           ))}
                         </Select>
                       </Form.Item>
                     </Col>
-                    
+
                     <Col span={24}>
-                      <Form.Item
-                        label="Phường/Xã"
-                        required
-                      >
+                      <Form.Item label="Phường/Xã" required>
                         <Select
                           placeholder="Chọn phường/xã"
                           value={selectedWard}
                           onChange={handleWardChange}
                           loading={wardsLoading}
                           disabled={!selectedDistrict}
-                          style={{ width: '100%' }}
+                          style={{ width: "100%" }}
                         >
                           {wards.map((ward) => (
                             <Option key={ward.wardCode} value={ward.wardCode}>
@@ -459,14 +461,11 @@ const OrderService = () => {
                         </Select>
                       </Form.Item>
                     </Col>
-                    
+
                     <Col span={24}>
-                      <Form.Item
-                        label="Địa chỉ chi tiết"
-                        required
-                      >
-                        <Input.TextArea 
-                          rows={3} 
+                      <Form.Item label="Địa chỉ chi tiết" required>
+                        <Input.TextArea
+                          rows={3}
                           placeholder="Nhập số nhà, tên đường, tòa nhà, v.v."
                           value={addressDetail}
                           onChange={handleAddressDetailChange}
@@ -481,20 +480,61 @@ const OrderService = () => {
               <Card title="Thông tin thiết kế" className="form-section">
                 <Row gutter={[16, 16]}>
                   <Col span={24}>
-                    <img
-                      src={currentDesign?.image?.imageUrl}
-                      alt={currentDesign?.name}
-                      className="design-image"
-                      style={{ width: '100%', height: '400px', objectFit: 'contain', borderRadius: '8px' }}
+                    <Title level={4}>{currentDesign?.name}</Title>
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: currentDesign?.description,
+                      }}
                     />
                   </Col>
                   <Col span={24}>
-                    <Title level={4}>{currentDesign?.name}</Title>
-                    <div
-                        dangerouslySetInnerHTML={{
-                          __html: currentDesign.description,
-                        }}
-                      />
+                    <Row gutter={[16, 16]}>
+                      {currentDesign?.image?.imageUrl && (
+                        <Col span={8}>
+                          <img
+                            src={currentDesign.image.imageUrl}
+                            alt={`${currentDesign.name} - 4`}
+                            className="design-image"
+                            style={{
+                              width: "100%",
+                              height: "300px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        </Col>
+                      )}
+                      {currentDesign?.image?.image2 && (
+                        <Col span={8}>
+                          <img
+                            src={currentDesign.image.image2}
+                            alt={`${currentDesign.name} - 5`}
+                            className="design-image"
+                            style={{
+                              width: "100%",
+                              height: "300px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        </Col>
+                      )}
+                      {currentDesign?.image?.image3 && (
+                        <Col span={8}>
+                          <img
+                            src={currentDesign.image.image3}
+                            alt={`${currentDesign.name} - 6`}
+                            className="design-image"
+                            style={{
+                              width: "100%",
+                              height: "300px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        </Col>
+                      )}
+                    </Row>
                   </Col>
                 </Row>
               </Card>
@@ -502,6 +542,20 @@ const OrderService = () => {
               {/* Custom Order Fields */}
               {isCustomOrder && (
                 <Card title="Thông tin tùy chỉnh" className="form-section">
+                  <div
+                    style={{
+                      marginBottom: 24,
+                      padding: 16,
+                      backgroundColor: "#f5f5f5",
+                      borderRadius: 8,
+                      color: "#666",
+                    }}
+                  >
+                    Vui lòng cung cấp cho chúng tôi một số thông tin sau: chiều
+                    dài, chiều rộng, hình ảnh(nếu có) và mô tả sơ bộ ý tưởng của
+                    bạn. Designer bên phía chúng tôi sẽ liên lạc để tư vấn cho
+                    bạn trong thời gian sớm nhất.
+                  </div>
                   <Form form={form} layout="vertical">
                     <Row gutter={[16, 16]}>
                       <Col span={12}>
@@ -548,7 +602,7 @@ const OrderService = () => {
                       </Col>
                       <Col span={24}>
                         <Form.Item
-                          name="image"
+                          name="images"
                           label="Hình ảnh tham khảo"
                           rules={[
                             {
@@ -614,6 +668,22 @@ const OrderService = () => {
 
               {/* Price Summary */}
               <Card title="Tổng quan giá" className="form-section">
+                {isCustomOrder && (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      padding: 12,
+                      backgroundColor: "#fff7e6",
+                      borderRadius: 8,
+                      color: "#666",
+                      border: "1px solid #ffd591",
+                    }}
+                  >
+                    Giá thiết kế và Giá vật liệu hiện tại là giá của Thiết kế
+                    mẫu, Giá thiết kế và danh sách vật liệu mới sẽ được báo giá
+                    sau khi Designer hoàn tất bản vẽ hoàn chỉnh.
+                  </div>
+                )}
                 <div className="price-summary">
                   <div className="price-item">
                     <span>Giá thiết kế:</span>
@@ -671,14 +741,14 @@ const OrderService = () => {
                           marginTop: "8px",
                           color: "#f5222d",
                           fontSize: "14px",
-                          marginBottom: "8px"
+                          marginBottom: "8px",
                         }}
                       >
                         Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.
                       </div>
-                      <Button 
-                        key="deposit" 
-                        type="primary" 
+                      <Button
+                        key="deposit"
+                        type="primary"
                         onClick={() => {
                           setIsModalOpen(false);
                           navigate("/userwallets");
@@ -719,7 +789,6 @@ const OrderService = () => {
         onCancel={() => setIsModalOpen(false)}
         okText="✨ Xác nhận đặt hàng"
         cancelText="Hủy"
-        
       >
         <div style={{ textAlign: "center" }}>
           <h2 style={{ color: "#1890ff", marginBottom: "16px" }}>
