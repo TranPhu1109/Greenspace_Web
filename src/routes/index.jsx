@@ -27,6 +27,7 @@ import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
 import OrderService from "@/pages/ServiceOrder/OrderService";
 import Checkout from "@/pages/Cart/Checkout";
 import OrderHistory from "@/pages/Order/OrderHistory";
+import BookDesign from "@/pages/ServiceOrder/BookDesign";
 
 const router = createBrowserRouter([
   {
@@ -103,7 +104,15 @@ const router = createBrowserRouter([
       </>
     ),
   },
-
+  {
+    path: "/create-design",
+    element: (
+      <>
+        <ScrollToTop />
+        <BookDesign />
+      </> 
+    ),
+  },
   {
     path: "/serviceorderhistory",
     element: (

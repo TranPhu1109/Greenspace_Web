@@ -22,41 +22,31 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import {
-  newDesignOrders,
-  orderStatusConfig,
-} from "../mockData/newDesignOrders";
+import useServiceOrderStore from "@/stores/useServiceOrderStore";
 import dayjs from "dayjs";
 import "./NewDesignOrdersList.scss";
 import { Tooltip } from "antd";
 import { Popover } from "antd";
 
-const { Search } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const NewDesignOrdersList = () => {
   const navigate = useNavigate();
-  const [filteredData, setFilteredData] = useState(newDesignOrders);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { serviceOrders, loading, getServiceOrdersNoIdea } = useServiceOrderStore();
 
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
-    setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setFilteredData(newDesignOrders);
+      await getServiceOrdersNoIdea();
     } catch (error) {
       console.error("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -73,12 +63,12 @@ const NewDesignOrdersList = () => {
   };
 
   const applyFilters = () => {
-    let filteredOrders = [...newDesignOrders];
+    let filteredOrders = [...serviceOrders];
 
     // Filter by status
     if (statusFilter !== "all") {
       filteredOrders = filteredOrders.filter(
-        (order) => order.status === statusFilter
+        (order) => order.status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
 
@@ -87,67 +77,69 @@ const NewDesignOrdersList = () => {
       const keyword = searchText.toLowerCase();
       filteredOrders = filteredOrders.filter(
         (order) =>
-          order.orderNumber.toLowerCase().includes(keyword) ||
-          order.customerInfo.name.toLowerCase().includes(keyword) ||
-          order.customerInfo.phone.includes(keyword) ||
-          order.customerInfo.email.toLowerCase().includes(keyword)
+          order.id.toLowerCase().includes(keyword) ||
+          order.userName.toLowerCase().includes(keyword) ||
+          order.cusPhone.includes(keyword) ||
+          (order.email && order.email.toLowerCase().includes(keyword))
       );
     }
 
     // Filter by date range
-    if (dateRange) {
+    if (dateRange && dateRange[0] && dateRange[1]) {
       const [startDate, endDate] = dateRange;
       filteredOrders = filteredOrders.filter((order) => {
-        const orderDate = dayjs(order.orderDate);
-        return (
-          (!startDate || orderDate.isAfter(startDate)) &&
-          (!endDate || orderDate.isBefore(endDate.add(1, "day")))
-        );
+        const orderDate = dayjs(order.creationDate);
+        return orderDate.isAfter(startDate) && orderDate.isBefore(endDate.add(1, "day"));
       });
     }
 
-    setFilteredData(filteredOrders);
+    return filteredOrders;
   };
+
+  // Cập nhật dataSource cho Table
+  const filteredData = applyFilters();
 
   const resetFilters = () => {
     setStatusFilter("all");
     setSearchText("");
     setDateRange(null);
-    setFilteredData(newDesignOrders);
+    fetchOrders();
   };
 
   const columns = [
     {
       title: "Mã đơn hàng",
-      dataIndex: "orderNumber",
-      key: "orderNumber",
-      render: (text) => <span className="order-number">{text}</span>,
+      dataIndex: "id",
+      key: "id",
+      render: (text) => <span className="order-number">#{text.slice(0, 8)}</span>,
     },
     {
       title: "Khách hàng",
-      dataIndex: "customerInfo",
-      key: "customerInfo",
-      render: (customerInfo) => (
+      key: "customer",
+      render: (_, record) => (
         <div>
-          <div>{customerInfo.name}</div>
-          <div className="customer-contact">{customerInfo.phone}</div>
+          <div>{record.userName}</div>
+          <div className="customer-contact">{record.cusPhone}</div>
         </div>
       ),
     },
     {
       title: "Ngày đặt",
-      dataIndex: "orderDate",
-      key: "orderDate",
+      dataIndex: "creationDate",
+      key: "creationDate",
       render: (date) => dayjs(date).format("DD/MM/YYYY"),
     },
     {
       title: "Yêu cầu",
-      dataIndex: "requirements",
-      key: "requirements",
-      // width: 400,
+      dataIndex: "description",
+      key: "description",
       render: (text) => (
         <div className="requirements-preview">
-          <Tooltip title={text} color="orange" placement="topLeft">
+          <Tooltip 
+            title={<span dangerouslySetInnerHTML={{ __html: text }}></span>} 
+            color="orange" 
+            placement="topLeft"
+          >
             <span
               style={{
                 display: "-webkit-box",
@@ -157,8 +149,8 @@ const NewDesignOrdersList = () => {
                 textOverflow: "ellipsis",
                 whiteSpace: "normal",
               }}
+              dangerouslySetInnerHTML={{ __html: text }}
             >
-              {text}
             </span>
           </Tooltip>
         </div>
@@ -173,15 +165,15 @@ const NewDesignOrdersList = () => {
         let text = "Không xác định";
 
         switch (status) {
-          case "pending":
+          case "Pending":
             color = "blue";
             text = "Chờ xử lý";
             break;
-          case "processing":
+          case "Processing":
             color = "processing";
             text = "Đang xử lý";
             break;
-          case "rejected":
+          case "Rejected":
             color = "error";
             text = "Đã từ chối";
             break;

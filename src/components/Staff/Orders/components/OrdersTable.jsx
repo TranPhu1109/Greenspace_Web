@@ -54,7 +54,7 @@ products,
         try {
           // Tạo đơn ship
           // Tách địa chỉ thành các phần
-          const addressParts = record.address.split(',').map(part => part.trim());
+          const addressParts = record.address.split('|').map(part => part.trim());
           const toAddress = addressParts[0];
           const toWard = addressParts[1];
           const toDistrict = addressParts[2];

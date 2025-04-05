@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Row, Col, Button, Space, Descriptions, Tag, 
-  message, Modal, Form, Input, Divider, Steps, Image, Empty
+  message, Modal, Form, Input, Divider, Steps, Image, Empty,
+  Spin
 } from 'antd';
 import { 
   ArrowLeftOutlined, CheckCircleOutlined, 
@@ -9,7 +10,7 @@ import {
   MailOutlined, HomeOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getNewDesignOrderById, orderStatusConfig } from '../mockData/newDesignOrders';
+import useServiceOrderStore from '@/stores/useServiceOrderStore';
 import CustomerInfoSection from './sections/CustomerInfoSection';
 import RequirementsSection from './sections/RequirementsSection';
 import MaterialSuggestionsSection from './sections/MaterialSuggestionsSection';
@@ -22,28 +23,30 @@ const { confirm } = Modal;
 const NewDesignOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { selectedOrder: order, loading, error, getServiceOrderById } = useServiceOrderStore();
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   const [rejectForm] = Form.useForm();
 
+  console.log('Order Detail:', order);
+
   useEffect(() => {
-    try {
-      console.log("Fetching order with ID:", id);
-      const orderData = getNewDesignOrderById(id);
-      console.log("Order data:", orderData);
-      if (orderData) {
-        setOrder(orderData);
-      } else {
-        message.error('Không tìm thấy đơn hàng');
-        // navigate('/admin/design-orders/new-design-orders');
-        navigate('/design-orders/new-design-orders');
+    const fetchOrderDetail = async () => {
+      try {
+        if (!id) {
+          message.error('ID đơn thiết kế không hợp lệ');
+          navigate('/staff/design-orders/new-design-orders');
+          return;
+        }
+        const response = await getServiceOrderById(id);
+        if (!response) {
+          message.error('Không tìm thấy đơn thiết kế');
+          navigate('/staff/design-orders/new-design-orders');
+        }
+      } catch (error) {
       }
-    } catch (error) {
-      console.error("Error fetching order:", error);
-      message.error('Có lỗi xảy ra khi tải dữ liệu');
-    }
-  }, [id, navigate]);
+    };
+    fetchOrderDetail();
+  }, [id, getServiceOrderById, navigate]);
 
   const handleAcceptOrder = () => {
     confirm({
@@ -51,31 +54,12 @@ const NewDesignOrderDetail = () => {
       icon: <ExclamationCircleOutlined />,
       content: 'Bạn có chắc chắn muốn nhận đơn thiết kế này không?',
       onOk: async () => {
-        setLoading(true);
         try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const updatedOrder = {
-            ...order,
-            status: 'processing',
-            assignedTo: 'Nguyễn Văn A', // Current staff
-            timeline: [
-              ...order.timeline,
-              {
-                date: new Date().toISOString(),
-                status: 'processing',
-                description: 'Đơn hàng được tiếp nhận bởi Nguyễn Văn A'
-              }
-            ]
-          };
-          
-          setOrder(updatedOrder);
+          // TODO: Implement API call to accept order
           message.success('Đã nhận đơn thiết kế thành công');
+          await getServiceOrderById(id); // Refresh order data
         } catch (error) {
           message.error('Có lỗi xảy ra khi nhận đơn thiết kế');
-        } finally {
-          setLoading(false);
         }
       }
     });
@@ -86,41 +70,36 @@ const NewDesignOrderDetail = () => {
   };
 
   const handleRejectSubmit = async (values) => {
-    setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedOrder = {
-        ...order,
-        status: 'rejected',
-        rejectionReason: values.reason,
-        timeline: [
-          ...order.timeline,
-          {
-            date: new Date().toISOString(),
-            status: 'rejected',
-            description: `Đơn hàng bị từ chối: ${values.reason}`
-          }
-        ]
-      };
-      
-      setOrder(updatedOrder);
+      // TODO: Implement API call to reject order
       setIsRejectModalVisible(false);
       rejectForm.resetFields();
       message.success('Đã từ chối đơn thiết kế');
+      await getServiceOrderById(id); // Refresh order data
     } catch (error) {
       message.error('Có lỗi xảy ra khi từ chối đơn thiết kế');
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Thêm console.log để debug
-  console.log("Current order state:", order);
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '70vh' 
+      }}>
+        <Spin size="large">Đang tải...</Spin>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div>Lỗi: {error}</div>;
+  }
 
   if (!order) {
-    return <div>Đang tải...</div>;
+    return <div>Không tìm thấy đơn hàng</div>;
   }
 
   return (
@@ -134,10 +113,10 @@ const NewDesignOrderDetail = () => {
             >
               Quay lại
             </Button>
-            <span className="order-number">Đơn hàng: {order.orderNumber}</span>
+            <span className="order-number">Đơn hàng: {order.id}</span>
           </Space>
           
-          {order.status === 'pending' && (
+          {order.status === 'Pending' && (
             <Space>
               <Button 
                 type="primary" 
@@ -165,15 +144,16 @@ const NewDesignOrderDetail = () => {
         <Row gutter={[16, 16]}>
           {/* Customer Information */}
           <Col span={24}>
-            <CustomerInfoSection customer={order.customerInfo} />
+            <CustomerInfoSection customer={order} />
           </Col>
 
           {/* Requirements */}
           <Col span={24}>
             <RequirementsSection 
-              requirements={order.requirements}
-              attachments={order.attachments}
-              dimensions={order.dimensions}
+              requirements={order}
+              attachments={order.image}
+              dimensions={order}
+              budget={order.totalCost}
             />
           </Col>
 
@@ -232,4 +212,4 @@ const NewDesignOrderDetail = () => {
   );
 };
 
-export default NewDesignOrderDetail; 
+export default NewDesignOrderDetail;

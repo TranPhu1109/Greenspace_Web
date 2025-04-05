@@ -13,19 +13,25 @@ import {
   List,
   Avatar,
   Divider,
+  Select,
   Modal,
 } from "antd";
 import {
   EnvironmentOutlined,
+  HomeOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useCartStore from "@/stores/useCartStore";
+import {
+  fetchProvinces,
+  fetchDistricts,
+  fetchWards,
+} from "@/services/ghnService";
 import "./Checkout.scss";
 import useShippingStore from "@/stores/useShippingStore";
-import AddressForm from "@/components/Common/AddressForm";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -37,6 +43,12 @@ const Checkout = () => {
   const [products, setProducts] = useState([]);
   const { state } = useLocation();
   const [form] = Form.useForm();
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingWards, setLoadingWards] = useState(false);
   const [calculatingFee, setCalculatingFee] = useState(false);
 
   useEffect(() => {
@@ -48,15 +60,71 @@ const Checkout = () => {
     }
   }, [state, cartItems]);
 
-  const handleAddressChange = async (newAddressData) => {
-    if (newAddressData.province && newAddressData.district && newAddressData.ward) {
-      setAddressData(newAddressData);
+  useEffect(() => {
+    const getProvinces = async () => {
+      setLoadingProvinces(true);
+      try {
+        const data = await fetchProvinces();
+        setProvinces(data);
+      } catch (error) {
+        message.error("Không thể tải danh sách tỉnh thành");
+      } finally {
+        setLoadingProvinces(false);
+      }
+    };
+    getProvinces();
+  }, []);
+
+  const handleProvinceChange = async (provinceId) => {
+    setDistricts([]);
+    setWards([]);
+    form.setFieldValue("district", undefined);
+    form.setFieldValue("ward", undefined);
+    if (!provinceId) return;
+
+    setLoadingDistricts(true);
+    try {
+      const data = await fetchDistricts(provinceId);
+      setDistricts(data);
+    } catch (error) {
+      message.error("Không thể tải danh sách quận/huyện");
+    } finally {
+      setLoadingDistricts(false);
+    }
+  };
+
+  const handleDistrictChange = async (districtId) => {
+    setWards([]);
+    form.setFieldValue("ward", undefined);
+    if (!districtId) return;
+
+    setLoadingWards(true);
+    try {
+      const data = await fetchWards(districtId);
+      setWards(data);
+    } catch (error) {
+      message.error("Không thể tải danh sách phường/xã");
+    } finally {
+      setLoadingWards(false);
+    }
+  };
+
+  const handleAddressChange = async () => {
+    const province = provinces.find(
+      (p) => p.value === form.getFieldValue("provinces")
+    );
+    const district = districts.find(
+      (d) => d.value === form.getFieldValue("district")
+    );
+    const ward = wards.find((w) => w.value === form.getFieldValue("ward"));
+
+    if (province && district && ward) {
       setCalculatingFee(true);
       try {
         const fee = await calculateShippingFee({
-          toProvinceName: newAddressData.province.label,
-          toDistrictName: newAddressData.district.label,
-          toWardName: newAddressData.ward.label,
+          toProvinceName: province.label,
+          toDistrictName: district.label,
+          toWardName: ward.label,
         });
         if (fee) {
           message.success("Đã cập nhật phí vận chuyển");
@@ -70,6 +138,13 @@ const Checkout = () => {
     }
   };
 
+  const handleFormValuesChange = (changedValues, allValues) => {
+    // Chỉ gọi handleAddressChange khi có sự thay đổi ở các trường địa chỉ
+    if (changedValues.provinces || changedValues.district || changedValues.ward) {
+      handleAddressChange();
+    }
+  };
+
   const calculateTotal = () => {
     return products.reduce((total, item) => {
       const price = item?.price || 0;
@@ -78,20 +153,17 @@ const Checkout = () => {
     }, 0);
   };
 
-  const [addressData, setAddressData] = useState(null);
-
   const handleFinish = async (values) => {
     try {
-      if (!addressData) {
-        message.error('Vui lòng chọn địa chỉ giao hàng');
-        return;
-      }
-
       const userId = JSON.parse(localStorage.getItem('user')).id;
       const walletStorage = JSON.parse(localStorage.getItem('wallet-storage'));
       const walletId = walletStorage.state.walletId;
 
-      const address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      const selectedProvince = provinces.find(p => p.value === values.provinces);
+      const selectedDistrict = districts.find(d => d.value === values.district);
+      const selectedWard = wards.find(w => w.value === values.ward);
+
+      const address = `${values.streetAddress}, ${selectedWard?.label}, ${selectedDistrict?.label}, ${selectedProvince?.label}`;
 
       let orderResponse;
       if (state?.isBuyNow) {
@@ -155,6 +227,7 @@ const Checkout = () => {
                     form={form}
                     layout="vertical"
                     onFinish={handleFinish}
+                    onValuesChange={handleFormValuesChange}
                     className="checkout-form"
                     initialValues={{}}
                   >
@@ -178,7 +251,90 @@ const Checkout = () => {
                         maxLength={10}
                       />
                     </Form.Item>
-                    <AddressForm form={form} onAddressChange={handleAddressChange} />
+                    <Form.Item
+                      name="provinces"
+                      label="Tỉnh/Thành phố"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng chọn tỉnh/thành phố",
+                        },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        loading={loadingProvinces}
+                        placeholder="Chọn tỉnh/thành phố"
+                        optionFilterProp="label"
+                        options={provinces}
+                        filterOption={(input, option) =>
+                          option.label
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        onChange={handleProvinceChange}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="district"
+                      label="Quận/Huyện"
+                      rules={[
+                        { required: true, message: "Vui lòng chọn quận/huyện" },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        loading={loadingDistricts}
+                        placeholder="Chọn quận/huyện"
+                        optionFilterProp="label"
+                        options={districts}
+                        disabled={!form.getFieldValue("provinces")}
+                        filterOption={(input, option) =>
+                          option.label
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                        onChange={handleDistrictChange}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="ward"
+                      label="Phường/Xã"
+                      rules={[
+                        { required: true, message: "Vui lòng chọn phường/xã" },
+                      ]}
+                    >
+                      <Select
+                        showSearch
+                        loading={loadingWards}
+                        placeholder="Chọn phường/xã"
+                        optionFilterProp="label"
+                        options={wards}
+                        disabled={!form.getFieldValue("district")}
+                        filterOption={(input, option) =>
+                          option.label
+                            .toLowerCase()
+                            .includes(input.toLowerCase())
+                        }
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="streetAddress"
+                      label="Số nhà, tên đường"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Vui lòng nhập số nhà, tên đường",
+                        },
+                      ]}
+                    >
+                      <Input
+                        prefix={
+                          <HomeOutlined className="site-form-item-icon" />
+                        }
+                        placeholder="Ví dụ: 123 Đường Lê Lợi"
+                      />
+                    </Form.Item>
 
                     <Form.Item name="note" label="Ghi chú">
                       <Input.TextArea

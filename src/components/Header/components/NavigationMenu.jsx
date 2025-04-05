@@ -35,41 +35,48 @@ function NavigationMenu({ user }) {
     },
   ];
 
-  const menuItems = React.useMemo(() => [
-    { key: "home", label: "Trang chủ", path: "/home" },
-    {
-      key: "design",
-      label: (
-        <Dropdown
-          menu={{ items: designMenuItems }}
-          placement="bottom"
-          overlayClassName="design-dropdown"
-        >
-          <span className="dropdown-link">
-            Thiết kế <DownOutlined />
-          </span>
-        </Dropdown>
-      ),
-      path: "/designs"
-    },
-    { key: "products", label: "Sản phẩm", path: "/products" },
-    {
-      key: "orderHistory",
-      label: (
-        <Dropdown
-          menu={{ items: historyMenuItems }}
-          placement="bottom"
-          overlayClassName="history-dropdown"
-        >
-          <span className="dropdown-link">
-            Lịch sử đặt hàng <DownOutlined />
-          </span>
-        </Dropdown>
-      ),
-      path: "/orderhistory"
-    },
-    { key: "about", label: "Giới thiệu", path: "/about" },
-  ], []);
+  const menuItems = React.useMemo(() => {
+    const items = [
+      { key: "home", label: "Trang chủ", path: "/home" },
+      {
+        key: "design",
+        label: (
+          <Dropdown
+            menu={{ items: designMenuItems }}
+            placement="bottom"
+            overlayClassName="design-dropdown"
+          >
+            <span className="dropdown-link">
+              Thiết kế <DownOutlined />
+            </span>
+          </Dropdown>
+        ),
+        path: "/designs"
+      },
+      { key: "products", label: "Sản phẩm", path: "/products" },
+      { key: "about", label: "Giới thiệu", path: "/about" },
+    ];
+
+    if (user) {
+      items.splice(3, 0, {
+        key: "orderHistory",
+        label: (
+          <Dropdown
+            menu={{ items: historyMenuItems }}
+            placement="bottom"
+            overlayClassName="history-dropdown"
+          >
+            <span className="dropdown-link">
+              Lịch sử đặt hàng <DownOutlined />
+            </span>
+          </Dropdown>
+        ),
+        path: "/orderhistory"
+      });
+    }
+
+    return items;
+  }, [user]);
 
   const isActivePath = React.useCallback((path) => {
 
