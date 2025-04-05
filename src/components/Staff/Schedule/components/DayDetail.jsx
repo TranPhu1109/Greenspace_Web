@@ -158,6 +158,15 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                         <Text type="secondary" style={{ display: 'block' }}>{designer.email}</Text>
                         <div className="designer-tags">
                           <Tag color="blue">Đang xử lý {designer.taskCount} công việc</Tag>
+                          <Button 
+                            type="primary" 
+                            onClick={() => {
+                              setSelectedDesigner(designer);
+                              setIsAddTaskModalVisible(true);
+                            }}
+                          >
+                            Thêm task
+                          </Button>
                         </div>
                       </div>
                     </Space>
@@ -170,22 +179,6 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                           renderItem={(task) => (
                             <List.Item>
                               <div>{task.title}</div>
-                              <Space>
-                                <Button onClick={() => handleStatusChange(task.id, 'Completed')}>
-                                  Hoàn thành
-                                </Button>
-                                {task.status === 'ConsultingAndSket' && (
-                                  <Button 
-                                    type="primary"
-                                    onClick={() => {
-                                      setSelectedDesigner(designer);
-                                      setIsAddTaskModalVisible(true);
-                                    }}
-                                  >
-                                    Thêm task
-                                  </Button>
-                                )}
-                              </Space>
                             </List.Item>
                           )}
                         />
@@ -196,22 +189,6 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                           renderItem={(task) => (
                             <List.Item>
                               <div>{task.title}</div>
-                              <Space>
-                                <Button onClick={() => handleStatusChange(task.id, 'Completed')}>
-                                  Hoàn thành
-                                </Button>
-                                {task.status === 'ConsultingAndSket' && (
-                                  <Button 
-                                    type="primary"
-                                    onClick={() => {
-                                      setSelectedDesigner(designer);
-                                      setIsAddTaskModalVisible(true);
-                                    }}
-                                  >
-                                    Thêm task
-                                  </Button>
-                                )}
-                              </Space>
                             </List.Item>
                           )}
                         />
@@ -222,22 +199,6 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                           renderItem={(task) => (
                             <List.Item>
                               <div>{task.title}</div>
-                              <Space>
-                                <Button onClick={() => handleStatusChange(task.id, 'Completed')}>
-                                  Hoàn thành
-                                </Button>
-                                {task.status === 'ConsultingAndSket' && (
-                                  <Button 
-                                    type="primary"
-                                    onClick={() => {
-                                      setSelectedDesigner(designer);
-                                      setIsAddTaskModalVisible(true);
-                                    }}
-                                  >
-                                    Thêm task
-                                  </Button>
-                                )}
-                              </Space>
                             </List.Item>
                           )}
                         />
