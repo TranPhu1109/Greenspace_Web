@@ -139,7 +139,7 @@ const Checkout = () => {
   };
 
   return (
-    <Layout className="checkout-layout">
+    <Layout >
       <Header />
       <Content>
         <div className="checkout-content">

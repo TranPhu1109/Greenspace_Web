@@ -383,7 +383,22 @@ const OrderHistory = () => {
   }, [orders, statusFilter]);
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <Layout>
+        <Header />
+        <Content style={{ marginTop: 200 }}>
+          <div className="container mx-auto px-4">
+            <Alert
+              message="Lỗi"
+              description={error}
+              type="error"
+              showIcon
+            />
+          </div>
+        </Content>
+        <Footer />
+      </Layout>
+    );
   }
 
   return (
@@ -435,6 +450,14 @@ const OrderHistory = () => {
                     pageSize: 10,
                     showSizeChanger: true,
                     showTotal: (total) => `Tổng ${total} đơn hàng`,
+                  }}
+                  locale={{
+                    emptyText: (
+                      <div style={{ padding: "24px 0" }}>
+                        <ShoppingOutlined style={{ fontSize: 24, marginBottom: 16 }} />
+                        <p>Chưa có đơn hàng nào</p>
+                      </div>
+                    )
                   }}
                 />
               </Col>

@@ -162,10 +162,10 @@ const DesignOrderHistory = () => {
   }
 
   return (
-    <Layout className="order-history-layout">
+    <Layout >
       <Header />
       <Content>
-        <div className="order-history-content">
+        <div className="order-history-content"  style={{ padding: '180px' }}>
           <Title level={2}>Lịch sử đơn hàng</Title>
           {designOrders && designOrders.length > 0 ? (
             <Table

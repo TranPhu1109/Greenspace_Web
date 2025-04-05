@@ -13,10 +13,14 @@ const useOrderHistoryStore = create((set) => ({
       const response = await axios.get('/api/orderproducts/user');
       set({ orders: response.data, loading: false });
     } catch (error) {
-      set({
-        error: error.response?.data?.message || 'Có lỗi xảy ra khi tải lịch sử đơn hàng',
-        loading: false
-      });
+      if (error.response?.status === 404) {
+        set({ orders: [], loading: false });
+      } else {
+        set({
+          error: error.response?.data?.message || 'Có lỗi xảy ra khi tải lịch sử đơn hàng',
+          loading: false
+        });
+      }
     }
   },
 

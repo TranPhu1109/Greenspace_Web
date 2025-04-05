@@ -61,18 +61,6 @@ const OrdersList = () => {
     setFilteredData(result);
   }, [orders, searchText, filterStatus, dateRange]);
 
-  if (error && orders.length === 0) {
-    return (
-      <Alert
-        message="Lỗi khi tải dữ liệu"
-        description={error}
-        type="error"
-        showIcon
-        className="mb-4"
-      />
-    );
-  }
-
   return (
     <div className="w-full">
       <Card className="shadow-sm rounded-lg">
