@@ -89,11 +89,11 @@ const RechargeForm = () => {
       setQrData(content);
       
     } catch (error) {
-      console.error("Error generating QR:", error);
-      message.error({
-        content: "Không thể tạo mã QR. Vui lòng thử lại sau.",
-        duration: 5,
-      });
+      // console.error("Error generating QR:", error);
+      // message.error({
+      //   content: "Không thể tạo mã QR. Vui lòng thử lại sau.",
+      //   duration: 5,
+      // });
     }
   };
 
@@ -209,7 +209,8 @@ const RechargeForm = () => {
                         <Button
                           type="link"
                           icon={<LinkOutlined />}
-                          onClick={() => window.open(qrUrl, "_blank")}
+                          // onClick={() => window.open(qrUrl, "_blank")}
+                          onClick={() => window.location.href = qrUrl}
                         >
                           Mở trang thanh toán VNPay Sandbox
                         </Button>

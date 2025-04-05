@@ -69,4 +69,4 @@ const VNPayCallback = () => {
   );
 };
 
-export default VNPayCallback; 
+export default VNPayCallback;

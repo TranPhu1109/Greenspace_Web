@@ -213,12 +213,12 @@ const ProductDetail = () => {
   }
 
   return (
-    <Layout className="product-detail-layout">
+    <Layout >
       <Header />
       <Content>
-        <div className="product-detail-content">
+        <div className="product-detail-content" style={{ padding: "200px 0 10px" }}>
           <div className="container">
-            <Card bordered={false}>
+            <Card >
               <Row gutter={[32, 32]}>
                 <Col xs={24} md={12}>
                   <div className="product-images">
