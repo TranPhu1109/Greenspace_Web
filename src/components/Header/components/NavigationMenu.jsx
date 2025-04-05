@@ -1,36 +1,40 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Link, useLocation } from 'react-router-dom';
+import React from "react";
+import PropTypes from "prop-types";
+import { Link, useLocation } from "react-router-dom";
 
-import { Button, Dropdown } from 'antd';
-import { CustomerServiceOutlined, WalletOutlined, MenuOutlined, DownOutlined } from '@ant-design/icons';
+import { Button, Dropdown } from "antd";
+import {
+  CustomerServiceOutlined,
+  WalletOutlined,
+  MenuOutlined,
+  DownOutlined,
+} from "@ant-design/icons";
 
-import MobileMenu from './MobileMenu';
-import './styles/NavigationMenu.scss';
+import MobileMenu from "./MobileMenu";
+import "./styles/NavigationMenu.scss";
 
 function NavigationMenu({ user }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-
   const designMenuItems = [
     {
-      key: 'designs',
+      key: "designs",
       label: <Link to="/designs">Thiết kế mẫu</Link>,
     },
     {
-      key: 'create-design',
+      key: "create-design",
       label: <Link to="/create-design">Tạo thiết kế mới</Link>,
     },
   ];
 
   const historyMenuItems = [
     {
-      key: 'product-history',
+      key: "product-history",
       label: <Link to="/orderhistory">Lịch sử đặt sản phẩm</Link>,
     },
     {
-      key: 'service-history',
+      key: "service-history",
       label: <Link to="/serviceorderhistory">Lịch sử đặt dịch vụ</Link>,
     },
   ];
@@ -51,9 +55,14 @@ function NavigationMenu({ user }) {
             </span>
           </Dropdown>
         ),
-        path: "/designs"
+        path: "/designs",
       },
       { key: "products", label: "Sản phẩm", path: "/products" },
+      {
+        key: "services",
+        label: "Lịch sử đặt dịch vụ thiết kế mới",
+        path: "/history-booking-services",
+      },
       { key: "about", label: "Giới thiệu", path: "/about" },
     ];
 
@@ -71,22 +80,23 @@ function NavigationMenu({ user }) {
             </span>
           </Dropdown>
         ),
-        path: "/orderhistory"
+        path: "/orderhistory",
       });
     }
 
     return items;
   }, [user]);
 
-  const isActivePath = React.useCallback((path) => {
+  const isActivePath = React.useCallback(
+    (path) => {
+      if (path === "/designs") {
+        return location.pathname.includes("/design");
+      }
 
-    if (path === '/designs') {
-      return location.pathname.includes('/design');
-    }
-
-
-    return location.pathname === path;
-  }, [location.pathname]);
+      return location.pathname === path;
+    },
+    [location.pathname]
+  );
 
   const handleShowDrawer = React.useCallback(() => {
     setMobileMenuOpen(true);
@@ -124,7 +134,6 @@ function NavigationMenu({ user }) {
                     isActivePath(item.path) ? "active" : ""
                   }`}
                 >
-
                   {item.key === "design" || item.key === "orderHistory" ? (
                     item.label
                   ) : (
@@ -132,7 +141,6 @@ function NavigationMenu({ user }) {
                       {item.label}
                     </Link>
                   )}
-
                 </li>
               ))}
             </ul>

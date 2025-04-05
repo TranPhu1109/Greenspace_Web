@@ -18,7 +18,6 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   MoreOutlined,
-  CloseOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +35,8 @@ const NewDesignOrdersList = () => {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
-  const { serviceOrders, loading, getServiceOrdersNoIdea } = useServiceOrderStore();
+  const { serviceOrders, loading, getServiceOrdersNoIdea } =
+    useServiceOrderStore();
 
   useEffect(() => {
     fetchOrders();
@@ -55,12 +55,12 @@ const NewDesignOrdersList = () => {
     navigate(`/staff/design-orders/new-design-orders/${id}`);
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
+  // const handleFilterChange = (key, value) => {
+  //   setFilters((prev) => ({
+  //     ...prev,
+  //     [key]: value,
+  //   }));
+  // };
 
   const applyFilters = () => {
     let filteredOrders = [...serviceOrders];
@@ -89,7 +89,10 @@ const NewDesignOrdersList = () => {
       const [startDate, endDate] = dateRange;
       filteredOrders = filteredOrders.filter((order) => {
         const orderDate = dayjs(order.creationDate);
-        return orderDate.isAfter(startDate) && orderDate.isBefore(endDate.add(1, "day"));
+        return (
+          orderDate.isAfter(startDate) &&
+          orderDate.isBefore(endDate.add(1, "day"))
+        );
       });
     }
 
@@ -111,7 +114,9 @@ const NewDesignOrdersList = () => {
       title: "Mã đơn hàng",
       dataIndex: "id",
       key: "id",
-      render: (text) => <span className="order-number">#{text.slice(0, 8)}</span>,
+      render: (text) => (
+        <span className="order-number">#{text.slice(0, 8)}...</span>
+      ),
     },
     {
       title: "Khách hàng",
@@ -135,9 +140,9 @@ const NewDesignOrdersList = () => {
       key: "description",
       render: (text) => (
         <div className="requirements-preview">
-          <Tooltip 
-            title={<span dangerouslySetInnerHTML={{ __html: text }}></span>} 
-            color="orange" 
+          <Tooltip
+            title={<span dangerouslySetInnerHTML={{ __html: text }}></span>}
+            color="orange"
             placement="topLeft"
           >
             <span
@@ -150,8 +155,7 @@ const NewDesignOrdersList = () => {
                 whiteSpace: "normal",
               }}
               dangerouslySetInnerHTML={{ __html: text }}
-            >
-            </span>
+            ></span>
           </Tooltip>
         </div>
       ),
@@ -202,28 +206,28 @@ const NewDesignOrdersList = () => {
                 }}
                 onClick={() => handleViewDetail(record.id)}
               >
-                  <EyeOutlined /> Chi tiết
+                <EyeOutlined /> Chi tiết
               </Button>
-                <Button
-                  type="primary"
-                  disabled={record.status !== "pending"}
-                  style={{
-                    marginBottom: "5px",
-                    justifyContent: "flex-start",
-                  }}
-                  onClick={() => handleViewDetail(record.id)}
-                >
-                  <CheckCircleOutlined /> Nhận đơn
-                </Button>
-                <Button
-                  danger
-                  disabled={record.status !== "pending"}
-                  style={{
-                    justifyContent: "flex-start",
-                  }}
-                >
-                  <CloseCircleOutlined /> Từ chối
-                </Button>
+              <Button
+                type="primary"
+                disabled={record.status !== "pending"}
+                style={{
+                  marginBottom: "5px",
+                  justifyContent: "flex-start",
+                }}
+                onClick={() => handleViewDetail(record.id)}
+              >
+                <CheckCircleOutlined /> Nhận đơn
+              </Button>
+              <Button
+                danger
+                disabled={record.status !== "pending"}
+                style={{
+                  justifyContent: "flex-start",
+                }}
+              >
+                <CloseCircleOutlined /> Từ chối
+              </Button>
             </div>
           }
         >
@@ -295,7 +299,7 @@ const NewDesignOrdersList = () => {
           }}
           onRow={(record) => ({
             onClick: () => handleViewDetail(record.id),
-            style: { cursor: 'pointer' }
+            style: { cursor: "pointer" },
           })}
         />
       </Card>

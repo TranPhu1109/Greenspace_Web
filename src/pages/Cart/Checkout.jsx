@@ -33,7 +33,7 @@ const { Title, Text } = Typography;
 const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, loading, createOrderProducts, createBill, buyNow } = useCartStore();
-  const { shippingFee, calculateShippingFee } = useShippingStore();
+  const { shippingFee, calculateShippingFee, resetShippingFee } = useShippingStore();
   const [products, setProducts] = useState([]);
   const { state } = useLocation();
   const [form] = Form.useForm();
@@ -127,7 +127,12 @@ const Checkout = () => {
           
           if (billResponse.status === 200) {
             message.success('Đặt hàng và thanh toán thành công!');
-            navigate('/Home');
+            resetShippingFee();
+            setProducts([]);
+            navigate('/orderhistory', {
+              replace: true,
+              state: { fromCheckout: true }
+            });
           }
         } catch (error) {
           message.error('Có lỗi xảy ra khi thanh toán');
@@ -142,7 +147,7 @@ const Checkout = () => {
     <Layout >
       <Header />
       <Content>
-        <div className="checkout-content">
+        <div className="checkout-content" style={{ margin: '200px 0 20px' }}>
           <div className="container">
             <Row gutter={24}>
               <Col xs={24} lg={16}>

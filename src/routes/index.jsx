@@ -28,6 +28,7 @@ import OrderService from "@/pages/ServiceOrder/OrderService";
 import Checkout from "@/pages/Cart/Checkout";
 import OrderHistory from "@/pages/Order/OrderHistory";
 import BookDesign from "@/pages/ServiceOrder/BookDesign";
+// import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 
 const router = createBrowserRouter([
   {
@@ -122,7 +123,6 @@ const router = createBrowserRouter([
       </>
     ),
   },
-
   {
     path: "/serviceorderhistory/detail/:id",
     element: (
@@ -140,6 +140,15 @@ const router = createBrowserRouter([
         <OrderHistory />
       </>
     ),
+  },
+  {
+      path: "/history-booking-services",
+      element: (
+        <>
+          <ScrollToTop />
+          {/* <ServiceOrderHistory /> */}
+        </>
+      ),
   },
   {
     path: "/products",

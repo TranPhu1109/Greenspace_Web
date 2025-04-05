@@ -12,7 +12,6 @@ const { Content } = Layout;
 
 const WalletPage = () => {
   const handleRecharge = (values) => {
-    console.log("Form values:", values);
     message.info("Đang tạo mã QR VNPay...");
   };
 

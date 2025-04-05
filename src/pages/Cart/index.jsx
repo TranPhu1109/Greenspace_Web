@@ -176,7 +176,7 @@ const CartPage = () => {
   }
 
   return (
-    <Layout >
+    <Layout className="cart-layout">
       <Header />
       <Content>
         <div className="cart-content">

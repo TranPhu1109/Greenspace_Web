@@ -24,6 +24,25 @@ const useOrderHistoryStore = create((set) => ({
     }
   },
 
+  // Cancel order
+  cancelOrder: async (orderId) => {
+    set({ loading: true, error: null });
+    try {
+      await axios.put(`/api/orderproducts/status/${orderId}`, {
+        status: 3,
+        deliveryCode: ''
+      });
+      await set.getState().fetchOrderHistory();
+      return true;
+    } catch (error) {
+      set({
+        error: error.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng',
+        loading: false
+      });
+      return false;
+    }
+  },
+
   // Clear store data
   clearStore: () => {
     set({ orders: [], loading: false, error: null });

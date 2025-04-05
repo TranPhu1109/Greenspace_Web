@@ -23,6 +23,7 @@ import useShippingStore from "../../../../stores/useShippingStore";
 import OrderExpandedRow from "./OrderExpandedRow";
 import { Popover } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
+import useOrderHistoryStore from "@/stores/useOrderHistoryStore";
 
 const { Step } = Steps;
 const { confirm } = Modal;
@@ -32,10 +33,11 @@ const OrdersTable = ({
   isLoading,
   expandedRowKeys,
   setExpandedRowKeys,
-products,
+  products,
 }) => {
   const navigate = useNavigate();
   const { updateOrderStatus, fetchOrders } = useOrderStore();
+  const { cancelOrder } = useOrderHistoryStore();
   const { createShippingOrder, order_code } = useShippingStore();
   const { getBasePath } = useRoleBasedPath();
 
@@ -52,9 +54,9 @@ products,
       content: `Bạn có chắc chắn muốn nhận đơn hàng ${record.id} không?`,
       onOk: async () => {
         try {
-          // Tạo đơn ship
-          // Tách địa chỉ thành các phần
-          const addressParts = record.address.split('|').map(part => part.trim());
+          const addressParts = record.address
+            .split("|")
+            .map((part) => part.trim());
           const toAddress = addressParts[0];
           const toWard = addressParts[1];
           const toDistrict = addressParts[2];
@@ -67,39 +69,42 @@ products,
             toProvince: toProvince,
             toDistrict: toDistrict,
             toWard: toWard,
-            items: record.orderDetails.map(item => {
+            items: record.orderDetails.map((item) => {
               // Tìm thông tin sản phẩm từ products
-              const product = products.find(p => p.id === item.productId);
+              const product = products.find((p) => p.id === item.productId);
               const productName = product ? product.name : item.productName;
               return {
                 name: productName,
                 code: item.productId,
-                quantity: item.quantity
+                quantity: item.quantity,
               };
-            })
+            }),
           };
 
           const shippingResponse = await createShippingOrder(shippingData);
-          console.log('shippingResponse', shippingResponse);
-          
+          console.log("shippingResponse", shippingResponse);
+
           if (shippingResponse.data?.code === 200) {
             // Cập nhật trạng thái đơn hàng với mã vận đơn
-            console.log('record.id', record.id);
-            console.log('deliveryCode', shippingResponse.data?.data?.order_code);
-            
+            console.log("record.id", record.id);
+            console.log(
+              "deliveryCode",
+              shippingResponse.data?.data?.order_code
+            );
+
             const success = await updateOrderStatus(record.id, {
               status: 1,
-              deliveryCode: shippingResponse.data?.data?.order_code
+              deliveryCode: shippingResponse.data?.data?.order_code,
             });
-            
+
             if (success) {
               message.success(`Đã nhận đơn hàng ${record.id}`);
               fetchOrders(); // Gọi lại fetchOrders để cập nhật danh sách đơn hàng
             } else {
-              throw new Error('Không thể cập nhật trạng thái đơn hàng');
+              throw new Error("Không thể cập nhật trạng thái đơn hàng");
             }
           } else {
-            throw new Error('Tạo đơn vận chuyển thất bại');
+            throw new Error("Tạo đơn vận chuyển thất bại");
           }
         } catch (error) {
           message.error(error.message || "Có lỗi xảy ra khi xử lý đơn hàng");
@@ -110,16 +115,21 @@ products,
 
   const handleRejectOrder = (e, record) => {
     e.stopPropagation();
-    confirm({
-      title: "Xác nhận từ chối đơn hàng",
-      icon: <ExclamationCircleOutlined />,
-      content: `Bạn có chắc chắn muốn từ chối đơn hàng ${record.id} không?`,
+    Modal.confirm({
+      title: "Xác nhận hủy đơn hàng",
+      content: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
+      okText: "Hủy đơn",
+      cancelText: "Đóng",
+      okButtonProps: { danger: true },
       onOk: async () => {
-        const success = await updateOrderStatus(record.id, "5");
-        if (success) {
-          message.success(`Đã từ chối đơn hàng ${record.id}`);
-        } else {
-          message.error("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng");
+        try {
+          const success = await cancelOrder(record.id);
+          if (success) {
+            message.success("Đã hủy đơn hàng thành công");
+          }
+          fetchOrders();
+        } catch (error) {
+          message.error("Không thể hủy đơn hàng. Vui lòng thử lại sau.");
         }
       },
     });
@@ -139,8 +149,8 @@ products,
       dataIndex: "id",
       key: "id",
       render: (text) => (
-        <span className="font-medium">
-          #{text.substring(0, 8)}
+        <span className="font-medium" style={{ color: "#1890ff" }}>
+          #{text.substring(0, 8)}...
         </span>
       ),
     },
@@ -157,11 +167,12 @@ products,
     },
     {
       title: "Địa chỉ giao hàng",
-      dataIndex: "address",
+      dataIndex: "address", 
       key: "address",
-      render: (text) => (
-        <span className="text-xs text-gray-500">{text}</span>
-      ),
+      render: (text) => {
+        const formattedAddress = text.replace(/\|/g, ', ');
+        return <span className="text-xs text-gray-500">{formattedAddress}</span>;
+      },
     },
     {
       title: "Ngày đặt",
@@ -186,6 +197,13 @@ products,
       title: "Mã vận đơn",
       dataIndex: "deliveryCode",
       key: "deliveryCode",
+      render: (text) => (
+        <div className="flex flex-col">
+          <Tag color={text ? "success" : "orange"} className="font-medium">
+            {text || "---"}
+          </Tag>
+        </div>
+      ),
     },
     {
       title: "Trạng thái",
@@ -246,68 +264,160 @@ products,
     {
       title: "Hành động",
       key: "action",
-      render: (_, record) => (
-        <Popover
-          placement="bottom"
-          trigger="click"
-          onClick={(e) => e.stopPropagation()}
-          content={
-            <div
-              className="flex flex-col gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                type="default"
-                style={{
-                  backgroundColor: "beige",
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                onClick={() => handleViewOrderDetail(record)}
-                icon={<EyeOutlined />}
-              >
-                Xem chi tiết
-              </Button>
-
-              <Button
-                type="primary"
-                disabled={record.status !== "0"}
-                onClick={(e) => handleAcceptOrder(e, record)}
-                style={{
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                icon={<CheckCircleOutlined />}
-              >
-                Xác nhận
-              </Button>
-              <Button
-                danger
-                disabled={record.status !== "0"}
-                onClick={(e) => handleRejectOrder(e, record)}
-                style={{
-                  marginBottom: "5px",
-                  justifyContent: "flex-start",
-                }}
-                icon={<CloseCircleOutlined />}
-              >
-                Từ chối
-              </Button>
-
-              <Button
-                disabled={record.orderStatus !== "đã xác nhận"}
-                type="dashed"
-                style={{ backgroundColor: "darkgoldenrod", color: 'white', justifyContent: "flex-start" }}
-                icon={<PrinterOutlined />}
-              >
-                In đơn
-              </Button>
-            </div>
+      render: (_, record) => {
+        const getAvailableActions = (status) => {
+          switch (status) {
+            case "0":
+              return [
+                {
+                  label: "Xác nhận",
+                  type: "primary",
+                  icon: <CheckCircleOutlined />,
+                  onClick: (e) => handleAcceptOrder(e, record),
+                  disabled: false
+                },
+                {
+                  label: "Từ chối",
+                  type: "danger",
+                  icon: <CloseCircleOutlined />,
+                  onClick: (e) => handleRejectOrder(e, record),
+                  disabled: false
+                }
+              ];
+            case "1":
+              return [
+                {
+                  label: "Đã lấy hàng",
+                  type: "primary",
+                  icon: <CheckCircleOutlined />,
+                  onClick: async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const success = await updateOrderStatus(record.id, { status: 6, deliveryCode: order_code });
+                      if (success) {
+                        message.success("Đã cập nhật trạng thái đơn hàng");
+                        fetchOrders();
+                      }
+                    } catch (error) {
+                      message.error("Không thể cập nhật trạng thái đơn hàng");
+                    }
+                  },
+                  disabled: false
+                }
+              ];
+            case "6":
+            case "8":
+              return [
+                {
+                  label: "Giao thành công",
+                  type: "primary",
+                  icon: <CheckCircleOutlined />,
+                  onClick: async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const success = await updateOrderStatus(record.id, { status: 9, deliveryCode: order_code });
+                      if (success) {
+                        message.success("Đã cập nhật trạng thái đơn hàng");
+                        fetchOrders();
+                      }
+                    } catch (error) {
+                      message.error("Không thể cập nhật trạng thái đơn hàng");
+                    }
+                  },
+                  disabled: false
+                },
+                {
+                  label: "Giao thất bại",
+                  type: "danger",
+                  icon: <CloseCircleOutlined />,
+                  onClick: async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const success = await updateOrderStatus(record.id, { status: 7, deliveryCode: order_code });
+                      if (success) {
+                        message.success("Đã cập nhật trạng thái đơn hàng");
+                        fetchOrders();
+                      }
+                    } catch (error) {
+                      message.error("Không thể cập nhật trạng thái đơn hàng");
+                    }
+                  },
+                  disabled: false
+                }
+              ];
+            case "7":
+              return [
+                {
+                  label: "Giao lại",
+                  type: "primary",
+                  icon: <CheckCircleOutlined />,
+                  onClick: async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const success = await updateOrderStatus(record.id, { status: 8, deliveryCode: order_code });
+                      if (success) {
+                        message.success("Đã cập nhật trạng thái đơn hàng");
+                        fetchOrders();
+                      }
+                    } catch (error) {
+                      message.error("Không thể cập nhật trạng thái đơn hàng");
+                    }
+                  },
+                  disabled: false
+                }
+              ];
+            default:
+              return [];
           }
-        >
-          <MoreOutlined style={{ fontSize: "20px", fontWeight: "bold" }} />
-        </Popover>
-      ),
+        };
+
+        const actions = getAvailableActions(record.status);
+
+        return (
+          <Popover
+            placement="bottom"
+            trigger="click"
+            onClick={(e) => e.stopPropagation()}
+            content={
+              <div
+                className="flex flex-col gap-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  type="default"
+                  style={{
+                    backgroundColor: "beige",
+                    marginBottom: "5px",
+                    justifyContent: "flex-start",
+                  }}
+                  onClick={() => handleViewOrderDetail(record)}
+                  icon={<EyeOutlined />}
+                >
+                  Xem chi tiết
+                </Button>
+
+                {actions.map((action, index) => (
+                  <Button
+                    key={index}
+                    type={action.type}
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                    icon={action.icon}
+                    style={{
+                      marginBottom: "5px",
+                      justifyContent: "flex-start",
+                    }}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+              </div>
+            }
+          >
+            <MoreOutlined style={{ fontSize: "20px", fontWeight: "bold" }} />
+          </Popover>
+        );
+      },
     },
   ];
 
@@ -318,7 +428,7 @@ products,
       rowKey="id"
       expandable={{
         expandedRowRender,
-        expandRowByClick: true,
+        // expandRowByClick: true,
         expandedRowKeys,
         onExpand: (expanded, record) => {
           const keys = [...expandedRowKeys];
@@ -333,6 +443,10 @@ products,
           setExpandedRowKeys(keys);
         },
       }}
+
+      onRow={(record) => ({
+        onClick: () => handleViewOrderDetail(record)
+      })}
       pagination={{
         pageSize: 10,
         showSizeChanger: true,

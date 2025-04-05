@@ -63,6 +63,24 @@ const useServiceOrderStore = create((set) => ({
     }
   },
 
+  // Lấy danh sách đơn thiết kế không có mẫu theo userId
+  getServiceOrdersNoUsingIdea: async (userId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get(`/api/serviceorder/userid-nousingidea/${userId}`);
+      if (!response.data) {
+        throw new Error('Không thể lấy danh sách đơn thiết kế');
+      }
+      set({ serviceOrders: response.data });
+      return response.data;
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   // Lấy chi tiết đơn thiết kế theo id
   getServiceOrderById: async (id) => {
     set({ loading: true, error: null });
