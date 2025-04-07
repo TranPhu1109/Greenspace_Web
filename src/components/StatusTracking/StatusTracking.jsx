@@ -7,6 +7,7 @@ const StatusTracking = ({ currentStatus }) => {
     { status: 'Pending', title: 'Chờ xác nhận' },
     { status: 'ConsultingAndSketching', title: 'Tư vấn & Phác thảo' },
     { status: 'DeterminingDesignPrice', title: 'Đang xác định giá thiết kế' },
+    { status: 'WaitDeposit', title: 'Chờ đặt cọc' },
     { status: 'DepositSuccessful', title: 'Đã ký hợp đồng và đặt cọc 50% giá thiết  kế' },
     { status: 'AssignToDesigner', title: 'Thiết kế đang được Designer thực hiện' },
     { status: 'DeterminingMaterialPrice', title: 'Bản vẽ hoàn chỉnh đã hoàn thành, đang xác định giá vật liệu' },

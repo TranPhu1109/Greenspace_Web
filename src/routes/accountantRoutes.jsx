@@ -3,6 +3,8 @@ import OrdersList from "../components/Staff/Orders/OrdersList";
 import OrderDetail from "../components/Staff/Orders/OrderDetail";
 import DesignOrdersList from "../pages/Admin/DesignOrders/DesignOrdersList";
 import PendingDesignOrders from "../pages/Admin/DesignOrders/PendingDesignOrders";
+import ServiceOrderList from "@/components/Accountant/ServiceOrderList";
+import ServiceOrderDetail from "@/components/Accountant/ServiceOrderDetail";
 
 export const accountantRoutes = {
   path: "/accountant",
@@ -29,15 +31,15 @@ export const accountantRoutes = {
       ],
     },
     {
-      path: "design-orders",
+      path: "service-orders",
       children: [
         {
           index: true,
-          element: <DesignOrdersList />,
+          element: <ServiceOrderList />,
         },
         {
-          path: "pending",
-          element: <PendingDesignOrders />,
+          path: ":id",
+          element: <ServiceOrderDetail />,
         },
       ],
     },

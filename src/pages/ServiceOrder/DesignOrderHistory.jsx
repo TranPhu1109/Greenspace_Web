@@ -113,7 +113,11 @@ const DesignOrderHistory = () => {
           'OrderCancelled': { color: 'error', text: 'Đơn hàng đã bị hủy' },
           'Warning': { color: 'warning', text: 'Cảnh báo vượt 30%' },
           'Refund': { color: 'orange', text: 'Hoàn tiền' },
-          'DoneRefund': { color: 'success', text: 'Đã hoàn tiền' }
+          'DoneRefund': { color: 'success', text: 'Đã hoàn tiền' },
+          'Completed': { color: 'success', text: 'Hoàn thành' },
+          'ReConsultingAndSketching': { color: 'blue', text: 'Phác thảo lại' },
+          'ReDesign': { color: 'volcano', text: 'Thiết kế lại' },
+          'WaitDeposit': { color: 'gold', text: 'Chờ đặt cọc' }
         };
         const config = statusConfig[status] || {
           color: "default",
