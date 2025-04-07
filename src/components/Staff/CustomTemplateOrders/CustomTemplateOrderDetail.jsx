@@ -31,6 +31,7 @@ import {
   LayoutOutlined,
   FileTextOutlined,
   SyncOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import ConsultingSection from "./sections/ConsultingSection";
@@ -101,7 +102,7 @@ const CustomTemplateOrderDetail = () => {
   const handleGenerateContract = async () => {
     try {
       if (!selectedOrder) return;
-      
+
       Modal.confirm({
         title: "Xác nhận tạo hợp đồng",
         content: "Bạn có chắc chắn muốn tạo hợp đồng cho đơn hàng này?",
@@ -118,10 +119,10 @@ const CustomTemplateOrderDetail = () => {
               address: selectedOrder.address,
               designPrice: selectedOrder.designPrice || 0
             };
-            
+
             const result = await generateContract(contractData);
             message.success("Tạo hợp đồng thành công");
-            
+
             // Could navigate to contract view or download PDF if API returns such data
             // For now just show success message
           } catch (error) {
@@ -321,11 +322,11 @@ const CustomTemplateOrderDetail = () => {
             }}
           >
             <div style={{ padding: "24px" }}>
-            <Steps 
+              <Steps
                 current={getCurrentStep(selectedOrder.status)}
                 status={
                   selectedOrder.status === "OrderCancelled" ||
-                  selectedOrder.status === "DeliveryFail"
+                    selectedOrder.status === "DeliveryFail"
                     ? "error"
                     : "process"
                 }
@@ -479,7 +480,7 @@ const CustomTemplateOrderDetail = () => {
                     flex: "1 1 auto",
                   }}
                 />
-            </Steps>
+              </Steps>
             </div>
           </Card>
         </Col>
@@ -526,27 +527,30 @@ const CustomTemplateOrderDetail = () => {
             <Divider />
             <div>
               <h4>Mô tả yêu cầu:</h4>
-              <p>{selectedOrder.description || "Không có yêu cầu cụ thể"}</p>
+              <p dangerouslySetInnerHTML={{
+                __html: selectedOrder.description || "<p>Không có yêu cầu cụ thể</p>",
+              }}
+                style={{ fontSize: '15px', lineHeight: '1.6' }}></p>
             </div>
             {selectedOrder.attachments &&
               selectedOrder.attachments.length > 0 && (
-              <div className="attachments">
-                <h4>Tài liệu đính kèm:</h4>
-                <ul>
-                  {selectedOrder.attachments.map((file, index) => (
-                    <li key={index}>
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {file.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                <div className="attachments">
+                  <h4>Tài liệu đính kèm:</h4>
+                  <ul>
+                    {selectedOrder.attachments.map((file, index) => (
+                      <li key={index}>
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {file.name}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             {selectedOrder.image && (
               <div className="customer-images">
                 <h4>Hình ảnh từ khách hàng:</h4>
@@ -565,7 +569,7 @@ const CustomTemplateOrderDetail = () => {
                           height: "150px",
                           position: "relative",
                           border: "1px solid #e8e8e8",
-                          borderRadius: "8px", 
+                          borderRadius: "8px",
                           overflow: "hidden",
                           cursor: "pointer",
                         }}
@@ -621,68 +625,68 @@ const CustomTemplateOrderDetail = () => {
             <Divider />
             {selectedOrder.serviceOrderDetails &&
               selectedOrder.serviceOrderDetails.length > 0 && (
-              <div className="selected-materials">
-                <h4>Vật liệu thiết kế:</h4>
-                <div style={{ marginBottom: "10px" }}>
-                  <Table
-                    dataSource={selectedOrder.serviceOrderDetails.map((detail) => {
-                      const product = products.find((p) => p.id === detail.productId);
-                      const category = categories.find((c) => c.id === product?.categoryId);
-                      return {
-                        ...detail,
-                        product,
-                        category,
-                      };
-                    })}
-                    pagination={false}
-                    size="small"
-                    bordered
-                  >
-                    <Table.Column
-                      title="Sản phẩm"
-                      key="product"
-                      render={(record) => (
-                        <Space>
-                          {record.product?.image && (
-                            <img
-                              src={record.product.image.imageUrl}
-                              alt={record.product.name}
-                              style={{
-                                width: 50,
-                                height: 50,
-                                borderRadius: "5px",
-                                objectFit: "cover",
-                              }}
-                            />
-                          )}
-                          <div>
-                            <div>{record.product?.name || "N/A"}</div>
-                            {record.category && (
-                              <Tag color="green">{record.category.name}</Tag>
+                <div className="selected-materials">
+                  <h4>Vật liệu thiết kế:</h4>
+                  <div style={{ marginBottom: "10px" }}>
+                    <Table
+                      dataSource={selectedOrder.serviceOrderDetails.map((detail) => {
+                        const product = products.find((p) => p.id === detail.productId);
+                        const category = categories.find((c) => c.id === product?.categoryId);
+                        return {
+                          ...detail,
+                          product,
+                          category,
+                        };
+                      })}
+                      pagination={false}
+                      size="small"
+                      bordered
+                    >
+                      <Table.Column
+                        title="Sản phẩm"
+                        key="product"
+                        render={(record) => (
+                          <Space>
+                            {record.product?.image && (
+                              <img
+                                src={record.product.image.imageUrl}
+                                alt={record.product.name}
+                                style={{
+                                  width: 50,
+                                  height: 50,
+                                  borderRadius: "5px",
+                                  objectFit: "cover",
+                                }}
+                              />
                             )}
-                          </div>
-                        </Space>
-                      )}
-                    />
-                    <Table.Column title="Số lượng" dataIndex="quantity" />
-                    <Table.Column
-                      title="Đơn giá"
-                      dataIndex="price"
-                      render={(price) => (
-                        <span>{price.toLocaleString("vi-VN")} đ</span>
-                      )}
-                    />
-                    <Table.Column
-                      title="Thành tiền"
-                      dataIndex="totalPrice"
-                      render={(totalPrice) => (
-                        <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
-                      )}
-                    />
-                  </Table>
+                            <div>
+                              <div>{record.product?.name || "N/A"}</div>
+                              {record.category && (
+                                <Tag color="green">{record.category.name}</Tag>
+                              )}
+                            </div>
+                          </Space>
+                        )}
+                      />
+                      <Table.Column title="Số lượng" dataIndex="quantity" />
+                      <Table.Column
+                        title="Đơn giá"
+                        dataIndex="price"
+                        render={(price) => (
+                          <span>{price.toLocaleString("vi-VN")} đ</span>
+                        )}
+                      />
+                      <Table.Column
+                        title="Thành tiền"
+                        dataIndex="totalPrice"
+                        render={(totalPrice) => (
+                          <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
+                        )}
+                      />
+                    </Table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </Card>
         </Col>
         <Col span={8}>
@@ -891,7 +895,7 @@ const CustomTemplateOrderDetail = () => {
                 </Button>
               )}
 
-              {selectedOrder.status === "ConsultingAndSketching" && (
+              {selectedOrder.status === "WaitDeposit" && (
                 <>
                   {contract ? (
                     <Button
@@ -923,28 +927,34 @@ const CustomTemplateOrderDetail = () => {
                   )}
                 </>
               )}
-
-              <Button
-                type="primary"
-                style={{
+              {selectedOrder.status === "ConsultingAndSketching" && (
+                <Button
+                  type="primary"
+                  icon={<UserAddOutlined />}
+                  style={{
                   backgroundColor: "#4CAF50",
                   borderColor: "#4CAF50",
                   width: "100%",
                 }}
                 onClick={() => {
-                  Modal.confirm({
-                    title: "Xác nhận đơn hàng",
-                    content: "Bạn có chắc chắn muốn xác nhận đơn hàng này?",
-                    okText: "Xác nhận",
-                    cancelText: "Hủy",
-                    onOk: () => {
-                      message.success("Đã xác nhận đơn hàng thành công");
-                    },
-                  });
+                  navigate("/staff/schedule");
                 }}
+                // onClick={() => {
+                //   Modal.confirm({
+                //     title: "Giao task cho designer",
+                //     content: "Bạn có chắc chắn muốn giao task này cho designer?",
+                //     okText: "Xác nhận",
+                //     cancelText: "Hủy",
+                //     onOk: () => {
+                //       message.success("Đã chuyển đến trang phân công");
+                //       navigate("/staff/schedule");
+                //     },
+                //   });
+                // }}
               >
-                Xác nhận đơn hàng
+                Giao task cho designer
               </Button>
+              )}
               <Button
                 danger
                 style={{
