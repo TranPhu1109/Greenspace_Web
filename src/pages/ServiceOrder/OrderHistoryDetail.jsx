@@ -41,6 +41,7 @@ import StatusTracking from "@/components/StatusTracking/StatusTracking";
 import useShippingStore from "@/stores/useShippingStore";
 import useContractStore from "@/stores/useContractStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
+import api from "@/api/api";
 import useRecordStore from "@/stores/useRecordStore";
 
 const { Content } = Layout;
@@ -62,6 +63,7 @@ const OrderHistoryDetail = () => {
     contract,
     loading: contractLoading,
     signContract,
+    generateContract,
   } = useContractStore();
   const trackingInterval = useRef(null);
   const { uploadImages, progress } = useCloudinaryStorage();
@@ -77,6 +79,8 @@ const OrderHistoryDetail = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showContractButton, setShowContractButton] = useState(false);
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
+  const [showPaymentButton, setShowPaymentButton] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [loadingSketch, setLoadingSketch] = useState(false);
   const [selectedSketchId, setSelectedSketchId] = useState(null);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
@@ -205,16 +209,35 @@ const OrderHistoryDetail = () => {
     }
   }, [selectedOrder?.deliveryCode, selectedOrder?.status]);
 
-  // Add useEffect to fetch contract when status is ConsultingAndSketching
+  // Add useEffect to fetch contract when status is ConsultingAndSketching or WaitDeposit
   useEffect(() => {
     const fetchContract = async () => {
-      if (selectedOrder?.status === "ConsultingAndSketching") {
+      if (selectedOrder?.status === "ConsultingAndSketching" || selectedOrder?.status === "WaitDeposit") {
         try {
           await getContractByServiceOrder(selectedOrder.id);
           setShowContractButton(true);
         } catch (error) {
           console.error("Error fetching contract:", error);
-          setShowContractButton(false);
+          // Nếu không tìm thấy hợp đồng và đang ở trạng thái WaitDeposit, tạo hợp đồng mới
+          if (selectedOrder?.status === "WaitDeposit") {
+            try {
+              await generateContract({
+                userId: selectedOrder.userId,
+                serviceOrderId: selectedOrder.id,
+                userName: selectedOrder.userName,
+                email: selectedOrder.email,
+                phone: selectedOrder.cusPhone,
+                address: selectedOrder.address,
+                designPrice: selectedOrder.designPrice
+              });
+              setShowContractButton(true);
+            } catch (genError) {
+              console.error("Error generating contract:", genError);
+              setShowContractButton(false);
+            }
+          } else {
+            setShowContractButton(false);
+          }
         }
       } else {
         setShowContractButton(false);
@@ -222,7 +245,16 @@ const OrderHistoryDetail = () => {
     };
 
     fetchContract();
-  }, [selectedOrder?.status, selectedOrder?.id, getContractByServiceOrder]);
+  }, [selectedOrder?.status, selectedOrder?.id, getContractByServiceOrder, generateContract]);
+
+  // Add useEffect to check contract modification date
+  useEffect(() => {
+    if (contract?.modificationDate) {
+      setShowPaymentButton(true);
+    } else {
+      setShowPaymentButton(false);
+    }
+  }, [contract]);
 
   // Add useEffect to fetch sketch records
   useEffect(() => {
@@ -354,9 +386,15 @@ const OrderHistoryDetail = () => {
         setSignatureUrl(uploadedUrls[0]);
         if (contract?.id) {
           await signContract(contract.id, uploadedUrls[0]);
-          message.success("Ký hợp đồng thành công");
-          // Fetch contract again after successful signing
-          await getContractByServiceOrder(selectedOrder.id);
+          
+          // Nếu đang ở trạng thái WaitDeposit, hiển thị nút thanh toán
+          if (selectedOrder.status === "WaitDeposit") {
+            message.success("Đã ký hợp đồng 50% thành công");
+            // Fetch contract again to check modificationDate
+            await getContractByServiceOrder(selectedOrder.id);
+          } else {
+            message.success("Ký hợp đồng thành công");
+          }
         }
       }
     } catch (error) {
@@ -371,6 +409,56 @@ const OrderHistoryDetail = () => {
   const handleCancelUpload = () => {
     setIsPreviewModalVisible(false);
     setPreviewImage(null);
+  };
+
+  // Add function to handle payment
+  const handlePayment = async () => {
+    try {
+      setPaymentLoading(true);
+      
+      // Get walletId from localStorage and parse it correctly
+      const walletStorage = localStorage.getItem("wallet-storage");
+      if (!walletStorage) {
+        message.error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
+        return;
+      }
+      
+      // Parse the JSON string to get the walletId
+      const walletData = JSON.parse(walletStorage);
+      const walletId = walletData.state.walletId;
+      
+      if (!walletId) {
+        message.error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
+        return;
+      }
+      
+      // Calculate 50% of design price
+      const amount = selectedOrder.designPrice * 0.5;
+      
+      // Call bill API
+      const response = await api.post("/api/bill", {
+        walletId: walletId,
+        serviceOrderId: selectedOrder.id,
+        amount: amount,
+        description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`
+      });
+      
+      if (response.data) {
+        message.success("Thanh toán thành công");
+        
+        // Update order status to DepositSuccessful
+        await updateStatus(selectedOrder.id, "DepositSuccessful");
+        message.success("Đã cập nhật trạng thái đơn hàng");
+        
+        // Refresh order details
+        await getDesignOrderById(id, componentId.current);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      message.error("Thanh toán thất bại: " + (error.response?.data?.message || error.message));
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
   const handleSelectSketch = (recordId) => {
@@ -957,17 +1045,17 @@ const OrderHistoryDetail = () => {
                     </Text>
                     <div style={{ marginTop: "24px" }}>
                       <Descriptions bordered column={1}>
-                        <Descriptions.Item label="Phí thiết kế">
+                        <Descriptions.Item label="Phí thiết kế dự kiến">
                           <Text type="success" strong>
                             {formatPrice(selectedOrder.designPrice)}
                           </Text>
                         </Descriptions.Item>
-                        <Descriptions.Item label="Phí vật liệu">
+                        <Descriptions.Item label="Phí vật liệu dự kiến">
                           <Text type="success" strong>
                             {formatPrice(selectedOrder.materialPrice)}
                           </Text>
                         </Descriptions.Item>
-                        <Descriptions.Item label="Tổng thanh toán">
+                        <Descriptions.Item label="Tổng thanh toán dự kiến">
                           <Text type="danger" strong style={{ fontSize: "16px" }}>
                             {formatPrice(
                               selectedOrder.designPrice +
@@ -1033,7 +1121,7 @@ const OrderHistoryDetail = () => {
                         loading={contractLoading}
                         style={{ width: "100%" }}
                       >
-                        Xem hợp đồng
+                        {selectedOrder.status === "WaitDeposit" ? "Xem hợp đồng 50%" : "Xem hợp đồng"}
                       </Button>
                       <div
                         style={{
@@ -1044,8 +1132,9 @@ const OrderHistoryDetail = () => {
                         }}
                       >
                         <Text type="secondary">
-                          Bạn đã đọc và đồng ý với hợp đồng, để kí hợp đồng, vui
-                          lòng cung cấp ảnh chữ kí của bạn tại đây
+                          {selectedOrder.status === "WaitDeposit" 
+                            ? "Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"
+                            : "Bạn đã đọc và đồng ý với hợp đồng, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"}
                         </Text>
                       </div>
                       <Button
@@ -1094,6 +1183,20 @@ const OrderHistoryDetail = () => {
                             </Button>
                           </div>
                         </div>
+                      )}
+                      
+                      {/* Payment Button */}
+                      {showPaymentButton && selectedOrder.status === "WaitDeposit" && (
+                        <Button
+                          type="primary"
+                          danger
+                          icon={<DollarOutlined />}
+                          loading={paymentLoading}
+                          onClick={handlePayment}
+                          style={{ width: "100%", marginTop: "16px" }}
+                        >
+                          Thanh toán 50% phí thiết kế ({formatPrice(selectedOrder.designPrice * 0.5)})
+                        </Button>
                       )}
                     </Space>
                   )}
