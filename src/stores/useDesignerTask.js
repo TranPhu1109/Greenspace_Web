@@ -32,36 +32,21 @@ const useDesignerTask = create((set) => ({
   },
 
   // Cập nhật trạng thái task
-  updateTaskStatus: async (taskId, status) => {
+  updateTaskStatus: async (taskId, { serviceOrderId, userId, status, note }) => {
     set({ isLoading: true, error: null });
     try {
-      await api.put(`/api/worktask/${taskId}/status`, { status });
+      await api.put(`/api/worktask/${taskId}`, {
+        serviceOrderId,
+        userId,
+        status,
+        note
+      });
       set((state) => ({
         tasks: state.tasks.map((task) =>
           task.id === taskId ? { ...task, status } : task
         ),
         currentTask: state.currentTask?.id === taskId
           ? { ...state.currentTask, status }
-          : state.currentTask,
-        isLoading: false
-      }));
-    } catch (error) {
-      set({ error: error.message, isLoading: false });
-      throw error;
-    }
-  },
-
-  // Cập nhật ghi chú task
-  updateTaskNote: async (taskId, note) => {
-    set({ isLoading: true, error: null });
-    try {
-      await api.put(`/api/worktask/${taskId}/note`, { note });
-      set((state) => ({
-        tasks: state.tasks.map((task) =>
-          task.id === taskId ? { ...task, note } : task
-        ),
-        currentTask: state.currentTask?.id === taskId
-          ? { ...state.currentTask, note }
           : state.currentTask,
         isLoading: false
       }));

@@ -530,50 +530,7 @@ const OrderHistoryDetail = () => {
                       />
                     </Descriptions.Item>
                   </Descriptions>
-
-                  <Space style={{ marginTop: 16 }}>
-                    <h1 style={{ fontSize: '18px', fontWeight: 'bold' }}> Hình ảnh khách hàng cung cấp:</h1>
-                  </Space>
-                  {selectedOrder.image?.imageUrl && (
-                    <div style={{ marginTop: 16 }}>
-                      <Image
-                        src={selectedOrder.image.imageUrl}
-                        alt={selectedOrder.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                          borderRadius: 10,
-                        }}
-                      />
-                    </div>
-                  )}
-                  {selectedOrder.image?.image2 && (
-                    <div style={{ marginTop: 16 }}>
-                      <img
-                        src={selectedOrder.image.image2}
-                        alt={selectedOrder.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  )}
-                  {selectedOrder.image?.image3 && (
-                    <div style={{ marginTop: 16 }}>
-                      <img
-                        src={selectedOrder.image.image3}
-                        alt={selectedOrder.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  )}
+                  
                 </Card>
               ) : (
                 <>
@@ -658,7 +615,7 @@ const OrderHistoryDetail = () => {
               )}
 
               {/* Design Images Section */}
-              {designIdea && selectedOrder.status !== "Pending" && (
+              {!selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
                 <Card
                   title={
                     <Space>
@@ -724,6 +681,77 @@ const OrderHistoryDetail = () => {
                         />
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
                           <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {selectedOrder.isCustom && selectedOrder.status === "ConsultingAndSketching" && (
+                <Card
+                  title={
+                    <Space>
+                      <BulbOutlined />
+                      <span>Bản vẽ phác thảo</span>
+                    </Space>
+                  }
+                  type="inner"
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(300px, 1fr))",
+                      gap: "16px",
+                      padding: "16px",
+                    }}
+                  >
+                    {selectedOrder.image?.imageUrl && (
+                      <div>
+                        <Image
+                          src={selectedOrder.image.imageUrl}
+                          alt="Bản vẽ phác thảo 1"
+                          style={{ width: "100%", height: "auto" }}
+                          preview={{
+                            mask: "Phóng to",
+                            maskClassName: "custom-mask",
+                          }}
+                        />
+                        <div style={{ textAlign: "center", marginTop: "8px" }}>
+                          <Text type="secondary">Bản vẽ phác thảo 1</Text>
+                        </div>
+                      </div>
+                    )}
+                    {selectedOrder.image?.image2 && (
+                      <div>
+                        <Image
+                          src={selectedOrder.image.image2}
+                          alt="Bản vẽ phác thảo 2"
+                          style={{ width: "100%", height: "auto" }}
+                          preview={{
+                            mask: "Phóng to",
+                            maskClassName: "custom-mask",
+                          }}
+                        />
+                        <div style={{ textAlign: "center", marginTop: "8px" }}>
+                          <Text type="secondary">Bản vẽ phác thảo 2</Text>
+                        </div>
+                      </div>
+                    )}
+                    {selectedOrder.image?.image3 && (
+                      <div>
+                        <Image
+                          src={selectedOrder.image.image3}
+                          alt="Bản vẽ phác thảo 3"
+                          style={{ width: "100%", height: "auto" }}
+                          preview={{
+                            mask: "Phóng to",
+                            maskClassName: "custom-mask",
+                          }}
+                        />
+                        <div style={{ textAlign: "center", marginTop: "8px" }}>
+                          <Text type="secondary">Bản vẽ phác thảo 3</Text>
                         </div>
                       </div>
                     )}
