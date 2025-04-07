@@ -519,48 +519,7 @@ const OrderHistoryDetail = () => {
                       </>
                     )}
                   </Descriptions>
-                  <Space>
-                    <h1>Hình ảnh khách hàng cung cấp:</h1>
-                  </Space>
-                  {selectedOrder.image?.imageUrl && (
-                    <div style={{ marginTop: 16 }}>
-                      <img
-                        src={selectedOrder.image.imageUrl}
-                        alt={selectedOrder.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  )}
-                  {selectedOrder.image?.image2 && (
-                    <div style={{ marginTop: 16 }}>
-                      <img
-                        src={selectedOrder.image.image2}
-                        alt={selectedOrder.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  )}
-                  {selectedOrder.image?.image3 && (
-                    <div style={{ marginTop: 16 }}>
-                      <img
-                        src={selectedOrder.image.image3}
-                        alt={selectedOrder.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: 300,
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  )}
+                  
                 </Card>
               ) : (
                 <>
@@ -638,7 +597,7 @@ const OrderHistoryDetail = () => {
               )}
 
               {/* Design Images Section */}
-              {designIdea && selectedOrder.status !== "Pending" && (
+              {!selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
                 <Card
                   title={
                     <Space>
@@ -704,6 +663,77 @@ const OrderHistoryDetail = () => {
                         />
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
                           <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {selectedOrder.isCustom && selectedOrder.status === "ConsultingAndSketching" && (
+                <Card
+                  title={
+                    <Space>
+                      <BulbOutlined />
+                      <span>Bản vẽ phác thảo</span>
+                    </Space>
+                  }
+                  type="inner"
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(300px, 1fr))",
+                      gap: "16px",
+                      padding: "16px",
+                    }}
+                  >
+                    {selectedOrder.image?.imageUrl && (
+                      <div>
+                        <Image
+                          src={selectedOrder.image.imageUrl}
+                          alt="Bản vẽ phác thảo 1"
+                          style={{ width: "100%", height: "auto" }}
+                          preview={{
+                            mask: "Phóng to",
+                            maskClassName: "custom-mask",
+                          }}
+                        />
+                        <div style={{ textAlign: "center", marginTop: "8px" }}>
+                          <Text type="secondary">Bản vẽ phác thảo 1</Text>
+                        </div>
+                      </div>
+                    )}
+                    {selectedOrder.image?.image2 && (
+                      <div>
+                        <Image
+                          src={selectedOrder.image.image2}
+                          alt="Bản vẽ phác thảo 2"
+                          style={{ width: "100%", height: "auto" }}
+                          preview={{
+                            mask: "Phóng to",
+                            maskClassName: "custom-mask",
+                          }}
+                        />
+                        <div style={{ textAlign: "center", marginTop: "8px" }}>
+                          <Text type="secondary">Bản vẽ phác thảo 2</Text>
+                        </div>
+                      </div>
+                    )}
+                    {selectedOrder.image?.image3 && (
+                      <div>
+                        <Image
+                          src={selectedOrder.image.image3}
+                          alt="Bản vẽ phác thảo 3"
+                          style={{ width: "100%", height: "auto" }}
+                          preview={{
+                            mask: "Phóng to",
+                            maskClassName: "custom-mask",
+                          }}
+                        />
+                        <div style={{ textAlign: "center", marginTop: "8px" }}>
+                          <Text type="secondary">Bản vẽ phác thảo 3</Text>
                         </div>
                       </div>
                     )}
@@ -845,24 +875,7 @@ const OrderHistoryDetail = () => {
                               </Text>
                             </Table.Summary.Cell>
                           </Table.Summary.Row>
-                          <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={2} />
-                            <Table.Summary.Cell index={2}>
-                              <Text strong>Tổng thanh toán:</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={3}>
-                              <Text
-                                type="danger"
-                                strong
-                                style={{ fontSize: "16px" }}
-                              >
-                                {formatPrice(
-                                  selectedOrder.designPrice +
-                                    selectedOrder.materialPrice
-                                )}
-                              </Text>
-                            </Table.Summary.Cell>
-                          </Table.Summary.Row>
+                          
                         </Table.Summary>
                       )}
                     />
@@ -940,108 +953,7 @@ const OrderHistoryDetail = () => {
                   />
                 )}
               </Card>
-              {/* <Card
-                title={
-                  <Space>
-                    <ShoppingOutlined />
-                    <span>Chi tiết đơn hàng</span>
-                  </Space>
-                }
-                type="inner"
-              >
-                {selectedOrder.isCustom ? (
-                  <div style={{ textAlign: "center", padding: "20px" }}>
-                    <Text
-                      type="secondary"
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 500,
-                        display: "block",
-                        padding: "24px",
-                        backgroundColor: "#f5f5f5",
-                        borderRadius: "8px",
-                        textAlign: "center",
-                        border: "1px dashed #d9d9d9",
-                      }}
-                    >
-                      Giá thiết kế, danh sách vật liệu và tổng giá sẽ được chúng
-                      tôi cập nhập sau khi Designer hoàn tất bản vẽ hoàn chỉnh
-                    </Text>
-                  </div>
-                ) : (
-                  <Table
-                    columns={productColumns}
-                    dataSource={selectedOrder.serviceOrderDetails}
-                    pagination={false}
-                    rowKey="productId"
-                    summary={() => (
-                      <Table.Summary fixed>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2}>
-                            <Text strong>Tổng cộng</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Phí thiết kế:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.designPrice)}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Phí vật liệu:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.materialPrice)}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Tổng thanh toán:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "16px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                                  selectedOrder.materialPrice
-                              )}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Đã thanh toán:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "26px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                                  selectedOrder.materialPrice
-                              )}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                      </Table.Summary>
-                    )}
-                  />
-                )}
-              </Card> */}
-
+            
               {/* Status Tracking */}
               <Card title="Trạng thái đơn hàng" type="inner">
                 <StatusTracking currentStatus={selectedOrder.status} />

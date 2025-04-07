@@ -19,6 +19,9 @@ import {
   Table,
   Empty,
   Collapse,
+  Upload,
+  Progress,
+  Modal,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -36,12 +39,16 @@ import {
   InfoCircleOutlined,
   PictureOutlined,
   EditOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
+
 import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import useDesignerTask from "@/stores/useDesignerTask";
 import useProductStore from "@/stores/useProductStore";
-
+import useAuthStore from "@/stores/useAuthStore";
+import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
+import useDesignOrderStore from "@/stores/useDesignOrderStore";
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -52,15 +59,119 @@ const TaskDetail = () => {
   const [note, setNote] = useState("");
   const [productDetails, setProductDetails] = useState({});
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const { currentTask: task, isLoading: loading, fetchTaskDetail, updateTaskStatus, updateTaskNote } = useDesignerTask();
+  const {
+    currentTask: task,
+    isLoading: loading,
+    fetchTaskDetail,
+    updateTaskStatus,
+  } = useDesignerTask();
   const { getProductById } = useProductStore();
+  const { user } = useAuthStore();
+  const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
+  const [uploading, setUploading] = useState(false);
+  const [imageUrls, setImageUrls] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [sketchImageUrls, setSketchImageUrls] = useState([]);
+  const [uploadingSketch, setUploadingSketch] = useState(false);
+  const { updateServiceOrder } = useDesignOrderStore();
+
+  //console.log("task", task);
+
+  const handleImageUpload = async (file) => {
+    try {
+      setUploading(true);
+      const urls = await uploadImages([file]);
+      if (urls && urls.length > 0) {
+        setImageUrls((prev) => [...prev, ...urls]);
+        message.success("Tải lên hình ảnh thành công");
+      }
+    } catch (error) {
+      message.error("Tải lên hình ảnh thất bại");
+      console.error("Upload error:", error);
+    } finally {
+      setUploading(false);
+    }
+    return false; // Prevent default upload behavior
+  };
+
+  const handleImageRemove = (file) => {
+    setImageUrls((prev) => prev.filter((url) => url !== file.url));
+    return true;
+  };
+
+  const handleSketchImageUpload = async (file) => {
+    try {
+      setUploadingSketch(true);
+      const urls = await uploadImages([file]);
+      if (urls && urls.length > 0) {
+        setSketchImageUrls((prev) => [...prev, ...urls]);
+        message.success("Tải lên bản vẽ phác thảo thành công");
+      }
+    } catch (error) {
+      message.error("Tải lên bản vẽ phác thảo thất bại");
+      console.error("Upload error:", error);
+    } finally {
+      setUploadingSketch(false);
+    }
+    return false;
+  };
+
+  const handleSketchImageRemove = (file) => {
+    setSketchImageUrls((prev) => prev.filter((url) => url !== file.url));
+    return true;
+  };
+
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleOk = async () => {
+    try {
+      // Step 1: Update service order
+      const serviceOrderUpdateData = {
+        serviceType: 0,
+        designPrice: 0,
+        description: task.serviceOrder.description,
+        status: 1,
+        report: "",
+        image: {
+          imageUrl: sketchImageUrls[0] || "",
+          image2: sketchImageUrls[1] || "",
+          image3: sketchImageUrls[2] || ""
+        },
+        serviceOrderDetails: task.serviceOrder.serviceOrderDetails
+      };
+
+      await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+
+      // Step 2: Update task status
+      await updateTaskStatus(task.id, {
+        serviceOrderId: task.serviceOrder.id,
+        userId: user.id,
+        status: 1,
+        note: "Đã cập nhật bản vẽ thiết kế"
+      });
+
+      message.success("Cập nhật bản vẽ thiết kế thành công");
+      setIsModalVisible(false);
+      // Reload the page after successful update
+      window.location.reload();
+    } catch (error) {
+      message.error("Cập nhật bản vẽ thiết kế thất bại");
+      console.error("Update error:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
 
   useEffect(() => {
     const loadTaskDetail = async () => {
       try {
         const taskData = await fetchTaskDetail(id);
         setNote(taskData.note || "");
-        
+
         // Load product details if there are products in the order
         if (taskData?.serviceOrder?.serviceOrderDetails?.length > 0) {
           loadProductDetails(taskData.serviceOrder.serviceOrderDetails);
@@ -75,30 +186,30 @@ const TaskDetail = () => {
   const loadProductDetails = async (orderDetails) => {
     setLoadingProducts(true);
     try {
-      const productPromises = orderDetails.map(detail => 
+      const productPromises = orderDetails.map((detail) =>
         getProductById(detail.productId)
-          .then(product => ({ 
-            productId: detail.productId, 
+          .then((product) => ({
+            productId: detail.productId,
             product,
             quantity: detail.quantity,
             price: detail.price,
-            totalPrice: detail.totalPrice
+            totalPrice: detail.totalPrice,
           }))
-          .catch(() => ({ 
-            productId: detail.productId, 
+          .catch(() => ({
+            productId: detail.productId,
             product: null,
             quantity: detail.quantity,
             price: detail.price,
-            totalPrice: detail.totalPrice
+            totalPrice: detail.totalPrice,
           }))
       );
-      
+
       const results = await Promise.all(productPromises);
       const productMap = {};
-      results.forEach(result => {
+      results.forEach((result) => {
         productMap[result.productId] = result;
       });
-      
+
       setProductDetails(productMap);
     } catch (error) {
       console.error("Error loading product details:", error);
@@ -139,15 +250,6 @@ const TaskDetail = () => {
     }
   };
 
-  const handleNoteUpdate = async () => {
-    try {
-      await updateTaskNote(id, note);
-      message.success("Đã cập nhật ghi chú");
-    } catch (error) {
-      message.error("Không thể cập nhật ghi chú");
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -159,11 +261,15 @@ const TaskDetail = () => {
   if (!task) {
     return (
       <div className="flex flex-col justify-center items-center h-screen">
-        <Empty 
-          description="Không tìm thấy thông tin công việc" 
+        <Empty
+          description="Không tìm thấy thông tin công việc"
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
-        <Button type="primary" onClick={() => navigate(-1)} icon={<ArrowLeftOutlined />}>
+        <Button
+          type="primary"
+          onClick={() => navigate(-1)}
+          icon={<ArrowLeftOutlined />}
+        >
           Quay lại
         </Button>
       </div>
@@ -173,20 +279,20 @@ const TaskDetail = () => {
   // Product table columns
   const productColumns = [
     {
-      title: 'Sản phẩm',
-      dataIndex: 'productId',
-      key: 'product',
+      title: "Sản phẩm",
+      dataIndex: "productId",
+      key: "product",
       render: (productId) => {
         const productDetail = productDetails[productId];
         if (!productDetail?.product) {
           return <Text type="secondary">Sản phẩm không khả dụng</Text>;
         }
-        
+
         return (
           <div className="flex items-center">
             {productDetail.product.image?.imageUrl ? (
-              <Image 
-                src={productDetail.product.image.imageUrl} 
+              <Image
+                src={productDetail.product.image.imageUrl}
                 alt={productDetail.product.name}
                 width={50}
                 height={50}
@@ -204,29 +310,29 @@ const TaskDetail = () => {
             </div>
           </div>
         );
-      }
+      },
     },
     {
-      title: 'Số lượng',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      title: "Số lượng",
+      dataIndex: "quantity",
+      key: "quantity",
       width: 100,
-      align: 'center',
+      align: "center",
     },
     {
-      title: 'Đơn giá',
-      dataIndex: 'price',
-      key: 'price',
+      title: "Đơn giá",
+      dataIndex: "price",
+      key: "price",
       width: 150,
-      align: 'right',
+      align: "right",
       render: (price) => price?.toLocaleString("vi-VN") + " đ",
     },
     {
-      title: 'Thành tiền',
-      dataIndex: 'totalPrice',
-      key: 'totalPrice',
+      title: "Thành tiền",
+      dataIndex: "totalPrice",
+      key: "totalPrice",
       width: 150,
-      align: 'right',
+      align: "right",
       render: (totalPrice) => (
         <Text strong>{totalPrice?.toLocaleString("vi-VN")} đ</Text>
       ),
@@ -234,27 +340,32 @@ const TaskDetail = () => {
   ];
 
   // Prepare product data for table
-  const productData = task.serviceOrder.serviceOrderDetails?.map((detail, index) => ({
-    key: index,
-    productId: detail.productId,
-    quantity: detail.quantity,
-    price: detail.price,
-    totalPrice: detail.totalPrice,
-  })) || [];
+  const productData =
+    task.serviceOrder.serviceOrderDetails?.map((detail, index) => ({
+      key: index,
+      productId: detail.productId,
+      quantity: detail.quantity,
+      price: detail.price,
+      totalPrice: detail.totalPrice,
+    })) || [];
 
   // Check if there are images to display
-  const hasImages = task.serviceOrder.image && 
-    (task.serviceOrder.image.imageUrl || 
-     task.serviceOrder.image.image2 || 
-     task.serviceOrder.image.image3);
+  const hasImages =
+    task.serviceOrder.image &&
+    (task.serviceOrder.image.imageUrl ||
+      task.serviceOrder.image.image2 ||
+      task.serviceOrder.image.image3);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6 flex items-center justify-between" style={{ marginBottom: "10px" }}>
+      <div
+        className="mb-6 flex items-center justify-between"
+        style={{ marginBottom: "10px" }}
+      >
         <div className="flex items-center">
-          <Button 
-            type="primary" 
-            onClick={() => navigate(-1)} 
+          <Button
+            type="primary"
+            onClick={() => navigate(-1)}
             icon={<ArrowLeftOutlined />}
             className="flex items-center mr-4"
             style={{ marginRight: "10px" }}
@@ -262,7 +373,10 @@ const TaskDetail = () => {
             Quay lại
           </Button>
           <Title level={4} style={{ margin: 0 }}>
-            Chi tiết task <span style={{ color: "#1890ff", fontWeight: "bold" }}>#{task.id}</span>
+            Chi tiết task{" "}
+            <span style={{ color: "#1890ff", fontWeight: "bold" }}>
+              #{task.id}
+            </span>
           </Title>
         </div>
         {/* <Tag color={getStatusColor(task.status)} strong>
@@ -272,17 +386,18 @@ const TaskDetail = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24}>
-          <Card 
+          <Card
             style={{ marginBottom: "10px" }}
             title={
               <Space>
                 <FileTextOutlined />
                 <span>Thông tin chi tiết</span>
               </Space>
-            } 
+            }
             className="mb-6 shadow-sm"
             extra={
-              task.status !== "Completed" && task.status !== "Cancelled" && (
+              task.status !== "Completed" &&
+              task.status !== "Cancelled" && (
                 <Space>
                   {task.status === "ConsultingAndSketching" && (
                     <Button
@@ -306,11 +421,14 @@ const TaskDetail = () => {
               )
             }
           >
-            <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 3 }}>
+            <Descriptions
+              bordered
+              column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 3, xxl: 3 }}
+            >
               <Descriptions.Item label="ID đơn hàng" span={1}>
                 <span className="font-mono">{task.serviceOrder.id}</span>
               </Descriptions.Item>
-              
+
               <Descriptions.Item label="Trạng thái" span={1}>
                 <Tag color={getStatusColor(task.status)}>
                   {getStatusText(task.status)}
@@ -318,20 +436,26 @@ const TaskDetail = () => {
               </Descriptions.Item>
 
               <Descriptions.Item label="Loại dịch vụ" span={1}>
-                <Tag color={task.serviceOrder.serviceType === "UsingDesignIdea" ? "green" : "blue"}>
+                <Tag
+                  color={
+                    task.serviceOrder.serviceType === "UsingDesignIdea"
+                      ? "green"
+                      : "blue"
+                  }
+                >
                   {task.serviceOrder.serviceType === "UsingDesignIdea"
                     ? "Sử dụng mẫu thiết kế"
                     : "Thiết kế tùy chỉnh"}
                 </Tag>
               </Descriptions.Item>
-              
+
               <Descriptions.Item label="Ngày tạo" span={1}>
                 <Space>
                   <CalendarOutlined />
                   {dayjs(task.creationDate).format("DD/MM/YYYY HH:mm")}
                 </Space>
               </Descriptions.Item>
-              
+
               {task.modificationDate && (
                 <Descriptions.Item label="Ngày cập nhật" span={1}>
                   <Space>
@@ -340,53 +464,53 @@ const TaskDetail = () => {
                   </Space>
                 </Descriptions.Item>
               )}
-              
+
               <Descriptions.Item label="Khách hàng" span={1}>
                 <Space>
                   <UserOutlined />
                   {task.serviceOrder.userName}
                 </Space>
               </Descriptions.Item>
-              
+
               <Descriptions.Item label="Số điện thoại" span={1}>
                 <Space>
                   <PhoneOutlined />
                   {task.serviceOrder.cusPhone}
                 </Space>
               </Descriptions.Item>
-              
+
               <Descriptions.Item label="Email" span={1}>
                 <Space>
                   <MailOutlined />
                   {task.serviceOrder.email}
                 </Space>
               </Descriptions.Item>
-              
+
               <Descriptions.Item label="Địa chỉ" span={3}>
                 <Space>
                   <EnvironmentOutlined />
-                  {task.serviceOrder.address.replace(/\|/g, ', ')}
+                  {task.serviceOrder.address.replace(/\|/g, ", ")}
                 </Space>
               </Descriptions.Item>
-              
+
               {task.serviceOrder.width && task.serviceOrder.length && (
                 <Descriptions.Item label="Kích thước" span={1}>
                   {task.serviceOrder.width} x {task.serviceOrder.length} m
                 </Descriptions.Item>
               )}
-              
+
               {task.serviceOrder.designPrice && (
                 <Descriptions.Item label="Giá thiết kế" span={1}>
                   {task.serviceOrder.designPrice.toLocaleString("vi-VN")} đ
                 </Descriptions.Item>
               )}
-              
+
               {task.serviceOrder.materialPrice && (
                 <Descriptions.Item label="Giá vật liệu" span={1}>
                   {task.serviceOrder.materialPrice.toLocaleString("vi-VN")} đ
                 </Descriptions.Item>
               )}
-              
+
               <Descriptions.Item label="Tổng tiền" span={1}>
                 <Text strong type="danger" className="text-lg">
                   {(
@@ -396,28 +520,32 @@ const TaskDetail = () => {
                   đ
                 </Text>
               </Descriptions.Item>
-              
+
               {task.serviceOrder.deliveryCode && (
                 <Descriptions.Item label="Mã giao hàng" span={1}>
                   {task.serviceOrder.deliveryCode}
                 </Descriptions.Item>
               )}
-              
+
               {task.serviceOrder.designIdeaId && (
                 <Descriptions.Item label="ID mẫu thiết kế" span={1}>
-                  <span className="font-mono">{task.serviceOrder.designIdeaId}</span>
+                  <span className="font-mono">
+                    {task.serviceOrder.designIdeaId}
+                  </span>
                 </Descriptions.Item>
               )}
-              
+
               {task.serviceOrder.description && (
                 <Descriptions.Item label="Mô tả" span={3}>
-                  <Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'Xem thêm' }}>
+                  <Paragraph
+                    ellipsis={{ rows: 3, expandable: true, symbol: "Xem thêm" }}
+                  >
                     {task.serviceOrder.description}
                   </Paragraph>
                 </Descriptions.Item>
               )}
             </Descriptions>
-            
+
             {hasImages && (
               <div className="mt-4">
                 <Title level={5}>
@@ -426,8 +554,8 @@ const TaskDetail = () => {
                 <Row gutter={[8, 8]}>
                   {task.serviceOrder.image.imageUrl && (
                     <Col span={8}>
-                      <Image 
-                        src={task.serviceOrder.image.imageUrl} 
+                      <Image
+                        src={task.serviceOrder.image.imageUrl}
                         alt="Hình ảnh 1"
                         className="rounded"
                       />
@@ -435,8 +563,8 @@ const TaskDetail = () => {
                   )}
                   {task.serviceOrder.image.image2 && (
                     <Col span={8}>
-                      <Image 
-                        src={task.serviceOrder.image.image2} 
+                      <Image
+                        src={task.serviceOrder.image.image2}
                         alt="Hình ảnh 2"
                         className="rounded"
                       />
@@ -444,8 +572,8 @@ const TaskDetail = () => {
                   )}
                   {task.serviceOrder.image.image3 && (
                     <Col span={8}>
-                      <Image 
-                        src={task.serviceOrder.image.image3} 
+                      <Image
+                        src={task.serviceOrder.image.image3}
                         alt="Hình ảnh 3"
                         className="rounded"
                       />
@@ -454,17 +582,18 @@ const TaskDetail = () => {
                 </Row>
               </div>
             )}
+            
           </Card>
         </Col>
       </Row>
 
-      <Card 
+      <Card
         title={
           <Space>
             <DollarOutlined />
             <span>Danh sách sản phẩm</span>
           </Space>
-        } 
+        }
         className="mb-6 shadow-sm"
       >
         {loadingProducts ? (
@@ -472,25 +601,25 @@ const TaskDetail = () => {
             <Spin tip="Đang tải thông tin sản phẩm..." />
           </div>
         ) : (
-          <Table 
-            columns={productColumns} 
-            dataSource={productData} 
+          <Table
+            columns={productColumns}
+            dataSource={productData}
             pagination={false}
             rowKey="key"
             locale={{
-              emptyText: <Empty description="Không có sản phẩm nào" />
+              emptyText: <Empty description="Không có sản phẩm nào" />,
             }}
           />
         )}
       </Card>
 
-      <Card 
+      <Card
         title={
           <Space>
             <FileTextOutlined />
             <span>Ghi chú</span>
           </Space>
-        } 
+        }
         className="mb-6 shadow-sm"
       >
         <Space direction="vertical" style={{ width: "100%" }}>
@@ -500,13 +629,10 @@ const TaskDetail = () => {
             placeholder="Nhập ghi chú về công việc"
             autoSize={{ minRows: 3, maxRows: 6 }}
           />
-          <Button type="primary" onClick={handleNoteUpdate}>
-            Cập nhật ghi chú
-          </Button>
         </Space>
       </Card>
 
-      <Card 
+      <Card
         title={
           <Space>
             <ClockCircleOutlined />
@@ -527,9 +653,7 @@ const TaskDetail = () => {
                 </Tag>
               </div>
               {history.note && (
-                <Paragraph className="text-gray-600">
-                  {history.note}
-                </Paragraph>
+                <Paragraph className="text-gray-600">{history.note}</Paragraph>
               )}
             </Timeline.Item>
           ))}
@@ -537,6 +661,65 @@ const TaskDetail = () => {
             <Empty description="Chưa có lịch sử cập nhật" />
           )}
         </Timeline>
+      </Card>
+
+      <Card
+        title={
+          <Space>
+            <PictureOutlined />
+            <span>Bản vẽ thiết kế</span>
+          </Space>
+        }
+        className="mb-6 shadow-sm"
+      >
+        <Button 
+          type="primary" 
+          icon={<UploadOutlined />}
+          onClick={showModal}
+        >
+          Tải lên bản vẽ
+        </Button>
+
+        <Modal
+          title="Cập nhật bản vẽ phác thảo"
+          open={isModalVisible}
+          onOk={handleOk}
+          onCancel={handleCancel}
+          width={800}
+        >
+          <div>
+            <Upload
+              listType="picture-card"
+              beforeUpload={handleSketchImageUpload}
+              onRemove={handleSketchImageRemove}
+              maxCount={3}
+              accept="image/*"
+              fileList={sketchImageUrls.map((url, index) => ({
+                uid: `-${index}`,
+                name: `sketch-${index + 1}`,
+                status: "done",
+                url: url,
+              }))}
+            >
+              {sketchImageUrls.length < 3 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>
+                    Tải ảnh
+                  </div>
+                </div>
+              )}
+            </Upload>
+            {uploadingSketch && (
+              <div style={{ marginTop: 8 }}>
+                <Progress percent={progress} size="small" />
+              </div>
+            )}
+            {uploadError && (
+              <div style={{ color: "red", marginTop: 8 }}>{uploadError}</div>
+            )}
+          </div>
+        </Modal>
       </Card>
     </div>
   );

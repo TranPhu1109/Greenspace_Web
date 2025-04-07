@@ -198,6 +198,32 @@ const useDesignOrderStore = create((set, get) => ({
       }
     }
   },
+
+  updateServiceOrder: async (serviceOrderId, updateData) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.put(`/api/serviceorder/${serviceOrderId}`, updateData);
+      
+      // Update the order in the store
+      set(state => ({
+        designOrders: state.designOrders.map(order => 
+          order.id === serviceOrderId ? { ...order, ...updateData } : order
+        ),
+        selectedOrder: state.selectedOrder?.id === serviceOrderId 
+          ? { ...state.selectedOrder, ...updateData }
+          : state.selectedOrder,
+        isLoading: false
+      }));
+
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
 }));
 
 export default useDesignOrderStore;
