@@ -63,15 +63,6 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
     }
   }, [designers, workTasks]);
  
-  const handleStatusChange = async (taskId, newStatus) => {
-    try {
-      await updateTask(taskId, { status: newStatus });
-      message.success("Đã cập nhật trạng thái công việc");
-      getAllTasks();
-    } catch (error) {
-      message.error("Không thể cập nhật trạng thái: " + error.message);
-    }
-  };
 
   if (isLoading) {
     return (
