@@ -25,6 +25,34 @@ const useRecordStore = create((set) => ({
     }
   },
 
+  // Confirm a sketch record
+  confirmRecord: async (recordId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.put(`/api/recordsketch/${recordId}`, {
+        isSelected: true
+      });
+      
+      // Update the local state to reflect the change
+      set((state) => ({
+        sketchRecords: state.sketchRecords.map(record => 
+          record.id === recordId 
+            ? { ...record, isSelected: true }
+            : { ...record, isSelected: false }
+        ),
+        isLoading: false
+      }));
+      
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
   // Reset state
   resetState: () => {
     set({

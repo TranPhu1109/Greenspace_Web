@@ -28,6 +28,8 @@ import {
   ReloadOutlined,
   FileTextOutlined,
   UploadOutlined,
+  CheckCircleOutlined,
+  CheckCircleFilled,
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -40,6 +42,7 @@ import useShippingStore from "@/stores/useShippingStore";
 import useContractStore from "@/stores/useContractStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import api from "@/api/api";
+import useRecordStore from "@/stores/useRecordStore";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -49,6 +52,7 @@ const OrderHistoryDetail = () => {
   const navigate = useNavigate();
   const { selectedOrder, isLoading, getDesignOrderById, updateStatus } =
     useDesignOrderStore();
+  const { sketchRecords, getRecordSketch, confirmRecord } = useRecordStore();
   //console.log("selectedOrder", selectedOrder);
 
   const { fetchDesignIdeaById } = useDesignIdeaStore();
@@ -77,6 +81,9 @@ const OrderHistoryDetail = () => {
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [loadingSketch, setLoadingSketch] = useState(false);
+  const [selectedSketchId, setSelectedSketchId] = useState(null);
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
 
   const componentId = React.useRef("order-detail");
 
@@ -248,6 +255,24 @@ const OrderHistoryDetail = () => {
       setShowPaymentButton(false);
     }
   }, [contract]);
+
+  // Add useEffect to fetch sketch records
+  useEffect(() => {
+    const fetchSketchRecords = async () => {
+      if (selectedOrder?.isCustom && selectedOrder?.status === "ConsultingAndSketching") {
+        try {
+          setLoadingSketch(true);
+          await getRecordSketch(selectedOrder.id);
+        } catch (error) {
+          console.error("Error fetching sketch records:", error);
+        } finally {
+          setLoadingSketch(false);
+        }
+      }
+    };
+
+    fetchSketchRecords();
+  }, [selectedOrder?.id, selectedOrder?.isCustom, selectedOrder?.status, getRecordSketch]);
 
   const handleRefresh = async () => {
     try {
@@ -436,6 +461,41 @@ const OrderHistoryDetail = () => {
     }
   };
 
+  const handleSelectSketch = (recordId) => {
+    setSelectedSketchId(recordId);
+    setIsConfirmModalVisible(true);
+  };
+
+  const handleConfirmSelection = async () => {
+    try {
+      await confirmRecord(selectedSketchId);
+      message.success('Đã chốt bản vẽ phác thảo thành công');
+      setIsConfirmModalVisible(false);
+      
+      // Refresh sketch records after successful selection
+      if (selectedOrder?.id) {
+        setLoadingSketch(true);
+        await getRecordSketch(selectedOrder.id);
+        setLoadingSketch(false);
+
+        // Update order status to DeterminingDesignPrice
+        try {
+          await updateStatus(selectedOrder.id, "DeterminingDesignPrice");
+          message.success('Đã cập nhật trạng thái đơn hàng');
+        } catch (error) {
+          message.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng');
+        }
+      }
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi chọn bản vẽ phác thảo');
+    }
+  };
+
+  const handleCancelSelection = () => {
+    setSelectedSketchId(null);
+    setIsConfirmModalVisible(false);
+  };
+
   if (isLoading || loadingDetails) {
     return (
       <Layout className="order-detail-layout">
@@ -591,10 +651,10 @@ const OrderHistoryDetail = () => {
                 >
                   <Descriptions column={{ xs: 1, sm: 2 }} bordered labelStyle={{ fontWeight: 'bold', fontSize: '15px' }} contentStyle={{ fontSize: '15px' }}>
                     <Descriptions.Item label="Tên thiết kế">
-                      {designIdea.name}
+                      {designIdea?.name || "Chưa có tên thiết kế"}
                     </Descriptions.Item>
 
-                    {selectedOrder.length > 0 && selectedOrder.width > 0 && (
+                    {selectedOrder?.length > 0 && selectedOrder?.width > 0 && (
                       <>
                         <Descriptions.Item label="Chiều dài">
                           {selectedOrder.length}m
@@ -607,7 +667,7 @@ const OrderHistoryDetail = () => {
                     <Descriptions.Item label="Mô tả">
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: designIdea.description || "Không có mô tả"
+                          __html: designIdea?.description || "Không có mô tả"
                         }}
                         style={{
                           maxWidth: '100%',
@@ -618,7 +678,6 @@ const OrderHistoryDetail = () => {
                       />
                     </Descriptions.Item>
                   </Descriptions>
-                  
                 </Card>
               ) : (
                 <>
@@ -634,11 +693,11 @@ const OrderHistoryDetail = () => {
                     >
                       <Descriptions column={{ xs: 1, sm: 2 }} bordered labelStyle={{ fontWeight: 'bold', fontSize: '15px' }} contentStyle={{ fontSize: '15px' }}>
                         <Descriptions.Item label="Tên thiết kế" span={3}>
-                          {designIdea.name}
+                          {designIdea?.name || "Chưa có tên thiết kế"}
                         </Descriptions.Item>
 
-                        {selectedOrder.length > 0 &&
-                          selectedOrder.width > 0 && (
+                        {selectedOrder?.length > 0 &&
+                          selectedOrder?.width > 0 && (
                             <>
                               <Descriptions.Item label="Chiều dài" span={1}>
                                 {selectedOrder.length}m
@@ -651,7 +710,7 @@ const OrderHistoryDetail = () => {
                         <Descriptions.Item label="Mô tả" span={3}>
                           <div
                             dangerouslySetInnerHTML={{
-                              __html: designIdea.description || "Không có mô tả"
+                              __html: designIdea?.description || "Không có mô tả"
                             }}
                             style={{
                               maxWidth: '100%',
@@ -663,10 +722,10 @@ const OrderHistoryDetail = () => {
                         </Descriptions.Item>
                       </Descriptions>
                       <div style={{ display: 'flex', gap: '16px', marginTop: 16 }}>
-                        {designIdea.image?.imageUrl && (
+                        {designIdea?.image?.imageUrl && (
                           <img
                             src={designIdea.image.imageUrl}
-                            alt={designIdea.name}
+                            alt={designIdea?.name || "Thiết kế"}
                             style={{
                               maxWidth: "100%",
                               maxHeight: 300,
@@ -674,10 +733,10 @@ const OrderHistoryDetail = () => {
                             }}
                           />
                         )}
-                        {designIdea.image?.image2 && (
+                        {designIdea?.image?.image2 && (
                           <img
                             src={designIdea.image.image2}
-                            alt={designIdea.name}
+                            alt={designIdea?.name || "Thiết kế"}
                             style={{
                               maxWidth: "100%",
                               maxHeight: 300,
@@ -685,10 +744,10 @@ const OrderHistoryDetail = () => {
                             }}
                           />
                         )}
-                        {designIdea.image?.image3 && (
+                        {designIdea?.image?.image3 && (
                           <img
                             src={designIdea.image.image3}
-                            alt={designIdea.name}
+                            alt={designIdea?.name || "Thiết kế"}
                             style={{
                               maxWidth: "100%",
                               maxHeight: 300,
@@ -776,7 +835,7 @@ const OrderHistoryDetail = () => {
                 </Card>
               )}
 
-              {selectedOrder.isCustom && selectedOrder.status === "ConsultingAndSketching" && (
+              {selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
                 <Card
                   title={
                     <Space>
@@ -786,64 +845,98 @@ const OrderHistoryDetail = () => {
                   }
                   type="inner"
                 >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(300px, 1fr))",
-                      gap: "16px",
-                      padding: "16px",
-                    }}
-                  >
-                    {selectedOrder.image?.imageUrl && (
-                      <div>
-                        <Image
-                          src={selectedOrder.image.imageUrl}
-                          alt="Bản vẽ phác thảo 1"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ phác thảo 1</Text>
+                  {loadingSketch ? (
+                    <div style={{ textAlign: "center", padding: "20px" }}>
+                      <Spin tip="Đang tải bản vẽ phác thảo..." />
+                    </div>
+                  ) : sketchRecords.length > 0 ? (
+                    <div>
+                      {sketchRecords.map((record, index) => (
+                        <div key={record.id} style={{ marginBottom: "24px" }}>
+                          <div style={{ marginBottom: "8px", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <Text strong>Bản vẽ phác thảo {index + 1}</Text>
+                              <Text type="secondary" style={{ marginLeft: "8px" }}>
+                                ({new Date(record.creationDate).toLocaleString("vi-VN")})
+                              </Text>
+                            </div>
+                            <Button
+                              type={record.isSelected ? "primary" : "default"}
+                              onClick={() => handleSelectSketch(record.id)}
+                              disabled={record.isSelected}
+                            >
+                              {record.isSelected ? "Đã chọn" : "Chọn bản vẽ này"}
+                            </Button>
+                          </div>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns:
+                                "repeat(auto-fit, minmax(300px, 1fr))",
+                              gap: "16px",
+                              padding: "16px",
+                              backgroundColor: "#f5f5f5",
+                              borderRadius: "8px",
+                            }}
+                          >
+                            {record.image?.imageUrl && (
+                              <div>
+                                <Image
+                                  src={record.image.imageUrl}
+                                  alt={`Bản vẽ phác thảo ${index + 1} - 1`}
+                                  style={{ width: "100%", height: "auto" }}
+                                  preview={{
+                                    mask: "Phóng to",
+                                    maskClassName: "custom-mask",
+                                  }}
+                                />
+                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                  <Text type="secondary">Hình ảnh 1</Text>
+                                </div>
+                              </div>
+                            )}
+                            {record.image?.image2 && (
+                              <div>
+                                <Image
+                                  src={record.image.image2}
+                                  alt={`Bản vẽ phác thảo ${index + 1} - 2`}
+                                  style={{ width: "100%", height: "auto" }}
+                                  preview={{
+                                    mask: "Phóng to",
+                                    maskClassName: "custom-mask",
+                                  }}
+                                />
+                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                  <Text type="secondary">Hình ảnh 2</Text>
+                                </div>
+                              </div>
+                            )}
+                            {record.image?.image3 && (
+                              <div>
+                                <Image
+                                  src={record.image.image3}
+                                  alt={`Bản vẽ phác thảo ${index + 1} - 3`}
+                                  style={{ width: "100%", height: "auto" }}
+                                  preview={{
+                                    mask: "Phóng to",
+                                    maskClassName: "custom-mask",
+                                  }}
+                                />
+                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                  <Text type="secondary">Hình ảnh 3</Text>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {selectedOrder.image?.image2 && (
-                      <div>
-                        <Image
-                          src={selectedOrder.image.image2}
-                          alt="Bản vẽ phác thảo 2"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ phác thảo 2</Text>
-                        </div>
-                      </div>
-                    )}
-                    {selectedOrder.image?.image3 && (
-                      <div>
-                        <Image
-                          src={selectedOrder.image.image3}
-                          alt="Bản vẽ phác thảo 3"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ phác thảo 3</Text>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Empty
+                      description="Chưa có bản vẽ phác thảo nào"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    />
+                  )}
                 </Card>
               )}
 
@@ -1189,6 +1282,18 @@ const OrderHistoryDetail = () => {
                   preview={false}
                 />
               </div>
+            </Modal>
+
+            <Modal
+              title="Xác nhận chọn bản vẽ"
+              open={isConfirmModalVisible}
+              onOk={handleConfirmSelection}
+              onCancel={handleCancelSelection}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <p>Bạn có chắc chắn muốn chọn bản vẽ này không?</p>
+              <p>Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.</p>
             </Modal>
           </Card>
         </div>

@@ -93,7 +93,7 @@ const useDesignOrderStore = create((set, get) => ({
       const statusMap = {
         "Pending": 0,                   // Chờ xử lý
         "ConsultingAndSketching": 1,    // Đang tư vấn & phác thảo
-        "DeterminingDesignPrice": 2,    // Đang xác định giá 
+        "DeterminingDesignPrice": 2,    // Đang xác định giá thiết kế
         "DepositSuccessful": 3,         // Đặt cọc thành công
         "AssignToDesigner": 4,          // Đã giao cho nhà thiết kế
         "DeterminingMaterialPrice": 5,   // xác dịnh giá vật liệu
@@ -108,14 +108,17 @@ const useDesignOrderStore = create((set, get) => ({
         "OrderCancelled": 14,           // Đơn hàng đã bị hủy
         "Warning": 15,                  // cảnh báo vượt 30%
         "Refund": 16,
-        "DoneRefund": 17
+        "DoneRefund": 17,
+        "ReConsultingAndSketching ": 19,
+        "ReDesign": 20,
+        "WaitDeposit ": 21
       };
       
       const numericStatus = typeof newStatus === 'string' ? statusMap[newStatus] : newStatus;
       
       const response = await axios.put(`/api/serviceorder/status/${orderId}`, { 
         status: numericStatus,
-        deliveryCode: deliveryCode 
+        deliveryCode: deliveryCode || "" 
       });
       
       // Update the order in the store
