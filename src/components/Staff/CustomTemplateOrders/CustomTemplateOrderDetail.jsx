@@ -29,6 +29,8 @@ import {
   ArrowLeftOutlined,
   StarTwoTone,
   LayoutOutlined,
+  FileTextOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import ConsultingSection from "./sections/ConsultingSection";
@@ -38,16 +40,18 @@ import "./CustomTemplateOrderDetail.scss";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useProductStore from "@/stores/useProductStore";
+import useContractStore from "@/stores/useContractStore";
 
 const { Step } = Steps;
 
 const CustomTemplateOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDesignOrderById, selectedOrder, isLoading } =
+  const { getDesignOrderById, selectedOrder, isLoading, updateStatus } =
     useDesignOrderStore();
   const { products, fetchProducts, categories, fetchCategories, getProductById } = useProductStore();
-  console.log(selectedOrder);
+  const { generateContract, loading: contractLoading, getContractByServiceOrder, contract } = useContractStore();
+  const [isContractModalVisible, setIsContractModalVisible] = useState(false);
 
   const { getBasePath } = useRoleBasedPath();
 
@@ -77,6 +81,94 @@ const CustomTemplateOrderDetail = () => {
     };
     fetchData();
   }, [fetchProducts, fetchCategories]);
+
+  // Add useEffect to fetch contract when status is ConsultingAndSketching
+  useEffect(() => {
+    const fetchContract = async () => {
+      if (selectedOrder?.status === "ConsultingAndSketching") {
+        try {
+          await getContractByServiceOrder(selectedOrder.id);
+        } catch (error) {
+          console.error('Error fetching contract:', error);
+        }
+      }
+    };
+
+    fetchContract();
+  }, [selectedOrder?.status, selectedOrder?.id, getContractByServiceOrder]);
+
+  // Add function to handle contract generation
+  const handleGenerateContract = async () => {
+    try {
+      if (!selectedOrder) return;
+      
+      Modal.confirm({
+        title: "Xác nhận tạo hợp đồng",
+        content: "Bạn có chắc chắn muốn tạo hợp đồng cho đơn hàng này?",
+        okText: "Xác nhận",
+        cancelText: "Hủy",
+        onOk: async () => {
+          try {
+            const contractData = {
+              userId: selectedOrder.userId,
+              serviceOrderId: selectedOrder.id,
+              userName: selectedOrder.userName,
+              email: selectedOrder.email,
+              phone: selectedOrder.cusPhone,
+              address: selectedOrder.address,
+              designPrice: selectedOrder.designPrice || 0
+            };
+            
+            const result = await generateContract(contractData);
+            message.success("Tạo hợp đồng thành công");
+            
+            // Could navigate to contract view or download PDF if API returns such data
+            // For now just show success message
+          } catch (error) {
+            message.error("Không thể tạo hợp đồng: " + (error.message || "Lỗi không xác định"));
+          }
+        }
+      });
+    } catch (error) {
+      message.error("Không thể tạo hợp đồng: " + (error.message || "Lỗi không xác định"));
+    }
+  };
+
+  // Add function to handle contract viewing
+  const handleViewContract = () => {
+    if (contract?.description) {
+      setIsContractModalVisible(true);
+    }
+  };
+
+  // Add function to close contract modal
+  const handleCloseContractModal = () => {
+    setIsContractModalVisible(false);
+  };
+
+  // Add function to handle status update
+  const handleUpdateToConsulting = async () => {
+    try {
+      Modal.confirm({
+        title: "Cập nhật trạng thái",
+        content: "Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng thành 'Tư vấn và phác thảo'?",
+        okText: "Xác nhận",
+        cancelText: "Hủy",
+        onOk: async () => {
+          try {
+            await updateStatus(selectedOrder.id, "ConsultingAndSketching");
+            message.success("Đã cập nhật trạng thái đơn hàng thành công");
+            // Refresh order details to see the updated status
+            await getDesignOrderById(id);
+          } catch (error) {
+            message.error("Không thể cập nhật trạng thái đơn hàng: " + (error.message || "Lỗi không xác định"));
+          }
+        }
+      });
+    } catch (error) {
+      message.error("Có lỗi xảy ra: " + (error.message || "Lỗi không xác định"));
+    }
+  };
 
   if (isLoading || !selectedOrder) {
     return (
@@ -783,6 +875,55 @@ const CustomTemplateOrderDetail = () => {
                 gap: "8px",
               }}
             >
+              {/* Add Update Status button */}
+              {selectedOrder.status === "Pending" && (
+                <Button
+                  type="primary"
+                  icon={<SyncOutlined />}
+                  style={{
+                    backgroundColor: "#7B68EE", // Medium Slate Blue
+                    borderColor: "#7B68EE",
+                    width: "100%",
+                  }}
+                  onClick={handleUpdateToConsulting}
+                >
+                  Cập nhật sang Tư vấn
+                </Button>
+              )}
+
+              {selectedOrder.status === "ConsultingAndSketching" && (
+                <>
+                  {contract ? (
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      style={{
+                        backgroundColor: "#1890ff",
+                        borderColor: "#1890ff",
+                        width: "100%",
+                      }}
+                      onClick={handleViewContract}
+                    >
+                      Xem hợp đồng
+                    </Button>
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      loading={contractLoading}
+                      style={{
+                        backgroundColor: "#1890ff",
+                        borderColor: "#1890ff",
+                        width: "100%",
+                      }}
+                      onClick={handleGenerateContract}
+                    >
+                      Tạo hợp đồng
+                    </Button>
+                  )}
+                </>
+              )}
+
               <Button
                 type="primary"
                 style={{
@@ -989,6 +1130,35 @@ const CustomTemplateOrderDetail = () => {
 
       {/* Dynamic section based on order status */}
       {renderSection()}
+
+      {/* Contract Modal */}
+      <Modal
+        title="Hợp đồng"
+        open={isContractModalVisible}
+        onCancel={handleCloseContractModal}
+        width="80%"
+        footer={null}
+        style={{ top: 20 }}
+        styles={{
+          body: {
+            height: '80vh',
+            padding: '0',
+            display: 'flex',
+            flexDirection: 'column'
+          }
+        }}
+      >
+        <iframe
+          src={contract?.description}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            flex: 1
+          }}
+          title="Contract PDF"
+        />
+      </Modal>
       {/* </Card> */}
     </div>
   );

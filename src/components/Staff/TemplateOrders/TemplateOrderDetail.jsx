@@ -210,8 +210,8 @@ const TemplateOrderDetail = () => {
         // Initial check
         checkShippingStatus();
 
-        // Set up interval for checking every 10 seconds
-        trackingInterval.current = setInterval(checkShippingStatus, 60000);
+        // Set up interval for checking every 60 seconds
+        trackingInterval.current = setInterval(checkShippingStatus, 20000);
       };
 
       const checkShippingStatus = async () => {
@@ -262,7 +262,7 @@ const TemplateOrderDetail = () => {
         }
       };
     }
-  }, [selectedOrder?.deliveryCode, selectedOrder?.status]); // Add status to dependencies
+  }, [selectedOrder?.deliveryCode, selectedOrder?.status]); 
 
   if (isLoading || !selectedOrder) {
     return (

@@ -52,7 +52,7 @@ const useDesignOrderStore = create((set, get) => ({
   fetchDesignOrdersForCus: async (userId, componentId) => {
     try {
       set({ isLoading: true, error: null });
-      console.log('Fetching orders for user:', userId);
+      //console.log('Fetching orders for user:', userId);
       const response = await axios.get(`/api/serviceorder/userid-usingidea/${userId}`, {
         componentId,
         allowDuplicate: false

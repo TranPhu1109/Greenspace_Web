@@ -16,6 +16,7 @@ import {
   Modal,
   Upload,
   Select,
+  Progress,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import Header from "@/components/Header";
@@ -26,6 +27,7 @@ import useAuthStore from "@/stores/useAuthStore";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useWalletStore from "@/stores/useWalletStore";
 import useShippingStore from "@/stores/useShippingStore";
+import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -63,6 +65,7 @@ const OrderService = () => {
     districtsLoading,
     wardsLoading,
   } = useShippingStore();
+  const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
   
   const [productDetails, setProductDetails] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -77,6 +80,8 @@ const OrderService = () => {
   const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [selectedWard, setSelectedWard] = useState(null);
   const [addressDetail, setAddressDetail] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [imageUrls, setImageUrls] = useState([]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -224,6 +229,28 @@ const OrderService = () => {
     loadWards();
   }, [selectedDistrict, getWards]);
 
+  const handleImageUpload = async (file) => {
+    try {
+      setUploading(true);
+      const urls = await uploadImages([file]);
+      if (urls && urls.length > 0) {
+        setImageUrls(prev => [...prev, ...urls]);
+        message.success('Tải lên hình ảnh thành công');
+      }
+    } catch (error) {
+      message.error('Tải lên hình ảnh thất bại');
+      console.error('Upload error:', error);
+    } finally {
+      setUploading(false);
+    }
+    return false; // Prevent default upload behavior
+  };
+
+  const handleImageRemove = (file) => {
+    setImageUrls(prev => prev.filter(url => url !== file.url));
+    return true;
+  };
+
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -234,7 +261,7 @@ const OrderService = () => {
       const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
       
       const fullAddress = `${addressDetail}, ${provinceName}, ${districtName}, ${wardName}`;
-      console.log(fullAddress);
+
       const data = {
         userId: user.id,
         designIdeaId: currentDesign.id,
@@ -247,10 +274,14 @@ const OrderService = () => {
         designPrice: currentDesign.designPrice,
         materialPrice: currentDesign.materialPrice,
         description: isCustomOrder ? values.description : "",
-        image: {
-          imageUrl: isCustomOrder ? values.imageUrl : "",
-          imageId: isCustomOrder ? values.imageId : "",
-          image3: isCustomOrder ? values.image3 : "",
+        image: isCustomOrder ? {
+          imageUrl: imageUrls[0] || "",
+          image2: imageUrls[1] || "",
+          image3: imageUrls[2] || "",
+        } : {
+          imageUrl: "",
+          image2: "",
+          image3: "",
         },
       };
       setOrderData(data);
@@ -611,11 +642,38 @@ const OrderService = () => {
                             },
                           ]}
                         >
-                          <Upload>
-                            <Button icon={<UploadOutlined />}>
-                              Tải lên hình ảnh
-                            </Button>
-                          </Upload>
+                          <div>
+                            <Upload
+                              listType="picture-card"
+                              beforeUpload={handleImageUpload}
+                              onRemove={handleImageRemove}
+                              maxCount={3}
+                              accept="image/*"
+                              fileList={imageUrls.map((url, index) => ({
+                                uid: `-${index}`,
+                                name: `image-${index + 1}`,
+                                status: 'done',
+                                url: url
+                              }))}
+                            >
+                              {imageUrls.length < 3 && (
+                                <div>
+                                  <UploadOutlined />
+                                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                                </div>
+                              )}
+                            </Upload>
+                            {uploading && (
+                              <div style={{ marginTop: 8 }}>
+                                <Progress percent={progress} size="small" />
+                              </div>
+                            )}
+                            {uploadError && (
+                              <div style={{ color: 'red', marginTop: 8 }}>
+                                {uploadError}
+                              </div>
+                            )}
+                          </div>
                         </Form.Item>
                       </Col>
                     </Row>
