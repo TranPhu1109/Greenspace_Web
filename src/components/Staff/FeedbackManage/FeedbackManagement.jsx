@@ -74,6 +74,7 @@ const FeedbackManagement = () => {
     getProductFeedbacks,
     productFeedbacks,
     selectedProductFeedbacks,
+    setSelectedProductFeedbacks,
     isLoading,
     feedbackLoading,
     replyToFeedback,
@@ -93,12 +94,13 @@ const FeedbackManagement = () => {
     initializeData();
   }, []);
 
-  // Fetch feedbacks when selected item changes
+  // Update selected product feedbacks when selected item changes
   useEffect(() => {
     if (selectedItem?.id && selectedItem.type === "product") {
-      getProductFeedbacks(selectedItem.id);
+      const productFeedbackList = productFeedbacks[selectedItem.id] || [];
+      setSelectedProductFeedbacks(productFeedbackList);
     }
-  }, [selectedItem]);
+  }, [selectedItem, productFeedbacks]);
 
   // Reset reply form when changing selected item
   useEffect(() => {

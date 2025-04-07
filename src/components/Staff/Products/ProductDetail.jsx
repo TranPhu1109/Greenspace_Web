@@ -50,6 +50,7 @@ import { useRoleBasedPath } from "../../../hooks/useRoleBasedPath";
 const ProductDetail = () => {
   const { getBasePath } = useRoleBasedPath();
   const componentId = useRef(`product-detail-${Date.now()}`).current;
+  const [isPdfModalVisible, setIsPdfModalVisible] = useState(false);
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -150,6 +151,7 @@ const ProductDetail = () => {
       description: productData.description,
       specifications: productData.specifications,
       highlights: productData.highlights,
+      
     });
     setIsEditing(true);
   };
@@ -326,8 +328,19 @@ const ProductDetail = () => {
                       <Descriptions.Item label="Kích thước">
                         {productData.size}
                       </Descriptions.Item>
+                      <Descriptions.Item label="File hướng dẫn PDF">
+                        <Space>
+                          <Button
+                            type="primary"
+                            // icon={<EyeOutlined />}
+                            onClick={() => setIsPdfModalVisible(true)}
+                          >
+                            Xem chi tiết PDF
+                          </Button>
+                        </Space>
+                      </Descriptions.Item>
                       <Descriptions.Item label="Mô tả">
-                        {productData.description}
+                      <div dangerouslySetInnerHTML={{ __html: productData.description }} />
                       </Descriptions.Item>
                     </Descriptions>
                   ) : (
@@ -490,6 +503,20 @@ const ProductDetail = () => {
           </Col>
         </Row>
       </Form>
+
+      <Modal
+        title="Xem trước file PDF"
+        open={isPdfModalVisible}
+        onCancel={() => setIsPdfModalVisible(false)}
+        footer={null}
+        width={1000}
+      >
+        <iframe
+          src={productData.designImage1URL}
+          style={{ width: '100%', height: '600px' }}
+          title="PDF Preview"
+        />
+      </Modal>
     </div>
   );
 };
