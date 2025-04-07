@@ -28,6 +28,7 @@ import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useWalletStore from "@/stores/useWalletStore";
 import useShippingStore from "@/stores/useShippingStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
+import EditorComponent from "@/components/Common/EditorComponent";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -628,7 +629,17 @@ const OrderService = () => {
                             },
                           ]}
                         >
-                          <Input.TextArea rows={4} />
+                          <div style={{ 
+                            border: '1px solid #d9d9d9', 
+                            borderRadius: '8px',
+                            overflow: 'hidden'
+                          }}>
+                            <EditorComponent 
+                              value={form.getFieldValue('description')}
+                              onChange={(content) => form.setFieldsValue({ description: content })}
+                              height={300}
+                            />
+                          </div>
                         </Form.Item>
                       </Col>
                       <Col span={24}>

@@ -92,6 +92,20 @@ function NavigationMenu({ user }) {
       if (path === "/designs") {
         return location.pathname.includes("/design");
       }
+      
+      if (path === "/history-booking-services") {
+        return location.pathname.includes("/history-booking-services") || 
+               location.pathname.includes("/service-order/");
+      }
+      
+      if (path === "/orderhistory") {
+        return location.pathname.includes("/orderhistory") || 
+               location.pathname.includes("/order/");
+      }
+
+      if (path === "/orderhistory" || path === "/serviceorderhistory") {
+        return location.pathname.includes(path);
+      }
 
       return location.pathname === path;
     },

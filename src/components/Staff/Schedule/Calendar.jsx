@@ -14,7 +14,6 @@ import {
 import dayjs from "dayjs";
 import CalendarHeader from "./components/CalendarHeader";
 import DayDetail from "./components/DayDetail";
-import AddTaskModal from "./components/AddTaskModal";
 import useScheduleStore from "../../../stores/useScheduleStore";
 import "./Calendar.scss";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
@@ -30,9 +29,7 @@ const Calendar = ({ designers = [], onAddNew }) => {
   // Lấy dữ liệu từ store
   const { 
     getAllTasks, 
-    isLoading, 
     addTask, 
-    workTasks, 
     updateTask, 
     tasksByDate,
     fetchNoIdeaOrders,
