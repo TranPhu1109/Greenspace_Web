@@ -58,7 +58,7 @@ const useScheduleStore = create((set, get) => ({
     try {
       const response = await api.get("api/serviceorder/noidea");
       const consultingOrders = response.data.filter(
-        (order) => order.status === "ConsultingAndSketching"
+        (order) => order.status === "Pending"
       );
       set({
         noIdeaOrders: consultingOrders,
@@ -84,7 +84,7 @@ const useScheduleStore = create((set, get) => ({
     try {
       const response = await api.get("api/serviceorder/usingidea");
       const customConsultingOrders = response.data.filter(
-        (order) => order.isCustom === true && order.status === "ConsultingAndSketching"
+        (order) => order.isCustom === true && order.status === "Pending"
       );
       set({
         usingIdeaOrders: customConsultingOrders,

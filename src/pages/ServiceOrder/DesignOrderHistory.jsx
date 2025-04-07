@@ -24,16 +24,16 @@ const DesignOrderHistory = () => {
   const { designOrders, isLoading, fetchDesignOrdersForCus } =
     useDesignOrderStore();
   const { user } = useAuthStore();
-  console.log(user);
-
-  const componentId = React.useRef("design-order-history");
+  //console.log(user);
+  
+  const componentId = React.useRef('design-order-history');
 
   useEffect(() => {
     if (user?.id) {
-      console.log("User changed, fetching orders for user:", user.id);
+      //console.log('User changed, fetching orders for user:', user.id);
       fetchDesignOrdersForCus(user.id, componentId.current);
     } else {
-      console.log("No user found, clearing orders");
+      //console.log('No user found, clearing orders');
       const designOrderStore = useDesignOrderStore.getState();
       designOrderStore.reset();
     }
@@ -95,18 +95,29 @@ const DesignOrderHistory = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        const statusConfig = {
-          Pending: { color: "gold", text: "Chờ xử lý" },
-          PaymentSuccess: { color: "cyan", text: "Đã thanh toán" },
-          Processing: { color: "blue", text: "Đang xử lý" },
-          PickedPackageAndDelivery: { color: "purple", text: "Đang giao hàng" },
-          DeliveryFail: { color: "red", text: "Giao hàng thất bại" },
-          ReDelivery: { color: "orange", text: "Giao hàng lại" },
-          DeliveredSuccessfully: { color: "green", text: "Đã giao hàng" },
-          CompleteOrder: { color: "green", text: "Hoàn thành" },
-          OrderCancelled: { color: "red", text: "Đã hủy" },
-          Refund: { color: "red", text: "Hoàn tiền" },
-          DoneRefund: { color: "red", text: "Đã hoàn tiền" },
+        const statusConfig = {  
+          'Pending': { color: 'gold', text: 'Chờ xử lý' },
+          'ConsultingAndSketching': { color: 'blue', text: 'Đang tư vấn & phác thảo' },
+          'DeterminingDesignPrice': { color: 'cyan', text: 'Đang xác định giá' },
+          'DepositSuccessful': { color: 'green', text: 'Đặt cọc thành công' },
+          'AssignToDesigner': { color: 'purple', text: 'Đã giao cho nhà thiết kế' },
+          'DeterminingMaterialPrice': { color: 'orange', text: 'Xác định giá vật liệu' },
+          'DoneDesign': { color: 'success', text: 'Hoàn thành thiết kế' },
+          'PaymentSuccess': { color: 'green', text: 'Thanh toán thành công' },
+          'Processing': { color: 'processing', text: 'Đang xử lý' },
+          'PickedPackageAndDelivery': { color: 'processing', text: 'Đã lấy hàng & đang giao' },
+          'DeliveryFail': { color: 'error', text: 'Giao hàng thất bại' },
+          'ReDelivery': { color: 'warning', text: 'Giao lại' },
+          'DeliveredSuccessfully': { color: 'success', text: 'Đã giao hàng thành công' },
+          'CompleteOrder': { color: 'success', text: 'Hoàn thành đơn hàng' },
+          'OrderCancelled': { color: 'error', text: 'Đơn hàng đã bị hủy' },
+          'Warning': { color: 'warning', text: 'Cảnh báo vượt 30%' },
+          'Refund': { color: 'orange', text: 'Hoàn tiền' },
+          'DoneRefund': { color: 'success', text: 'Đã hoàn tiền' },
+          'Completed': { color: 'success', text: 'Hoàn thành' },
+          'ReConsultingAndSketching': { color: 'blue', text: 'Phác thảo lại' },
+          'ReDesign': { color: 'volcano', text: 'Thiết kế lại' },
+          'WaitDeposit': { color: 'gold', text: 'Chờ đặt cọc' }
         };
         const config = statusConfig[status] || {
           color: "default",

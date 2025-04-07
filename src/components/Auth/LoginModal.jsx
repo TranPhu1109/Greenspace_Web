@@ -55,6 +55,7 @@ const LoginModal = ({ visible, onCancel }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="auth-input"
+              autoComplete="username"
             />
           </div>
           
@@ -69,6 +70,7 @@ const LoginModal = ({ visible, onCancel }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="auth-input"
+              autoComplete="current-password"
             />
           </div>
           

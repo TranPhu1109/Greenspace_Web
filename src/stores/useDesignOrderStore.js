@@ -52,7 +52,7 @@ const useDesignOrderStore = create((set, get) => ({
   fetchDesignOrdersForCus: async (userId, componentId) => {
     try {
       set({ isLoading: true, error: null });
-      console.log('Fetching orders for user:', userId);
+      //console.log('Fetching orders for user:', userId);
       const response = await axios.get(`/api/serviceorder/userid-usingidea/${userId}`, {
         componentId,
         allowDuplicate: false
@@ -85,37 +85,46 @@ const useDesignOrderStore = create((set, get) => ({
     }
   },
 
-  updateStatus: async (orderId, newStatus) => {
+  updateStatus: async (orderId, newStatus, deliveryCode = "") => {
     try {
       set({ isLoading: true, error: null });
       
       // Convert text status to number if needed
       const statusMap = {
-        "Pending": 0,
-        "PaymentSuccess": 6,
-        "Processing": 7,
-        "PickedPackageAndDelivery": 8,
-        "DeliveryFail": 9,
-        "ReDelivery": 10,
-        "DeliveredSuccessfully": 11,
-        "CompleteOrder": 12,
-        "OrderCancelled": 13
+        "Pending": 0,                   // Chờ xử lý
+        "ConsultingAndSketching": 1,    // Đang tư vấn & phác thảo
+        "DeterminingDesignPrice": 2,    // Đang xác định giá 
+        "DepositSuccessful": 3,         // Đặt cọc thành công
+        "AssignToDesigner": 4,          // Đã giao cho nhà thiết kế
+        "DeterminingMaterialPrice": 5,   // xác dịnh giá vật liệu
+        "DoneDesign": 6,                // Hoàn thành thiết kế
+        "PaymentSuccess": 7,            // Thanh toán thành công
+        "Processing": 8,                // Đang xử lý
+        "PickedPackageAndDelivery": 9,  // Đã lấy hàng & đang giao
+        "DeliveryFail": 10,             // Giao hàng thất bại
+        "ReDelivery": 11,               // Giao lại
+        "DeliveredSuccessfully": 12,    // Đã giao hàng thành công
+        "CompleteOrder": 13,            // Hoàn thành đơn hàng
+        "OrderCancelled": 14,           // Đơn hàng đã bị hủy
+        "Warning": 15,                  // cảnh báo vượt 30%
+        "Refund": 16,
+        "DoneRefund": 17
       };
       
       const numericStatus = typeof newStatus === 'string' ? statusMap[newStatus] : newStatus;
       
       const response = await axios.put(`/api/serviceorder/status/${orderId}`, { 
         status: numericStatus,
-        deliveryCode: "" // Empty string as requested
+        deliveryCode: deliveryCode 
       });
       
       // Update the order in the store
       set(state => ({
         designOrders: state.designOrders.map(order => 
-          order.id === orderId ? { ...order, status: newStatus } : order
+          order.id === orderId ? { ...order, status: newStatus, deliveryCode } : order
         ),
         selectedOrder: state.selectedOrder?.id === orderId 
-          ? { ...state.selectedOrder, status: newStatus }
+          ? { ...state.selectedOrder, status: newStatus, deliveryCode }
           : state.selectedOrder,
         isLoading: false
       }));
@@ -187,6 +196,32 @@ const useDesignOrderStore = create((set, get) => ({
         // Reset loading state for cancellations
         set({ isLoading: false });
       }
+    }
+  },
+
+  updateServiceOrder: async (serviceOrderId, updateData) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.put(`/api/serviceorder/${serviceOrderId}`, updateData);
+      
+      // Update the order in the store
+      set(state => ({
+        designOrders: state.designOrders.map(order => 
+          order.id === serviceOrderId ? { ...order, ...updateData } : order
+        ),
+        selectedOrder: state.selectedOrder?.id === serviceOrderId 
+          ? { ...state.selectedOrder, ...updateData }
+          : state.selectedOrder,
+        isLoading: false
+      }));
+
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
     }
   },
 }));

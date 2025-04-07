@@ -68,16 +68,97 @@ const useServiceOrderStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await api.get(`/api/serviceorder/userid-nousingidea/${userId}`);
-      if (!response.data) {
+      
+      // Check if response exists and has data property
+      if (!response || !response.data) {
+        console.error('Invalid API response:', response);
         throw new Error('Không thể lấy danh sách đơn thiết kế');
       }
-      set({ serviceOrders: response.data });
+      
+      // Ensure we're setting an array
+      const orders = Array.isArray(response.data) ? response.data : [];
+      console.log('Service orders loaded:', orders.length);
+      
+      set({ 
+        serviceOrders: orders,
+        loading: false,
+        error: null
+      });
+      
+      return orders;
+    } catch (error) {
+      console.error('Error in getServiceOrdersNoUsingIdea:', error);
+      set({ 
+        error: error.message || 'Không thể lấy danh sách đơn thiết kế',
+        loading: false
+      });
+      throw error;
+    }
+  },
+
+  // Hủy đơn hàng
+  cancelServiceOrder: async (orderId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.put(`/api/serviceorder/status/${orderId}`, {
+        status: 14 // OrderCancelled status
+      });
+      
+      if (!response.data) {
+        throw new Error('Không thể hủy đơn hàng');
+      }
+      
+      // Update the order in the local state
+      set(state => ({
+        serviceOrders: state.serviceOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: 'OrderCancelled' } 
+            : order
+        ),
+        loading: false
+      }));
+      
       return response.data;
     } catch (error) {
-      set({ error: error.message });
+      console.error('Error in cancelServiceOrder:', error);
+      set({ 
+        error: error.message || 'Không thể hủy đơn hàng',
+        loading: false
+      });
       throw error;
-    } finally {
-      set({ loading: false });
+    }
+  },
+
+  // Cập nhật trạng thái đơn hàng
+  updateServiceOrderStatus: async (orderId, status) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.put(`/api/serviceorder/status/${orderId}`, {
+        status: status
+      });
+      
+      if (!response.data) {
+        throw new Error('Không thể cập nhật trạng thái đơn hàng');
+      }
+      
+      // Update the order in the local state
+      set(state => ({
+        serviceOrders: state.serviceOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: status.toString() } 
+            : order
+        ),
+        loading: false
+      }));
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error in updateServiceOrderStatus:', error);
+      set({ 
+        error: error.message || 'Không thể cập nhật trạng thái đơn hàng',
+        loading: false
+      });
+      throw error;
     }
   },
 

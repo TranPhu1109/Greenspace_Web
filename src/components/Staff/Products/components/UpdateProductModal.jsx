@@ -57,14 +57,16 @@ const UpdateProductModal = ({
       const imageUrls = {
         imageUrl: product?.image?.imageUrl || "",
         image2: product?.image?.image2 || "",
-        image3: product?.image?.image3 || "",
+        image3: product?.image?.image3 || ""
       };
+      let designImage1URL = product?.designImage1URL || "";
 
       // Only process image uploads if there are new files
       if (
         selectedFiles.imageUrl ||
         selectedFiles.image2 ||
-        selectedFiles.image3
+        selectedFiles.image3 ||
+        selectedFiles.designImage1URL
       ) {
         if (selectedFiles.imageUrl) {
           uploadPromises.push(
@@ -90,6 +92,14 @@ const UpdateProductModal = ({
           );
         }
 
+        if (selectedFiles.designImage1URL) {
+          uploadPromises.push(
+            uploadImages([selectedFiles.designImage1URL]).then((urls) => {
+              designImage1URL = urls[0];
+            })
+          );
+        }
+
         await Promise.all(uploadPromises);
       }
 
@@ -101,6 +111,8 @@ const UpdateProductModal = ({
         stock: parseInt(values.stock),
         description: values.description || "",
         size: parseFloat(values.size) || 0,
+        image: imageUrls,
+        designImage1URL: designImage1URL
       };
 
       // Only include image data if there are either existing images or new uploads
@@ -123,6 +135,7 @@ const UpdateProductModal = ({
         imageUrl: null,
         image2: null,
         image3: null,
+        designImage1URL: null
       });
     } catch (error) {
       console.error("Error updating product:", error);
@@ -240,6 +253,45 @@ const UpdateProductModal = ({
               <PlusOutlined />
               <div style={{ marginTop: 8 }}>Tải lên</div>
             </div>
+          </Upload>
+        </Form.Item>
+      </Col>
+
+      <Col span={8}>
+        <Form.Item
+          name="designImage1URL"
+          label="File hướng dẫn (PDF)"
+          rules={[{ required: false }]}
+        >
+          <Upload
+            listType="text"
+            maxCount={1}
+            accept=".pdf"
+            beforeUpload={(file) => {
+              if (file.type !== 'application/pdf') {
+                message.error('Chỉ chấp nhận file PDF!');
+                return Upload.LIST_IGNORE;
+              }
+              setSelectedFiles((prev) => ({ ...prev, designImage1URL: file }));
+              return false;
+            }}
+            onRemove={() => {
+              setSelectedFiles((prev) => ({ ...prev, designImage1URL: null }));
+            }}
+            defaultFileList={
+              product?.designImage1URL
+                ? [
+                    {
+                      uid: "-1",
+                      name: "Hướng dẫn.pdf",
+                      status: "done",
+                      url: product.designImage1URL,
+                    },
+                  ]
+                : []
+            }
+          >
+            <Button icon={<PlusOutlined />}>Tải lên file PDF</Button>
           </Upload>
         </Form.Item>
       </Col>

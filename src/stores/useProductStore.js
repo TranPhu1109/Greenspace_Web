@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import axios from "../api/api";
+import api from "@/api/api";
 
 const useProductStore = create(persist((set, get) => ({
   // State
@@ -17,6 +18,7 @@ const useProductStore = create(persist((set, get) => ({
   productFeedbacks: {}, // Change to object to store feedbacks by productId
   selectedProductFeedbacks: [],
   feedbackLoading: false,
+  allFeedbacks: [], // Store all feedbacks from API
 
   // Actions
   setProducts: (products) => set({ products }),
@@ -32,43 +34,53 @@ const useProductStore = create(persist((set, get) => ({
       } 
     })),
 
-  // Fetch feedbacks for all products
+  // Fetch all feedbacks and organize by product
   fetchAllProductFeedbacks: async () => {
-    const { products } = get();
-    const feedbacksMap = {};
-    
-    for (const product of products) {
-      try {
-        const response = await axios.get(`/api/productfeedback/${product.id}/products`);
-        if (response.status === 200) {
-          const feedbacksArray = Array.isArray(response.data) ? response.data.map(feedback => ({
-            id: feedback.id,
-            userName: feedback.userName || 'Ẩn danh',
-            productName: feedback.productName,
-            rating: feedback.rating,
-            description: feedback.description,
-            reply: feedback.reply,
-            createdAt: feedback.createdAt
-          })) : [];
-          
-          feedbacksMap[product.id] = feedbacksArray;
-        } else {
-          // If no feedbacks found, set empty array for this product
-          feedbacksMap[product.id] = [];
-        }
-      } catch (error) {
-        console.error(`Error fetching feedbacks for product ${product.id}:`, error);
-        feedbacksMap[product.id] = [];
+    set({ feedbackLoading: true, error: null });
+    try {
+      const response = await axios.get('/api/productfeedback');
+      if (response.status === 200) {
+        const allFeedbacks = Array.isArray(response.data) ? response.data : [];
+        const feedbacksMap = {};
+        
+        // Group feedbacks by product name
+        allFeedbacks.forEach(feedback => {
+          const product = get().products.find(p => p.name === feedback.productName);
+          if (product) {
+            if (!feedbacksMap[product.id]) {
+              feedbacksMap[product.id] = [];
+            }
+            feedbacksMap[product.id].push({
+              id: feedback.id,
+              userName: feedback.userName || 'Ẩn danh',
+              productName: feedback.productName,
+              rating: feedback.rating,
+              description: feedback.description,
+              reply: feedback.reply,
+              createdAt: feedback.creationDate
+            });
+          }
+        });
+        
+        set({ 
+          productFeedbacks: feedbacksMap,
+          allFeedbacks: allFeedbacks,
+          feedbackLoading: false 
+        });
+        return feedbacksMap;
       }
+      set({ feedbackLoading: false });
+      return {};
+    } catch (error) {
+      console.error('Error fetching all feedbacks:', error);
+      set({ error: error.message, feedbackLoading: false });
+      return {};
     }
-    
-    set({ productFeedbacks: feedbacksMap });
-    return feedbacksMap;
   },
 
   // Get feedbacks for specific product
   getProductFeedbacks: async (productId) => {
-    set({ feedbackLoading: true, error: null, selectedProductFeedbacks: [] }); // Reset selectedProductFeedbacks
+    set({ feedbackLoading: true, error: null, selectedProductFeedbacks: [] });
     try {
       const response = await axios.get(`/api/productfeedback/${productId}/products`);
 
@@ -83,7 +95,6 @@ const useProductStore = create(persist((set, get) => ({
           createdAt: feedback.createdAt
         })) : [];
         
-        // Update both selectedProductFeedbacks and productFeedbacks
         set(state => ({ 
           selectedProductFeedbacks: feedbacksArray,
           productFeedbacks: {
@@ -95,7 +106,6 @@ const useProductStore = create(persist((set, get) => ({
         return feedbacksArray;
       }
       
-      // If no feedbacks found, set empty arrays
       set(state => ({
         selectedProductFeedbacks: [],
         productFeedbacks: {
@@ -107,8 +117,6 @@ const useProductStore = create(persist((set, get) => ({
       return [];
       
     } catch (error) {
-      console.error("Error fetching feedbacks:", error);
-      // Reset feedbacks on error
       set(state => ({ 
         error: error.message, 
         feedbackLoading: false,
@@ -126,7 +134,6 @@ const useProductStore = create(persist((set, get) => ({
   fetchProducts: async (componentId) => {
     const { products, isLoading, lastFetch, cacheTimeout } = get();
     
-    // Luôn fetch lại data khi component được mount
     if (products.length === 0) {
       set({ lastFetch: null });
     }
@@ -137,59 +144,34 @@ const useProductStore = create(persist((set, get) => ({
     
     set({ isLoading: true, error: null });
     try {
-      console.log('Fetching products with componentId:', componentId);
       const response = await axios.get("/api/product", {
         params: {
           pageNumber: 0,
-          pageSize: 100, // Increased to load more products
+          pageSize: 100,
         },
         componentId,
         allowDuplicate: false
       });
       
-      console.log('API Response:', response);
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-      // Skip processing if the request was canceled
       if (response.status === 'canceled') {
-        console.log('Request was canceled');
         set({ isLoading: false });
         return [];
       }
       
-      console.log('Response data:', response.data);
-      console.log('Response data type:', typeof response.data);
-      console.log('Is response data an array?', Array.isArray(response.data));
-      
       const productsArray = Array.isArray(response.data)
-        ? response.data.map((product) => {
-            console.log('Processing product:', product);
-            return {
-              ...product,
-              image: {
-                imageUrl: product.image?.imageUrl || "",
-                image2: product.image?.image2 || "",
-                image3: product.image?.image3 || "",
-              },
-            };
-          })
+        ? response.data.map((product) => ({
+            ...product,
+            image: {
+              imageUrl: product.image?.imageUrl || "",
+              image2: product.image?.image2 || "",
+              image3: product.image?.image3 || "",
+            },
+          }))
         : [];
-      
-      console.log('Processed products array:', productsArray);
-      console.log('Number of products:', productsArray.length);
       
       set({ products: productsArray, isLoading: false, lastFetch: Date.now() });
       return productsArray;
     } catch (error) {
-      console.error('Error in fetchProducts:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        request: error.request
-      });
-      
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
         set({ 
           error: error.message,
@@ -197,17 +179,15 @@ const useProductStore = create(persist((set, get) => ({
         });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return [];
     }
   },
 
-  // Add this to the API Actions section
   createProduct: async (productData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.post(
+      const response = api.post(
         "/api/product",
         {
           name: productData.name,
@@ -217,6 +197,7 @@ const useProductStore = create(persist((set, get) => ({
           description: productData.description,
           size: productData.size || 0,
           image: productData.image, // Pass the entire image object
+          designImage1URL: productData.designImage1URL || null,
         },
         {
           headers: {
@@ -226,7 +207,7 @@ const useProductStore = create(persist((set, get) => ({
       );
 
       if (response.status === 201) {
-        await get().fetchProducts(); // Refresh the products list
+        await get().fetchProducts();
         set({ isLoading: false });
         return response.data;
       }
@@ -240,7 +221,7 @@ const useProductStore = create(persist((set, get) => ({
   updateProduct: async (id, productData, componentId) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.put(`/api/product/${id}`, productData, {
+      const response = await api.put(`/api/product/${id}`, productData, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -252,7 +233,6 @@ const useProductStore = create(persist((set, get) => ({
         return null;
       }
       
-      // Update the product in the products list
       set((state) => ({
         products: state.products.map(product => 
           product.id === id ? { ...product, ...productData } : product
@@ -262,13 +242,10 @@ const useProductStore = create(persist((set, get) => ({
       
       return response.data;
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error updating product:", error);
         set({ error: error.message, isLoading: false });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return null;
     }
@@ -295,13 +272,10 @@ const useProductStore = create(persist((set, get) => ({
       }
       throw new Error("Failed to delete product");
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error deleting product:", error);
         set({ error: error.message, isLoading: false });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return null;
     }
@@ -315,7 +289,6 @@ const useProductStore = create(persist((set, get) => ({
         allowDuplicate: false
       });
       
-      // Skip processing if the request was canceled
       if (response.status === 'canceled') {
         set({ isLoading: false });
         return null;
@@ -345,13 +318,10 @@ const useProductStore = create(persist((set, get) => ({
 
       return processedProduct;
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error fetching product:", error);
         set({ error: error.message, isLoading: false });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return null;
     }

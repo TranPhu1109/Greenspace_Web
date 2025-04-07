@@ -1,194 +1,383 @@
-// import React, { useEffect } from "react";
-// import { useAuthStore } from "@/stores/useAuthStore";
-// import useServiceOrderStore from "@/stores/useServiceOrderStore";
-// import {
-//   Card,
-//   Typography,
-//   Spin,
-//   Alert,
-//   Row,
-//   Col,
-//   Tag,
-//   Image,
-//   Layout,
-// } from "antd";
-// import { format } from "date-fns";
-// import Footer from "@/components/Footer";
-// import Header from "@/components/Header";
-// const { Title, Text } = Typography;
-// const { Content } = Layout;
+import React, { useEffect, useState } from "react";
+import useServiceOrderStore from "@/stores/useServiceOrderStore";
+import {
+  Typography,
+  Spin,
+  Alert,
+  Table,
+  Tag,
+  Layout,
+  Button,
+  Space,
+  Tooltip,
+  Dropdown,
+  Modal,
+  message,
+  Breadcrumb,
+} from "antd";
+import { format } from "date-fns";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import useAuthStore from "@/stores/useAuthStore";
+import { Link, useNavigate } from "react-router-dom";
+import { 
+  EyeOutlined, 
+  MoreOutlined, 
+  ExclamationCircleOutlined,
+  HomeOutlined,
+  HistoryOutlined,
+} from "@ant-design/icons";
 
-// const ServiceOrderHistory = () => {
-//   const { user } = useAuthStore();
-//   const { serviceOrders, loading, error, getServiceOrdersNoUsingIdea } =
-//     useServiceOrderStore();
+const { Title, Text } = Typography;
+const { Content } = Layout;
+const { confirm } = Modal;
 
-//   useEffect(() => {
-//     if (user?.id) {
-//       getServiceOrdersNoUsingIdea(user.id);
-//     }
-//   }, [user?.id, getServiceOrdersNoUsingIdea]);
+const ServiceOrderHistory = () => {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const { 
+    serviceOrders, 
+    loading, 
+    error, 
+    getServiceOrdersNoUsingIdea,
+    cancelServiceOrder 
+  } = useServiceOrderStore();
+  const [localError, setLocalError] = useState(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
 
-//   if (loading) {
-//     return (
-//       <Spin
-//         size="large"
-//         className="flex justify-center items-center min-h-[400px]"
-//       />
-//     );
-//   }
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (user?.id) {
+        try {
+          setLocalError(null);
+          await getServiceOrdersNoUsingIdea(user.id);
+          setDataLoaded(true);
+        } catch (err) {
+          console.error("Error fetching service orders:", err);
+          setLocalError(err.message || "Không thể tải danh sách đơn hàng");
+        }
+      }
+    };
 
-//   if (error) {
-//     return <Alert type="error" message={error} className="mb-4" />;
-//   }
+    fetchOrders();
+  }, [user?.id, getServiceOrdersNoUsingIdea]);
 
-//   const getStatusColor = (status) => {
-//     const statusColors = {
-//       Pending: "orange",
-//       PaymentSuccess: "green",
-//       Processing: "blue",
-//       PickedPackageAndDelivery: "cyan",
-//       DeliveryFail: "red",
-//       ReDelivery: "purple",
-//       DeliveredSuccessfully: "green",
-//       CompleteOrder: "green",
-//       OrderCancelled: "red",
-//     };
-//     return statusColors[status] || "default";
-//   };
+  const handleCancelOrder = (orderId) => {
+    confirm({
+      title: 'Xác nhận hủy đơn hàng',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.',
+      okText: 'Hủy đơn hàng',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          setCancellingOrderId(orderId);
+          await cancelServiceOrder(orderId);
+          message.success('Đã hủy đơn hàng thành công');
+        } catch (err) {
+          message.error(err.message || 'Không thể hủy đơn hàng');
+        } finally {
+          setCancellingOrderId(null);
+        }
+      },
+    });
+  };
 
-//   return (
-//     <Layout>
-//       <Header />
-//       <Content>
-//         <div className="container mx-auto px-4 py-8">
-//           <Title level={2} className="mb-6">
-//             Lịch sử đơn đặt thiết kế
-//           </Title>
+  console.log(serviceOrders);
 
-//           {serviceOrders.length === 0 ? (
-//             <Alert
-//               message="Không có đơn đặt thiết kế"
-//               description="Bạn chưa có đơn đặt thiết kế nào."
-//               type="info"
-//               showIcon
-//             />
-//           ) : (
-//             <div className="space-y-6">
-//               {serviceOrders.map((order) => (
-//                 <Card key={order.id} className="shadow-md">
-//                   <div className="flex flex-col space-y-4">
-//                     <div className="flex justify-between items-start">
-//                       <div>
-//                         <Title level={4}>
-//                           Đơn hàng #{order.id.slice(0, 8)}
-//                         </Title>
-//                         <Text type="secondary">
-//                           Ngày tạo: {format(new Date(order.creationDate), "dd/MM/yyyy HH:mm")}
-//                         </Text>
-//                       </div>
-//                       <Tag color={getStatusColor(order.status)}>
-//                         {order.status}
-//                       </Tag>
-//                     </div>
+  if (loading) {
+    return (
+      <Spin
+        size="large"
+        className="flex justify-center items-center min-h-[400px]"
+      />
+    );
+  }
 
-//                     <Row gutter={[16, 16]}>
-//                       <Col xs={24} sm={12}>
-//                         <div className="space-y-2">
-//                           <Text strong>Thông tin khách hàng:</Text>
-//                           <div>
-//                             <Text>Tên: {order.userName}</Text>
-//                           </div>
-//                           <div>
-//                             <Text>Email: {order.email}</Text>
-//                           </div>
-//                           <div>
-//                             <Text>Số điện thoại: {order.cusPhone}</Text>
-//                           </div>
-//                           <div>
-//                             <Text>Địa chỉ: {order.address}</Text>
-//                           </div>
-//                         </div>
-//                       </Col>
-//                       <Col xs={24} sm={12}>
-//                         <div className="space-y-2">
-//                           <Text strong>Thông tin thiết kế:</Text>
-//                           <div>
-//                             <Text>
-//                               Kích thước: {order.length}m x {order.width}m
-//                             </Text>
-//                           </div>
-//                           <div>
-//                             <Text>Loại dịch vụ: {order.serviceType}</Text>
-//                           </div>
-//                           <div>
-//                             <Text>
-//                               Tổng chi phí:{" "}
-//                               {order.totalCost.toLocaleString("vi-VN")} VNĐ
-//                             </Text>
-//                           </div>
-//                         </div>
-//                       </Col>
-//                     </Row>
+  // Use local error state if available, otherwise use store error
+  const displayError = localError || error;
 
-//                     {order.description && (
-//                       <div className="mt-4">
-//                         <Text strong>Mô tả:</Text>
-//                         <div
-//                           className="mt-2"
-//                           dangerouslySetInnerHTML={{
-//                             __html: order.description,
-//                           }}
-//                         />
-//                       </div>
-//                     )}
+  if (!serviceOrders) {
+    return (
+      <Layout>
+        <Header />
+        <Content>
+          <div className="container mx-auto px-4 py-8" style={{ marginTop: "200px" }}>
+            <Alert 
+              type="error" 
+              message="Lỗi" 
+              description={displayError} 
+              className="mb-4" 
+            />
+            <Button type="primary" onClick={() => window.location.reload()}>
+              Thử lại
+            </Button>
+          </div>
+        </Content>
+        <Footer />
+      </Layout>
+    );
+  }
 
-//                     {order.image && (
-//                       <div className="mt-4">
-//                         <Text strong className="mb-2 block">
-//                           Hình ảnh:
-//                         </Text>
-//                         <Row gutter={[16, 16]}>
-//                           {order.image.imageUrl && (
-//                             <Col xs={24} sm={8}>
-//                               <Image
-//                                 src={order.image.imageUrl}
-//                                 alt="Hình ảnh 1"
-//                                 className="rounded-lg"
-//                               />
-//                             </Col>
-//                           )}
-//                           {order.image.image2 && (
-//                             <Col xs={24} sm={8}>
-//                               <Image
-//                                 src={order.image.image2}
-//                                 alt="Hình ảnh 2"
-//                                 className="rounded-lg"
-//                               />
-//                             </Col>
-//                           )}
-//                           {order.image.image3 && (
-//                             <Col xs={24} sm={8}>
-//                               <Image
-//                                 src={order.image.image3}
-//                                 alt="Hình ảnh 3"
-//                                 className="rounded-lg"
-//                               />
-//                             </Col>
-//                           )}
-//                         </Row>
-//                       </div>
-//                     )}
-//                   </div>
-//                 </Card>
-//               ))}
-//             </div>
-//           )}
-//         </div>
-//       </Content>
-//       <Footer />
-//     </Layout>
-//   );
-// };
+  const getStatusColor = (status) => {
+    const statusColors = {
+      Pending: "orange",
+      ConsultingAndSketching: "blue",
+      DeterminingDesignPrice: "purple",
+      DepositSuccessful: "cyan",
+      AssignToDesigner: "geekblue",
+      DeterminingMaterialPrice: "magenta",
+      DoneDesign: "volcano",
+      PaymentSuccess: "green",
+      Processing: "blue",
+      PickedPackageAndDelivery: "cyan",
+      DeliveryFail: "red",
+      ReDelivery: "purple",
+      DeliveredSuccessfully: "green",
+      CompleteOrder: "green",
+      OrderCancelled: "red",
+      Warning: "orange",
+      Refund: "gold",
+      DoneRefund: "green",
+      Completed: "green",
+      NoDesignIdea: "default",
+    };
+    return statusColors[status] || "default";
+  };
 
-// export default ServiceOrderHistory;
+  const getStatusText = (status) => {
+    const statusTexts = {
+      Pending: "Chờ xử lý",
+      ConsultingAndSketching: "Đang tư vấn & phác thảo",
+      DeterminingDesignPrice: "Đang xác định giá",
+      DepositSuccessful: "Đặt cọc thành công",
+      AssignToDesigner: "Đã giao cho nhà thiết kế",
+      DeterminingMaterialPrice: "Xác định giá vật liệu",
+      DoneDesign: "Hoàn thành thiết kế",
+      PaymentSuccess: "Thanh toán thành công",
+      Processing: "Đang xử lý",
+      PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
+      DeliveryFail: "Giao hàng thất bại",
+      ReDelivery: "Giao lại",
+      DeliveredSuccessfully: "Đã giao hàng thành công",
+      CompleteOrder: "Hoàn thành đơn hàng",
+      OrderCancelled: "Đơn hàng đã bị hủy",
+      Warning: "Cảnh báo vượt 30%",
+      Refund: "Hoàn tiền",
+      DoneRefund: "Đã hoàn tiền",
+      Completed: "Hoàn thành",
+      NoDesignIdea: "Không có mẫu thiết kế",
+    };
+    return statusTexts[status] || status;
+  };
+
+  const columns = [
+    {
+      title: "Mã đơn hàng",
+      dataIndex: "id",
+      key: "id",
+      render: (id) => `#${id.slice(0, 8)}`,
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "creationDate",
+      key: "creationDate",
+      render: (date) => format(new Date(date), "dd/MM/yyyy HH:mm"),
+      sorter: (a, b) => new Date(a.creationDate) - new Date(b.creationDate),
+    },
+    {
+      title: "Khách hàng",
+      dataIndex: "userName",
+      key: "userName",
+    },
+    {
+      title: "Số điện thoại",
+      dataIndex: "cusPhone",
+      key: "cusPhone",
+    },
+    {
+      title: "Kích thước",
+      key: "dimensions",
+      render: (_, record) => `${record.length}m x ${record.width}m`,
+    },
+    {
+      title: "Loại dịch vụ",
+      dataIndex: "serviceType",
+      key: "serviceType",
+      render: (type) => {
+        const serviceTypeMap = {
+          NoDesignIdea: "Không có mẫu thiết kế",
+        };
+        return serviceTypeMap[type] || type;
+      },
+    },
+    {
+      title: "Tổng chi phí",
+      dataIndex: "totalCost",
+      key: "totalCost",
+      render: (cost) => `${cost.toLocaleString("vi-VN")} VNĐ`,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color={getStatusColor(status)}>
+          {getStatusText(status)}
+        </Tag>
+      ),
+      filters: [
+        { text: "Chờ xử lý", value: "Pending" },
+        { text: "Đang tư vấn & phác thảo", value: "ConsultingAndSketching" },
+        { text: "Đang xác định giá", value: "DeterminingDesignPrice" },
+        { text: "Đặt cọc thành công", value: "DepositSuccessful" },
+        { text: "Đã giao cho nhà thiết kế", value: "AssignToDesigner" },
+        { text: "Xác định giá vật liệu", value: "DeterminingMaterialPrice" },
+        { text: "Hoàn thành thiết kế", value: "DoneDesign" },
+        { text: "Thanh toán thành công", value: "PaymentSuccess" },
+        { text: "Đang xử lý", value: "Processing" },
+        { text: "Đã lấy hàng & đang giao", value: "PickedPackageAndDelivery" },
+        { text: "Giao hàng thất bại", value: "DeliveryFail" },
+        { text: "Giao lại", value: "ReDelivery" },
+        { text: "Đã giao hàng thành công", value: "DeliveredSuccessfully" },
+        { text: "Hoàn thành đơn hàng", value: "CompleteOrder" },
+        { text: "Đơn hàng đã bị hủy", value: "OrderCancelled" },
+        { text: "Cảnh báo vượt 30%", value: "Warning" },
+        { text: "Hoàn tiền", value: "Refund" },
+        { text: "Đã hoàn tiền", value: "DoneRefund" },
+        { text: "Hoàn thành", value: "Completed" },
+      ],
+      onFilter: (value, record) => record.status === value,
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_, record) => {
+        const canCancel = !['OrderCancelled', 'CompleteOrder', 'Completed', 'DoneRefund'].includes(record.status);
+        
+        const items = [
+          {
+            key: 'view',
+            label: (
+              <Link to={`/service-order/${record.id}`}>
+                <Space>
+                  <EyeOutlined />
+                  <span>Xem chi tiết</span>
+                </Space>
+              </Link>
+            ),
+          },
+        ];
+        
+        if (canCancel) {
+          items.push({
+            key: 'cancel',
+            label: (
+              <Space onClick={() => handleCancelOrder(record.id)}>
+                <ExclamationCircleOutlined />
+                <span>Hủy đơn hàng</span>
+              </Space>
+            ),
+            danger: true,
+          });
+        }
+        
+        return (
+          <Dropdown 
+            menu={{ items }} 
+            trigger={['click']}
+            placement="bottomRight"
+            disabled={cancellingOrderId === record.id}
+          >
+            <Button 
+              type="text" 
+              icon={<MoreOutlined />} 
+              loading={cancellingOrderId === record.id}
+            />
+          </Dropdown>
+        );
+      },
+    },
+  ];
+
+  return (
+    <Layout>
+      <Header />
+      <Content>
+        <div className="container mx-auto px-4 py-8" style={{ marginTop: "200px" }}>
+          <Breadcrumb
+            items={[
+              {
+                title: (
+                  <Link to="/Home">
+                    <Space>
+                      <HomeOutlined style={{ fontSize: '18px' }} />
+                      <span style={{ fontSize: '16px' }}>Trang chủ</span>
+                    </Space>
+                  </Link>
+                ),
+              },
+              {
+                title: (
+                  <Space>
+                    <HistoryOutlined style={{ fontSize: '18px' }} />
+                    <span style={{ fontSize: '16px' }}>Lịch sử đơn đặt thiết kế</span>
+                  </Space>
+                ),
+              },
+            ]}
+            style={{ 
+              marginBottom: '16px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }}
+          />
+          
+          {/* <Title level={2} className="mb-6">
+            Lịch sử đơn đặt thiết kế
+          </Title> */}
+
+          {!dataLoaded ? (
+            <Alert
+              message="Đang tải dữ liệu"
+              description="Vui lòng đợi trong giây lát..."
+              type="info"
+              showIcon
+            />
+          ) : serviceOrders.length === 0 ? (
+            <Alert
+              message="Không có đơn đặt thiết kế"
+              description="Bạn chưa có đơn đặt thiết kế nào."
+              type="info"
+              showIcon
+            />
+          ) : (
+            <Table
+              dataSource={serviceOrders}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              className="shadow-md"
+              onRow={(record) => ({
+                onClick: () => navigate(`/service-order/${record.id}`),
+                style: { cursor: 'pointer' }
+              })}
+              style={{ 
+                marginBottom: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
+              }}
+            />
+          )}
+        </div>
+      </Content>
+      <Footer />
+    </Layout>
+  );
+};
+
+export default ServiceOrderHistory;
