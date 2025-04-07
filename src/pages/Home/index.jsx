@@ -32,7 +32,7 @@ const Home = () => {
   }, []);
 
   return (
-    <Layout className="home-layout">
+    <Layout >
       <Header />
       <Content>
         <HeroSection />

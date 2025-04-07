@@ -1,29 +1,16 @@
 import React, { useState, useEffect } from "react";
 import {
   Calendar as AntCalendar,
-  Badge,
   Tooltip,
   Row,
   Col,
   Card,
   Select,
-  Button,
   Tag,
   Avatar,
-  Modal,
   Form,
-  Input,
-  DatePicker,
-  Space,
   message,
-  Empty,
 } from "antd";
-import {
-  PlusOutlined,
-  ClockCircleOutlined,
-  UserOutlined,
-  MailOutlined,
-} from "@ant-design/icons";
 import dayjs from "dayjs";
 import CalendarHeader from "./components/CalendarHeader";
 import DayDetail from "./components/DayDetail";
@@ -41,9 +28,26 @@ const Calendar = ({ designers = [], onAddNew }) => {
   const [form] = Form.useForm();
 
   // Lấy dữ liệu từ store
-  const { getAllActiveTasks, getTasksByDate, isLoading, addTask } =
-    useScheduleStore();
+  const { 
+    getAllTasks, 
+    isLoading, 
+    addTask, 
+    workTasks, 
+    updateTask, 
+    tasksByDate,
+    fetchNoIdeaOrders,
+    fetchUsingIdeaOrders,
+    noIdeaOrders,
+    usingIdeaOrders 
+  } = useScheduleStore();
   const { designOrders } = useDesignOrderStore();
+
+  // Fetch tasks và orders khi component mount
+  useEffect(() => {
+    getAllTasks();
+    fetchNoIdeaOrders();
+    fetchUsingIdeaOrders();
+  }, []);
 
   // Xử lý khi chọn designer
   const handleDesignerChange = (value) => {
@@ -60,7 +64,7 @@ const Calendar = ({ designers = [], onAddNew }) => {
     form.validateFields().then((values) => {
       // Filter pending custom orders
       const pendingCustomOrders = designOrders.filter(
-        (order) => order.isCustom === true && order.status === "Pending"
+        (order) => order.isCustom === true && order.status === "ConsultingAndSketching"
       );
 
       if (pendingCustomOrders.length === 0) {
@@ -74,6 +78,7 @@ const Calendar = ({ designers = [], onAddNew }) => {
         serviceOrderId: pendingCustomOrders[0].id,
         userId: values.designerId,
         note: values.notes || "",
+        status: "ConsultingAndSketching"
       };
 
       addTask(taskData)
@@ -81,6 +86,7 @@ const Calendar = ({ designers = [], onAddNew }) => {
           message.success("Đã thêm công việc mới");
           setAddTaskModal(false);
           form.resetFields();
+          getAllTasks(); // Refresh tasks list
         })
         .catch((error) => {
           message.error("Không thể thêm công việc: " + error.message);
@@ -98,47 +104,65 @@ const Calendar = ({ designers = [], onAddNew }) => {
         designers={designers}
         selectedDesigner={selectedDesignerId}
         onDesignerChange={handleDesignerChange}
+        noIdeaOrders={noIdeaOrders}
+        usingIdeaOrders={usingIdeaOrders}
       />
     );
   };
 
   // Render nội dung của mỗi ô ngày
   const dateCellRender = (value) => {
-    // Lấy tất cả tasks trong ngày này
-    const dateString = value.format("YYYY-MM-DD");
-    let tasksOnDate = getTasksByDate(dateString);
-
-    // Lọc theo designer nếu có chọn
-    if (selectedDesignerId !== "all") {
-      tasksOnDate = tasksOnDate.filter(
-        (task) => task.designerId == selectedDesignerId
-      );
-    }
-
-    if (tasksOnDate.length === 0) {
+    // Kiểm tra nếu tasksByDate chưa được khởi tạo
+    if (!tasksByDate) {
       return null;
     }
 
-    // Nhóm tasks theo designer
-    const tasksByDesigner = tasksOnDate.reduce((acc, task) => {
-      if (!acc[task.designerId]) {
-        acc[task.designerId] = {
-          designer: {
-            id: task.designerId,
-            name: task.designerName,
-            avatar: task.designerAvatar,
-            email: task.designerEmail,
-          },
-          tasks: [],
-        };
+    // Lấy tất cả tasks trong ngày này
+    const dateString = value.format("YYYY-MM-DD");
+    const tasksByDesigner = tasksByDate[dateString] || {};
+
+    // Lấy danh sách designers đang rảnh
+    const availableDesigners = designers.filter(designer => 
+      !Object.keys(tasksByDesigner).includes(designer.id)
+    );
+
+    // Nếu không có dữ liệu hoặc không có designer nào có task
+    if (Object.keys(tasksByDesigner).length === 0 && availableDesigners.length === 0) {
+      return null;
+    }
+
+    // Lọc theo designer nếu có chọn
+    let filteredTasksByDesigner = tasksByDesigner;
+    let filteredAvailableDesigners = availableDesigners;
+    if (selectedDesignerId !== "all") {
+      filteredTasksByDesigner = Object.fromEntries(
+        Object.entries(tasksByDesigner).filter(
+          ([designerId]) => designerId === selectedDesignerId
+        )
+      );
+      filteredAvailableDesigners = availableDesigners.filter(
+        designer => designer.id === selectedDesignerId
+      );
+    }
+
+    if (Object.keys(filteredTasksByDesigner).length === 0 && filteredAvailableDesigners.length === 0) {
+      return null;
+    }
+
+    // Xử lý cập nhật trạng thái task
+    const handleStatusChange = async (taskId, newStatus) => {
+      try {
+        await updateTask(taskId, { status: newStatus });
+        message.success("Đã cập nhật trạng thái công việc");
+        getAllActiveTasks(); // Refresh tasks list
+      } catch (error) {
+        message.error("Không thể cập nhật trạng thái: " + error.message);
       }
-      acc[task.designerId].tasks.push(task);
-      return acc;
-    }, {});
+    };
 
     return (
       <div className="date-cell-content">
-        {Object.values(tasksByDesigner).map(({ designer, tasks }) => (
+        {Object.values(filteredTasksByDesigner).map(({ designer, tasks }) => (
           <Tooltip
             key={designer.id}
             title={
@@ -180,6 +204,35 @@ const Calendar = ({ designers = [], onAddNew }) => {
             </div>
           </Tooltip>
         ))}
+        
+        {filteredAvailableDesigners.map(designer => (
+          <Tooltip
+            key={designer.id}
+            title={
+              <div>
+                <strong>{designer.name}</strong>
+                <div>Đang rảnh</div>
+              </div>
+            }
+          >
+            <div className="designer-task-item">
+              {designer.avatar ? (
+                <Avatar src={designer.avatar} size="small" />
+              ) : (
+                <Avatar size="small">
+                  {designer.email.charAt(0).toUpperCase()}
+                </Avatar>
+              )}
+              <Tag
+                className="designer-name"
+                color="green"
+              >
+                {designer.name}
+              </Tag>
+              <Tag color="green">Rảnh</Tag>
+            </div>
+          </Tooltip>
+        ))}
       </div>
     );
   };
@@ -191,43 +244,33 @@ const Calendar = ({ designers = [], onAddNew }) => {
         selectedDate={selectedDate}
         designers={designers}
         selectedDesignerId={selectedDesignerId}
+        noIdeaOrders={noIdeaOrders}
+        usingIdeaOrders={usingIdeaOrders}
       />
     );
   };
 
   return (
-    <>
-      <Row gutter={16} className="calendar-layout">
-        <Col xs={24} lg={16}>
-          <Card className="calendar-container">
-            <AntCalendar
-              headerRender={headerRender}
-              dateCellRender={dateCellRender}
-              mode="month"
-              value={selectedDate}
-              onChange={setSelectedDate}
-              className="custom-calendar"
-              fullscreen={true}
-              loading={isLoading}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          {renderSideDetail()}
-        </Col>
-      </Row>
-
-      <AddTaskModal
-        open={addTaskModal}
-        title="Thêm công việc mới"
-        visible={addTaskModal}
-        onCancel={() => setAddTaskModal(false)}
-        onOk={handleAddTaskSubmit}
-        form={form}
-        designers={designers}
-        selectedDesignerId={selectedDesignerId}
-      />
-    </>
+    <Row gutter={16} className="calendar-layout">
+      <Col xs={24} lg={16}>
+        <Card className="calendar-container">
+          <AntCalendar
+            dateCellRender={dateCellRender}
+            value={selectedDate}
+            onChange={setSelectedDate}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} lg={8}>
+        <DayDetail
+          selectedDate={selectedDate}
+          designers={designers}
+          selectedDesignerId={selectedDesignerId}
+          noIdeaOrders={noIdeaOrders}
+        usingIdeaOrders={usingIdeaOrders}
+        />
+      </Col>
+    </Row>
   );
 };
 

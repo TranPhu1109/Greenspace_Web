@@ -22,7 +22,12 @@ const useOrderStore = create((set, get) => ({
       set({ orders: formattedOrders, isLoading: false });
     } catch (error) {
       console.error('Error fetching orders:', error);
-      set({ error: error.message, isLoading: false });
+      // Nếu lỗi là 404 (không có đơn hàng), trả về mảng rỗng
+      if (error.response?.status === 404) {
+        set({ orders: [], isLoading: false, error: null });
+      } else {
+        set({ error: error.message, isLoading: false });
+      }
     }
   },
   

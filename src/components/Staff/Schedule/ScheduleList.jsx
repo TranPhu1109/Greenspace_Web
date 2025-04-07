@@ -93,6 +93,7 @@ const ScheduleList = () => {
 
   // Lọc designers theo trạng thái
   const getDesignersByStatus = (status) => {
+    if (!designers) return [];
     if (status === 'all') return designers;
     return designers.filter(designer => designer.status === status);
   };
@@ -259,7 +260,7 @@ const ScheduleList = () => {
             rules={[{ required: true, message: 'Vui lòng chọn designer' }]}
           >
             <Select placeholder="Chọn designer">
-              {designers.map(designer => (
+              {designers?.map(designer => (
                 <Option key={designer.id} value={designer.id}>
                   {designer.name} ({designer.status})
                 </Option>

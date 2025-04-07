@@ -210,7 +210,7 @@ const ProductsList = () => {
           />
           <Col className="product-details">
             <span className="product-name">{text}</span>
-            <Tag color="processing" style={{width: "100%"}}>
+            <Tag color="processing" style={{ width: "100%" }}>
               {getCategoryNameById(record.categoryId)}
             </Tag>
           </Col>
@@ -225,8 +225,16 @@ const ProductsList = () => {
       key: "description",
       render: (text) => (
         <Tooltip title={text}>
-          <span style={{ display: 'inline-block', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {text}
+          <span
+            style={{
+              display: "inline-block",
+              maxWidth: "200px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <div dangerouslySetInnerHTML={{ __html: text }} />
           </span>
         </Tooltip>
       ),
@@ -235,7 +243,11 @@ const ProductsList = () => {
       title: "Giá",
       dataIndex: "price",
       key: "price",
-      render: (price) => `${price.toLocaleString("vi-VN", { style: 'currency', currency: 'VND' })}`,
+      render: (price) =>
+        `${price.toLocaleString("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        })}`,
       sorter: (a, b) => a.price - b.price,
       sortOrder: sortedInfo.columnKey === "price" && sortedInfo.order,
     },
@@ -315,20 +327,22 @@ const ProductsList = () => {
           getCategoryNameById(item.categoryId),
           item.price?.toString(),
           item.stock?.toString(),
-        ].map(field => (field || '').toLowerCase());
+        ].map((field) => (field || "").toLowerCase());
 
-        const matchSearch = !searchText || searchFields.some(field => 
-          field.includes(searchText.toLowerCase())
-        );
+        const matchSearch =
+          !searchText ||
+          searchFields.some((field) =>
+            field.includes(searchText.toLowerCase())
+          );
 
         const matchCategory = filterCategory
           ? item.categoryId === parseInt(filterCategory)
           : true;
 
         const matchStatus = filterStatus
-          ? (filterStatus === 'out' && item.stock === 0) ||
-            (filterStatus === 'low' && item.stock > 0 && item.stock <= 10) ||
-            (filterStatus === 'in' && item.stock > 10)
+          ? (filterStatus === "out" && item.stock === 0) ||
+            (filterStatus === "low" && item.stock > 0 && item.stock <= 10) ||
+            (filterStatus === "in" && item.stock > 10)
           : true;
 
         return matchSearch && matchCategory && matchStatus;

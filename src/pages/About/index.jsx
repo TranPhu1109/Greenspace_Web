@@ -115,7 +115,7 @@ const AboutPage = () => {
   ];
 
   return (
-    <Layout className="about-layout">
+    <Layout>
       <Header />
       <Content>
         {/* Hero Section */}

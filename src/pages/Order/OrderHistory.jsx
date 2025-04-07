@@ -10,7 +10,6 @@ import {
   Breadcrumb,
   Row,
   Col,
-  Spin,
   Form,
   Rate,
   Input,
@@ -20,6 +19,7 @@ import {
   Modal,
   Image,
   Descriptions,
+  Alert,
 } from "antd";
 import { format } from "date-fns";
 import { HomeOutlined, ShoppingOutlined } from "@ant-design/icons";
@@ -29,7 +29,6 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { checkToxicContent } from "@/services/moderationService";
 import useAuthStore from "@/stores/useAuthStore";
-import { render } from "sass";
 
 const { TextArea } = Input;
 
@@ -38,7 +37,7 @@ const { Option } = Select;
 const { Content } = Layout;
 
 const OrderHistory = () => {
-  const { orders, loading, error, fetchOrderHistory } = useOrderHistoryStore();
+  const { orders, loading, error, fetchOrderHistory, cancelOrder } = useOrderHistoryStore();
   const { getProductById, createProductFeedback } = useProductStore();
   const { user } = useAuthStore();
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -115,6 +114,7 @@ const OrderHistory = () => {
       title: "Địa chỉ",
       dataIndex: "address",
       key: "address",
+      render: (address) => address.replace(/\|/g, ', '),
     },
     {
       title: "Mã vận đơn",
@@ -147,6 +147,41 @@ const OrderHistory = () => {
       render: (status) => {
         const { color, text } = getStatusTag(status);
         return <Tag color={color}>{text}</Tag>;
+      },
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_, record) => {
+        if (record.status === 0 || record.status === "0") {
+          return (
+            <Button
+              danger
+              onClick={() => {
+                Modal.confirm({
+                  title: "Xác nhận hủy đơn hàng",
+                  content: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
+                  okText: "Hủy đơn",
+                  cancelText: "Đóng",
+                  okButtonProps: { danger: true },
+                  onOk: async () => {
+                    try {
+                      const success = await cancelOrder(record.id);
+                      if (success) {
+                        message.success("Đã hủy đơn hàng thành công");
+                      }
+                    } catch (error) {
+                      message.error("Không thể hủy đơn hàng. Vui lòng thử lại sau.");
+                    }
+                  },
+                });
+              }}
+            >
+              Hủy đơn
+            </Button>
+          );
+        }
+        return null;
       },
     },
   ];
@@ -383,7 +418,22 @@ const OrderHistory = () => {
   }, [orders, statusFilter]);
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <Layout>
+        <Header />
+        <Content style={{ marginTop: 200 }}>
+          <div className="container mx-auto px-4">
+            <Alert
+              message="Lỗi"
+              description={error}
+              type="error"
+              showIcon
+            />
+          </div>
+        </Content>
+        <Footer />
+      </Layout>
+    );
   }
 
   return (
@@ -435,6 +485,14 @@ const OrderHistory = () => {
                     pageSize: 10,
                     showSizeChanger: true,
                     showTotal: (total) => `Tổng ${total} đơn hàng`,
+                  }}
+                  locale={{
+                    emptyText: (
+                      <div style={{ padding: "24px 0" }}>
+                        <ShoppingOutlined style={{ fontSize: 24, marginBottom: 16 }} />
+                        <p>Chưa có đơn hàng nào</p>
+                      </div>
+                    )
                   }}
                 />
               </Col>

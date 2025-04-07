@@ -66,7 +66,12 @@ const CreateProductModal = ({
 
       // Upload images only when form is submitted
       const uploadPromises = [];
-      const imageUrls = { imageUrl: "", image2: "", image3: "" };
+      const imageUrls = {
+        imageUrl: "",
+        image2: "",
+        image3: ""
+      };
+      let designImage1URL = "";
 
       if (selectedFiles.imageUrl) {
         uploadPromises.push(
@@ -92,6 +97,14 @@ const CreateProductModal = ({
         );
       }
 
+      if (selectedFiles.designImage1URL) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.designImage1URL]).then((urls) => {
+            designImage1URL = urls[0];
+          })
+        );
+      }
+
       // Wait for all images to upload
       await Promise.all(uploadPromises);
 
@@ -103,6 +116,7 @@ const CreateProductModal = ({
         description: values.description || "",
         size: parseFloat(values.size) || 0,
         image: imageUrls,
+        designImage1URL: designImage1URL
       };
 
       await onSubmit(productData);
@@ -113,6 +127,7 @@ const CreateProductModal = ({
         imageUrl: null,
         image2: null,
         image3: null,
+        designImage1URL: null,
       });
 
       fetchProducts();
@@ -270,6 +285,37 @@ const CreateProductModal = ({
                 min={0}
               />
             </Form.Item>
+            <Form.Item
+              name="designImage1URL"
+              required
+              label="File hướng dẫn (PDF)"
+              rules={[{ required: false }]}
+            >
+              <Upload
+                listType="text"
+                maxCount={1}
+                accept=".pdf"
+                beforeUpload={(file) => {
+                  if (file.type !== "application/pdf") {
+                    message.error("Chỉ chấp nhận file PDF!");
+                    return Upload.LIST_IGNORE;
+                  }
+                  setSelectedFiles((prev) => ({
+                    ...prev,
+                    designImage1URL: file,
+                  }));
+                  return false;
+                }}
+                onRemove={() => {
+                  setSelectedFiles((prev) => ({
+                    ...prev,
+                    designImage1URL: null,
+                  }));
+                }}
+              >
+                <Button icon={<PlusOutlined />}>Tải lên file PDF</Button>
+              </Upload>
+            </Form.Item>
           </Col>
         </Row>
 
@@ -358,6 +404,7 @@ const CreateProductModal = ({
             height={350}
           />
         </Form.Item>
+
         <Form.Item
           className="form-actions"
           style={{ textAlign: "right", marginTop: 10 }}

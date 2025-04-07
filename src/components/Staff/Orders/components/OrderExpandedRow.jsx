@@ -245,7 +245,7 @@ const OrderExpandedRow = ({ order }) => {
                 </span>
               }
             >
-              {order.address}
+              {order.address?.replace(/\|/g, ', ')}
             </Descriptions.Item>
           </Descriptions>
         </div>

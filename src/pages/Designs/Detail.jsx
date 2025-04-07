@@ -122,7 +122,7 @@ const DesignDetailPage = () => {
 
   if (designLoading) {
     return (
-      <Layout className="design-detail-layout">
+      <Layout >
         <Header />
         <Content>
           <div className="container">
@@ -138,7 +138,7 @@ const DesignDetailPage = () => {
 
   if (designError || !currentDesign) {
     return (
-      <Layout className="design-detail-layout">
+      <Layout >
         <Header />
         <Content>
           <div className="container">

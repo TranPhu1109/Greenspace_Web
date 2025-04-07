@@ -41,7 +41,7 @@ const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { createShippingOrder } = useShippingStore();
+  const { createShippingOrder, order_code } = useShippingStore();
   const { selectedOrder, getOrderById, isLoading, error, updateOrderStatus } =
     useOrderStore();
 
@@ -415,6 +415,86 @@ const OrderDetail = () => {
                         </Tooltip>
                       </Button>
                     )}
+                    {selectedOrder.status === "1" && (
+                      <Button
+                        type="primary"
+                        onClick={async () => {
+                          try {
+                            const success = await updateOrderStatus(selectedOrder.id, { status: 6, deliveryCode: order_code });
+                            if (success) {
+                              message.success("Đã cập nhật trạng thái đơn hàng");
+                              await getOrderById(id);
+                            }
+                          } catch (error) {
+                            message.error("Không thể cập nhật trạng thái đơn hàng");
+                          }
+                        }}
+                      >
+                        <Tooltip title="Đã lấy hàng">
+                          <CheckCircleOutlined /> Đã lấy hàng
+                        </Tooltip>
+                      </Button>
+                    )}
+                    {(selectedOrder.status === "6" || selectedOrder.status === "8") && (
+                      <Space>
+                        <Button
+                          type="primary"
+                          onClick={async () => {
+                            try {
+                              const success = await updateOrderStatus(selectedOrder.id, { status: 9, deliveryCode: order_code });
+                              if (success) {
+                                message.success("Đã cập nhật trạng thái đơn hàng");
+                                await getOrderById(id);
+                              }
+                            } catch (error) {
+                              message.error("Không thể cập nhật trạng thái đơn hàng");
+                            }
+                          }}
+                        >
+                          <Tooltip title="Giao thành công">
+                            <CheckCircleOutlined /> Giao thành công
+                          </Tooltip>
+                        </Button>
+                        <Button
+                          danger
+                          onClick={async () => {
+                            try {
+                              const success = await updateOrderStatus(selectedOrder.id, { status: 7, deliveryCode: order_code });
+                              if (success) {
+                                message.success("Đã cập nhật trạng thái đơn hàng");
+                                await getOrderById(id);
+                              }
+                            } catch (error) {
+                              message.error("Không thể cập nhật trạng thái đơn hàng");
+                            }
+                          }}
+                        >
+                          <Tooltip title="Giao thất bại">
+                            <CloseCircleOutlined /> Giao thất bại
+                          </Tooltip>
+                        </Button>
+                      </Space>
+                    )}
+                    {selectedOrder.status === "7" && (
+                      <Button
+                        type="primary"
+                        onClick={async () => {
+                          try {
+                            const success = await updateOrderStatus(selectedOrder.id, { status: 8, deliveryCode: order_code });
+                            if (success) {
+                              message.success("Đã cập nhật trạng thái đơn hàng");
+                              await getOrderById(id);
+                            }
+                          } catch (error) {
+                            message.error("Không thể cập nhật trạng thái đơn hàng");
+                          }
+                        }}
+                      >
+                        <Tooltip title="Giao lại">
+                          <CheckCircleOutlined /> Giao lại
+                        </Tooltip>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </Col>
@@ -430,62 +510,73 @@ const OrderDetail = () => {
                 direction="vertical"
                 current={getCurrentStep(selectedOrder.status)}
                 status={
-                  selectedOrder.status === "đơn bị từ chối" ||
-                  selectedOrder.status === "đã hủy"
+                  selectedOrder.status === "3" ||
+                  selectedOrder.status === "4" ||
+                  selectedOrder.status === "5" ||
+                  selectedOrder.status === "7"
                     ? "error"
+                    : selectedOrder.status === "9"
+                    ? "finish"
                     : "process"
                 }
                 className="order-steps"
+                progressDot
               >
                 <Step
-                  title="Chờ xác nhận"
+                  title="Chờ xử lý"
                   description={
                     <div className="step-description">
                       <p>Đơn hàng đang chờ xác nhận</p>
-                      {selectedOrder.status === "chờ xác nhận" && (
-                        <p className="text-gray-500">{orderDate}</p>
+                      {selectedOrder.status === "0" && (
+                        <p className="step-time">
+                          {new Date(selectedOrder.creationDate).toLocaleString("vi-VN")}
+                        </p>
                       )}
                     </div>
                   }
-                  icon={<ShoppingOutlined />}
+                  icon={<ShoppingOutlined style={{ fontSize: '24px' }} />}
                 />
                 <Step
                   title="Đã xác nhận"
                   description={
                     <div className="step-description">
-                      <p>Đơn hàng đã được xác nhận</p>
-                      {selectedOrder.status === "đã xác nhận" && (
-                        <p className="text-gray-500">{orderDate}</p>
+                      <p>Đơn hàng đã được xác nhận và đang xử lý</p>
+                      {(selectedOrder.status === "1" || selectedOrder.status === "2") && (
+                        <p className="step-time">
+                          {new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}
+                        </p>
                       )}
                     </div>
                   }
-                  icon={<CheckCircleOutlined />}
+                  icon={<CheckCircleOutlined style={{ fontSize: '24px' }} />}
                 />
                 <Step
                   title="Đang giao hàng"
                   description={
                     <div className="step-description">
                       <p>Đơn hàng đang được giao</p>
-                      {(selectedOrder.status === "đang giao hàng" ||
-                        selectedOrder.status ===
-                          "đã giao cho đơn vị vận chuyển") && (
-                        <p className="text-gray-500">{orderDate}</p>
+                      {(selectedOrder.status === "6" || selectedOrder.status === "8") && (
+                        <p className="step-time">
+                          {new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}
+                        </p>
                       )}
                     </div>
                   }
-                  icon={<TruckOutlined />}
+                  icon={<TruckOutlined style={{ fontSize: '24px' }} />}
                 />
                 <Step
                   title="Đã giao hàng"
                   description={
                     <div className="step-description">
                       <p>Đơn hàng đã được giao thành công</p>
-                      {selectedOrder.status === "đã giao hàng" && (
-                        <p className="text-gray-500">{orderDate}</p>
+                      {selectedOrder.status === "9" && (
+                        <p className="step-time">
+                          {new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}
+                        </p>
                       )}
                     </div>
                   }
-                  icon={<CheckCircleOutlined />}
+                  icon={<CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />}
                 />
               </Steps>
             </div>

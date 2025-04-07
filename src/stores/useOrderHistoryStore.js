@@ -13,10 +13,33 @@ const useOrderHistoryStore = create((set) => ({
       const response = await axios.get('/api/orderproducts/user');
       set({ orders: response.data, loading: false });
     } catch (error) {
+      if (error.response?.status === 404) {
+        set({ orders: [], loading: false });
+      } else {
+        set({
+          error: error.response?.data?.message || 'Có lỗi xảy ra khi tải lịch sử đơn hàng',
+          loading: false
+        });
+      }
+    }
+  },
+
+  // Cancel order
+  cancelOrder: async (orderId) => {
+    set({ loading: true, error: null });
+    try {
+      await axios.put(`/api/orderproducts/status/${orderId}`, {
+        status: 3,
+        deliveryCode: ''
+      });
+      await set.getState().fetchOrderHistory();
+      return true;
+    } catch (error) {
       set({
-        error: error.response?.data?.message || 'Có lỗi xảy ra khi tải lịch sử đơn hàng',
+        error: error.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng',
         loading: false
       });
+      return false;
     }
   },
 

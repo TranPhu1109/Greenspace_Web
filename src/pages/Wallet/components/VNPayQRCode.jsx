@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Input, Form, message, Spin } from 'antd';
 import { QrcodeOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '@/api/api';
 
 const VNPayQRCode = ({ visible, onCancel }) => {
   const [form] = Form.useForm();
@@ -13,7 +13,7 @@ const VNPayQRCode = ({ visible, onCancel }) => {
       setLoading(true);
       const amount = values.amount.replace(/\D/g, ''); // Loại bỏ tất cả ký tự không phải số
       
-      const response = await axios.post('/api/userwallets/create-qr-payment', {
+      const response = await api.post('/api/userwallets/create-qr-payment', {
         amount: parseInt(amount),
         orderInfo: 'Nạp tiền vào ví qua QR VNPay'
       });
