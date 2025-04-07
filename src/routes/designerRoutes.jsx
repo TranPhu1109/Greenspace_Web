@@ -1,6 +1,7 @@
 import Dashboard from "../pages/Admin/Dashboard";
 import DesignerScheduleView from "../pages/Admin/Designer/Schedule/DesignerScheduleView";
-import TaskDetail from "../pages/Admin/Designer/Tasks/TaskDetail";
+import TaskList from "@/components/Designer/Tasks/TaskList";
+import TaskDetail from "@/components/Designer/Tasks/TaskDetail";
 import DesignCategories from "@/components/Designer/Designs/DesignCategories";
 import DesignTemplates from "@/components/Designer/Designs/DesignTemplates";
 import DesignTemplateDetail from "@/components/Designer/Designs/DesignTemplateDetail";
@@ -38,8 +39,17 @@ export const designerRoutes = {
       element: <DesignerScheduleView />,
     },
     {
-      path: "tasks/:id",
-      element: <TaskDetail />,
+      path: "tasks",
+      children: [
+        {
+          index: true,
+          element: <TaskList />,
+        },
+        {
+          path: ":id",
+          element: <TaskDetail />,
+        },
+      ],
     },
   ],
 };

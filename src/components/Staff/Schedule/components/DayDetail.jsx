@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Typography,
   List,
@@ -10,306 +10,246 @@ import {
   Divider,
   Empty,
   Spin,
-  Form,
-  Modal,
-  Input,
-  Select,
+  message,
+  Tabs,
 } from "antd";
+import AddTaskModal from "./AddTaskModal";
 import {
-  ClockCircleOutlined,
   UserOutlined,
-  MailOutlined,
   CalendarOutlined,
-  PlusOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import useScheduleStore from "../../../../stores/useScheduleStore";
-import useDesignOrderStore from "@/stores/useDesignOrderStore";
 
 const { Title, Text } = Typography;
 
-const DayDetail = ({ selectedDate, designers = [], selectedDesignerId }) => {
-  const [addTaskModal, setAddTaskModal] = useState(false);
+const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
+  const { isLoading, designers, workTasks, getAllTasks, fetchDesigners, updateTask } = useScheduleStore();
+  const [isAddTaskModalVisible, setIsAddTaskModalVisible] = useState(false);
   const [selectedDesigner, setSelectedDesigner] = useState(null);
-  const [form] = Form.useForm();
+  const [availableDesigners, setAvailableDesigners] = useState([]);
+  const [busyDesigners, setBusyDesigners] = useState([]);
 
-  const { getTasksByDate, getAvailableDesigners, isLoading, updateTask } =
-    useScheduleStore();
-  const { designOrders } = useDesignOrderStore();
+  useEffect(() => {
+    fetchDesigners();
+    getAllTasks();
+  }, []);
 
-  const handleAddTask = (designer) => {
-    setSelectedDesigner(designer);
-    setAddTaskModal(true);
-  };
-
-  const handleAddTaskSubmit = () => {
-    form.validateFields().then((values) => {
-      const taskData = {
-        serviceOrderId: values.serviceOrderId,
-        userId: selectedDesigner.id,
-        note: values.notes || "",
-      };
-
-      addTask(taskData)
-        .then(() => {
-          message.success("Đã thêm công việc mới");
-          setAddTaskModal(false);
-          form.resetFields();
-        })
-        .catch((error) => {
-          message.error("Không thể thêm công việc: " + error.message);
-        });
-    });
-  };
-
-  // Lấy ngày được chọn dưới dạng string
-  const dateString = selectedDate.format("YYYY-MM-DD");
-
-  // Lấy tasks trong ngày được chọn
-  let tasksOnDate = getTasksByDate(dateString);
-
-  // Lọc theo designer nếu có chọn
-  if (selectedDesignerId !== "all") {
-    tasksOnDate = tasksOnDate.filter(
-      (task) => task.designerId == selectedDesignerId
-    );
-  }
-
-  // Lấy danh sách designers đang rảnh
-  const availableDesigners = getAvailableDesigners();
-
-  // Xử lý cập nhật trạng thái task
-  const handleStatusChange = async (designerId, taskId, newStatus) => {
+  useEffect(() => {
+    if (designers && workTasks) {
+      const busyIds = new Set(workTasks.map(task => task.userId));
+      
+      const busy = designers.filter(designer => 
+        workTasks.some(task => task.userId === designer.id)
+      );
+      const available = designers.filter(designer => 
+        !workTasks.some(task => task.userId === designer.id)
+      );
+      
+      setBusyDesigners(busy.map(designer => ({
+        ...designer,
+        tasks: workTasks
+          .filter(task => task.userId === designer.id)
+          .sort((a, b) => dayjs(a.creationDate) - dayjs(b.creationDate)),
+        taskCount: workTasks.filter(task => task.userId === designer.id).length,
+        consultingTasks: workTasks.filter(task => task.userId === designer.id && task.status === 'ConsultingAndSket'),
+        designingTasks: workTasks.filter(task => task.userId === designer.id && task.status === 'Designing'),
+        completedTasks: workTasks.filter(task => task.userId === designer.id && task.status === 'Completed')
+      })));
+      
+      setAvailableDesigners(available);
+    }
+  }, [designers, workTasks]);
+ 
+  const handleStatusChange = async (taskId, newStatus) => {
     try {
-      await updateTask(designerId, taskId, { task_status: newStatus });
+      await updateTask(taskId, { status: newStatus });
+      message.success("Đã cập nhật trạng thái công việc");
+      getAllTasks();
     } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái:", error);
+      message.error("Không thể cập nhật trạng thái: " + error.message);
     }
   };
-
-  // Nhóm tasks theo designer
-  const tasksByDesigner = tasksOnDate.reduce((acc, task) => {
-    if (!acc[task.designerId]) {
-      acc[task.designerId] = {
-        designer: {
-          id: task.designerId,
-          name: task.designerName,
-          avatar: task.designerAvatar,
-          email: task.designerEmail,
-        },
-        tasks: [],
-      };
-    }
-    acc[task.designerId].tasks.push(task);
-    return acc;
-  }, {});
-
-  // Lấy danh sách ID của designers có task trong ngày
-  const designersWithTasksIds = Object.keys(tasksByDesigner);
-
-  // Lấy danh sách designers không có task trong ngày
-  const designersWithoutTasks = designers.filter(
-    (designer) => !designersWithTasksIds.includes(designer.id.toString())
-  );
 
   if (isLoading) {
     return (
-      <Card
-        className="side-detail-container"
-        style={{ textAlign: "center", padding: "20px" }}
-      >
+      <Card className="side-detail-container" style={{ textAlign: "center", padding: "20px" }}>
         <Spin size="large" />
       </Card>
     );
   }
 
   return (
-    <Card className="side-detail-container">
+    <Card className="day-detail">
       <div className="day-header">
         <Title level={4}>{selectedDate.format("DD/MM/YYYY")}</Title>
       </div>
 
-      {/* Phần designers không có task trong ngày */}
-      <div className="available-designers-section">
-        <Title level={5}>Designers không có task trong ngày</Title>
-        {designersWithoutTasks.length > 0 ? (
+      {/* Phần designers đang rảnh */}
+      <div className="designers-section">
+        <Title level={5} className="section-title">
+          <CheckCircleOutlined className="status-icon available" />
+          Designers đang rảnh ({availableDesigners.length})
+        </Title>
+        {availableDesigners.length > 0 ? (
           <List
-            dataSource={designersWithoutTasks}
+            grid={{ gutter: 16, column: 1 }}
+            dataSource={availableDesigners}
             renderItem={(designer) => (
-              <List.Item
-                actions={[
-                  <Button
-                    type="dashed"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      handleAddTask(designer);
-                    }}
-                  >
-                    Thêm task
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    designer.avatar ? (
-                      <Avatar src={designer.avatar} />
-                    ) : (
-                      <Avatar>{designer.email.charAt(0).toUpperCase()}</Avatar>
-                    )
-                  }
-                  title={
+              <List.Item>
+                <Card className="designer-item">
+                  <div className="designer-info-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <Space>
-                      {designer.name}
-                      {/* <Tag color={designer.status === 'đang rảnh' ? 'green' : 'blue'}>
-                        {designer.status}
-                      </Tag> */}
+                      <Avatar
+                        className="designer-avatar"
+                        src={designer.avatarUrl}
+                        icon={!designer.avatarUrl && <UserOutlined />}
+                      />
+                      <div>
+                        <Text strong className="designer-name">{designer.name}</Text>
+                        <Text type="secondary" style={{ display: 'block' }}>{designer.email}</Text>
+                      </div>
                     </Space>
-                  }
-                  description={
-                    <Space direction="vertical" size={0}>
-                      <Text type="secondary">{designer.email}</Text>
-                      <Text type="secondary">{designer.phone}</Text>
-                    </Space>
-                  }
-                />
+                    <Button 
+                      type="primary" 
+                      onClick={() => {
+                        setSelectedDesigner(designer);
+                        setIsAddTaskModalVisible(true);
+                      }}
+                    >
+                      Thêm task
+                    </Button>
+                  </div>
+                </Card>
               </List.Item>
             )}
           />
         ) : (
-          <Empty description="Tất cả designers đều có task trong ngày này" />
+          <Empty description="Không có designer nào đang rảnh" />
         )}
       </div>
 
       <Divider />
 
-      {/* Phần designers có task trong ngày */}
-      <div className="busy-designers-section">
-        <Title level={5}>Công việc trong ngày</Title>
-        {Object.keys(tasksByDesigner).length > 0 ? (
-          Object.values(tasksByDesigner).map(({ designer, tasks }) => (
-            <Card
-              key={designer.id}
-              className="designer-tasks-card"
-              size="small"
-              title={
-                <Space>
-                  {designer.avatar ? (
-                    <Avatar src={designer.avatar} />
-                  ) : (
-                    <Avatar>{designer.email.charAt(0).toUpperCase()}</Avatar>
-                  )}
-                  <span>{designer.name}</span>
-                </Space>
-              }
-              style={{ marginBottom: 16 }}
-            >
-              <List
-                dataSource={tasks}
-                renderItem={(task) => (
-                  <List.Item
-                  // actions={[
-                  //   task.task_status !== "hoàn thành" && (
-                  //     <Button
-                  //       type="link"
-                  //       size="small"
-                  //       onClick={() =>
-                  //         handleStatusChange(
-                  //           designer.id,
-                  //           task.task_id,
-                  //           "hoàn thành"
-                  //         )
-                  //       }
-                  //     >
-                  //       Hoàn thành
-                  //     </Button>
-                  //   ),
-                  // ]}
-                  >
-                    <List.Item.Meta
-                      title={<span>{task.title}</span>}
-                      description={
-                        <Space direction="vertical" size={0}>
-                          <Text type="secondary">
-                            <CalendarOutlined style={{ marginRight: 4 }} />
-                            Deadline:{" "}
-                            {dayjs(task.deadline).format("DD/MM/YYYY")}
-                            <Tag
-                              style={{ marginLeft: 10 }}
-                              color={getStatusColor(task.task_status)}
-                            >
-                              {capitalizeFirstLetter(task.task_status)}
-                            </Tag>
-                          </Text>
-                          <Text type="secondary">
-                            Khách hàng: {task.customer}
-                          </Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
-            </Card>
-          ))
+      {/* Phần designers đang bận */}
+      <div className="designers-section">
+        <Title level={5} className="section-title">
+          <ClockCircleOutlined className="status-icon busy" />
+          Designers đang bận ({busyDesigners.length})
+        </Title>
+        {busyDesigners.length > 0 ? (
+          <List
+            grid={{ gutter: 16, column: 1 }}
+            dataSource={busyDesigners}
+            renderItem={(designer) => (
+              <List.Item>
+                <Card className="designer-item">
+                  <div className="designer-info-section">
+                    <Space>
+                      <Avatar
+                        className="designer-avatar"
+                        src={designer.avatarUrl}
+                        icon={!designer.avatarUrl && <UserOutlined />}
+                      />
+                      <div>
+                        <Text strong className="designer-name">{designer.name}</Text>
+                        <Text type="secondary" style={{ display: 'block' }}>{designer.email}</Text>
+                        <div className="designer-tags">
+                          <Tag color="blue">Đang xử lý {designer.taskCount} công việc</Tag>
+                          <Button 
+                            type="primary" 
+                            onClick={() => {
+                              setSelectedDesigner(designer);
+                              setIsAddTaskModalVisible(true);
+                            }}
+                          >
+                            Thêm task
+                          </Button>
+                        </div>
+                      </div>
+                    </Space>
+                  </div>
+                  <div className="tasks-section">
+                    <Tabs defaultActiveKey="all">
+                      <Tabs.TabPane tab={`Tất cả (${designer.tasks.length})`} key="all">
+                        <List
+                          dataSource={designer.tasks}
+                          renderItem={(task) => (
+                            <List.Item>
+                              <div>{task.title}</div>
+                            </List.Item>
+                          )}
+                        />
+                      </Tabs.TabPane>
+                      <Tabs.TabPane tab={`Đang tư vấn (${designer.consultingTasks.length})`} key="consulting">
+                        <List
+                          dataSource={designer.consultingTasks}
+                          renderItem={(task) => (
+                            <List.Item>
+                              <div>{task.title}</div>
+                            </List.Item>
+                          )}
+                        />
+                      </Tabs.TabPane>
+                      <Tabs.TabPane tab={`Đang thiết kế (${designer.designingTasks.length})`} key="designing">
+                        <List
+                          dataSource={designer.designingTasks}
+                          renderItem={(task) => (
+                            <List.Item>
+                              <div>{task.title}</div>
+                            </List.Item>
+                          )}
+                        />
+                      </Tabs.TabPane>
+                      <Tabs.TabPane tab={`Hoàn thành (${designer.completedTasks.length})`} key="completed">
+                        <List
+                          dataSource={designer.completedTasks}
+                          renderItem={(task) => (
+                            <List.Item>
+                              <div>{task.title}</div>
+                              <span>Đã hoàn thành</span>
+                            </List.Item>
+                          )}
+                        />
+                      </Tabs.TabPane>
+                    </Tabs>
+                  </div>
+                </Card>
+              </List.Item>
+            )}
+          />
         ) : (
-          <Empty description="Không có công việc nào trong ngày này" />
+          <Empty description="Không có designer nào đang bận" />
         )}
       </div>
-
-      <Modal
-        title="Thêm công việc mới"
-        open={addTaskModal}
-        onCancel={() => setAddTaskModal(false)}
-        onOk={handleAddTaskSubmit}
-        okText="Thêm"
-        cancelText="Hủy"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="serviceOrderId"
-            label="Đơn hàng"
-            rules={[{ required: true, message: "Vui lòng chọn đơn hàng" }]}
-          >
-            <Select placeholder="Chọn đơn hàng">
-              {designOrders
-                .filter(
-                  (order) =>
-                    order.isCustom === true && order.status === "Pending"
-                )
-                .map((order) => (
-                  <Select.Option key={order.id} value={order.id}>
-                    {order.orderCode} - {order.customerName}
-                  </Select.Option>
-                ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="notes" label="Ghi chú">
-            <Input.TextArea rows={4} placeholder="Nhập ghi chú (nếu có)" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <AddTaskModal
+        open={isAddTaskModalVisible}
+        onCancel={() => setIsAddTaskModalVisible(false)}
+        onSuccess={() => {
+          setIsAddTaskModalVisible(false);
+          getAllTasks();
+        }}
+        designers={[selectedDesigner].filter(Boolean)}
+        noIdeaOrders={noIdeaOrders}
+        usingIdeaOrders={usingIdeaOrders}
+      />
     </Card>
   );
 };
 
-// Hàm helper để lấy màu cho trạng thái và viết hoa chữ cái đầu
 const getStatusColor = (status) => {
   switch (status) {
-    case "hoàn thành":
+    case "Completed":
       return "green";
-    case "thiết kế":
+    case "ConsultingAndSket":
       return "blue";
-    case "tư vấn":
-      return "orange";
+    case "DoneDesignDetail":
+      return "purple";
     default:
       return "default";
   }
-};
-
-// Hàm viết hoa chữ cái đầu
-const capitalizeFirstLetter = (string) => {
-  return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
 export default DayDetail;
