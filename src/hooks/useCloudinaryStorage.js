@@ -66,6 +66,8 @@ export const useCloudinaryStorage = () => {
               if (response.secure_url) {
                 // Trả về URL bảo mật từ Cloudinary
                 resolve(response.secure_url);
+                console.log("response.secure_url", response.secure_url);
+                
               } else {
                 reject(new Error('Không nhận được URL từ Cloudinary'));
               }
