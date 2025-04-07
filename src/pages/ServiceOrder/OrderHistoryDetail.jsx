@@ -501,13 +501,11 @@ const OrderHistoryDetail = () => {
                   }
                   type="inner"
                 >
-                  <Descriptions column={{ xs: 1, sm: 2 }}>
+                  <Descriptions column={{ xs: 1, sm: 2 }} bordered labelStyle={{ fontWeight: 'bold', fontSize: '15px' }} contentStyle={{ fontSize: '15px' }}>
                     <Descriptions.Item label="Tên thiết kế">
                       {designIdea.name}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Mô tả">
-                      {designIdea.description || "Không có mô tả"}
-                    </Descriptions.Item>
+
                     {selectedOrder.length > 0 && selectedOrder.width > 0 && (
                       <>
                         <Descriptions.Item label="Chiều dài">
@@ -518,19 +516,34 @@ const OrderHistoryDetail = () => {
                         </Descriptions.Item>
                       </>
                     )}
+                    <Descriptions.Item label="Mô tả">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: designIdea.description || "Không có mô tả"
+                        }}
+                        style={{
+                          maxWidth: '100%',
+                          overflow: 'hidden',
+                          fontSize: '15px',
+                          lineHeight: '1.6'
+                        }}
+                      />
+                    </Descriptions.Item>
                   </Descriptions>
-                  <Space>
-                    <h1>Hình ảnh khách hàng cung cấp:</h1>
+
+                  <Space style={{ marginTop: 16 }}>
+                    <h1 style={{ fontSize: '18px', fontWeight: 'bold' }}> Hình ảnh khách hàng cung cấp:</h1>
                   </Space>
                   {selectedOrder.image?.imageUrl && (
                     <div style={{ marginTop: 16 }}>
-                      <img
+                      <Image
                         src={selectedOrder.image.imageUrl}
                         alt={selectedOrder.name}
                         style={{
                           maxWidth: "100%",
                           maxHeight: 300,
                           objectFit: "contain",
+                          borderRadius: 10,
                         }}
                       />
                     </div>
@@ -574,27 +587,38 @@ const OrderHistoryDetail = () => {
                       }
                       type="inner"
                     >
-                      <Descriptions column={{ xs: 1, sm: 2 }}>
-                        <Descriptions.Item label="Tên thiết kế">
+                      <Descriptions column={{ xs: 1, sm: 2 }} bordered labelStyle={{ fontWeight: 'bold', fontSize: '15px' }} contentStyle={{ fontSize: '15px' }}>
+                        <Descriptions.Item label="Tên thiết kế" span={3}>
                           {designIdea.name}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Mô tả">
-                          {designIdea.description || "Không có mô tả"}
-                        </Descriptions.Item>
+
                         {selectedOrder.length > 0 &&
                           selectedOrder.width > 0 && (
                             <>
-                              <Descriptions.Item label="Chiều dài">
+                              <Descriptions.Item label="Chiều dài" span={1}>
                                 {selectedOrder.length}m
                               </Descriptions.Item>
-                              <Descriptions.Item label="Chiều rộng">
+                              <Descriptions.Item label="Chiều rộng" span={1}>
                                 {selectedOrder.width}m
                               </Descriptions.Item>
                             </>
                           )}
+                        <Descriptions.Item label="Mô tả" span={3}>
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: designIdea.description || "Không có mô tả"
+                            }}
+                            style={{
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              fontSize: '15px',
+                              lineHeight: '1.6'
+                            }}
+                          />
+                        </Descriptions.Item>
                       </Descriptions>
-                      {designIdea.image?.imageUrl && (
-                        <div style={{ marginTop: 16 }}>
+                      <div style={{ display: 'flex', gap: '16px', marginTop: 16 }}>
+                        {designIdea.image?.imageUrl && (
                           <img
                             src={designIdea.image.imageUrl}
                             alt={designIdea.name}
@@ -604,10 +628,8 @@ const OrderHistoryDetail = () => {
                               objectFit: "contain",
                             }}
                           />
-                        </div>
-                      )}
-                      {designIdea.image?.image2 && (
-                        <div style={{ marginTop: 16 }}>
+                        )}
+                        {designIdea.image?.image2 && (
                           <img
                             src={designIdea.image.image2}
                             alt={designIdea.name}
@@ -617,10 +639,8 @@ const OrderHistoryDetail = () => {
                               objectFit: "contain",
                             }}
                           />
-                        </div>
-                      )}
-                      {designIdea.image?.image3 && (
-                        <div style={{ marginTop: 16 }}>
+                        )}
+                        {designIdea.image?.image3 && (
                           <img
                             src={designIdea.image.image3}
                             alt={designIdea.name}
@@ -630,8 +650,8 @@ const OrderHistoryDetail = () => {
                               objectFit: "contain",
                             }}
                           />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </Card>
                   )}
                 </>
@@ -796,159 +816,6 @@ const OrderHistoryDetail = () => {
                 }
                 type="inner"
               >
-                {selectedOrder.isCustom ? ( 
-                  <div style={{ textAlign: "center", padding: "20px" }}>
-                    <Text
-                      type="secondary"
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 500,
-                        display: "block",
-                        padding: "24px",
-                        backgroundColor: "#f5f5f5",
-                        borderRadius: "8px",
-                        textAlign: "center",
-                        border: "1px dashed #d9d9d9",
-                      }}
-                    >
-                      Giá thiết kế, danh sách vật liệu và tổng giá sẽ được chúng
-                      tôi cập nhập sau khi Designer hoàn tất bản vẽ hoàn chỉnh
-                    </Text>
-                    <Table
-                      columns={productColumns}
-                      dataSource={selectedOrder.serviceOrderDetails}
-                      pagination={false}
-                      rowKey="productId"
-                      summary={() => (
-                        <Table.Summary fixed>
-                          <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={2}>
-                              <Text strong>Tổng cộng</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={2}>
-                              <Text strong>Phí thiết kế:</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={3}>
-                              <Text type="success" strong>
-                                {formatPrice(selectedOrder.designPrice)}
-                              </Text>
-                            </Table.Summary.Cell>
-                          </Table.Summary.Row>
-                          <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={2} />
-                            <Table.Summary.Cell index={2}>
-                              <Text strong>Phí vật liệu:</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={3}>
-                              <Text type="success" strong>
-                                {formatPrice(selectedOrder.materialPrice)}
-                              </Text>
-                            </Table.Summary.Cell>
-                          </Table.Summary.Row>
-                          <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={2} />
-                            <Table.Summary.Cell index={2}>
-                              <Text strong>Tổng thanh toán:</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={3}>
-                              <Text
-                                type="danger"
-                                strong
-                                style={{ fontSize: "16px" }}
-                              >
-                                {formatPrice(
-                                  selectedOrder.designPrice +
-                                    selectedOrder.materialPrice
-                                )}
-                              </Text>
-                            </Table.Summary.Cell>
-                          </Table.Summary.Row>
-                        </Table.Summary>
-                      )}
-                    />
-                  </div>
-                ) : (
-                  <Table
-                    columns={productColumns}
-                    dataSource={selectedOrder.serviceOrderDetails}
-                    pagination={false}
-                    rowKey="productId"
-                    summary={() => (
-                      <Table.Summary fixed>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2}>
-                            <Text strong>Tổng cộng</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Phí thiết kế:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.designPrice)}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Phí vật liệu:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.materialPrice)}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Tổng thanh toán:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "16px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                                  selectedOrder.materialPrice
-                              )}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Đã thanh toán:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "26px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                                  selectedOrder.materialPrice
-                              )}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                      </Table.Summary>
-                    )}
-                  />
-                )}
-              </Card>
-              {/* <Card
-                title={
-                  <Space>
-                    <ShoppingOutlined />
-                    <span>Chi tiết đơn hàng</span>
-                  </Space>
-                }
-                type="inner"
-              >
                 {selectedOrder.isCustom ? (
                   <div style={{ textAlign: "center", padding: "20px" }}>
                     <Text
@@ -967,80 +834,62 @@ const OrderHistoryDetail = () => {
                       Giá thiết kế, danh sách vật liệu và tổng giá sẽ được chúng
                       tôi cập nhập sau khi Designer hoàn tất bản vẽ hoàn chỉnh
                     </Text>
+                    <div style={{ marginTop: "24px" }}>
+                      <Descriptions bordered column={1}>
+                        <Descriptions.Item label="Phí thiết kế">
+                          <Text type="success" strong>
+                            {formatPrice(selectedOrder.designPrice)}
+                          </Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Phí vật liệu">
+                          <Text type="success" strong>
+                            {formatPrice(selectedOrder.materialPrice)}
+                          </Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Tổng thanh toán">
+                          <Text type="danger" strong style={{ fontSize: "16px" }}>
+                            {formatPrice(
+                              selectedOrder.designPrice +
+                              selectedOrder.materialPrice
+                            )}
+                          </Text>
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </div>
                   </div>
                 ) : (
-                  <Table
-                    columns={productColumns}
-                    dataSource={selectedOrder.serviceOrderDetails}
-                    pagination={false}
-                    rowKey="productId"
-                    summary={() => (
-                      <Table.Summary fixed>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2}>
-                            <Text strong>Tổng cộng</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Phí thiết kế:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.designPrice)}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Phí vật liệu:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.materialPrice)}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Tổng thanh toán:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "16px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                                  selectedOrder.materialPrice
-                              )}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                        <Table.Summary.Row>
-                          <Table.Summary.Cell index={0} colSpan={2} />
-                          <Table.Summary.Cell index={2}>
-                            <Text strong>Đã thanh toán:</Text>
-                          </Table.Summary.Cell>
-                          <Table.Summary.Cell index={3}>
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "26px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                                  selectedOrder.materialPrice
-                              )}
-                            </Text>
-                          </Table.Summary.Cell>
-                        </Table.Summary.Row>
-                      </Table.Summary>
-                    )}
-                  />
+                  <div>
+                    <Descriptions bordered column={1}>
+                      <Descriptions.Item label="Phí thiết kế">
+                        <Text type="success" strong>
+                          {formatPrice(selectedOrder.designPrice)}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Phí vật liệu">
+                        <Text type="success" strong>
+                          {formatPrice(selectedOrder.materialPrice)}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Tổng thanh toán">
+                        <Text type="danger" strong style={{ fontSize: "16px" }}>
+                          {formatPrice(
+                            selectedOrder.designPrice +
+                            selectedOrder.materialPrice
+                          )}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Đã thanh toán">
+                        <Text type="danger" strong style={{ fontSize: "16px" }}>
+                          {formatPrice(
+                            selectedOrder.designPrice +
+                            selectedOrder.materialPrice
+                          )}
+                        </Text>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </div>
                 )}
-              </Card> */}
+              </Card>
 
               {/* Status Tracking */}
               <Card title="Trạng thái đơn hàng" type="inner">
