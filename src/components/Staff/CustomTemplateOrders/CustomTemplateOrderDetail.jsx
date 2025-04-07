@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card,
   Row,
@@ -32,16 +32,16 @@ import {
   FileTextOutlined,
   SyncOutlined,
   UserAddOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
-import ConsultingSection from "./sections/ConsultingSection";
-import DesignSection from "./sections/DesignSection";
-import MaterialSection from "./sections/MaterialSection";
+
 import "./CustomTemplateOrderDetail.scss";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useProductStore from "@/stores/useProductStore";
 import useContractStore from "@/stores/useContractStore";
+import useShippingStore from "@/stores/useShippingStore";
 
 const { Step } = Steps;
 
@@ -50,11 +50,29 @@ const CustomTemplateOrderDetail = () => {
   const navigate = useNavigate();
   const { getDesignOrderById, selectedOrder, isLoading, updateStatus } =
     useDesignOrderStore();
-  const { products, fetchProducts, categories, fetchCategories, getProductById } = useProductStore();
-  const { generateContract, loading: contractLoading, getContractByServiceOrder, contract } = useContractStore();
+  //console.log("selected Order", selectedOrder);
+
+  const {
+    products,
+    fetchProducts,
+    categories,
+    fetchCategories,
+    getProductById,
+  } = useProductStore();
+  const {
+    generateContract,
+    loading: contractLoading,
+    getContractByServiceOrder,
+    contract,
+  } = useContractStore();
+  const { createShippingOrder, trackOrder } = useShippingStore();
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
+  const [isMaterialsModalVisible, setIsMaterialsModalVisible] = useState(false);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [materials, setMaterials] = useState([]);
 
   const { getBasePath } = useRoleBasedPath();
+  const trackingInterval = useRef(null);
 
   const handleBack = () => {
     navigate(`${getBasePath()}/design-orders/custom-template-orders`);
@@ -90,7 +108,7 @@ const CustomTemplateOrderDetail = () => {
         try {
           await getContractByServiceOrder(selectedOrder.id);
         } catch (error) {
-          console.error('Error fetching contract:', error);
+          console.error("Error fetching contract:", error);
         }
       }
     };
@@ -117,7 +135,7 @@ const CustomTemplateOrderDetail = () => {
               email: selectedOrder.email,
               phone: selectedOrder.cusPhone,
               address: selectedOrder.address,
-              designPrice: selectedOrder.designPrice || 0
+              designPrice: selectedOrder.designPrice || 0,
             };
 
             const result = await generateContract(contractData);
@@ -126,12 +144,17 @@ const CustomTemplateOrderDetail = () => {
             // Could navigate to contract view or download PDF if API returns such data
             // For now just show success message
           } catch (error) {
-            message.error("Không thể tạo hợp đồng: " + (error.message || "Lỗi không xác định"));
+            message.error(
+              "Không thể tạo hợp đồng: " +
+                (error.message || "Lỗi không xác định")
+            );
           }
-        }
+        },
       });
     } catch (error) {
-      message.error("Không thể tạo hợp đồng: " + (error.message || "Lỗi không xác định"));
+      message.error(
+        "Không thể tạo hợp đồng: " + (error.message || "Lỗi không xác định")
+      );
     }
   };
 
@@ -152,7 +175,8 @@ const CustomTemplateOrderDetail = () => {
     try {
       Modal.confirm({
         title: "Cập nhật trạng thái",
-        content: "Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng thành 'Tư vấn và phác thảo'?",
+        content:
+          "Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng thành 'Tư vấn và phác thảo'?",
         okText: "Xác nhận",
         cancelText: "Hủy",
         onOk: async () => {
@@ -162,14 +186,180 @@ const CustomTemplateOrderDetail = () => {
             // Refresh order details to see the updated status
             await getDesignOrderById(id);
           } catch (error) {
-            message.error("Không thể cập nhật trạng thái đơn hàng: " + (error.message || "Lỗi không xác định"));
+            message.error(
+              "Không thể cập nhật trạng thái đơn hàng: " +
+                (error.message || "Lỗi không xác định")
+            );
           }
-        }
+        },
       });
     } catch (error) {
-      message.error("Có lỗi xảy ra: " + (error.message || "Lỗi không xác định"));
+      message.error(
+        "Có lỗi xảy ra: " + (error.message || "Lỗi không xác định")
+      );
     }
   };
+
+  const handleViewMaterials = async () => {
+    try {
+      setMaterialsLoading(true);
+      const products = await fetchProducts();
+      setMaterials(products);
+      setIsMaterialsModalVisible(true);
+    } catch (error) {
+      message.error("Không thể tải danh sách vật liệu");
+    } finally {
+      setMaterialsLoading(false);
+    }
+  };
+
+  const refreshOrderDetails = async () => {
+    try {
+      await getDesignOrderById(id);
+    } catch (error) {
+      message.error("Không thể tải lại thông tin đơn hàng");
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    try {
+      // Step 1: Update status to Processing
+      await updateStatus(id, "Processing");
+
+      // Parse address components
+      const addressParts = selectedOrder.address.split(", ");
+      const addressDetail = addressParts[0];
+      const province = addressParts[1];
+      const district = addressParts[2];
+      const ward = addressParts[3];
+
+      // Fetch product names for items
+      const items = await Promise.all(
+        selectedOrder.serviceOrderDetails.map(async (detail) => {
+          const product = await getProductById(detail.productId);
+          return {
+            name: product.name,
+            code: detail.productId,
+            quantity: detail.quantity,
+          };
+        })
+      );
+
+      // Prepare shipping data
+      const shippingData = {
+        toName: selectedOrder.userName,
+        toPhone: selectedOrder.cusPhone,
+        toAddress: addressDetail,
+        toProvince: province,
+        toDistrict: district,
+        toWard: ward,
+        items: items,
+      };
+
+      // Step 2: Create shipping order
+      const shippingResponse = await createShippingOrder(shippingData);
+      const orderCode = shippingResponse?.data?.data?.order_code;
+
+      // Step 3: Update status with delivery code
+      await updateStatus(id, "Processing", orderCode);
+
+      message.success("Đã xác nhận đơn hàng và tạo đơn vận chuyển thành công");
+      await refreshOrderDetails();
+    } catch (error) {
+      console.error("Error confirming order:", error);
+      message.error(
+        "Không thể xác nhận đơn hàng: " +
+          (error.message || "Lỗi không xác định")
+      );
+    }
+  };
+
+  // Map shipping status to our status
+  const shippingStatusMap = {
+    ready_to_pick: "Processing",
+    delivering: "PickedPackageAndDelivery",
+    delivery_fail: "DeliveryFail",
+    return: "ReDelivery",
+    delivered: "DeliveredSuccessfully",
+    cancel: "OrderCancelled",
+  };
+
+  // Start tracking when component mounts and order has a delivery code
+  useEffect(() => {
+    if (selectedOrder?.deliveryCode) {
+      const startTracking = () => {
+        // Clear any existing interval
+        if (trackingInterval.current) {
+          clearInterval(trackingInterval.current);
+        }
+
+        // Initial check
+        checkShippingStatus();
+
+        // Set up interval for checking every 60 seconds
+        trackingInterval.current = setInterval(checkShippingStatus, 20000);
+      };
+
+      const checkShippingStatus = async () => {
+        try {
+          // Stop tracking if status is DeliveredSuccessfully or CompleteOrder
+          if (
+            selectedOrder.status === "DeliveredSuccessfully" ||
+            selectedOrder.status === "CompleteOrder"
+          ) {
+            if (trackingInterval.current) {
+              clearInterval(trackingInterval.current);
+              trackingInterval.current = null;
+            }
+            return;
+          }
+
+          const shippingStatus = await trackOrder(selectedOrder.deliveryCode);
+          const mappedStatus = shippingStatusMap[shippingStatus];
+
+          console.log("Current shipping status:", {
+            shippingStatus,
+            mappedStatus,
+            currentStatus: selectedOrder.status,
+          });
+
+          // Only update if we have a valid mapped status and it's different from current status
+          if (mappedStatus && mappedStatus !== selectedOrder.status) {
+            console.log("Updating status:", {
+              from: selectedOrder.status,
+              to: mappedStatus,
+              shippingStatus: shippingStatus,
+            });
+
+            await updateStatus(
+              selectedOrder.id,
+              mappedStatus,
+              selectedOrder.deliveryCode
+            );
+            message.success(
+              `Trạng thái đơn hàng đã được cập nhật: ${getStatusDisplay(
+                mappedStatus
+              )}`
+            );
+
+            // Refresh order details to get the latest status
+            await refreshOrderDetails();
+          }
+        } catch (error) {
+          console.error("Error checking shipping status:", error);
+        }
+      };
+
+      startTracking();
+
+      // Cleanup interval on unmount
+      return () => {
+        if (trackingInterval.current) {
+          clearInterval(trackingInterval.current);
+        }
+      };
+    }
+  }, [selectedOrder?.deliveryCode, selectedOrder?.status]);
 
   if (isLoading || !selectedOrder) {
     return (
@@ -179,44 +369,6 @@ const CustomTemplateOrderDetail = () => {
     );
   }
 
-  const renderSection = () => {
-    switch (selectedOrder.status) {
-      case "pending":
-        return null; // Show default order info
-      case "processing":
-      case "consulting":
-        return (
-          <ConsultingSection
-            order={selectedOrder}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        );
-      case "designing":
-      case "design_review":
-        return (
-          <DesignSection
-            order={selectedOrder}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        );
-      // case 'waiting_deposit':
-      //   return <DepositSection order={order} onUpdateStatus={handleUpdateStatus} />;
-      case "material_selecting":
-      case "material_ordered":
-        return (
-          <MaterialSection
-            order={selectedOrder}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        );
-      case "delivering":
-      // case 'completed':
-      //   return <DeliverySection order={order} onUpdateStatus={handleUpdateStatus} />;
-      default:
-        return null;
-    }
-  };
-
   // Add status mapping for display
   const getStatusDisplay = (status) => {
     const statusMap = {
@@ -224,10 +376,10 @@ const CustomTemplateOrderDetail = () => {
       ConsultingAndSketching: "Tư vấn và phác thảo",
       DeterminingDesignPrice: "Xác định giá thiết kế",
       DepositSuccessful: "Đã đặt cọc",
-      DeterminingMaterialPrice: "Xác định giá vật liệu",
       AssignToDesigner: "Giao cho Designer",
+      DeterminingMaterialPrice: "Xác định giá vật liệu",
       DoneDesign: "Hoàn thành thiết kế",
-      PaymentSuccess: "Đã thanh toán",
+      PaymentSuccess: "Đã thanh toán full",
       Processing: "Đang xử lý",
       PickedPackageAndDelivery: "Đang giao hàng",
       DeliveryFail: "Giao hàng thất bại",
@@ -274,10 +426,10 @@ const CustomTemplateOrderDetail = () => {
       PaymentSuccess: 7,
       Processing: 8,
       PickedPackageAndDelivery: 9,
-      DeliveryFail: 10,
-      ReDelivery: 11,
-      DeliveredSuccessfully: 12,
-      CompleteOrder: 13,
+      DeliveryFail: 12,
+      ReDelivery: 13,
+      DeliveredSuccessfully: 10,
+      CompleteOrder: 11,
       OrderCancelled: 14,
     };
     return stepMap[status] || 0;
@@ -317,8 +469,8 @@ const CustomTemplateOrderDetail = () => {
                 border: "none",
               },
               body: {
-                padding: "24px"
-              }
+                padding: "24px",
+              },
             }}
           >
             <div style={{ padding: "24px" }}>
@@ -326,7 +478,7 @@ const CustomTemplateOrderDetail = () => {
                 current={getCurrentStep(selectedOrder.status)}
                 status={
                   selectedOrder.status === "OrderCancelled" ||
-                    selectedOrder.status === "DeliveryFail"
+                  selectedOrder.status === "DeliveryFail"
                     ? "error"
                     : "process"
                 }
@@ -365,16 +517,7 @@ const CustomTemplateOrderDetail = () => {
                 />
                 <Step
                   title="Đặt cọc"
-                  description="Đã đặt cọc thành công"
-                  style={{
-                    paddingRight: "16px",
-                    minWidth: "200px",
-                    flex: "1 1 auto",
-                  }}
-                />
-                <Step
-                  title="Xác định giá"
-                  description="Xác định giá vật liệu"
+                  description="Đã đặt cọc 50% giá thiết kế"
                   style={{
                     paddingRight: "16px",
                     minWidth: "200px",
@@ -390,6 +533,16 @@ const CustomTemplateOrderDetail = () => {
                     flex: "1 1 auto",
                   }}
                 />
+                <Step
+                  title="Xác định giá"
+                  description="Xác định giá vật liệu"
+                  style={{
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto",
+                  }}
+                />
+
                 <Step
                   title="Thiết kế"
                   description="Hoàn thành thiết kế"
@@ -501,7 +654,7 @@ const CustomTemplateOrderDetail = () => {
                 fontSize: "16px",
                 fontWeight: "600",
                 border: "none",
-              }
+              },
             }}
           >
             <Descriptions column={2} bordered>
@@ -527,10 +680,14 @@ const CustomTemplateOrderDetail = () => {
             <Divider />
             <div>
               <h4>Mô tả yêu cầu:</h4>
-              <p dangerouslySetInnerHTML={{
-                __html: selectedOrder.description || "<p>Không có yêu cầu cụ thể</p>",
-              }}
-                style={{ fontSize: '15px', lineHeight: '1.6' }}></p>
+              <p
+                dangerouslySetInnerHTML={{
+                  __html:
+                    selectedOrder.description ||
+                    "<p>Không có yêu cầu cụ thể</p>",
+                }}
+                style={{ fontSize: "15px", lineHeight: "1.6" }}
+              ></p>
             </div>
             {selectedOrder.attachments &&
               selectedOrder.attachments.length > 0 && (
@@ -629,15 +786,21 @@ const CustomTemplateOrderDetail = () => {
                   <h4>Vật liệu thiết kế:</h4>
                   <div style={{ marginBottom: "10px" }}>
                     <Table
-                      dataSource={selectedOrder.serviceOrderDetails.map((detail) => {
-                        const product = products.find((p) => p.id === detail.productId);
-                        const category = categories.find((c) => c.id === product?.categoryId);
-                        return {
-                          ...detail,
-                          product,
-                          category,
-                        };
-                      })}
+                      dataSource={selectedOrder.serviceOrderDetails.map(
+                        (detail) => {
+                          const product = products.find(
+                            (p) => p.id === detail.productId
+                          );
+                          const category = categories.find(
+                            (c) => c.id === product?.categoryId
+                          );
+                          return {
+                            ...detail,
+                            product,
+                            category,
+                          };
+                        }
+                      )}
                       pagination={false}
                       size="small"
                       bordered
@@ -687,6 +850,17 @@ const CustomTemplateOrderDetail = () => {
                   </div>
                 </div>
               )}
+            {selectedOrder.status === "DeterminingMaterialPrice" && (
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                onClick={handleViewMaterials}
+                loading={materialsLoading}
+                style={{ marginBottom: 16 }}
+              >
+                Danh sách vật liệu
+              </Button>
+            )}
           </Card>
         </Col>
         <Col span={8}>
@@ -707,7 +881,7 @@ const CustomTemplateOrderDetail = () => {
                 fontSize: "16px",
                 fontWeight: "600",
                 border: "none",
-              }
+              },
             }}
           >
             <Descriptions column={1} size="small" layout="horizontal" bordered>
@@ -879,82 +1053,57 @@ const CustomTemplateOrderDetail = () => {
                 gap: "8px",
               }}
             >
-              {/* Add Update Status button */}
               {selectedOrder.status === "Pending" && (
-                <Button
-                  type="primary"
-                  icon={<SyncOutlined />}
-                  style={{
-                    backgroundColor: "#7B68EE", // Medium Slate Blue
-                    borderColor: "#7B68EE",
-                    width: "100%",
-                  }}
-                  onClick={handleUpdateToConsulting}
-                >
-                  Cập nhật sang Tư vấn
-                </Button>
-              )}
-
-              {selectedOrder.status === "WaitDeposit" && (
-                <>
-                  {contract ? (
-                    <Button
-                      type="primary"
-                      icon={<FileTextOutlined />}
-                      style={{
-                        backgroundColor: "#1890ff",
-                        borderColor: "#1890ff",
-                        width: "100%",
-                      }}
-                      onClick={handleViewContract}
-                    >
-                      Xem hợp đồng
-                    </Button>
-                  ) : (
-                    <Button
-                      type="primary"
-                      icon={<FileTextOutlined />}
-                      loading={contractLoading}
-                      style={{
-                        backgroundColor: "#1890ff",
-                        borderColor: "#1890ff",
-                        width: "100%",
-                      }}
-                      onClick={handleGenerateContract}
-                    >
-                      Tạo hợp đồng
-                    </Button>
-                  )}
-                </>
-              )}
-              {selectedOrder.status === "ConsultingAndSketching" && (
                 <Button
                   type="primary"
                   icon={<UserAddOutlined />}
                   style={{
-                  backgroundColor: "#4CAF50",
-                  borderColor: "#4CAF50",
-                  width: "100%",
-                }}
-                onClick={() => {
-                  navigate("/staff/schedule");
-                }}
-                // onClick={() => {
-                //   Modal.confirm({
-                //     title: "Giao task cho designer",
-                //     content: "Bạn có chắc chắn muốn giao task này cho designer?",
-                //     okText: "Xác nhận",
-                //     cancelText: "Hủy",
-                //     onOk: () => {
-                //       message.success("Đã chuyển đến trang phân công");
-                //       navigate("/staff/schedule");
-                //     },
-                //   });
-                // }}
-              >
-                Giao task cho designer
-              </Button>
+                    backgroundColor: "#4CAF50",
+                    borderColor: "#4CAF50",
+                    width: "100%",
+                  }}
+                  onClick={() => {
+                    navigate("/staff/schedule");
+                  }}
+                  // onClick={() => {
+                  //   Modal.confirm({
+                  //     title: "Giao task cho designer",
+                  //     content: "Bạn có chắc chắn muốn giao task này cho designer?",
+                  //     okText: "Xác nhận",
+                  //     cancelText: "Hủy",
+                  //     onOk: () => {
+                  //       message.success("Đã chuyển đến trang phân công");
+                  //       navigate("/staff/schedule");
+                  //     },
+                  //   });
+                  // }}
+                >
+                  Giao task cho designer
+                </Button>
               )}
+
+              {selectedOrder.status === "PaymentSuccess" && (
+                <Button
+                  type="primary"
+                  style={{
+                    backgroundColor: "#4CAF50",
+                    borderColor: "#4CAF50",
+                    width: "100%",
+                  }}
+                  onClick={() => {
+                    Modal.confirm({
+                      title: "Xác nhận đơn hàng",
+                      content: "Bạn có chắc chắn muốn xác nhận đơn hàng này?",
+                      okText: "Xác nhận",
+                      cancelText: "Hủy",
+                      onOk: handleConfirmOrder,
+                    });
+                  }}
+                >
+                  Xác nhận đơn hàng
+                </Button>
+              )}
+
               <Button
                 danger
                 style={{
@@ -1138,9 +1287,6 @@ const CustomTemplateOrderDetail = () => {
           </Col> */}
       </Row>
 
-      {/* Dynamic section based on order status */}
-      {renderSection()}
-
       {/* Contract Modal */}
       <Modal
         title="Hợp đồng"
@@ -1151,22 +1297,78 @@ const CustomTemplateOrderDetail = () => {
         style={{ top: 20 }}
         styles={{
           body: {
-            height: '80vh',
-            padding: '0',
-            display: 'flex',
-            flexDirection: 'column'
-          }
+            height: "80vh",
+            padding: "0",
+            display: "flex",
+            flexDirection: "column",
+          },
         }}
       >
         <iframe
           src={contract?.description}
           style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            flex: 1
+            width: "100%",
+            height: "100%",
+            border: "none",
+            flex: 1,
           }}
           title="Contract PDF"
+        />
+      </Modal>
+
+      {/* Materials Modal */}
+      <Modal
+        title="Danh sách vật liệu"
+        open={isMaterialsModalVisible}
+        onCancel={() => setIsMaterialsModalVisible(false)}
+        width="80%"
+        footer={null}
+      >
+        <Table
+          dataSource={materials}
+          columns={[
+            {
+              title: "Hình ảnh",
+              dataIndex: "image",
+              key: "image",
+              render: (image) => (
+                <img
+                  src={image?.imageUrl}
+                  alt="Vật liệu"
+                  style={{ width: 50, height: 50, objectFit: "cover" }}
+                />
+              ),
+            },
+            {
+              title: "Tên vật liệu",
+              dataIndex: "name",
+              key: "name",
+            },
+            {
+              title: "Danh mục",
+              dataIndex: "categoryId",
+              key: "categoryId",
+              render: (categoryId) => {
+                const category = categories.find(
+                  (cat) => cat.id === categoryId
+                );
+                return category?.name || "Không xác định";
+              },
+            },
+            {
+              title: "Giá",
+              dataIndex: "price",
+              key: "price",
+              render: (price) => `${price.toLocaleString("vi-VN")} đ`,
+            },
+            {
+              title: "Mô tả",
+              dataIndex: "description",
+              key: "description",
+            },
+          ]}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
         />
       </Modal>
       {/* </Card> */}

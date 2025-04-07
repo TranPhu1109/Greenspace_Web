@@ -43,6 +43,7 @@ import useContractStore from "@/stores/useContractStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import api from "@/api/api";
 import useRecordStore from "@/stores/useRecordStore";
+import useWalletStore from "@/stores/useWalletStore";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -52,8 +53,15 @@ const OrderHistoryDetail = () => {
   const navigate = useNavigate();
   const { selectedOrder, isLoading, getDesignOrderById, updateStatus } =
     useDesignOrderStore();
-  const { sketchRecords, getRecordSketch, confirmRecord } = useRecordStore();
-  //console.log("selectedOrder", selectedOrder);
+  const {
+    sketchRecords,
+    getRecordSketch,
+    confirmRecord,
+    designRecords,
+    getRecordDesign,
+    confirmDesignRecord,
+  } = useRecordStore();
+  console.log("designRecords", designRecords);
 
   const { fetchDesignIdeaById } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
@@ -65,6 +73,8 @@ const OrderHistoryDetail = () => {
     signContract,
     generateContract,
   } = useContractStore();
+  //console.log("contract", contract);
+
   const trackingInterval = useRef(null);
   const { uploadImages, progress } = useCloudinaryStorage();
   const [uploading, setUploading] = useState(false);
@@ -84,6 +94,13 @@ const OrderHistoryDetail = () => {
   const [loadingSketch, setLoadingSketch] = useState(false);
   const [selectedSketchId, setSelectedSketchId] = useState(null);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [loadingDesign, setLoadingDesign] = useState(false);
+  const [selectedDesignId, setSelectedDesignId] = useState(null);
+  const [isConfirmDesignModalVisible, setIsConfirmDesignModalVisible] =
+    useState(false);
+  const [isConfirmMaterialModalVisible, setIsConfirmMaterialModalVisible] = useState(false);
+  const [isPaymentRemainModalVisible, setIsPaymentRemainModalVisible] = useState(false);
 
   const componentId = React.useRef("order-detail");
 
@@ -97,17 +114,14 @@ const OrderHistoryDetail = () => {
     cancel: "OrderCancelled",
   };
 
+  const { createBill } = useWalletStore();
+
   const fetchDetails = useCallback(async () => {
     if (!selectedOrder) return;
 
     try {
       setLoadingDetails(true);
 
-      // Fetch design idea only if status is not Pending
-      // if (selectedOrder.designIdeaId && selectedOrder.status !== "Pending") {
-      //   const designData = await fetchDesignIdeaById(selectedOrder.designIdeaId);
-      //   setDesignIdea(designData);
-      // }
       const designData = await fetchDesignIdeaById(selectedOrder.designIdeaId);
       setDesignIdea(designData);
 
@@ -209,33 +223,30 @@ const OrderHistoryDetail = () => {
     }
   }, [selectedOrder?.deliveryCode, selectedOrder?.status]);
 
-  // Add useEffect to fetch contract when status is ConsultingAndSketching or WaitDeposit
+  // Add useEffect to fetch contract when status is WaitDeposit
   useEffect(() => {
     const fetchContract = async () => {
-      if (selectedOrder?.status === "ConsultingAndSketching" || selectedOrder?.status === "WaitDeposit") {
+      if (selectedOrder?.status === "WaitDeposit") {
         try {
+          // First try to get existing contract
           await getContractByServiceOrder(selectedOrder.id);
           setShowContractButton(true);
         } catch (error) {
           console.error("Error fetching contract:", error);
-          // Nếu không tìm thấy hợp đồng và đang ở trạng thái WaitDeposit, tạo hợp đồng mới
-          if (selectedOrder?.status === "WaitDeposit") {
-            try {
-              await generateContract({
-                userId: selectedOrder.userId,
-                serviceOrderId: selectedOrder.id,
-                userName: selectedOrder.userName,
-                email: selectedOrder.email,
-                phone: selectedOrder.cusPhone,
-                address: selectedOrder.address,
-                designPrice: selectedOrder.designPrice
-              });
-              setShowContractButton(true);
-            } catch (genError) {
-              console.error("Error generating contract:", genError);
-              setShowContractButton(false);
-            }
-          } else {
+          // If no contract exists, generate a new one
+          try {
+            await generateContract({
+              userId: selectedOrder.userId,
+              serviceOrderId: selectedOrder.id,
+              userName: selectedOrder.userName,
+              email: selectedOrder.email,
+              phone: selectedOrder.cusPhone,
+              address: selectedOrder.address,
+              designPrice: selectedOrder.designPrice,
+            });
+            setShowContractButton(true);
+          } catch (genError) {
+            console.error("Error generating contract:", genError);
             setShowContractButton(false);
           }
         }
@@ -245,7 +256,12 @@ const OrderHistoryDetail = () => {
     };
 
     fetchContract();
-  }, [selectedOrder?.status, selectedOrder?.id, getContractByServiceOrder, generateContract]);
+  }, [
+    selectedOrder?.status,
+    selectedOrder?.id,
+    getContractByServiceOrder,
+    generateContract,
+  ]);
 
   // Add useEffect to check contract modification date
   useEffect(() => {
@@ -259,7 +275,7 @@ const OrderHistoryDetail = () => {
   // Add useEffect to fetch sketch records
   useEffect(() => {
     const fetchSketchRecords = async () => {
-      if (selectedOrder?.isCustom && selectedOrder?.status === "ConsultingAndSketching") {
+      if (selectedOrder?.isCustom && selectedOrder?.status !== "Pending") {
         try {
           setLoadingSketch(true);
           await getRecordSketch(selectedOrder.id);
@@ -272,7 +288,41 @@ const OrderHistoryDetail = () => {
     };
 
     fetchSketchRecords();
-  }, [selectedOrder?.id, selectedOrder?.isCustom, selectedOrder?.status, getRecordSketch]);
+  }, [
+    selectedOrder?.id,
+    selectedOrder?.isCustom,
+    selectedOrder?.status,
+    getRecordSketch,
+  ]);
+
+  // Add useEffect for design records
+  useEffect(() => {
+    const fetchDesignRecords = async () => {
+      if (
+        selectedOrder?.isCustom &&
+        (selectedOrder.status !== "Pending" &&
+          selectedOrder.status !== "ConsultingAndSketching" &&
+          selectedOrder.status !== "DeterminingDesignPrice" &&
+          selectedOrder.status !== "DepositSuccessful")
+      ) {
+        try {
+          setLoadingDesign(true);
+          await getRecordDesign(selectedOrder.id);
+        } catch (error) {
+          console.error("Error fetching design records:", error);
+        } finally {
+          setLoadingDesign(false);
+        }
+      }
+    };
+
+    fetchDesignRecords();
+  }, [
+    selectedOrder?.id,
+    selectedOrder?.isCustom,
+    selectedOrder?.status,
+    getRecordDesign,
+  ]);
 
   const handleRefresh = async () => {
     try {
@@ -306,6 +356,8 @@ const OrderHistoryDetail = () => {
   const handleViewContract = () => {
     if (contract?.description) {
       setIsContractModalVisible(true);
+    } else {
+      message.error("Không tìm thấy hợp đồng");
     }
   };
 
@@ -319,6 +371,14 @@ const OrderHistoryDetail = () => {
       style: "currency",
       currency: "VND",
     }).format(price);
+  };
+
+  // Add function to calculate material price
+  const calculateMaterialPrice = (order) => {
+    if (order.materialPrice === 0 && order.serviceOrderDetails?.length > 0) {
+      return order.serviceOrderDetails.reduce((total, detail) => total + detail.totalPrice, 0);
+    }
+    return order.materialPrice;
   };
 
   const productColumns = [
@@ -386,7 +446,7 @@ const OrderHistoryDetail = () => {
         setSignatureUrl(uploadedUrls[0]);
         if (contract?.id) {
           await signContract(contract.id, uploadedUrls[0]);
-          
+
           // Nếu đang ở trạng thái WaitDeposit, hiển thị nút thanh toán
           if (selectedOrder.status === "WaitDeposit") {
             message.success("Đã ký hợp đồng 50% thành công");
@@ -415,50 +475,64 @@ const OrderHistoryDetail = () => {
   const handlePayment = async () => {
     try {
       setPaymentLoading(true);
-      
+
       // Get walletId from localStorage and parse it correctly
       const walletStorage = localStorage.getItem("wallet-storage");
       if (!walletStorage) {
         message.error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
         return;
       }
-      
+
       // Parse the JSON string to get the walletId
       const walletData = JSON.parse(walletStorage);
       const walletId = walletData.state.walletId;
-      
+
       if (!walletId) {
         message.error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
         return;
       }
-      
+
       // Calculate 50% of design price
       const amount = selectedOrder.designPrice * 0.5;
-      
+
       // Call bill API
       const response = await api.post("/api/bill", {
         walletId: walletId,
         serviceOrderId: selectedOrder.id,
         amount: amount,
-        description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`
+        description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(
+          0,
+          8
+        )}`,
       });
-      
+
       if (response.data) {
         message.success("Thanh toán thành công");
-        
+
         // Update order status to DepositSuccessful
         await updateStatus(selectedOrder.id, "DepositSuccessful");
         message.success("Đã cập nhật trạng thái đơn hàng");
-        
+
         // Refresh order details
         await getDesignOrderById(id, componentId.current);
       }
     } catch (error) {
       console.error("Payment error:", error);
-      message.error("Thanh toán thất bại: " + (error.response?.data?.message || error.message));
+      message.error(
+        "Thanh toán thất bại: " + (error.response?.data?.error || error.message)
+      );
     } finally {
       setPaymentLoading(false);
+      setIsPaymentModalVisible(false);
     }
+  };
+
+  const showPaymentModal = () => {
+    setIsPaymentModalVisible(true);
+  };
+
+  const handleCancelPayment = () => {
+    setIsPaymentModalVisible(false);
   };
 
   const handleSelectSketch = (recordId) => {
@@ -469,9 +543,9 @@ const OrderHistoryDetail = () => {
   const handleConfirmSelection = async () => {
     try {
       await confirmRecord(selectedSketchId);
-      message.success('Đã chốt bản vẽ phác thảo thành công');
+      message.success("Đã chốt bản vẽ phác thảo thành công");
       setIsConfirmModalVisible(false);
-      
+
       // Refresh sketch records after successful selection
       if (selectedOrder?.id) {
         setLoadingSketch(true);
@@ -481,19 +555,100 @@ const OrderHistoryDetail = () => {
         // Update order status to DeterminingDesignPrice
         try {
           await updateStatus(selectedOrder.id, "DeterminingDesignPrice");
-          message.success('Đã cập nhật trạng thái đơn hàng');
+          message.success("Đã cập nhật trạng thái đơn hàng");
         } catch (error) {
-          message.error('Có lỗi xảy ra khi cập nhật trạng thái đơn hàng');
+          message.error("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng");
         }
       }
     } catch (error) {
-      message.error('Có lỗi xảy ra khi chọn bản vẽ phác thảo');
+      message.error("Có lỗi xảy ra khi chọn bản vẽ phác thảo");
     }
   };
 
   const handleCancelSelection = () => {
     setSelectedSketchId(null);
     setIsConfirmModalVisible(false);
+  };
+
+  const handleSelectDesign = (recordId) => {
+    setSelectedDesignId(recordId);
+    setIsConfirmDesignModalVisible(true);
+  };
+
+  const handleConfirmDesignSelection = async () => {
+    try {
+      await confirmDesignRecord(selectedDesignId);
+      message.success("Đã chốt bản vẽ chi tiết thành công");
+      setIsConfirmDesignModalVisible(false);
+
+      // Refresh design records after successful selection
+      if (selectedOrder?.id) {
+        setLoadingDesign(true);
+        await getRecordDesign(selectedOrder.id);
+        setLoadingDesign(false);
+
+        // Update order status to DoneConsulting
+        try {
+          await updateStatus(selectedOrder.id, "DeterminingMaterialPrice");
+          message.success("Đã cập nhật trạng thái đơn hàng");
+        } catch (error) {
+          message.error("Có lỗi xảy ra khi cập nhật trạng thái đơn hàng");
+        }
+      }
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi chọn bản vẽ chi tiết");
+    }
+  };
+
+  const handleCancelDesignSelection = () => {
+    setSelectedDesignId(null);
+    setIsConfirmDesignModalVisible(false);
+  };
+
+  const handleConfirmMaterialPrice = async () => {
+    try {
+      await updateStatus(selectedOrder.id, "DoneDesign");
+      message.success("Đã xác nhận giá vật liệu thành công");
+      await getDesignOrderById(id, componentId.current);
+      setIsConfirmMaterialModalVisible(false);
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi xác nhận giá vật liệu");
+    }
+  };
+
+  const showConfirmMaterialModal = () => {
+    setIsConfirmMaterialModalVisible(true);
+  };
+
+  const handleCancelMaterialConfirm = () => {
+    setIsConfirmMaterialModalVisible(false);
+  };
+
+  const handlePaymentRemain = async () => {
+    try {
+      setPaymentLoading(true);
+      const remainingDesignPrice = selectedOrder.designPrice * 0.5; // 50% remaining design price
+      const totalMaterialPrice = calculateMaterialPrice(selectedOrder); // 100% material price
+      const totalAmount = remainingDesignPrice + totalMaterialPrice;
+
+      await createBill(selectedOrder.id, totalAmount);
+      await updateStatus(selectedOrder.id, "PaymentSuccess");
+      message.success("Đã tạo hóa đơn thanh toán thành công");
+      await getDesignOrderById(id, componentId.current);
+      setIsPaymentRemainModalVisible(false);
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi tạo hóa đơn thanh toán");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const showPaymentRemainModal = () => {
+    setIsPaymentRemainModalVisible(true);
+  };
+
+  const handleCancelPaymentRemain = () => {
+    setIsPaymentRemainModalVisible(false);
   };
 
   if (isLoading || loadingDetails) {
@@ -649,7 +804,14 @@ const OrderHistoryDetail = () => {
                   }
                   type="inner"
                 >
-                  <Descriptions column={{ xs: 1, sm: 2 }} bordered labelStyle={{ fontWeight: 'bold', fontSize: '15px' }} contentStyle={{ fontSize: '15px' }}>
+                  <Descriptions
+                    column={{ xs: 1, sm: 2 }}
+                    bordered
+                    styles={{
+                      label: { fontWeight: "bold", fontSize: "15px" },
+                      content: { fontSize: "15px" },
+                    }}
+                  >
                     <Descriptions.Item label="Tên thiết kế">
                       {designIdea?.name || "Chưa có tên thiết kế"}
                     </Descriptions.Item>
@@ -667,13 +829,13 @@ const OrderHistoryDetail = () => {
                     <Descriptions.Item label="Mô tả">
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: designIdea?.description || "Không có mô tả"
+                          __html: designIdea?.description || "Không có mô tả",
                         }}
                         style={{
-                          maxWidth: '100%',
-                          overflow: 'hidden',
-                          fontSize: '15px',
-                          lineHeight: '1.6'
+                          maxWidth: "100%",
+                          overflow: "hidden",
+                          fontSize: "15px",
+                          lineHeight: "1.6",
                         }}
                       />
                     </Descriptions.Item>
@@ -691,7 +853,14 @@ const OrderHistoryDetail = () => {
                       }
                       type="inner"
                     >
-                      <Descriptions column={{ xs: 1, sm: 2 }} bordered labelStyle={{ fontWeight: 'bold', fontSize: '15px' }} contentStyle={{ fontSize: '15px' }}>
+                      <Descriptions
+                        column={{ xs: 1, sm: 2 }}
+                        bordered
+                        styles={{
+                          label: { fontWeight: "bold", fontSize: "15px" },
+                          content: { fontSize: "15px" },
+                        }}
+                      >
                         <Descriptions.Item label="Tên thiết kế" span={3}>
                           {designIdea?.name || "Chưa có tên thiết kế"}
                         </Descriptions.Item>
@@ -710,18 +879,21 @@ const OrderHistoryDetail = () => {
                         <Descriptions.Item label="Mô tả" span={3}>
                           <div
                             dangerouslySetInnerHTML={{
-                              __html: designIdea?.description || "Không có mô tả"
+                              __html:
+                                designIdea?.description || "Không có mô tả",
                             }}
                             style={{
-                              maxWidth: '100%',
-                              overflow: 'hidden',
-                              fontSize: '15px',
-                              lineHeight: '1.6'
+                              maxWidth: "100%",
+                              overflow: "hidden",
+                              fontSize: "15px",
+                              lineHeight: "1.6",
                             }}
                           />
                         </Descriptions.Item>
                       </Descriptions>
-                      <div style={{ display: 'flex', gap: '16px', marginTop: 16 }}>
+                      <div
+                        style={{ display: "flex", gap: "16px", marginTop: 16 }}
+                      >
                         {designIdea?.image?.imageUrl && (
                           <img
                             src={designIdea.image.imageUrl}
@@ -762,78 +934,85 @@ const OrderHistoryDetail = () => {
               )}
 
               {/* Design Images Section */}
-              {!selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
-                <Card
-                  title={
-                    <Space>
-                      <BulbOutlined />
-                      <span>
-                        Danh sách bản vẽ thiết kế và hướng dẫn lắp đặt
-                      </span>
-                    </Space>
-                  }
-                  type="inner"
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(300px, 1fr))",
-                      gap: "16px",
-                      padding: "16px",
-                    }}
+              {!selectedOrder.isCustom &&
+                selectedOrder.status !== "Pending" && (
+                  <Card
+                    title={
+                      <Space>
+                        <BulbOutlined />
+                        <span>
+                          Danh sách bản vẽ thiết kế và hướng dẫn lắp đặt
+                        </span>
+                      </Space>
+                    }
+                    type="inner"
                   >
-                    {designIdea.designImage1URL && (
-                      <div>
-                        <Image
-                          src={designIdea.designImage1URL}
-                          alt="Bản vẽ thiết kế 1"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ thiết kế 1</Text>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(300px, 1fr))",
+                        gap: "16px",
+                        padding: "16px",
+                      }}
+                    >
+                      {designIdea.designImage1URL && (
+                        <div>
+                          <Image
+                            src={designIdea.designImage1URL}
+                            alt="Bản vẽ thiết kế 1"
+                            style={{ width: "100%", height: "auto" }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask",
+                            }}
+                          />
+                          <div
+                            style={{ textAlign: "center", marginTop: "8px" }}
+                          >
+                            <Text type="secondary">Bản vẽ thiết kế 1</Text>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {designIdea.designImage2URL && (
-                      <div>
-                        <Image
-                          src={designIdea.designImage2URL}
-                          alt="Bản vẽ thiết kế 2"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ thiết kế 2</Text>
+                      )}
+                      {designIdea.designImage2URL && (
+                        <div>
+                          <Image
+                            src={designIdea.designImage2URL}
+                            alt="Bản vẽ thiết kế 2"
+                            style={{ width: "100%", height: "auto" }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask",
+                            }}
+                          />
+                          <div
+                            style={{ textAlign: "center", marginTop: "8px" }}
+                          >
+                            <Text type="secondary">Bản vẽ thiết kế 2</Text>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {designIdea.designImage3URL && (
-                      <div>
-                        <Image
-                          src={designIdea.designImage3URL}
-                          alt="Bản vẽ thiết kế 3"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                        <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                      )}
+                      {designIdea.designImage3URL && (
+                        <div>
+                          <Image
+                            src={designIdea.designImage3URL}
+                            alt="Bản vẽ thiết kế 3"
+                            style={{ width: "100%", height: "auto" }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask",
+                            }}
+                          />
+                          <div
+                            style={{ textAlign: "center", marginTop: "8px" }}
+                          >
+                            <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
+                      )}
+                    </div>
+                  </Card>
+                )}
 
               {selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
                 <Card
@@ -849,23 +1028,49 @@ const OrderHistoryDetail = () => {
                     <div style={{ textAlign: "center", padding: "20px" }}>
                       <Spin tip="Đang tải bản vẽ phác thảo..." />
                     </div>
-                  ) : sketchRecords.length > 0 ? (
+                  ) : (selectedOrder.status === "ConsultingAndSketching"
+                      ? sketchRecords
+                      : sketchRecords.filter((record) => record.isSelected)
+                    ).length > 0 ? (
                     <div>
-                      {sketchRecords.map((record, index) => (
+                      {(selectedOrder.status === "ConsultingAndSketching"
+                        ? sketchRecords
+                        : sketchRecords.filter((record) => record.isSelected)
+                      ).map((record, index) => (
                         <div key={record.id} style={{ marginBottom: "24px" }}>
-                          <div style={{ marginBottom: "8px", display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div
+                            style={{
+                              marginBottom: "8px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
                             <div>
-                              <Text strong>Bản vẽ phác thảo {index + 1}</Text>
-                              <Text type="secondary" style={{ marginLeft: "8px" }}>
-                                ({new Date(record.creationDate).toLocaleString("vi-VN")})
+                              <Text strong>
+                                Bản vẽ phác thảo {record.phase + 1}
+                              </Text>
+                              <Text strong></Text>
+                              <Text
+                                type="secondary"
+                                style={{ marginLeft: "8px" }}
+                              >
+                                (
+                                {new Date(record.creationDate).toLocaleString(
+                                  "vi-VN"
+                                )}
+                                )
                               </Text>
                             </div>
+
                             <Button
                               type={record.isSelected ? "primary" : "default"}
                               onClick={() => handleSelectSketch(record.id)}
                               disabled={record.isSelected}
                             >
-                              {record.isSelected ? "Đã chọn" : "Chọn bản vẽ này"}
+                              {record.isSelected
+                                ? "Đã chọn"
+                                : "Chọn bản vẽ này"}
                             </Button>
                           </div>
                           <div
@@ -890,7 +1095,12 @@ const OrderHistoryDetail = () => {
                                     maskClassName: "custom-mask",
                                   }}
                                 />
-                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                <div
+                                  style={{
+                                    textAlign: "center",
+                                    marginTop: "8px",
+                                  }}
+                                >
                                   <Text type="secondary">Hình ảnh 1</Text>
                                 </div>
                               </div>
@@ -906,7 +1116,12 @@ const OrderHistoryDetail = () => {
                                     maskClassName: "custom-mask",
                                   }}
                                 />
-                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                <div
+                                  style={{
+                                    textAlign: "center",
+                                    marginTop: "8px",
+                                  }}
+                                >
                                   <Text type="secondary">Hình ảnh 2</Text>
                                 </div>
                               </div>
@@ -922,7 +1137,12 @@ const OrderHistoryDetail = () => {
                                     maskClassName: "custom-mask",
                                   }}
                                 />
-                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                <div
+                                  style={{
+                                    textAlign: "center",
+                                    marginTop: "8px",
+                                  }}
+                                >
                                   <Text type="secondary">Hình ảnh 3</Text>
                                 </div>
                               </div>
@@ -939,6 +1159,150 @@ const OrderHistoryDetail = () => {
                   )}
                 </Card>
               )}
+
+              {selectedOrder.isCustom &&
+                selectedOrder.status !== "Pending" &&
+                selectedOrder.status !== "ConsultingAndSketching" &&
+                selectedOrder.status !== "DeterminingDesignPrice" &&
+                selectedOrder.status !== "DepositSuccessful" && (
+                  <Card
+                    title={
+                      <Space>
+                        <BulbOutlined />
+                        <span>Bản vẽ chi tiết</span>
+                      </Space>
+                    }
+                    type="inner"
+                  >
+                    {loadingDesign ? (
+                      <div style={{ textAlign: "center", padding: "20px" }}>
+                        <Spin tip="Đang tải bản vẽ chi tiết..." />
+                      </div>
+                    ) : designRecords.filter((record) => record.isSelected).length > 0 ? (
+                      <div>
+                        {designRecords
+                          .filter((record) => record.isSelected)
+                          .map((record, index) => (
+                            <div key={record.id} style={{ marginBottom: "24px" }}>
+                              <div
+                                style={{
+                                  marginBottom: "8px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <div>
+                                  <Text strong>
+                                    Bản vẽ chi tiết {record.phase}
+                                  </Text>
+                                  <Text
+                                    type="secondary"
+                                    style={{ marginLeft: "8px" }}
+                                  >
+                                    (
+                                    {new Date(record.creationDate).toLocaleString(
+                                      "vi-VN"
+                                    )}
+                                    )
+                                  </Text>
+                                </div>
+                                <Button
+                                  type={record.isSelected ? "primary" : "default"}
+                                  onClick={() => handleSelectDesign(record.id)}
+                                  disabled={record.isSelected}
+                                >
+                                  {record.isSelected
+                                    ? "Đã chọn"
+                                    : "Chọn bản vẽ này"}
+                                </Button>
+                              </div>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns:
+                                    "repeat(auto-fit, minmax(300px, 1fr))",
+                                  gap: "16px",
+                                  padding: "16px",
+                                  backgroundColor: "#f5f5f5",
+                                  borderRadius: "8px",
+                                }}
+                              >
+                                {record.image?.imageUrl && (
+                                  <div>
+                                    <Image
+                                      src={record.image.imageUrl}
+                                      alt={`Bản vẽ chi tiết ${index + 1} - 1`}
+                                      style={{ width: "100%", height: "auto" }}
+                                      preview={{
+                                        mask: "Phóng to",
+                                        maskClassName: "custom-mask",
+                                      }}
+                                    />
+                                    <div
+                                      style={{
+                                        textAlign: "center",
+                                        marginTop: "8px",
+                                      }}
+                                    >
+                                      <Text type="secondary">Hình ảnh 1</Text>
+                                    </div>
+                                  </div>
+                                )}
+                                {record.image?.image2 && (
+                                  <div>
+                                    <Image
+                                      src={record.image.image2}
+                                      alt={`Bản vẽ chi tiết ${index + 1} - 2`}
+                                      style={{ width: "100%", height: "auto" }}
+                                      preview={{
+                                        mask: "Phóng to",
+                                        maskClassName: "custom-mask",
+                                      }}
+                                    />
+                                    <div
+                                      style={{
+                                        textAlign: "center",
+                                        marginTop: "8px",
+                                      }}
+                                    >
+                                      <Text type="secondary">Hình ảnh 2</Text>
+                                    </div>
+                                  </div>
+                                )}
+                                {record.image?.image3 && (
+                                  <div>
+                                    <Image
+                                      src={record.image.image3}
+                                      alt={`Bản vẽ chi tiết ${index + 1} - 3`}
+                                      style={{ width: "100%", height: "auto" }}
+                                      preview={{
+                                        mask: "Phóng to",
+                                        maskClassName: "custom-mask",
+                                      }}
+                                    />
+                                    <div
+                                      style={{
+                                        textAlign: "center",
+                                        marginTop: "8px",
+                                      }}
+                                    >
+                                      <Text type="secondary">Hình ảnh 3</Text>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <Empty
+                        description="Chưa có bản vẽ chi tiết nào"
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      />
+                    )}
+                  </Card>
+                )}
 
               {/* Material Details */}
               <Card
@@ -982,13 +1346,24 @@ const OrderHistoryDetail = () => {
                             </Table.Summary.Cell>
                             <Table.Summary.Cell index={3}>
                               <Text type="success" strong>
-                                {formatPrice(selectedOrder.materialPrice)}
+                                {formatPrice(calculateMaterialPrice(selectedOrder))}
                               </Text>
                             </Table.Summary.Cell>
                           </Table.Summary.Row>
                         </Table.Summary>
                       )}
                     />
+                    {selectedOrder.status === "DeterminingMaterialPrice" && (
+                      <div style={{ marginTop: "24px" }}>
+                        <Button
+                          type="primary"
+                          onClick={showConfirmMaterialModal}
+                          style={{ width: "100%" }}
+                        >
+                          Xác nhận giá vật liệu và tiếp tục
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <Table
@@ -1005,7 +1380,7 @@ const OrderHistoryDetail = () => {
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3}>
                             <Text type="success" strong>
-                              {formatPrice(selectedOrder.materialPrice)}
+                              {formatPrice(calculateMaterialPrice(selectedOrder))}
                             </Text>
                           </Table.Summary.Cell>
                         </Table.Summary.Row>
@@ -1045,21 +1420,25 @@ const OrderHistoryDetail = () => {
                     </Text>
                     <div style={{ marginTop: "24px" }}>
                       <Descriptions bordered column={1}>
-                        <Descriptions.Item label="Phí thiết kế dự kiến">
+                        <Descriptions.Item label="Phí thiết kế">
                           <Text type="success" strong>
                             {formatPrice(selectedOrder.designPrice)}
                           </Text>
                         </Descriptions.Item>
                         <Descriptions.Item label="Phí vật liệu dự kiến">
                           <Text type="success" strong>
-                            {formatPrice(selectedOrder.materialPrice)}
+                            {formatPrice(calculateMaterialPrice(selectedOrder))}
                           </Text>
                         </Descriptions.Item>
                         <Descriptions.Item label="Tổng thanh toán dự kiến">
-                          <Text type="danger" strong style={{ fontSize: "16px" }}>
+                          <Text
+                            type="danger"
+                            strong
+                            style={{ fontSize: "16px" }}
+                          >
                             {formatPrice(
                               selectedOrder.designPrice +
-                              selectedOrder.materialPrice
+                                calculateMaterialPrice(selectedOrder)
                             )}
                           </Text>
                         </Descriptions.Item>
@@ -1076,14 +1455,14 @@ const OrderHistoryDetail = () => {
                       </Descriptions.Item>
                       <Descriptions.Item label="Phí vật liệu">
                         <Text type="success" strong>
-                          {formatPrice(selectedOrder.materialPrice)}
+                          {formatPrice(calculateMaterialPrice(selectedOrder))}
                         </Text>
                       </Descriptions.Item>
                       <Descriptions.Item label="Tổng thanh toán">
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                            selectedOrder.materialPrice
+                              calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1091,7 +1470,7 @@ const OrderHistoryDetail = () => {
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                            selectedOrder.materialPrice
+                              calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1121,7 +1500,7 @@ const OrderHistoryDetail = () => {
                         loading={contractLoading}
                         style={{ width: "100%" }}
                       >
-                        {selectedOrder.status === "WaitDeposit" ? "Xem hợp đồng 50%" : "Xem hợp đồng"}
+                        Xem hợp đồng
                       </Button>
                       <div
                         style={{
@@ -1132,72 +1511,77 @@ const OrderHistoryDetail = () => {
                         }}
                       >
                         <Text type="secondary">
-                          {selectedOrder.status === "WaitDeposit" 
+                          {selectedOrder.status === "WaitDeposit"
                             ? "Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"
                             : "Bạn đã đọc và đồng ý với hợp đồng, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"}
                         </Text>
                       </div>
-                      <Button
-                        type="primary"
-                        icon={<UploadOutlined />}
-                        loading={uploading}
-                        onClick={() => {
-                          const input = document.createElement("input");
-                          input.type = "file";
-                          input.accept = "image/*";
-                          input.onchange = (e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              handlePreview(file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        style={{ width: "100%" }}
-                      >
-                        Tải lên chữ ký
-                      </Button>
-                      {signatureUrl && (
-                        <div
-                          style={{
-                            marginTop: "16px",
-                            textAlign: "center",
-                          }}
-                        >
-                          <Image
-                            src={signatureUrl}
-                            alt="Chữ ký đã tải lên"
-                            style={{
-                              maxWidth: "200px",
-                              maxHeight: "100px",
-                              objectFit: "contain",
+                      {!contract?.modificationDate && (
+                        <>
+                          <Button
+                            type="primary"
+                            icon={<UploadOutlined />}
+                            loading={uploading}
+                            onClick={() => {
+                              const input = document.createElement("input");
+                              input.type = "file";
+                              input.accept = "image/*";
+                              input.onchange = (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  handlePreview(file);
+                                }
+                              };
+                              input.click();
                             }}
-                            preview={false}
-                          />
-                          <div style={{ marginTop: "8px" }}>
-                            <Button
-                              type="link"
-                              onClick={() => setSignatureUrl(null)}
+                            style={{ width: "100%" }}
+                          >
+                            Tải lên chữ ký
+                          </Button>
+                          {signatureUrl && (
+                            <div
+                              style={{
+                                marginTop: "16px",
+                                textAlign: "center",
+                              }}
                             >
-                              Xóa chữ ký
-                            </Button>
-                          </div>
-                        </div>
+                              <Image
+                                src={signatureUrl}
+                                alt="Chữ ký đã tải lên"
+                                style={{
+                                  maxWidth: "200px",
+                                  maxHeight: "100px",
+                                  objectFit: "contain",
+                                }}
+                                preview={false}
+                              />
+                              <div style={{ marginTop: "8px" }}>
+                                <Button
+                                  type="link"
+                                  onClick={() => setSignatureUrl(null)}
+                                >
+                                  Xóa chữ ký
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
-                      
                       {/* Payment Button */}
-                      {showPaymentButton && selectedOrder.status === "WaitDeposit" && (
-                        <Button
-                          type="primary"
-                          danger
-                          icon={<DollarOutlined />}
-                          loading={paymentLoading}
-                          onClick={handlePayment}
-                          style={{ width: "100%", marginTop: "16px" }}
-                        >
-                          Thanh toán 50% phí thiết kế ({formatPrice(selectedOrder.designPrice * 0.5)})
-                        </Button>
-                      )}
+                      {showPaymentButton &&
+                        selectedOrder.status === "WaitDeposit" && (
+                          <Button
+                            type="primary"
+                            danger
+                            icon={<DollarOutlined />}
+                            loading={paymentLoading}
+                            onClick={showPaymentModal}
+                            style={{ width: "100%", marginTop: "16px" }}
+                          >
+                            Thanh toán 50% phí thiết kế
+                            {formatPrice(selectedOrder.designPrice * 0.5)}
+                          </Button>
+                        )}
                     </Space>
                   )}
                   {selectedOrder.status === "DeliveredSuccessfully" && (
@@ -1219,6 +1603,47 @@ const OrderHistoryDetail = () => {
                   )}
                 </Space>
               </div>
+
+              {/* Payment Section */}
+              {selectedOrder.status === "DoneDesign" && (
+                <Card
+                  title={
+                    <Space>
+                      <DollarOutlined />
+                      <span>Thanh toán</span>
+                    </Space>
+                  }
+                  type="inner"
+                >
+                  <div style={{ textAlign: "center", padding: "20px" }}>
+                    <Text
+                      type="secondary"
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: 500,
+                        display: "block",
+                        padding: "24px",
+                        backgroundColor: "#f5f5f5",
+                        borderRadius: "8px",
+                        textAlign: "center",
+                        border: "1px dashed #d9d9d9",
+                      }}
+                    >
+                      Thiết kế đã hoàn thành, bạn hãy thanh toán 50% phí thiết kế còn lại và 100% phí vật liệu
+                    </Text>
+                    <div style={{ marginTop: "24px" }}>
+                      <Button
+                        type="primary"
+                        onClick={showPaymentRemainModal}
+                        loading={paymentLoading}
+                        style={{ width: "100%" }}
+                      >
+                        Thanh toán phần còn lại
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </Space>
 
             {/* Contract Modal */}
@@ -1293,7 +1718,78 @@ const OrderHistoryDetail = () => {
               cancelText="Hủy"
             >
               <p>Bạn có chắc chắn muốn chọn bản vẽ này không?</p>
-              <p>Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.</p>
+              <p>
+                Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.
+              </p>
+            </Modal>
+
+            {/* Payment Confirmation Modal */}
+            <Modal
+              title="Xác nhận thanh toán"
+              open={isPaymentModalVisible}
+              onOk={handlePayment}
+              onCancel={handleCancelPayment}
+              okText="Xác nhận"
+              cancelText="Hủy"
+              confirmLoading={paymentLoading}
+            >
+              <p>Bạn có chắc chắn muốn thanh toán 50% phí thiết kế?</p>
+              <p>
+                Số tiền thanh toán:{" "}
+                {formatPrice(selectedOrder.designPrice * 0.5)}
+              </p>
+            </Modal>
+
+            {/* Design Confirmation Modal */}
+            <Modal
+              title="Xác nhận chọn bản vẽ chi tiết"
+              open={isConfirmDesignModalVisible}
+              onOk={handleConfirmDesignSelection}
+              onCancel={handleCancelDesignSelection}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <p>Bạn có chắc chắn muốn chọn bản vẽ chi tiết này không?</p>
+              <p>
+                Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.
+              </p>
+            </Modal>
+
+            {/* Material Confirmation Modal */}
+            <Modal
+              title="Xác nhận giá vật liệu"
+              open={isConfirmMaterialModalVisible}
+              onOk={handleConfirmMaterialPrice}
+              onCancel={handleCancelMaterialConfirm}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <p>Bạn có chắc chắn muốn xác nhận giá vật liệu và tiếp tục?</p>
+              <p>
+                Tổng giá vật liệu: {formatPrice(calculateMaterialPrice(selectedOrder))}
+              </p>
+            </Modal>
+
+            {/* Payment Remain Confirmation Modal */}
+            <Modal
+              title="Xác nhận thanh toán"
+              open={isPaymentRemainModalVisible}
+              onOk={handlePaymentRemain}
+              onCancel={handleCancelPaymentRemain}
+              okText="Xác nhận"
+              cancelText="Hủy"
+              confirmLoading={paymentLoading}
+            >
+              <p>Bạn có chắc chắn muốn thanh toán phần còn lại?</p>
+              <p>
+                Phí thiết kế còn lại (50%): {formatPrice(selectedOrder.designPrice * 0.5)}
+              </p>
+              <p>
+                Phí vật liệu (100%): {formatPrice(calculateMaterialPrice(selectedOrder))}
+              </p>
+              <p>
+                <Text strong>Tổng thanh toán: {formatPrice(selectedOrder.designPrice * 0.5 + calculateMaterialPrice(selectedOrder))}</Text>
+              </p>
             </Modal>
           </Card>
         </div>

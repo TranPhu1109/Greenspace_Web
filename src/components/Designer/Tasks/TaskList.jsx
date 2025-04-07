@@ -43,7 +43,7 @@ const TaskList = () => {
       dataIndex: "id",
       key: "id",
       render: (text) => (
-        <span className="font-mono">{text.slice(0, 8)}...</span>
+        <span className="font-mono">#{text.slice(0, 8)}</span>
       ),
     },
     {
