@@ -369,6 +369,44 @@ const CustomTemplateOrderDetail = () => {
     );
   }
 
+  const renderSection = () => {
+    switch (selectedOrder.status) {
+      case "pending":
+        return null; // Show default order info
+      case "processing":
+      case "consulting":
+        return (
+          <ConsultingSection
+            order={selectedOrder}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        );
+      case "designing":
+      case "design_review":
+        return (
+          <DesignSection
+            order={selectedOrder}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        );
+      // case 'waiting_deposit':
+      //   return <DepositSection order={order} onUpdateStatus={handleUpdateStatus} />;
+      case "material_selecting":
+      case "material_ordered":
+        return (
+          <MaterialSection
+            order={selectedOrder}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        );
+      case "delivering":
+      // case 'completed':
+      //   return <DeliverySection order={order} onUpdateStatus={handleUpdateStatus} />;
+      default:
+        return null;
+    }
+  };
+
   // Add status mapping for display
   const getStatusDisplay = (status) => {
     const statusMap = {
@@ -524,6 +562,7 @@ const CustomTemplateOrderDetail = () => {
                     flex: "1 1 auto",
                   }}
                 />
+                
                 <Step
                   title="Designer"
                   description="Giao cho Designer"
@@ -1058,28 +1097,16 @@ const CustomTemplateOrderDetail = () => {
                   type="primary"
                   icon={<UserAddOutlined />}
                   style={{
-                    backgroundColor: "#4CAF50",
-                    borderColor: "#4CAF50",
-                    width: "100%",
-                  }}
-                  onClick={() => {
-                    navigate("/staff/schedule");
-                  }}
-                  // onClick={() => {
-                  //   Modal.confirm({
-                  //     title: "Giao task cho designer",
-                  //     content: "Bạn có chắc chắn muốn giao task này cho designer?",
-                  //     okText: "Xác nhận",
-                  //     cancelText: "Hủy",
-                  //     onOk: () => {
-                  //       message.success("Đã chuyển đến trang phân công");
-                  //       navigate("/staff/schedule");
-                  //     },
-                  //   });
-                  // }}
-                >
-                  Giao task cho designer
-                </Button>
+                  backgroundColor: "#4CAF50",
+                  borderColor: "#4CAF50",
+                  width: "100%",
+                }}
+                onClick={() => {
+                  navigate("/staff/schedule");
+                }}
+              >
+                Giao task cho designer
+              </Button>
               )}
 
               {selectedOrder.status === "PaymentSuccess" && (
