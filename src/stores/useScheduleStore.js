@@ -162,6 +162,90 @@ const useScheduleStore = create((set, get) => ({
       });
       throw error;
     }
+  },
+
+  // Thêm hàm để cập nhật trạng thái task cho đơn hàng có trạng thái DepositSuccessful
+  updateTasksForDepositSuccessfulOrders: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      // Lấy danh sách đơn hàng có trạng thái DepositSuccessful
+      const responseNoIdea = await api.get("/api/serviceorder/noidea");
+      const responseUsingIdea = await api.get("/api/serviceorder/usingidea");
+      const responseDepositSuccessful = responseNoIdea.data && responseUsingIdea.data;
+      
+      if (!responseDepositSuccessful || responseDepositSuccessful.length === 0) {
+        set({ isLoading: false });
+        return { message: "Không có đơn hàng nào có trạng thái DepositSuccessful" };
+      }
+      
+      // Lấy danh sách task hiện tại
+      const tasks = get().workTasks;
+      
+      // Cập nhật trạng thái task cho từng đơn hàng
+      const updatePromises = responseDepositSuccessful.map(async (order) => {
+        // Tìm task tương ứng với đơn hàng
+        const task = tasks.find(task => task.serviceOrderId === order.id);
+        
+        if (task) {
+          // Kiểm tra nếu task đã có trạng thái 2 (Design) hoặc service order có trạng thái AssignToDesigner thì bỏ qua
+          if (task.status === 2 || task.status === "Design" || order.status === "AssignToDesigner") {
+            return null;
+          }
+          
+          // Cập nhật trạng thái task lên 2
+          const updateResponse = await api.put(`/api/worktask/${task.id}`, {
+            serviceOrderId: task.serviceOrderId,
+            userId: task.userId,
+            status: 2,
+            note: task.note || "Khách hàng đã đặt cọc"
+          });
+
+          console.log("Updating service order status for order:", order.id);
+          // Tự động cập nhật trạng thái service order lên 4 (Designing)
+          const updateServiceOrder = await api.put(`/api/serviceorder/status/${order.id}`, {
+            status: 4 // Trạng thái 4 tương ứng với "Designing"
+          });
+          
+          console.log("Service order update response:", updateServiceOrder.data);
+          return updateResponse.data;
+        }
+        return null;
+      });
+      
+      // Đợi tất cả các promise hoàn thành
+      const results = await Promise.all(updatePromises);
+      const updatedTasks = results.filter(result => result !== null);
+      
+      // Cập nhật state với danh sách task mới
+      if (updatedTasks.length > 0) {
+        // Cập nhật workTasks trong state
+        const currentTasks = get().workTasks;
+        const updatedWorkTasks = currentTasks.map(task => {
+          const updatedTask = updatedTasks.find(ut => ut.id === task.id);
+          return updatedTask || task;
+        });
+        
+        set({ 
+          workTasks: updatedWorkTasks,
+          isLoading: false 
+        });
+        
+        return { 
+          message: `Đã cập nhật ${updatedTasks.length} task và trạng thái đơn hàng cho đơn hàng có trạng thái DepositSuccessful`,
+          updatedTasks
+        };
+      }
+      
+      set({ isLoading: false });
+      return { message: "Không có task nào cần cập nhật" };
+    } catch (error) {
+      console.error("Error updating tasks for deposit successful orders:", error);
+      set({ 
+        error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful",
+        isLoading: false 
+      });
+      return { error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful" };
+    }
   }
 }));
 

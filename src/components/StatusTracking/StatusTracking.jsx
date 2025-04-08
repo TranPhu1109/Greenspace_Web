@@ -25,19 +25,31 @@ const StatusTracking = ({ currentStatus }) => {
   // Find the current status index
   const currentStatusIndex = orderStatuses.findIndex(s => s.status === currentStatus);
 
+  // Create items for Steps component with proper status
+  const items = orderStatuses.map((status, index) => {
+    let stepStatus = 'wait'; // Default status is wait
+    
+    if (index < currentStatusIndex) {
+      // All previous steps are completed
+      stepStatus = 'finish';
+    } else if (index === currentStatusIndex) {
+      // Current step is in process
+      stepStatus = currentStatus === 'OrderCancelled' ? 'error' : 'process';
+    }
+    
+    return {
+      title: status.title,
+      status: stepStatus
+    };
+  });
+
   return (
     <div className="status-tracking">
       <Steps
         direction="vertical"
         size="small"
         current={currentStatusIndex}
-        items={orderStatuses.map((status, index) => ({
-          title: status.title,
-          status: index === currentStatusIndex 
-            ? (currentStatus === 'OrderCancelled' ? 'error' : 'process')
-            : 'wait',
-          icon: currentStatus === 'OrderCancelled' ? null : undefined  // Remove check mark for cancelled orders
-        }))}
+        items={items}
       />
     </div>
   );

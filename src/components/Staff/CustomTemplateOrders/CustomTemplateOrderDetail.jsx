@@ -217,15 +217,14 @@ const CustomTemplateOrderDetail = () => {
     }
   };
 
-  // Add status mapping for display
   const getStatusDisplay = (status) => {
     const statusMap = {
       Pending: "Chờ xử lý",
       ConsultingAndSketching: "Tư vấn và phác thảo",
       DeterminingDesignPrice: "Xác định giá thiết kế",
       DepositSuccessful: "Đã đặt cọc",
-      DeterminingMaterialPrice: "Xác định giá vật liệu",
       AssignToDesigner: "Giao cho Designer",
+      DeterminingMaterialPrice: "Xác định giá vật liệu",
       DoneDesign: "Hoàn thành thiết kế",
       PaymentSuccess: "Đã thanh toán",
       Processing: "Đang xử lý",
@@ -372,9 +371,10 @@ const CustomTemplateOrderDetail = () => {
                     flex: "1 1 auto",
                   }}
                 />
+                
                 <Step
-                  title="Xác định giá"
-                  description="Xác định giá vật liệu"
+                  title="Designer"
+                  description="Giao cho Designer"
                   style={{
                     paddingRight: "16px",
                     minWidth: "200px",
@@ -382,8 +382,8 @@ const CustomTemplateOrderDetail = () => {
                   }}
                 />
                 <Step
-                  title="Designer"
-                  description="Giao cho Designer"
+                  title="Xác định giá"
+                  description="Xác định giá vật liệu"
                   style={{
                     paddingRight: "16px",
                     minWidth: "200px",
@@ -927,7 +927,7 @@ const CustomTemplateOrderDetail = () => {
                   )}
                 </>
               )}
-              {selectedOrder.status === "ConsultingAndSketching" && (
+              {selectedOrder.status === "Pending" && (
                 <Button
                   type="primary"
                   icon={<UserAddOutlined />}
@@ -939,18 +939,6 @@ const CustomTemplateOrderDetail = () => {
                 onClick={() => {
                   navigate("/staff/schedule");
                 }}
-                // onClick={() => {
-                //   Modal.confirm({
-                //     title: "Giao task cho designer",
-                //     content: "Bạn có chắc chắn muốn giao task này cho designer?",
-                //     okText: "Xác nhận",
-                //     cancelText: "Hủy",
-                //     onOk: () => {
-                //       message.success("Đã chuyển đến trang phân công");
-                //       navigate("/staff/schedule");
-                //     },
-                //   });
-                // }}
               >
                 Giao task cho designer
               </Button>

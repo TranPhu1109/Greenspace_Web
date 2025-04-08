@@ -6,33 +6,33 @@
     overflow: hidden;
     padding: 0;
 
-    .custom-calendar {
-      .ant-picker-calendar-header {
-        padding: 12px 16px;
-        border-bottom: 1px solid #f0f0f0;
+    .ant-picker-calendar {
+      .ant-picker-panel {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
-      
-      .ant-picker-calendar-date {
-        margin: 0;
-        padding: 4px 8px;
-        height: 100%;
+      .ant-picker-cell {
+        padding: 4px;
         
-        &-value {
-          margin: 0 0 4px;
-          font-weight: 500;
+        &.ant-picker-cell-in-view {
+          background: #fafafa;
+        }
+        
+        &.ant-picker-cell-selected {
+          background: #e6f7ff;
         }
       }
 
-      .ant-picker-calendar-date-content {
-        height: auto;
+      .date-cell-content {
         min-height: 80px;
-        max-height: 80px;
+        padding: 4px;
+        max-height: 120px;
         overflow-y: auto;
         
-        /* Tùy chỉnh thanh cuộn */
+        /* Tùy chỉnh thanh cuộn cho ô ngày - thanh mảnh và đơn giản hơn */
         &::-webkit-scrollbar {
-          width: 4px;
+          width: 2px;
         }
         
         &::-webkit-scrollbar-track {
@@ -40,43 +40,53 @@
         }
         
         &::-webkit-scrollbar-thumb {
-          background-color: rgba(0, 0, 0, 0.1);
-          border-radius: 4px;
+          background-color: rgba(0, 0, 0, 0.08);
+          border-radius: 2px;
         }
         
         &::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(0, 0, 0, 0.2);
+          background-color: rgba(0, 0, 0, 0.15);
         }
       }
 
-      .date-cell-content {
+      .designer-task-item {
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        max-height: 100%;
-        overflow-y: visible;
-        padding-right: 2px; /* Thêm padding để tránh nội dung bị che bởi thanh cuộn */
-        
-        .designer-task-item {
+        align-items: center;
+        padding: 4px 8px;
+        margin-bottom: 4px;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .designer-avatar {
+          margin-right: 8px;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .designer-info {
+          flex: 1;
           display: flex;
           align-items: center;
-          gap: 4px;
-          padding: 2px 4px;
-          border-radius: 4px;
-          background-color: rgba(0, 0, 0, 0.02);
-          cursor: pointer;
-          transition: background-color 0.2s ease; /* Thêm hiệu ứng chuyển động mượt mà */
-          
-          &:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-          }
-          
+          justify-content: space-between;
+
           .designer-name {
-            flex: 1;
             font-size: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-weight: 500;
+            color: #262626;
+          }
+
+          .task-badge {
+            .ant-badge-count {
+              background: #1890ff;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
           }
         }
       }
@@ -136,32 +146,150 @@
   }
 }
 
-// Tooltip styling
+// Tooltip styles
 .designer-tooltip {
-  .ant-tooltip-inner {
-    background-color: #1f1f1f;
-    padding: 12px;
-    border-radius: 8px;
-    max-width: 250px;
-  }
-  
-  .tooltip-designer {
-    font-weight: 600;
-    font-size: 14px;
+  padding: 8px;
+  max-width: 300px;
+
+  .designer-tooltip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 8px;
-    color: #fff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    padding-bottom: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+
+    strong {
+      font-size: 14px;
+      color: #262626;
+    }
+  }
+
+  .designer-tooltip-tasks {
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      
+      &:not(:last-child) {
+        border-bottom: 1px dashed #f0f0f0;
+      }
+
+      .task-order {
+        font-size: 12px;
+        color: #595959;
+      }
+
+      .ant-tag {
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Status colors
+.ant-tag {
+  &.ant-tag-green {
+    background: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+  }
+
+  &.ant-tag-blue {
+    background: #e6f7ff;
+    border-color: #91d5ff;
+    color: #1890ff;
+  }
+
+  &.ant-tag-purple {
+    background: #f9f0ff;
+    border-color: #d3adf7;
+    color: #722ed1;
+  }
+}
+
+// Calendar header styles
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 8px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .ant-select {
+      min-width: 200px;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+// Day detail styles
+.day-detail {
+  height: 100%;
+  overflow-y: auto;
+  
+  /* Tùy chỉnh thanh cuộn cho phần chi tiết ngày - thanh mảnh và đơn giản hơn */
+  &::-webkit-scrollbar {
+    width: 2px;
   }
   
-  .tooltip-tasks {
-    margin: 4px 0 0;
-    padding-left: 16px;
-    
-    li {
-      margin-bottom: 4px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.6);
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 2px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+
+    .ant-typography {
+      margin: 0;
+    }
+  }
+
+  .designers-section {
+    margin-bottom: 24px;
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+
+      .status-icon {
+        font-size: 16px;
+        
+        &.available {
+          color: #52c41a;
+        }
+        
+        &.busy {
+          color: #1890ff;
+        }
+      }
     }
   }
 }
@@ -170,10 +298,9 @@
 @media (max-width: 768px) {
   .calendar-layout {
     .calendar-container {
-      .custom-calendar {
-        .ant-picker-calendar-date-content {
-          min-height: 60px;
-          max-height: 60px;
+      .ant-picker-calendar {
+        .ant-picker-cell {
+          padding: 4px;
         }
       }
     }
