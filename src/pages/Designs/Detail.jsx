@@ -26,6 +26,7 @@ const DesignDetailPage = () => {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productError, setProductError] = useState(null);
 
+  //console.log("currentDesign", currentDesign);
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -175,26 +176,26 @@ const DesignDetailPage = () => {
                         />
                       }
                     >
-                      <Row gutter={[16, 16]} className="sub-images">
-                        {currentDesign.image.image2 && (
+                      {/* <Row gutter={[16, 16]} className="sub-images">
+                        {currentDesign.image?.image2 && (
                           <Col span={8}>
                             <img
                               alt="Sub 1"
-                              src={currentDesign.image.image2}
+                              src={currentDesign.image?.image2}
                               className="sub-image"
                             />
                           </Col>
                         )}
-                        {currentDesign.image.image3 && (
+                        {currentDesign.image?.image3 && (
                           <Col span={8}>
                             <img
                               alt="Sub 2"
-                              src={currentDesign.image.image3}
+                              src={currentDesign.image?.image3}
                               className="sub-image"
                             />
                           </Col>
                         )}
-                      </Row>
+                      </Row> */}
                       
                     </Card>
                     <Card title="Mô tả">

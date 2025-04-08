@@ -83,7 +83,7 @@ const OrderHistoryDetail = () => {
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
 
   const [designIdea, setDesignIdea] = useState(null);
-  //console.log(designIdea);
+  console.log("designIdea",designIdea);
   const [products, setProducts] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
