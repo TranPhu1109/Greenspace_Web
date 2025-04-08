@@ -15,40 +15,86 @@ const TaskList = () => {
     }
   }, [user]);
 
-  const getStatusColor = (status) => {
-    const statusColors = {
-      ConsultingAndSket: "blue",
-      ConsultingAndSketching: "blue",
-      WaitDeposit: "gold",
+  const getStatusColor = (status, serviceOrderStatus) => {
+    // Task status colors
+    const taskStatusColors = {
+      ConsultingAndSket: "purple",
       DoneConsulting: "green",
-      DepositSuccessful: "blue",
-      AssignToDesigner: "blue",
-      DeterminingMaterialPrice: "blue",
-      DoneDesign: "blue",
-      PaymentSuccess: "blue",
-      Processing: "blue",
-      Designing: "processing",
-      Completed: "success",
-      Cancelled: "error",
+      Design: "processing",
+      DoneDesign: "success",
+      DesignDetail: "processing",
+      DoneDesignDetail: "success"
     };
-    return statusColors[status] || "default";
+
+    // Service order status colors
+    const serviceOrderStatusColors = {
+      Pending: "default",
+      ConsultingAndSketching: "blue",
+      DeterminingDesignPrice: "orange",
+      DepositSuccessful: "green",
+      AssignToDesigner: "blue",
+      DeterminingMaterialPrice: "orange",
+      DoneDesign: "success",
+      PaymentSuccess: "green",
+      Processing: "processing",
+      PickedPackageAndDelivery: "processing",
+      DeliveryFail: "error",
+      ReDelivery: "warning",
+      DeliveredSuccessfully: "success",
+      CompleteOrder: "success",
+      OrderCancelled: "error",
+      Warning: "warning",
+      Refund: "warning",
+      DoneRefund: "success",
+      Completed: "success",
+      ReConsultingAndSketching: "orange",
+      ReDesign: "orange",
+      WaitDeposit: "gold"
+    };
+
+    // Return color based on service order status if available, otherwise use task status
+    return serviceOrderStatusColors[serviceOrderStatus] || taskStatusColors[status] || "default";
   };
 
-  const getStatusText = (status) => {
-    const statusTexts = {
+  const getStatusText = (status, serviceOrderStatus) => {
+    // Task status texts
+    const taskStatusTexts = {
       ConsultingAndSket: "Tư vấn & Phác thảo",
-      ConsultingAndSketching: "Tư vấn & Phác thảo",
-      WaitDeposit: "Chờ đặt cọc",
-      DoneConsulting: "Hoàn tất tư vấn & Phác thảo",
-      DepositSuccessful: "Đã ký hợp đồng và đặt cọc 50% giá thiết kế",
-      AssignToDesigner: "Thiết kế đang được Designer thực hiện",
-      DeterminingMaterialPrice: "Bản vẽ hoàn chỉnh đã hoàn thành, đang xác định giá vật liệu",
-      DoneDesign: "Bản vẽ thiết kế và danh sách vật liệu đã hoàn tất",
-      Designing: "Đang thiết kế",
-      Completed: "Hoàn thành",
-      Cancelled: "Đã hủy",
+      DoneConsulting: "Hoàn thành tư vấn",
+      Design: "Đang thiết kế",
+      DoneDesign: "Hoàn thành thiết kế",
+      DesignDetail: "Đang thiết kế chi tiết",
+      DoneDesignDetail: "Hoàn thành thiết kế chi tiết"
     };
-    return statusTexts[status] || status;
+
+    // Service order status texts
+    const serviceOrderStatusTexts = {
+      Pending: "Chờ xử lý",
+      ConsultingAndSketching: "Đang tư vấn & phác thảo",
+      DeterminingDesignPrice: "Đang xác định giá",
+      DepositSuccessful: "Đặt cọc thành công",
+      AssignToDesigner: "Đã giao cho nhà thiết kế",
+      DeterminingMaterialPrice: "Xác định giá vật liệu",
+      DoneDesign: "Hoàn thành thiết kế",
+      PaymentSuccess: "Thanh toán thành công",
+      Processing: "Đang xử lý",
+      PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
+      DeliveryFail: "Giao hàng thất bại",
+      ReDelivery: "Giao lại",
+      DeliveredSuccessfully: "Đã giao hàng thành công",
+      CompleteOrder: "Hoàn thành đơn hàng",
+      OrderCancelled: "Đơn hàng đã bị hủy",
+      Warning: "Cảnh báo vượt 30%",
+      Refund: "Hoàn tiền",
+      DoneRefund: "Hoàn tiền thành công",
+      Completed: "Hoàn thành",
+      ReConsultingAndSketching: "Phác thảo lại",
+      ReDesign: "Thiết kế lại",
+      WaitDeposit: "Chờ đặt cọc"
+    };
+
+    // Return text based on service order status if available, otherwise use task status
+    return serviceOrderStatusTexts[serviceOrderStatus] || taskStatusTexts[status] || status;
   };
 
   const columns = [
@@ -78,8 +124,17 @@ const TaskList = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
+      render: (status, record) => (
+        <Space direction="vertical" size={2}>
+          <Tag color={getStatusColor(status, record.serviceOrder?.status)}>
+            {getStatusText(status, record.serviceOrder?.status)}
+          </Tag>
+          {record.serviceOrder?.status && record.serviceOrder.status !== status && (
+            <Tag color={getStatusColor(status)}>
+              Task: {getStatusText(status)}
+            </Tag>
+          )}
+        </Space>
       ),
     },
     {

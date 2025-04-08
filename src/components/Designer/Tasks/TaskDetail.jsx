@@ -22,6 +22,9 @@ import {
   Upload,
   Progress,
   Modal,
+  Select,
+  Popconfirm,
+  InputNumber,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -40,6 +43,8 @@ import {
   PictureOutlined,
   EditOutlined,
   UploadOutlined,
+  PlusOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -49,6 +54,7 @@ import useProductStore from "@/stores/useProductStore";
 import useAuthStore from "@/stores/useAuthStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
+import api from "@/api/api";
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -64,16 +70,24 @@ const TaskDetail = () => {
     isLoading: loading,
     fetchTaskDetail,
     updateTaskStatus,
+    setCurrentTask: setTask
   } = useDesignerTask();
-  const { getProductById } = useProductStore();
+  const { getProductById, fetchProducts, products } = useProductStore();
   const { user } = useAuthStore();
   const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
   const [uploading, setUploading] = useState(false);
   const [imageUrls, setImageUrls] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalVisibleDesign, setIsModalVisibleDesign] = useState(false);
   const [sketchImageUrls, setSketchImageUrls] = useState([]);
   const [uploadingSketch, setUploadingSketch] = useState(false);
   const { updateServiceOrder } = useDesignOrderStore();
+  const [uploadingDesign, setUploadingDesign] = useState(false);
+  const [designImageUrls, setDesignImageUrls] = useState([]);
+  const [isProductModalVisible, setIsProductModalVisible] = useState(false);
+  const [allProducts, setAllProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [tempServiceOrderDetails, setTempServiceOrderDetails] = useState([]);
 
   //console.log("task", task);
 
@@ -99,11 +113,37 @@ const TaskDetail = () => {
     return true;
   };
 
+  const handleDesignImageUpload = async (file) => {
+    try {
+      setUploadingDesign(true);
+      const urls = await uploadImages([file]);
+      if (urls && urls.length > 0) {
+        setDesignImageUrls((prev) => [...prev, ...urls]);
+        message.success("Tải lên bản vẽ thiết kế thành công");
+      }
+    } catch (error) {
+      message.error("Tải lên bản vẽ thiết kế thất bại");
+      console.error("Upload error:", error);
+    } finally {
+      setUploadingDesign(false);
+    }
+    return false;
+  };
+
+  const handleDesignImageRemove = (file) => {
+    setDesignImageUrls((prev) => prev.filter((url) => url !== file.url));
+    return true;
+  };
+
   const showModal = () => {
     setIsModalVisible(true);
   };
 
-  const handleOk = async () => {
+  const showModalDesign = () => {
+    setIsModalVisibleDesign(true);
+  };
+
+  const handleOkSketch = async () => {
     try {
       // Step 1: Update service order
       const serviceOrderUpdateData = {
@@ -140,14 +180,220 @@ const TaskDetail = () => {
     }
   };
 
+  const handleOkDesign = async () => {
+    try {
+      // Step 1: Update service order
+      const serviceOrderUpdateData = {
+        serviceType: 0,
+        designPrice: task.serviceOrder.designPrice,
+        description: task.serviceOrder.description,
+        status: 4,
+        report: "",
+        image: {
+          imageUrl: designImageUrls[0] || "",
+          image2: designImageUrls[1] || "",
+          image3: designImageUrls[2] || ""
+        },
+        serviceOrderDetails: task.serviceOrder.serviceOrderDetails
+      };
+
+      await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+
+      // Step 2: Update task status
+      await updateTaskStatus(task.id, {
+        serviceOrderId: task.serviceOrder.id,
+        userId: user.id,
+        status: 2,
+        note: "Đã cập nhật bản vẽ thiết kế"
+      });
+
+      message.success("Cập nhật bản vẽ thiết kế thành công");
+      setIsModalVisible(false);
+      // Reload the page after successful update
+      window.location.reload();
+    } catch (error) {
+      message.error("Cập nhật bản vẽ thiết kế thất bại");
+      console.error("Update error:", error);
+    }
+  };
+
   const handleCancel = () => {
     setIsModalVisible(false);
+  };
+
+  // Hàm mở modal tùy chỉnh sản phẩm
+  const showProductModal = async () => {
+    try {
+      // Lấy danh sách tất cả sản phẩm từ shop
+      const products = await fetchProducts();
+      setAllProducts(products);
+
+      // Khởi tạo danh sách sản phẩm đã chọn từ serviceOrderDetails
+      const initialSelectedProducts = task.serviceOrder.serviceOrderDetails.map(detail => ({
+        productId: detail.productId,
+        quantity: detail.quantity || 1
+      }));
+
+      // Set danh sách tạm thời từ serviceOrderDetails
+      setTempServiceOrderDetails(initialSelectedProducts);
+      setSelectedProducts([]); // Reset selected products
+      setIsProductModalVisible(true);
+    } catch (error) {
+      message.error("Không thể tải danh sách sản phẩm");
+      console.error("Error loading products:", error);
+    }
+  };
+
+  // Hàm thêm sản phẩm mới vào danh sách tạm
+  const handleAddProduct = () => {
+    if (selectedProducts.length === 0) {
+      message.warning("Vui lòng chọn sản phẩm");
+      return;
+    }
+
+    const selectedProductId = selectedProducts[0];
+    const selectedProduct = allProducts.find(p => p.id === selectedProductId);
+
+    if (!selectedProduct) {
+      message.error("Không tìm thấy thông tin sản phẩm");
+      return;
+    }
+
+    // Kiểm tra xem sản phẩm đã tồn tại trong danh sách tạm chưa
+    const existingProduct = tempServiceOrderDetails.find(
+      item => item.productId === selectedProductId
+    );
+
+    if (existingProduct) {
+      message.warning("Sản phẩm này đã có trong danh sách");
+      return;
+    }
+
+    // Thêm sản phẩm mới vào danh sách tạm
+    const newProduct = {
+      productId: selectedProductId,
+      quantity: 1
+    };
+
+    // Cập nhật danh sách tạm thời
+    setTempServiceOrderDetails(prev => [...prev, newProduct]);
+    setSelectedProducts([]); // Reset selected products
+
+    message.success(`Đã thêm sản phẩm "${selectedProduct.name}" vào danh sách`);
+  };
+
+  // Hàm xóa sản phẩm khỏi danh sách tạm
+  const handleRemoveProduct = (productId) => {
+    const productToRemove = allProducts.find(p => p.id === productId);
+
+    // Cập nhật danh sách tạm thời bằng cách lọc bỏ sản phẩm
+    setTempServiceOrderDetails(prev =>
+      prev.filter(item => item.productId !== productId)
+    );
+
+    if (productToRemove) {
+      message.success(`Đã xóa sản phẩm "${productToRemove.name}" khỏi danh sách`);
+    }
+  };
+
+  // Hàm cập nhật số lượng sản phẩm trong danh sách tạm
+  const handleUpdateQuantity = (productId, quantity) => {
+    const newQuantity = parseInt(quantity) || 0;
+    if (newQuantity < 0) {
+      message.warning("Số lượng không thể âm");
+      return;
+    }
+
+    // Cập nhật số lượng trong danh sách tạm thời
+    setTempServiceOrderDetails(prev =>
+      prev.map(item =>
+        item.productId === productId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  // Hàm lưu danh sách sản phẩm đã tùy chỉnh
+  const handleSaveProducts = async () => {
+    try {
+      // Kiểm tra xem có sản phẩm nào trong danh sách tạm không
+      if (tempServiceOrderDetails.length === 0) {
+        message.warning("Vui lòng thêm ít nhất một sản phẩm");
+        return;
+      }
+
+      // Kiểm tra số lượng của từng sản phẩm trong danh sách tạm
+      const invalidProducts = tempServiceOrderDetails.filter(item => item.quantity <= 0);
+      if (invalidProducts.length > 0) {
+        message.warning("Vui lòng kiểm tra lại số lượng sản phẩm");
+        return;
+      }
+
+      // Cập nhật service order với danh sách sản phẩm từ mảng tạm
+      const serviceOrderUpdateData = {
+        serviceType: 0,
+        designPrice: task.serviceOrder.designPrice,
+        description: task.serviceOrder.description,
+        status: 4, // Designing
+        report: "",
+        image: task.serviceOrder.image,
+        serviceOrderDetails: tempServiceOrderDetails // Sử dụng danh sách từ mảng tạm
+      };
+
+      await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+
+      // Cập nhật state của task với serviceOrder mới
+      const updatedTask = {
+        ...task,
+        serviceOrder: {
+          ...task.serviceOrder,
+          serviceOrderDetails: tempServiceOrderDetails
+        }
+      };
+      setTask(updatedTask);
+
+      message.success("Cập nhật danh sách sản phẩm thành công");
+      setIsProductModalVisible(false);
+    } catch (error) {
+      message.error("Cập nhật danh sách sản phẩm thất bại");
+      console.error("Update error:", error);
+    }
+  };
+
+  // Hàm hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm
+  const handleCompleteDesign = async () => {
+    try {
+      // Cập nhật trạng thái service order thành DeterminingMaterialPrice (5)
+      const response = await api.put(`/api/serviceorder/status/${task.serviceOrder.id}`, {
+        status: 5,
+        deliveryCode: ""
+      });
+
+      if (response.status === 200) {
+        // Cập nhật state của task với serviceOrder mới
+        const updatedTask = {
+          ...task,
+          serviceOrder: {
+            ...task.serviceOrder,
+            status: 5
+          }
+        };
+        setTask(updatedTask);
+
+        message.success("Hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm");
+      } else {
+        message.error("Không thể cập nhật trạng thái service order");
+      }
+    } catch (error) {
+      message.error("Cập nhật trạng thái service order thất bại");
+      console.error("Update error:", error);
+    }
   };
 
   useEffect(() => {
     const loadTaskDetail = async () => {
       try {
         const taskData = await fetchTaskDetail(id);
+        setTask(taskData);
         setNote(taskData.note || "");
 
         // Load product details if there are products in the order
@@ -161,7 +407,17 @@ const TaskDetail = () => {
     loadTaskDetail();
   }, [id]);
 
+  useEffect(() => {
+    if (products.length > 0 && task?.serviceOrder?.serviceOrderDetails) {
+      loadProductDetails(task.serviceOrder.serviceOrderDetails);
+    }
+  }, [products, task]);
+
   const loadProductDetails = async (orderDetails) => {
+    if (!orderDetails || orderDetails.length === 0) {
+      return;
+    }
+
     setLoadingProducts(true);
     try {
       const productPromises = orderDetails.map((detail) =>
@@ -253,6 +509,8 @@ const TaskDetail = () => {
       </div>
     );
   }
+
+  console.log(productDetails);
 
   // Product table columns
   const productColumns = [
@@ -356,7 +614,17 @@ const TaskDetail = () => {
               #{task.id}
             </span>
           </Title>
+
         </div>
+        {task.serviceOrder.status === "AssignToDesigner" && (
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={handleCompleteDesign}
+          >
+            Hoàn tất cập nhật thiết kế chi tiết
+          </Button>
+        )}
         {/* <Tag color={getStatusColor(task.status)} strong>
           {getStatusText(task.status)}
         </Tag> */}
@@ -560,17 +828,27 @@ const TaskDetail = () => {
                 </Row>
               </div>
             )}
-            {task.status !== "DoneConsulting" && (
-          <Button 
-            type="primary" 
-            icon={<UploadOutlined />}
-            onClick={showModal}
-          >
-            Tải lên bản vẽ
-          </Button>
-        )}
+            {task.status === "ConsultingAndSket" && task.serviceOrder.status === "ReConsultingAndSketching" && (
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                onClick={showModal}
+              >
+                Tải lên bản vẽ phác thảo
+              </Button>
+            )}
+            {task.status === "Design" &&
+              task.serviceOrder.status === "AssignToDesigner" &&
+              task.serviceOrder.status === "ReDesign" && (
+                <Button
+                  type="primary"
+                  icon={<UploadOutlined />}
+                  onClick={showModalDesign}
+                >
+                  Cập nhật bản vẽ thiết kế chi tiết
+                </Button>
+              )}
           </Card>
-          
         </Col>
       </Row>
 
@@ -582,6 +860,20 @@ const TaskDetail = () => {
           </Space>
         }
         className="mb-6 shadow-sm"
+        extra={
+          <Space>
+            {task.status === "Design" && task.status === "AssignToDesigner" && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={showProductModal}
+              >
+                Tùy chỉnh sản phẩm
+              </Button>
+            )}
+
+          </Space>
+        }
       >
         {loadingProducts ? (
           <div className="py-8 text-center">
@@ -619,6 +911,8 @@ const TaskDetail = () => {
         </Space>
       </Card>
 
+
+
       <Card
         title={
           <Space>
@@ -627,6 +921,7 @@ const TaskDetail = () => {
           </Space>
         }
         className="shadow-sm"
+        style={{ marginTop: 16 }}
       >
         <Timeline>
           {task.statusHistory?.map((history, index) => (
@@ -650,51 +945,229 @@ const TaskDetail = () => {
         </Timeline>
       </Card>
 
-      
-        
-        
-
-        <Modal
-          title="Cập nhật bản vẽ phác thảo"
-          open={isModalVisible}
-          onOk={handleOk}
-          onCancel={handleCancel}
-          width={800}
-        >
-          <div>
-            <Upload
-              listType="picture-card"
-              beforeUpload={handleSketchImageUpload}
-              onRemove={handleSketchImageRemove}
-              maxCount={3}
-              accept="image/*"
-              fileList={sketchImageUrls.map((url, index) => ({
-                uid: `-${index}`,
-                name: `sketch-${index + 1}`,
-                status: "done",
-                url: url,
-              }))}
-            >
-              {sketchImageUrls.length < 3 && (
-                <div>
-                  <UploadOutlined />
-                  <div style={{ marginTop: 8 }}>
-                    Tải ảnh
-                  </div>
+      {/* Modal cập nhật bản vẽ phác thảo */}
+      <Modal
+        title="Cập nhật bản vẽ phác thảo"
+        open={isModalVisible}
+        onOk={handleOkSketch}
+        onCancel={handleCancel}
+        width={800}
+      >
+        <div>
+          <Upload
+            listType="picture-card"
+            beforeUpload={handleSketchImageUpload}
+            onRemove={handleSketchImageRemove}
+            maxCount={3}
+            accept="image/*"
+            fileList={sketchImageUrls.map((url, index) => ({
+              uid: `-${index}`,
+              name: `sketch-${index + 1}`,
+              status: "done",
+              url: url,
+            }))}
+          >
+            {sketchImageUrls.length < 3 && (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>
+                  Tải ảnh
                 </div>
-              )}
-            </Upload>
-            {uploadingSketch && (
-              <div style={{ marginTop: 8 }}>
-                <Progress percent={progress} size="small" />
               </div>
             )}
-            {uploadError && (
-              <div style={{ color: "red", marginTop: 8 }}>{uploadError}</div>
+          </Upload>
+          {uploadingSketch && (
+            <div style={{ marginTop: 8 }}>
+              <Progress percent={progress} size="small" />
+            </div>
+          )}
+          {uploadError && (
+            <div style={{ color: "red", marginTop: 8 }}>{uploadError}</div>
+          )}
+        </div>
+      </Modal>
+      {/* Modal cập nhật bản vẽ thiết kế */}
+      <Modal
+        title="Cập nhật bản vẽ thiết kế"
+        open={isModalVisibleDesign}
+        onOk={handleOkDesign}
+        onCancel={handleCancel}
+        width={800}
+      >
+        <div>
+          <Upload
+            listType="picture-card"
+            beforeUpload={handleDesignImageUpload}
+            onRemove={handleDesignImageRemove}
+            maxCount={3}
+            accept="image/*"
+            fileList={designImageUrls.map((url, index) => ({
+              uid: `-${index}`,
+              name: `design-${index + 1}`,
+              status: "done",
+              url: url,
+            }))}
+          >
+            {designImageUrls.length < 3 && (
+              <div>
+                <UploadOutlined />
+                <div style={{ marginTop: 8 }}>
+                  Tải ảnh
+                </div>
+              </div>
             )}
-          </div>
-        </Modal>
-      
+          </Upload>
+          {uploadingDesign && (
+            <div style={{ marginTop: 8 }}>
+              <Progress percent={progress} size="small" />
+            </div>
+          )}
+          {uploadError && (
+            <div style={{ color: "red", marginTop: 8 }}>{uploadError}</div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Modal tùy chỉnh sản phẩm */}
+      <Modal
+        title="Tùy chỉnh danh sách sản phẩm"
+        open={isProductModalVisible}
+        onOk={handleSaveProducts}
+        onCancel={() => setIsProductModalVisible(false)}
+        width={800}
+      >
+        <div className="mb-4">
+          <Space>
+            <Select
+              style={{ width: 300 }}
+              placeholder="Chọn sản phẩm"
+              value={selectedProducts}
+              onChange={(value) => {
+                console.log("Selected product:", value);
+                setSelectedProducts(value ? [value] : []);
+              }}
+              mode="single"
+              optionFilterProp="children"
+            >
+              {allProducts.map((product) => (
+                <Select.Option key={product.id} value={product.id}>
+                  {product.name}
+                </Select.Option>
+              ))}
+            </Select>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAddProduct}
+            >
+              Thêm
+            </Button>
+          </Space>
+        </div>
+
+        <Table
+          dataSource={tempServiceOrderDetails.map((item, index) => {
+            const product = allProducts.find(p => p.id === item.productId);
+            return {
+              key: index,
+              productId: item.productId,
+              productName: product ? product.name : "Đang tải...",
+              productImage: product?.image?.imageUrl || "",
+              productPrice: product?.price || 0,
+              quantity: item.quantity,
+            };
+          })}
+          columns={[
+            {
+              title: "Sản phẩm",
+              dataIndex: "productName",
+              key: "productName",
+              render: (_, record) => {
+                const product = allProducts.find(p => p.id === record.productId);
+                return (
+                  <div className="flex items-center">
+                    {product?.image?.imageUrl ? (
+                      <Image
+                        src={product.image.imageUrl}
+                        alt={product.name}
+                        width={50}
+                        height={50}
+                        className="object-cover rounded mr-3"
+                        style={{ marginRight: "10px", borderRadius: "8px" }}
+                      />
+                    ) : (
+                      <div className="w-[50px] h-[50px] bg-gray-200 rounded mr-3 flex items-center justify-center">
+                        <ShoppingOutlined className="text-gray-400 text-xl" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium">{product ? product.name : "Đang tải..."}</div>
+                      <div className="text-xs text-gray-500">ID: {record.productId}</div>
+                    </div>
+                  </div>
+                );
+              },
+            },
+            {
+              title: "Đơn giá",
+              dataIndex: "productPrice",
+              key: "productPrice",
+              render: (_, record) => {
+                const product = allProducts.find(p => p.id === record.productId);
+                return product ? product.price?.toLocaleString("vi-VN") + " đ" : "Đang tải...";
+              },
+            },
+            {
+              title: "Số lượng",
+              dataIndex: "quantity",
+              key: "quantity",
+              render: (_, record) => (
+                <InputNumber
+                  type="number"
+                  min={1}
+                  value={record.quantity}
+                  onChange={(e) => handleUpdateQuantity(record.productId, e.target.value)}
+                  style={{ width: 100 }}
+                />
+              ),
+            },
+            {
+              title: "Thành tiền",
+              key: "totalPrice",
+              render: (_, record) => {
+                const product = allProducts.find(p => p.id === record.productId);
+                const price = product?.price || 0;
+                return (
+                  <Text strong>
+                    {(price * record.quantity).toLocaleString("vi-VN")} đ
+                  </Text>
+                );
+              },
+            },
+            {
+              title: "Thao tác",
+              key: "action",
+              render: (_, record) => (
+                <Popconfirm
+                  title="Bạn có chắc chắn muốn xóa sản phẩm này?"
+                  onConfirm={() => handleRemoveProduct(record.productId)}
+                  okText="Có"
+                  cancelText="Không"
+                >
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                  >
+                    Xóa
+                  </Button>
+                </Popconfirm>
+              ),
+            },
+          ]}
+          pagination={false}
+        />
+      </Modal>
     </div>
   );
 };

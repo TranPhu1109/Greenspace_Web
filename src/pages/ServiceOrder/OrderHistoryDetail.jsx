@@ -287,12 +287,28 @@ const OrderHistoryDetail = () => {
       }
     };
 
+    const fetchDesignRecords = async () => {
+      if (selectedOrder?.isCustom && selectedOrder?.status !== "DeterminingMaterialPrice") {
+        try {
+          setLoadingDesign(true);
+          await getRecordDesign(selectedOrder.id);
+        } catch (error) {
+          console.error("Error fetching design records:", error);
+        } finally {
+          setLoadingDesign(false);
+        }
+      }
+    };
+    
+
     fetchSketchRecords();
+    fetchDesignRecords();
   }, [
     selectedOrder?.id,
     selectedOrder?.isCustom,
     selectedOrder?.status,
     getRecordSketch,
+    getRecordDesign,
   ]);
 
   // Add useEffect for design records
@@ -600,6 +616,16 @@ const OrderHistoryDetail = () => {
     }
   };
 
+  const handleReDesign = async () => {
+    try {
+      await updateStatus(selectedOrder.id, "ReDesign");
+      message.success("Đã xác nhận yêu cầu thiết kế lại");
+      await getDesignOrderById(id, componentId.current);
+    } catch (error) {
+      message.error("Có lỗi xảy ra khi yêu cầu thiết kế lại");
+    }
+  };
+
   const handleCancelDesignSelection = () => {
     setSelectedDesignId(null);
     setIsConfirmDesignModalVisible(false);
@@ -690,6 +716,8 @@ const OrderHistoryDetail = () => {
       </Layout>
     );
   }
+
+  console.log(designRecords);
   return (
     <Layout className="order-detail-layout">
       <Header />
@@ -1164,7 +1192,9 @@ const OrderHistoryDetail = () => {
                 selectedOrder.status !== "Pending" &&
                 selectedOrder.status !== "ConsultingAndSketching" &&
                 selectedOrder.status !== "DeterminingDesignPrice" &&
-                selectedOrder.status !== "DepositSuccessful" && (
+                selectedOrder.status !== "DepositSuccessful" &&
+                selectedOrder.status !== "AssignToDesigner" &&
+                selectedOrder.status !== "DeterminingMaterialPrice" && (
                   <Card
                     title={
                       <Space>
@@ -1172,128 +1202,135 @@ const OrderHistoryDetail = () => {
                         <span>Bản vẽ chi tiết</span>
                       </Space>
                     }
+                    extra={
+                      selectedOrder.status === "DoneDesign" && (
+                        <Button
+                          type="primary"
+                          onClick={handleReDesign}
+                        >
+                          Yêu cầu thiết kế lại
+                        </Button>
+                      )
+                    }
                     type="inner"
                   >
                     {loadingDesign ? (
                       <div style={{ textAlign: "center", padding: "20px" }}>
                         <Spin tip="Đang tải bản vẽ chi tiết..." />
                       </div>
-                    ) : designRecords.filter((record) => record.isSelected).length > 0 ? (
+                    ) : designRecords && designRecords.length > 0 ? (
                       <div>
-                        {designRecords
-                          .filter((record) => record.isSelected)
-                          .map((record, index) => (
-                            <div key={record.id} style={{ marginBottom: "24px" }}>
-                              <div
-                                style={{
-                                  marginBottom: "8px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                <div>
-                                  <Text strong>
-                                    Bản vẽ chi tiết {record.phase}
-                                  </Text>
-                                  <Text
-                                    type="secondary"
-                                    style={{ marginLeft: "8px" }}
-                                  >
-                                    (
-                                    {new Date(record.creationDate).toLocaleString(
-                                      "vi-VN"
-                                    )}
-                                    )
-                                  </Text>
-                                </div>
-                                <Button
-                                  type={record.isSelected ? "primary" : "default"}
-                                  onClick={() => handleSelectDesign(record.id)}
-                                  disabled={record.isSelected}
+                        {designRecords.map((record, index) => (
+                          <div key={record.id} style={{ marginBottom: "24px" }}>
+                            <div
+                              style={{
+                                marginBottom: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <div>
+                                <Text strong>
+                                  Bản vẽ chi tiết {record.phase}
+                                </Text>
+                                <Text
+                                  type="secondary"
+                                  style={{ marginLeft: "8px" }}
                                 >
-                                  {record.isSelected
-                                    ? "Đã chọn"
-                                    : "Chọn bản vẽ này"}
+                                  (
+                                  {new Date(record.creationDate).toLocaleString(
+                                    "vi-VN"
+                                  )}
+                                  )
+                                </Text>
+                              </div>
+                              {selectedOrder.status === "DoneDesign" && !record.isSelected && (
+                                <Button
+                                  type="default"
+                                  onClick={() => handleSelectDesign(record.id)}
+                                >
+                                  Chọn bản vẽ này
                                 </Button>
-                              </div>
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns:
-                                    "repeat(auto-fit, minmax(300px, 1fr))",
-                                  gap: "16px",
-                                  padding: "16px",
-                                  backgroundColor: "#f5f5f5",
-                                  borderRadius: "8px",
-                                }}
-                              >
-                                {record.image?.imageUrl && (
-                                  <div>
-                                    <Image
-                                      src={record.image.imageUrl}
-                                      alt={`Bản vẽ chi tiết ${index + 1} - 1`}
-                                      style={{ width: "100%", height: "auto" }}
-                                      preview={{
-                                        mask: "Phóng to",
-                                        maskClassName: "custom-mask",
-                                      }}
-                                    />
-                                    <div
-                                      style={{
-                                        textAlign: "center",
-                                        marginTop: "8px",
-                                      }}
-                                    >
-                                      <Text type="secondary">Hình ảnh 1</Text>
-                                    </div>
-                                  </div>
-                                )}
-                                {record.image?.image2 && (
-                                  <div>
-                                    <Image
-                                      src={record.image.image2}
-                                      alt={`Bản vẽ chi tiết ${index + 1} - 2`}
-                                      style={{ width: "100%", height: "auto" }}
-                                      preview={{
-                                        mask: "Phóng to",
-                                        maskClassName: "custom-mask",
-                                      }}
-                                    />
-                                    <div
-                                      style={{
-                                        textAlign: "center",
-                                        marginTop: "8px",
-                                      }}
-                                    >
-                                      <Text type="secondary">Hình ảnh 2</Text>
-                                    </div>
-                                  </div>
-                                )}
-                                {record.image?.image3 && (
-                                  <div>
-                                    <Image
-                                      src={record.image.image3}
-                                      alt={`Bản vẽ chi tiết ${index + 1} - 3`}
-                                      style={{ width: "100%", height: "auto" }}
-                                      preview={{
-                                        mask: "Phóng to",
-                                        maskClassName: "custom-mask",
-                                      }}
-                                    />
-                                    <div
-                                      style={{
-                                        textAlign: "center",
-                                        marginTop: "8px",
-                                      }}
-                                    >
-                                      <Text type="secondary">Hình ảnh 3</Text>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
-                          ))}
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "repeat(auto-fit, minmax(300px, 1fr))",
+                                gap: "16px",
+                                padding: "16px",
+                                backgroundColor: "#f5f5f5",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              {record.image?.imageUrl && (
+                                <div>
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Bản vẽ chi tiết ${index + 1} - 1`}
+                                    style={{ width: "100%", height: "auto" }}
+                                    preview={{
+                                      mask: "Phóng to",
+                                      maskClassName: "custom-mask",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      textAlign: "center",
+                                      marginTop: "8px",
+                                    }}
+                                  >
+                                    <Text type="secondary">Hình ảnh 1</Text>
+                                  </div>
+                                </div>
+                              )}
+                              {record.image?.image2 && (
+                                <div>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Bản vẽ chi tiết ${index + 1} - 2`}
+                                    style={{ width: "100%", height: "auto" }}
+                                    preview={{
+                                      mask: "Phóng to",
+                                      maskClassName: "custom-mask",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      textAlign: "center",
+                                      marginTop: "8px",
+                                    }}
+                                  >
+                                    <Text type="secondary">Hình ảnh 2</Text>
+                                  </div>
+                                </div>
+                              )}
+                              {record.image?.image3 && (
+                                <div>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Bản vẽ chi tiết ${index + 1} - 3`}
+                                    style={{ width: "100%", height: "auto" }}
+                                    preview={{
+                                      mask: "Phóng to",
+                                      maskClassName: "custom-mask",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      textAlign: "center",
+                                      marginTop: "8px",
+                                    }}
+                                  >
+                                    <Text type="secondary">Hình ảnh 3</Text>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       <Empty

@@ -191,6 +191,11 @@ const useScheduleStore = create((set, get) => ({
           if (task.status === 2 || task.status === "Design" || order.status === "AssignToDesigner") {
             return null;
           }
+
+          // Chỉ cập nhật khi order có trạng thái DepositSuccessful và task có trạng thái DoneConsulting
+          if (order.status !== "DepositSuccessful" || task.status !== "DoneConsulting") {
+            return null;
+          }
           
           // Cập nhật trạng thái task lên 2
           const updateResponse = await api.put(`/api/worktask/${task.id}`, {
@@ -200,13 +205,18 @@ const useScheduleStore = create((set, get) => ({
             note: task.note || "Khách hàng đã đặt cọc"
           });
 
-          console.log("Updating service order status for order:", order.id);
-          // Tự động cập nhật trạng thái service order lên 4 (Designing)
-          const updateServiceOrder = await api.put(`/api/serviceorder/status/${order.id}`, {
-            status: 4 // Trạng thái 4 tương ứng với "Designing"
-          });
+          // Chỉ cập nhật service order nếu cập nhật task thành công
+          if (updateResponse.data) {
+            console.log("Updating service order status for order:", order.id);
+            // Tự động cập nhật trạng thái service order lên 4 (Designing)
+            const updateServiceOrder = await api.put(`/api/serviceorder/status/${order.id}`, {
+              status: 4, // Trạng thái 4 tương ứng với "Designing"
+              deliveryCode: "" // Thêm trường deliveryCode theo yêu cầu API
+            });
+            
+            console.log("Service order update response:", updateServiceOrder.data);
+          }
           
-          console.log("Service order update response:", updateServiceOrder.data);
           return updateResponse.data;
         }
         return null;
