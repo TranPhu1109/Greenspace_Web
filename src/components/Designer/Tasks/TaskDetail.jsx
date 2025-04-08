@@ -77,28 +77,6 @@ const TaskDetail = () => {
 
   //console.log("task", task);
 
-  const handleImageUpload = async (file) => {
-    try {
-      setUploading(true);
-      const urls = await uploadImages([file]);
-      if (urls && urls.length > 0) {
-        setImageUrls((prev) => [...prev, ...urls]);
-        message.success("Tải lên hình ảnh thành công");
-      }
-    } catch (error) {
-      message.error("Tải lên hình ảnh thất bại");
-      console.error("Upload error:", error);
-    } finally {
-      setUploading(false);
-    }
-    return false; // Prevent default upload behavior
-  };
-
-  const handleImageRemove = (file) => {
-    setImageUrls((prev) => prev.filter((url) => url !== file.url));
-    return true;
-  };
-
   const handleSketchImageUpload = async (file) => {
     try {
       setUploadingSketch(true);
@@ -582,8 +560,17 @@ const TaskDetail = () => {
                 </Row>
               </div>
             )}
-            
+            {task.status !== "DoneConsulting" && (
+          <Button 
+            type="primary" 
+            icon={<UploadOutlined />}
+            onClick={showModal}
+          >
+            Tải lên bản vẽ
+          </Button>
+        )}
           </Card>
+          
         </Col>
       </Row>
 
@@ -663,22 +650,9 @@ const TaskDetail = () => {
         </Timeline>
       </Card>
 
-      <Card
-        title={
-          <Space>
-            <PictureOutlined />
-            <span>Bản vẽ thiết kế</span>
-          </Space>
-        }
-        className="mb-6 shadow-sm"
-      >
-        <Button 
-          type="primary" 
-          icon={<UploadOutlined />}
-          onClick={showModal}
-        >
-          Tải lên bản vẽ
-        </Button>
+      
+        
+        
 
         <Modal
           title="Cập nhật bản vẽ phác thảo"
@@ -720,7 +694,7 @@ const TaskDetail = () => {
             )}
           </div>
         </Modal>
-      </Card>
+      
     </div>
   );
 };
