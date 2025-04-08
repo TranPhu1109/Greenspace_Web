@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -8,6 +8,7 @@ import {
   Button,
   Tooltip,
   message,
+  Radio,
 } from "antd";
 import {
   EyeOutlined,
@@ -18,11 +19,57 @@ import dayjs from "dayjs";
 
 const ServiceOrderList = () => {
   const navigate = useNavigate();
-  const { serviceOrders, isLoading, fetchServiceOrders } = useAccountantStore();
+  const { 
+    serviceOrders, 
+    materialPriceOrders, 
+    isLoading, 
+    fetchServiceOrders, 
+    fetchMaterialPriceOrders 
+  } = useAccountantStore();
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [allOrders, setAllOrders] = useState([]);
 
   useEffect(() => {
-    fetchServiceOrders();
+    loadAllOrders();
   }, []);
+
+  useEffect(() => {
+    filterOrders();
+  }, [filterStatus, serviceOrders, materialPriceOrders]);
+
+  const loadAllOrders = async () => {
+    try {
+      await Promise.all([
+        fetchServiceOrders(),
+        fetchMaterialPriceOrders()
+      ]);
+    } catch (error) {
+      // message.error("Không thể tải danh sách đơn hàng");
+    }
+  };
+
+  const filterOrders = () => {
+    let filteredOrders = [];
+    
+    if (filterStatus === "all") {
+      // Kết hợp cả hai danh sách và loại bỏ trùng lặp
+      const combinedOrders = [...serviceOrders, ...materialPriceOrders];
+      const uniqueOrders = combinedOrders.filter((order, index, self) => 
+        index === self.findIndex((o) => o.id === order.id)
+      );
+      filteredOrders = uniqueOrders;
+    } else if (filterStatus === "designPrice") {
+      // Lọc đơn hàng có trạng thái DeterminingDesignPrice
+      filteredOrders = serviceOrders.filter(order => 
+        order.status === "DeterminingDesignPrice"
+      );
+    } else if (filterStatus === "materialPrice") {
+      // Lấy đơn hàng từ materialPriceOrders
+      filteredOrders = materialPriceOrders;
+    }
+    
+    setAllOrders(filteredOrders);
+  };
 
   const getStatusColor = (status) => {
     const statusColors = {
@@ -138,9 +185,20 @@ const ServiceOrderList = () => {
 
   return (
     <Card title="Danh sách đơn thiết kế">
+      <div className="mb-4">
+        <Radio.Group 
+          value={filterStatus} 
+          onChange={(e) => setFilterStatus(e.target.value)}
+          buttonStyle="solid"
+        >
+          <Radio.Button value="all">Tất cả đơn hàng</Radio.Button>
+          <Radio.Button value="designPrice">Xác định giá thiết kế</Radio.Button>
+          <Radio.Button value="materialPrice">Xác định giá vật liệu</Radio.Button>
+        </Radio.Group>
+      </div>
       <Table
         columns={columns}
-        dataSource={serviceOrders}
+        dataSource={allOrders}
         loading={isLoading}
         rowKey="id"
         pagination={{
