@@ -2,6 +2,7 @@ import React from "react";
 import { Typography, Button, Row, Col } from "antd";
 import { PhoneOutlined, MailOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const { Title, Paragraph } = Typography;
 
@@ -41,7 +42,7 @@ const CTASection = () => {
           <Col xs={24} md={12}>
             <div className="cta-image">
               <img
-                src="/images/cta-image.jpg"
+                src={logo}
                 alt="Green Space Design"
                 className="rounded-image"
               />

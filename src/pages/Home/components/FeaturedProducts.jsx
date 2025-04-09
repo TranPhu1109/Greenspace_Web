@@ -2,6 +2,7 @@ import React from "react";
 import { Typography, Row, Col, Card, Button } from "antd";
 import { Link } from "react-router-dom";
 import { ArrowRightOutlined } from "@ant-design/icons";
+import "./styles.scss";
 
 const { Title, Paragraph } = Typography;
 const { Meta } = Card;
@@ -16,7 +17,7 @@ const FeaturedProducts = ({ products }) => {
             Khám phá các sản phẩm chất lượng cao cho không gian xanh của bạn
           </Paragraph>
         </div>
-        
+
         <Row gutter={[24, 24]}>
           {products.length === 0 ? (
             // Skeleton loading
@@ -44,7 +45,7 @@ const FeaturedProducts = ({ products }) => {
                     title={product.name}
                     description={
                       <div className="product-info">
-                        <p className="product-description">{product.description}</p>
+                        {/* <p className="product-description" dangerouslySetInnerHTML={{ __html: product.description }}></p> */}
                         <p className="product-price">
                           {product.price.toLocaleString("vi-VN", {
                             style: "currency",
