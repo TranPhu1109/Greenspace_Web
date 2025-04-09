@@ -56,6 +56,14 @@ const useAuthStore = create(
             loading: false 
           });
 
+          // Đồng bộ giỏ hàng local lên server sau khi đăng nhập thành công
+          try {
+            const cartStore = (await import('./useCartStore')).default;
+            await cartStore.getState().syncLocalCartToServer();
+          } catch (syncError) {
+            console.error('Error syncing local cart:', syncError);
+          }
+
           // Fetch wallet balance after successful login
           if (userData.roleName === 'Customer') {
             const walletStore = (await import('./useWalletStore')).default;
@@ -234,6 +242,16 @@ const useAuthStore = create(
             .authenticateWithFirebase(user);
 
           set({ user: authenticatedUser, loading: false });
+          
+          // Đồng bộ giỏ hàng local lên server sau khi đăng nhập thành công
+          try {
+            const cartStore = (await import('./useCartStore')).default;
+            await cartStore.getState().syncLocalCartToServer();
+            await cartStore.getState().fetchCartItems();
+          } catch (syncError) {
+            console.error('Error syncing local cart:', syncError);
+          }
+          
           return authenticatedUser;
         } catch (err) {
           set({ error: err.message, loading: false });

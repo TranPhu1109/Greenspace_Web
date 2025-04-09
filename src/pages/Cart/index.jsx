@@ -17,7 +17,7 @@ import {
   ShoppingCartOutlined,
   ShoppingOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useCartStore from "@/stores/useCartStore";
@@ -25,12 +25,14 @@ import useWalletStore from "@/stores/useWalletStore";
 import useProductStore from "@/stores/useProductStore";
 import debounce from 'lodash/debounce';
 import "./styles.scss";
+import LoginRequiredModal from "@/components/Auth/LoginRequiredModal";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const CartPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     cartItems,
     loading,
@@ -41,6 +43,7 @@ const CartPage = () => {
   } = useCartStore();
   const { balance, fetchBalance } = useWalletStore();
   const { products, fetchProducts } = useProductStore();
+  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   
   // State tạm thời lưu số lượng hiển thị trước khi gửi API
   const [localCartItems, setLocalCartItems] = useState([]);
@@ -50,11 +53,50 @@ const CartPage = () => {
     setLocalCartItems(cartItems);
   }, [cartItems]);
 
+  // Kiểm tra nếu người dùng quay lại từ trang đăng nhập/đăng ký
+  useEffect(() => {
+    if (location?.state?.actionCompleted && location?.state?.from === '/cart') {
+      // Xóa state để tránh thực hiện lại hành động nếu người dùng refresh trang
+      navigate(location.pathname, { replace: true });
+      // Thực hiện kiểm tra tiếp tục thanh toán
+      handleCheckoutAfterLogin();
+    }
+  }, [location]);
+
   useEffect(() => {
     fetchBalance();
     fetchCartItems();
     fetchProducts();
-  }, [fetchCartItems]);
+    
+    // Lắng nghe sự kiện cập nhật giỏ hàng local
+    const handleLocalCartUpdate = () => {
+      fetchCartItems();
+    };
+    
+    window.addEventListener('localCartUpdated', handleLocalCartUpdate);
+    
+    return () => {
+      window.removeEventListener('localCartUpdated', handleLocalCartUpdate);
+    };
+  }, [fetchCartItems, fetchBalance, fetchProducts]);
+
+  const handleLoginModalClose = () => {
+    setIsLoginModalVisible(false);
+  };
+
+  // Xử lý tiếp tục thanh toán sau khi đăng nhập
+  const handleCheckoutAfterLogin = async () => {
+    // Thu thập tất cả các input số lượng đang focus để kiểm tra
+    const activeInputs = document.querySelectorAll('.ant-input-number-input:focus');
+    if (activeInputs.length > 0) {
+      // Trigger blur trên tất cả các input đang focus
+      activeInputs.forEach(input => input.blur());
+      // Đợi một chút để các event handlers xử lý
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    await continueCheckoutProcess();
+  };
 
   // Hàm debounce để gọi API cập nhật số lượng
   const debouncedUpdateQuantity = useCallback(
@@ -122,15 +164,18 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
-    // Thu thập tất cả các input số lượng đang focus để kiểm tra
-    const activeInputs = document.querySelectorAll('.ant-input-number-input:focus');
-    if (activeInputs.length > 0) {
-      // Trigger blur trên tất cả các input đang focus
-      activeInputs.forEach(input => input.blur());
-      // Đợi một chút để các event handlers xử lý
-      await new Promise(resolve => setTimeout(resolve, 100));
+    // Kiểm tra user đã đăng nhập chưa
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+      setIsLoginModalVisible(true);
+      return;
     }
     
+    await continueCheckoutProcess();
+  };
+
+  // Tách logic kiểm tra cart và chuyển đến trang thanh toán
+  const continueCheckoutProcess = async () => {
     // Kiểm tra mọi sản phẩm trong cart để tìm những cái vượt quá stock
     // Chú ý: phải kiểm tra dựa trên giá trị hiện tại trong input, không phải chỉ localCartItems
     const activeInputValues = {};
@@ -447,6 +492,12 @@ const CartPage = () => {
         </div>
       </Content>
       <Footer />
+      <LoginRequiredModal
+        isVisible={isLoginModalVisible}
+        onCancel={handleLoginModalClose}
+        actionType="cart"
+        returnUrl="/cart"
+      />
     </Layout>
   );
 };
