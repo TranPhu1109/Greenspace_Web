@@ -256,7 +256,7 @@ const DesignDetailPage = () => {
                         </Button>
                       </Link>
                       <Link
-                        to={`/order-service/${currentDesign.id}`}
+                        to={`/service-order-customize/${currentDesign.id}`}
                         state={{ isCustom: true }}
                       >
                         <Button
