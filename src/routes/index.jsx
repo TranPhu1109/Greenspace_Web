@@ -30,6 +30,7 @@ import OrderHistory from "@/pages/Order/OrderHistory";
 import BookDesign from "@/pages/ServiceOrder/BookDesign";
 import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 import ServiceOrderDetail from "@/pages/Order/ServiceOrderDetail";
+import OrderServiceCustomize from "@/pages/ServiceOrder/OrderServiceCustomize";
 // import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 
 const router = createBrowserRouter([
@@ -161,6 +162,15 @@ const router = createBrowserRouter([
         </>
       ),
   },
+  {
+    path: "/service-order-customize/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <OrderServiceCustomize />
+      </>
+    ),
+},
   {
     path: "/products",
     element: (
