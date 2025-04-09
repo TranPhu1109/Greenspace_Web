@@ -82,13 +82,20 @@ const useAuthStore = create(
             response: err.response?.data,
             status: err.response?.status
           });
+          
+          // Chuyển đổi thông báo lỗi
+          let errorMessage = err.message;
+          if (err.code === 'auth/invalid-credential') {
+            errorMessage = 'Tài khoản hoặc mật khẩu không đúng';
+          }
+          
           set({ 
-            error: err.message, 
+            error: errorMessage, 
             loading: false,
             user: null,
             isAuthenticated: false 
           });
-          throw err;
+          throw { ...err, message: errorMessage };
         }
       },
 

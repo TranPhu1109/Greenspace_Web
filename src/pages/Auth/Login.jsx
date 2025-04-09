@@ -57,7 +57,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error("Login failed:", error);
-      message.error(error.message || "Tài khoản hoặc mật khẩu không đúng!");
+      message.error("Tài khoản hoặc mật khẩu không đúng!");
     } finally {
       setLoading(false);
     }
