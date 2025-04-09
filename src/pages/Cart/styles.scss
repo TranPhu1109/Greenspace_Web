@@ -5,7 +5,6 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
   }
 
   .cart-content {
@@ -126,15 +125,20 @@
       }
     }
   }
+
+
 }
 
 @media (max-width: 768px) {
-  .cart-layout {
-    .cart-content {
+  .cart-layout,
+.checkout-layout {
+    .cart-content,
+  .checkout-content {
       margin-top: 110px;
       padding: 20px 0;
 
-      .cart-summary {
+      .cart-summary,
+    .checkout-summary {
         flex-direction: column;
         gap: 16px;
         text-align: center;
@@ -150,4 +154,6 @@
       }
     }
   }
-} 
+
+
+}

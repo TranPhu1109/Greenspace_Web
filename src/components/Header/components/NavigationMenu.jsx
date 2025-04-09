@@ -1,25 +1,116 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from 'antd';
-import { CustomerServiceOutlined, WalletOutlined, MenuOutlined } from '@ant-design/icons';
-import MobileMenu from './MobileMenu';
-import './styles/NavigationMenu.scss';
+import React from "react";
+import PropTypes from "prop-types";
+import { Link, useLocation } from "react-router-dom";
+
+import { Button, Dropdown } from "antd";
+import {
+  CustomerServiceOutlined,
+  WalletOutlined,
+  MenuOutlined,
+  DownOutlined,
+} from "@ant-design/icons";
+
+import MobileMenu from "./MobileMenu";
+import "./styles/NavigationMenu.scss";
 
 function NavigationMenu({ user }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const menuItems = React.useMemo(() => [
-    { key: "home", label: "Trang chủ", path: "/home" },
-    { key: "design", label: "Thiết kế", path: "/designs" },
-    { key: "products", label: "Sản phẩm", path: "/products" },
-    { key: "about", label: "Giới thiệu", path: "/about" },
-  ], []);
+  const designMenuItems = [
+    {
+      key: "designs",
+      label: <Link to="/designs">Thiết kế mẫu</Link>,
+    },
+    {
+      key: "create-design",
+      label: <Link to="/create-design">Tạo thiết kế mới</Link>,
+    },
+  ];
 
-  const isActivePath = React.useCallback((path) => {
-    return location.pathname === path;
-  }, [location.pathname]);
+  const historyMenuItems = [
+    {
+      key: "product-history",
+      label: <Link to="/orderhistory">Lịch sử đặt sản phẩm</Link>,
+    },
+    {
+      key: "service-history",
+      label: <Link to="/serviceorderhistory">Lịch sử đặt dịch vụ</Link>,
+    },
+  ];
+
+  const menuItems = React.useMemo(() => {
+    const items = [
+      { key: "home", label: "Trang chủ", path: "/home" },
+      {
+        key: "design",
+        label: (
+          <Dropdown
+            menu={{ items: designMenuItems }}
+            placement="bottom"
+            overlayClassName="design-dropdown"
+          >
+            <span className="dropdown-link">
+              Thiết kế <DownOutlined />
+            </span>
+          </Dropdown>
+        ),
+        path: "/designs",
+      },
+      { key: "products", label: "Sản phẩm", path: "/products" },
+      {
+        key: "services",
+        label: "Lịch sử đặt dịch vụ thiết kế mới",
+        path: "/history-booking-services",
+      },
+      { key: "about", label: "Giới thiệu", path: "/about" },
+    ];
+
+    if (user) {
+      items.splice(3, 0, {
+        key: "orderHistory",
+        label: (
+          <Dropdown
+            menu={{ items: historyMenuItems }}
+            placement="bottom"
+            overlayClassName="history-dropdown"
+          >
+            <span className="dropdown-link">
+              Lịch sử đặt hàng <DownOutlined />
+            </span>
+          </Dropdown>
+        ),
+        path: "/orderhistory",
+      });
+    }
+
+    return items;
+  }, [user]);
+
+  const isActivePath = React.useCallback(
+    (path) => {
+      if (path === "/designs") {
+        return location.pathname.includes("/design");
+      }
+      
+      if (path === "/history-booking-services") {
+        return location.pathname.includes("/history-booking-services") || 
+               location.pathname.includes("/service-order/");
+      }
+      
+      if (path === "/orderhistory") {
+        return location.pathname.includes("/orderhistory") || 
+               location.pathname.includes("/order/");
+      }
+
+      if (path === "/orderhistory" || path === "/serviceorderhistory") {
+        return location.pathname.includes(path);
+      }
+
+      return location.pathname === path;
+    },
+    [location.pathname]
+  );
 
   const handleShowDrawer = React.useCallback(() => {
     setMobileMenuOpen(true);
@@ -57,9 +148,13 @@ function NavigationMenu({ user }) {
                     isActivePath(item.path) ? "active" : ""
                   }`}
                 >
-                  <Link to={item.path} className="nav-link">
-                    {item.label}
-                  </Link>
+                  {item.key === "design" || item.key === "orderHistory" ? (
+                    item.label
+                  ) : (
+                    <Link to={item.path} className="nav-link">
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -98,4 +193,4 @@ NavigationMenu.defaultProps = {
   user: null,
 };
 
-export default React.memo(NavigationMenu); 
+export default React.memo(NavigationMenu);

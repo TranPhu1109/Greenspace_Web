@@ -14,6 +14,7 @@ import {
 import { PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 import useProductStore from "../../../../stores/useProductStore";
+import EditorComponent from "@/components/Common/EditorComponent";
 
 const { Option } = Select;
 
@@ -335,7 +336,11 @@ const EditDesignModal = ({
           label="Mô tả"
           rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
         >
-          <Input.TextArea />
+          <EditorComponent
+            value={form.getFieldValue('description') || ''}
+            onChange={(value) => form.setFieldsValue({ description: value })}
+            height={300}
+          />
         </Form.Item>
 
         <Row gutter={16}>

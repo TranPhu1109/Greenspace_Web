@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Layout,
   Typography,
@@ -11,30 +11,185 @@ import {
   Empty,
   message,
   InputNumber,
+  Tag,
 } from "antd";
 import { SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
 import useCartStore from "@/stores/useCartStore";
 import "./styles.scss";
-
+import { Modal } from "antd";
 const { Content } = Layout;
 const { Title, Paragraph } = Typography;
 const { Meta } = Card;
 const { Option } = Select;
 
+const AddToCartModal = ({
+  isOpen,
+  onClose,
+  product,
+  quantity,
+  onQuantityChange,
+  onConfirm,
+}) => {
+  return (
+    <Modal
+      visible={isOpen}
+      onCancel={onClose}
+      footer={null}
+      centered
+      title="Thêm vào giỏ hàng"
+      style={{
+        width: 500,
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "0px 10px",
+          backgroundColor: "#fff",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            margin: 0,
+          }}
+        >
+          <img
+            src={product?.image?.imageUrl}
+            alt={product?.name}
+            style={{
+              width: "100%",
+              height: 300,
+              objectFit: "cover",
+              borderTopRightRadius: 8,
+              borderTopLeftRadius: 8,
+            }}
+          />
+        </div>
+        <Typography.Title
+          level={4}
+          style={{
+            margin: "10px 0",
+            color: "#333",
+            fontWeight: 600,
+          }}
+        >
+          {product?.name}
+        </Typography.Title>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 24,
+          }}
+        >
+          <Tag color="green">{product?.categoryName}</Tag>
+          <Typography.Title
+            level={3}
+            type="danger"
+            style={{
+              margin: 0,
+              color: "#52c41a",
+              fontWeight: 600,
+            }}
+          >
+            {product?.price?.toLocaleString("vi-VN", {
+              style: "currency",
+              currency: "VND",
+            })}
+          </Typography.Title>
+        </div>
+        <div
+          dangerouslySetInnerHTML={{ __html: product?.description }}
+          style={{
+            marginBottom: 16,
+            color: "#666",
+          }}
+        />
+
+        <div
+          style={{
+            padding: "16px 0",
+            borderTop: "1px solid #f0f0f0",
+            borderBottom: "1px solid #f0f0f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography.Text
+            style={{
+              color: "#333",
+              marginRight: 12,
+            }}
+          >
+            🎉 Bạn muốn thêm bao nhiêu sản phẩm này vào giỏ hàng?
+          </Typography.Text>
+          <InputNumber
+            min={1}
+            max={99}
+            value={quantity}
+            onChange={onQuantityChange}
+            style={{
+              width: "80px",
+              height: "auto",
+              textAlign: "right",
+            }}
+            size="middle"
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 12,
+            marginTop: 24,
+          }}
+        >
+          <Button onClick={onClose}>Hủy</Button>
+          <Button
+            type="primary"
+            onClick={onConfirm}
+            icon={<ShoppingCartOutlined />}
+          >
+            Xác nhận
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 const ProductsPage = () => {
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const { products, fetchProducts, categories, fetchCategories, isLoading } =
     useProductStore();
   const { addToCart } = useCartStore();
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [quantities, setQuantities] = useState({});
   const [filters, setFilters] = useState({
     search: "",
     category: "all",
     sort: "newest",
   });
-  const [quantities, setQuantities] = useState({});
+  const mountedRef = useRef(true);
+  const componentId = useRef(`products-page-${Date.now()}`).current;
+
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -42,11 +197,40 @@ const ProductsPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, [fetchProducts, fetchCategories]);
+    const loadData = async () => {
+      if (!mountedRef.current) return;
+
+      try {
+        console.log("Starting to load data with componentId:", componentId);
+        console.log("Current products state:", products);
+        console.log("Current categories state:", categories);
+
+        await Promise.all([
+          fetchProducts(componentId),
+          fetchCategories(componentId),
+        ]);
+
+        console.log("After fetching - Products:", products);
+        console.log("After fetching - Categories:", categories);
+      } catch (error) {
+        console.error("Error loading data:", error);
+        if (error.name !== "CanceledError" && mountedRef.current) {
+          message.error(
+            "Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau."
+          );
+        }
+      }
+    };
+
+    loadData();
+  }, [fetchProducts, fetchCategories, componentId]);
 
   useEffect(() => {
+    if (!mountedRef.current) return;
+
+    console.log("Filtering products - Current products:", products);
+    console.log("Current filters:", filters);
+
     let result = [...products];
 
     if (filters.search) {
@@ -57,12 +241,14 @@ const ProductsPage = () => {
           product.description.toLowerCase().includes(searchLower) ||
           product.categoryName.toLowerCase().includes(searchLower)
       );
+      console.log("After search filter:", result);
     }
 
     if (filters.category !== "all") {
       result = result.filter(
         (product) => product.categoryId === filters.category
       );
+      console.log("After category filter:", result);
     }
 
     switch (filters.sort) {
@@ -82,16 +268,17 @@ const ProductsPage = () => {
         break;
     }
 
+    console.log("Final filtered products:", result);
     setFilteredProducts(result);
-    
+
     // Initialize quantities for new products
     const newQuantities = {};
-    result.forEach(product => {
+    result.forEach((product) => {
       if (!quantities[product.id]) {
         newQuantities[product.id] = 1;
       }
     });
-    setQuantities(prev => ({ ...prev, ...newQuantities }));
+    setQuantities((prev) => ({ ...prev, ...newQuantities }));
   }, [products, filters]);
 
   const handleSearchChange = (e) => {
@@ -106,13 +293,6 @@ const ProductsPage = () => {
     setFilters((prev) => ({ ...prev, sort: value }));
   };
 
-  const handleQuantityChange = (productId, value) => {
-    setQuantities(prev => ({
-      ...prev,
-      [productId]: value
-    }));
-  };
-
   const handleAddToCart = async (product) => {
     try {
       await addToCart(product.id, quantities[product.id] || 1);
@@ -121,10 +301,39 @@ const ProductsPage = () => {
     }
   };
 
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleQuantityChange = (value) => {
+    if (selectedProduct) {
+      setQuantities((prev) => ({
+        ...prev,
+        [selectedProduct.id]: value,
+      }));
+    }
+  };
+
+  const handleConfirmAddToCart = async () => {
+    if (selectedProduct) {
+      await handleAddToCart(selectedProduct);
+      handleModalClose();
+    }
+  };
+
   return (
     <Layout className="products-layout">
       <Header />
       <Content>
+        <AddToCartModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          product={selectedProduct}
+          quantity={selectedProduct ? quantities[selectedProduct.id] || 1 : 1}
+          onQuantityChange={handleQuantityChange}
+          onConfirm={handleConfirmAddToCart}
+        />
         <div className="products-hero">
           <div className="container">
             <Title level={1}>Sản Phẩm</Title>
@@ -164,7 +373,6 @@ const ProductsPage = () => {
                 className="sort-select"
               >
                 <Option value="newest">Mới nhất</Option>
-                {/* <Option value="popular">Phổ biến nhất</Option> */}
                 <Option value="price-asc">Giá tăng dần</Option>
                 <Option value="price-desc">Giá giảm dần</Option>
               </Select>
@@ -183,6 +391,11 @@ const ProductsPage = () => {
                     <Card
                       hoverable
                       className="product-card"
+                      onClick={(e) => {
+                        // Prevent navigation when clicking on action buttons
+                        if (e.target.closest(".ant-card-actions")) return;
+                        navigate(`/products/${product.id}`);
+                      }}
                       cover={
                         <img
                           alt={product.name}
@@ -191,27 +404,20 @@ const ProductsPage = () => {
                         />
                       }
                       actions={[
-                        <Button type="link" href={`/products/${product.id}`}>
-                          Xem Chi Tiết
+                        <Link to={`/products/${product.id}`} key="view">
+                          <Button type="link">Xem Chi Tiết</Button>
+                        </Link>,
+                        <Button
+                          key="cart"
+                          type="primary"
+                          icon={<ShoppingCartOutlined />}
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          Thêm vào giỏ
                         </Button>,
-                        <div className="card-actions">
-                          {/* <InputNumber
-                            min={1}
-                            max={product.stock}
-                            value={quantities[product.id] || 1}
-                            onChange={(value) => handleQuantityChange(product.id, value)}
-                            className="quantity-input"
-                          /> */}
-                          <Button
-                            type="primary"
-                            icon={<ShoppingCartOutlined />}
-                            onClick={() => handleAddToCart(product)}
-                            disabled={product.stock === 0}
-                            className="add-to-cart-btn"
-                          >
-                            Thêm vào giỏ
-                          </Button>
-                        </div>
                       ]}
                     >
                       <Meta
@@ -221,9 +427,18 @@ const ProductsPage = () => {
                             <span className="product-category">
                               {product.categoryName}
                             </span>
-                            <p className="product-description">
-                              {product.description}
-                            </p>
+                            {/* <p className="product-description"> */}
+                              <div
+                              className="product-description"
+                                dangerouslySetInnerHTML={{
+                                  __html: product?.description,
+                                }}
+                                style={{
+                                  marginBottom: 16,
+                                  color: "#666",
+                                }}
+                              />
+                            {/* </p> */}
                             <p className="product-price">
                               {product.price.toLocaleString("vi-VN", {
                                 style: "currency",

@@ -12,6 +12,7 @@ import {
   Upload,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import EditorComponent from "@/components/Common/EditorComponent";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 
 const { Option } = Select;
@@ -56,11 +57,17 @@ const UpdateProductModal = ({
       const imageUrls = {
         imageUrl: product?.image?.imageUrl || "",
         image2: product?.image?.image2 || "",
-        image3: product?.image?.image3 || "",
+        image3: product?.image?.image3 || ""
       };
+      let designImage1URL = product?.designImage1URL || "";
 
       // Only process image uploads if there are new files
-      if (selectedFiles.imageUrl || selectedFiles.image2 || selectedFiles.image3) {
+      if (
+        selectedFiles.imageUrl ||
+        selectedFiles.image2 ||
+        selectedFiles.image3 ||
+        selectedFiles.designImage1URL
+      ) {
         if (selectedFiles.imageUrl) {
           uploadPromises.push(
             uploadImages([selectedFiles.imageUrl]).then((urls) => {
@@ -85,6 +92,14 @@ const UpdateProductModal = ({
           );
         }
 
+        if (selectedFiles.designImage1URL) {
+          uploadPromises.push(
+            uploadImages([selectedFiles.designImage1URL]).then((urls) => {
+              designImage1URL = urls[0];
+            })
+          );
+        }
+
         await Promise.all(uploadPromises);
       }
 
@@ -96,11 +111,19 @@ const UpdateProductModal = ({
         stock: parseInt(values.stock),
         description: values.description || "",
         size: parseFloat(values.size) || 0,
+        image: imageUrls,
+        designImage1URL: designImage1URL
       };
 
       // Only include image data if there are either existing images or new uploads
-      if (selectedFiles.imageUrl || selectedFiles.image2 || selectedFiles.image3 || 
-          product?.image?.imageUrl || product?.image?.image2 || product?.image?.image3) {
+      if (
+        selectedFiles.imageUrl ||
+        selectedFiles.image2 ||
+        selectedFiles.image3 ||
+        product?.image?.imageUrl ||
+        product?.image?.image2 ||
+        product?.image?.image3
+      ) {
         productData.image = imageUrls;
       }
 
@@ -112,6 +135,7 @@ const UpdateProductModal = ({
         imageUrl: null,
         image2: null,
         image3: null,
+        designImage1URL: null
       });
     } catch (error) {
       console.error("Error updating product:", error);
@@ -121,7 +145,7 @@ const UpdateProductModal = ({
 
   // Update the image upload section
   const renderImageUpload = () => (
-    <Row gutter={16}>
+    <Row gutter={16} style={{marginTop: 16}}>
       <Col span={8}>
         <Form.Item
           name="imageUrl"
@@ -224,11 +248,50 @@ const UpdateProductModal = ({
                   ]
                 : []
             }
-            >
+          >
             <div>
               <PlusOutlined />
               <div style={{ marginTop: 8 }}>Tải lên</div>
             </div>
+          </Upload>
+        </Form.Item>
+      </Col>
+
+      <Col span={8}>
+        <Form.Item
+          name="designImage1URL"
+          label="File hướng dẫn (PDF)"
+          rules={[{ required: false }]}
+        >
+          <Upload
+            listType="text"
+            maxCount={1}
+            accept=".pdf"
+            beforeUpload={(file) => {
+              if (file.type !== 'application/pdf') {
+                message.error('Chỉ chấp nhận file PDF!');
+                return Upload.LIST_IGNORE;
+              }
+              setSelectedFiles((prev) => ({ ...prev, designImage1URL: file }));
+              return false;
+            }}
+            onRemove={() => {
+              setSelectedFiles((prev) => ({ ...prev, designImage1URL: null }));
+            }}
+            defaultFileList={
+              product?.designImage1URL
+                ? [
+                    {
+                      uid: "-1",
+                      name: "Hướng dẫn.pdf",
+                      status: "done",
+                      url: product.designImage1URL,
+                    },
+                  ]
+                : []
+            }
+          >
+            <Button icon={<PlusOutlined />}>Tải lên file PDF</Button>
           </Upload>
         </Form.Item>
       </Col>
@@ -321,12 +384,15 @@ const UpdateProductModal = ({
             </Form.Item>
           </Col>
         </Row>
+        {renderImageUpload()}
 
         <Form.Item name="description" label="Mô tả">
-          <Input.TextArea placeholder="Nhập mô tả" />
+          <EditorComponent 
+            value={form.getFieldValue('description') || ''}
+            onChange={(value) => form.setFieldsValue({ description: value })}
+            height={300}
+          />
         </Form.Item>
-
-        {renderImageUpload()}
 
         <Form.Item className="form-actions">
           <Button onClick={onCancel} style={{ marginRight: 8 }}>

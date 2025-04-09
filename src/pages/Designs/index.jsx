@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Layout, Typography, Row, Col, Card, Button, Input, Select, Empty } from "antd";
+import {
+  Layout,
+  Typography,
+  Row,
+  Col,
+  Card,
+  Button,
+  Input,
+  Select,
+  Empty,
+} from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
@@ -14,12 +25,14 @@ const { Option } = Select;
 
 const DesignsPage = () => {
   const { designIdeas, fetchDesignIdeas, isLoading } = useDesignIdeaStore();
+
   const { categories, fetchCategories } = useDesignCategoryStore();
+
   const [filteredDesigns, setFilteredDesigns] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
     category: "all",
-    sort: "newest"
+    sort: "newest",
   });
 
   // Scroll to top when component mounts
@@ -28,17 +41,19 @@ const DesignsPage = () => {
   }, []);
 
   useEffect(() => {
+    console.log("Fetching design ideas...");
     fetchDesignIdeas();
     fetchCategories();
   }, [fetchDesignIdeas, fetchCategories]);
 
   useEffect(() => {
+    console.log("Design ideas received:", designIdeas);
     let result = [...designIdeas];
 
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(
-        design =>
+        (design) =>
           design.name.toLowerCase().includes(searchLower) ||
           design.description.toLowerCase().includes(searchLower) ||
           design.categoryName.toLowerCase().includes(searchLower)
@@ -46,7 +61,9 @@ const DesignsPage = () => {
     }
 
     if (filters.category !== "all") {
-      result = result.filter(design => design.designIdeasCategoryId === filters.category);
+      result = result.filter(
+        (design) => design.designIdeasCategoryId === filters.category
+      );
     }
 
     switch (filters.sort) {
@@ -70,15 +87,15 @@ const DesignsPage = () => {
   }, [designIdeas, filters]);
 
   const handleSearchChange = (e) => {
-    setFilters(prev => ({ ...prev, search: e.target.value }));
+    setFilters((prev) => ({ ...prev, search: e.target.value }));
   };
 
   const handleCategoryChange = (value) => {
-    setFilters(prev => ({ ...prev, category: value }));
+    setFilters((prev) => ({ ...prev, category: value }));
   };
 
   const handleSortChange = (value) => {
-    setFilters(prev => ({ ...prev, sort: value }));
+    setFilters((prev) => ({ ...prev, sort: value }));
   };
 
   return (
@@ -105,20 +122,20 @@ const DesignsPage = () => {
                 onChange={handleSearchChange}
                 allowClear
               />
-              <Select 
+              <Select
                 value={filters.category}
                 onChange={handleCategoryChange}
                 className="filter-select"
                 loading={!categories.length}
               >
                 <Option value="all">Tất cả không gian</Option>
-                {categories.map(category => (
+                {categories.map((category) => (
                   <Option key={category.id} value={category.id}>
                     {category.name}
                   </Option>
                 ))}
               </Select>
-              <Select 
+              <Select
                 value={filters.sort}
                 onChange={handleSortChange}
                 className="sort-select"
@@ -155,8 +172,15 @@ const DesignsPage = () => {
                         title={design.name}
                         description={
                           <div className="design-info">
-                            <span className="design-category">{design.categoryName}</span>
-                            <p className="design-description">{design.description}</p>
+                            <span className="design-category">
+                              {design.categoryName}
+                            </span>
+                            <p
+                              className="design-description"
+                              dangerouslySetInnerHTML={{
+                                __html: design.description,
+                              }}
+                            />
                             <p className="design-price">
                               {design.totalPrice.toLocaleString("vi-VN", {
                                 style: "currency",
@@ -166,9 +190,11 @@ const DesignsPage = () => {
                           </div>
                         }
                       />
-                      <Button type="primary" block href={`/designs/${design.id}`}>
-                        Xem Chi Tiết
-                      </Button>
+                      <Link to={`/designs/${design.id}`}>
+                        <Button type="primary" block>
+                          Xem Chi Tiết
+                        </Button>
+                      </Link>
                     </Card>
                   </Col>
                 ))
@@ -189,4 +215,4 @@ const DesignsPage = () => {
   );
 };
 
-export default DesignsPage; 
+export default DesignsPage;

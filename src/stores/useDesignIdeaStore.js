@@ -1,30 +1,32 @@
-import { create } from 'zustand';
-import axios from '../api/api';
+import { create } from "zustand";
+import axios from "../api/api";
 
-const useDesignIdeaStore = create((set) => ({
+const useDesignIdeaStore = create((set, get) => ({
   designIdeas: [],
-  designIdeaById:{},
+  currentDesign: null,
+  designIdeaById: null,
   isLoading: false,
   error: null,
+  abortController: null,
 
   fetchDesignIdeas: async (componentId) => {
     try {
       set({ isLoading: true });
-      const response = await axios.get('/api/designidea', {
+
+      const response = await axios.get("/api/designidea", {
         componentId,
-        allowDuplicate: false
+        allowDuplicate: false,
       });
-      set({ 
+      set({
         designIdeas: Array.isArray(response.data) ? response.data : [],
-        isLoading: false 
+        isLoading: false,
       });
     } catch (error) {
-      // Skip setting error state if it's just a cancellation
       if (!axios.isCancel(error)) {
-        set({ 
+        set({
           designIdeas: [],
           isLoading: false,
-          error: error.message 
+          error: error.message,
         });
       }
     }
@@ -32,37 +34,40 @@ const useDesignIdeaStore = create((set) => ({
 
   fetchDesignIdeaById: async (id, componentId) => {
     try {
-      set({ 
+      set({
         isLoading: true,
-        designIdeaById: {},
-        error: null
+        error: null,
+        designIdeaById: null,
+        currentDesign: null
       });
+
       const response = await axios.get(`/api/designidea/${id}`, {
         componentId,
-        allowDuplicate: false
+        allowDuplicate: false,
+      });
+
+      if (!response.data) {
+        throw new Error("No data received from server");
+      }
+
+      set({
+        designIdeaById: response.data,
+        currentDesign: response.data,
+        isLoading: false,
+        error: null,
+        abortController: null,
       });
       
-      // Only update state if we got successful data
-      if (response.status !== 'canceled' && response.data) {
-        set({ 
-          designIdeaById: response.data,
-          isLoading: false 
-        });
-        return response.data;
-      }
-      
-      // If request was canceled, just stop the loading state
-      if (response.status === 'canceled') {
-        set({ isLoading: false });
-        return null;
-      }
+      return response.data;
     } catch (error) {
-      // Skip setting error state if it's just a cancellation
+      // Only update state if the error is not from cancellation
       if (!axios.isCancel(error)) {
-        set({ 
+        console.error("Error fetching design:", error);
+        set({
+          designIdeaById: null,
+          currentDesign: null,
           isLoading: false,
           error: error.message,
-          designIdeaById: {}
         });
         throw error;
       }
@@ -73,9 +78,9 @@ const useDesignIdeaStore = create((set) => ({
 
   createDesignIdea: async (designData) => {
     try {
-      const response = await axios.post('/api/designidea', designData);
+      const response = await axios.post("/api/designidea", designData);
       set((state) => ({
-        designIdeas: [...state.designIdeas, response.data]
+        designIdeas: [...state.designIdeas, response.data],
       }));
       return response.data;
     } catch (error) {
@@ -87,9 +92,9 @@ const useDesignIdeaStore = create((set) => ({
     try {
       const response = await axios.put(`/api/designidea/${id}`, designData);
       set((state) => ({
-        designIdeas: state.designIdeas.map(idea => 
+        designIdeas: state.designIdeas.map((idea) =>
           idea.id === id ? response.data : idea
-        )
+        ),
       }));
       return response.data;
     } catch (error) {
@@ -101,13 +106,13 @@ const useDesignIdeaStore = create((set) => ({
     try {
       await axios.delete(`/api/designidea/${id}`);
       set((state) => ({
-        designIdeas: state.designIdeas.filter(idea => idea.id !== id)
+        designIdeas: state.designIdeas.filter((idea) => idea.id !== id),
       }));
       return true;
     } catch (error) {
       throw error;
     }
-  }
+  },
 }));
 
 export default useDesignIdeaStore;

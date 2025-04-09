@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Card, Button, Input, Row, Col, Select, DatePicker } from "antd";
+import { Table, Card, Button, Input, Row, Col, Select, DatePicker, Tag } from "antd";
 import {
   SearchOutlined,
   EyeOutlined,
@@ -52,11 +52,96 @@ const CustomTemplateOrdersList = () => {
         )
     : [];
 
+  const getStatusDisplay = (status) => {
+    switch (status) {
+      case "Pending":
+        return "Chờ xử lý";
+      case "ConsultingAndSketching":
+        return "Đang tư vấn & phác thảo";
+      case "DeterminingDesignPrice":
+        return "Đang xác định giá";
+      case "DepositSuccessful":
+        return "Đặt cọc thành công";
+      case "AssignToDesigner":
+        return "Đã giao cho nhà thiết kế";
+      case "DeterminingMaterialPrice":
+        return "Xác định giá vật liệu";
+      case "DoneDesign":
+        return "Hoàn thành thiết kế";
+      case "PaymentSuccess":
+        return "Thanh toán thành công";
+      case "Processing":
+        return "Đang xử lý";
+      case "PickedPackageAndDelivery":
+        return "Đã lấy hàng & đang giao";
+      case "DeliveryFail":
+        return "Giao hàng thất bại";
+      case "ReDelivery":
+        return "Giao lại";
+      case "DeliveredSuccessfully":
+        return "Đã giao hàng thành công";
+      case "CompleteOrder":
+        return "Hoàn thành đơn hàng";
+      case "OrderCancelled":
+        return "Đã hủy";
+      default:
+        return "Không xác định";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending":
+        return "default";
+      case "ConsultingAndSketching":
+        return "processing";
+      case "DeterminingDesignPrice":
+        return "processing";
+      case "DepositSuccessful":
+        return "success";
+      case "AssignToDesigner":
+        return "processing";
+      case "DeterminingMaterialPrice":
+        return "processing";
+      case "DoneDesign":
+        return "success";
+      case "PaymentSuccess":
+        return "success";
+      case "Processing":
+        return "processing";
+      case "PickedPackageAndDelivery":
+        return "processing";
+      case "DeliveryFail":
+        return "error";
+      case "ReDelivery":
+        return "warning";
+      case "DeliveredSuccessfully":
+        return "success";
+      case "CompleteOrder":
+        return "success";
+      case "OrderCancelled":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
   const statusOptions = [
     { value: "Pending", label: "Chờ xử lý" },
+    { value: "ConsultingAndSketching", label: "Đang tư vấn & phác thảo" },
+    { value: "DeterminingDesignPrice", label: "Đang xác định giá" },
+    { value: "DepositSuccessful", label: "Đặt cọc thành công" },
+    { value: "AssignToDesigner", label: "Đã giao cho nhà thiết kế" },
+    { value: "DeterminingMaterialPrice", label: "Xác định giá vật liệu" },
+    { value: "DoneDesign", label: "Hoàn thành thiết kế" },
+    { value: "PaymentSuccess", label: "Thanh toán thành công" },
     { value: "Processing", label: "Đang xử lý" },
-    { value: "Completed", label: "Hoàn thành" },
-    { value: "Cancelled", label: "Đã hủy" },
+    { value: "PickedPackageAndDelivery", label: "Đã lấy hàng & đang giao" },
+    { value: "DeliveryFail", label: "Giao hàng thất bại" },
+    { value: "ReDelivery", label: "Giao lại" },
+    { value: "DeliveredSuccessfully", label: "Đã giao hàng thành công" },
+    { value: "CompleteOrder", label: "Hoàn thành đơn hàng" },
+    { value: "OrderCancelled", label: "Đã hủy" }
   ];
 
   console.log(designOrders);
@@ -121,7 +206,11 @@ const CustomTemplateOrdersList = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => <StatusTag status={status.toLowerCase()} />,
+      render: (status) => (
+        <Tag color={getStatusColor(status)}>
+          {getStatusDisplay(status)}
+        </Tag>
+      ),
     },
     {
       title: "Thao tác",

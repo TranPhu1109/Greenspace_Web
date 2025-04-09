@@ -1,18 +1,26 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import axios from '../api/api';
 
-const useWalletStore = create((set) => ({
+const useWalletStore = create(persist((set, get) => ({
   balance: 0,
+  walletId: null,
+  walletName: null,
   transactions: [],
   loading: false,
+  transactionsLoading: false,
   error: null,
+  transactionsError: null,
 
   // Tạo QR VNPay
   createVNPayQR: async (amount) => {
     try {
       set({ loading: true, error: null });
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/wallets/vn-pay',  amount , {
+      const userStr = localStorage.getItem('user');
+      const user = JSON.parse(userStr);
+      const token = user.backendToken;
+      
+      const response = await axios.post('/api/wallets/vn-pay', amount, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -29,41 +37,156 @@ const useWalletStore = create((set) => ({
     }
   },
 
-  // Lấy số dư ví
-  fetchBalance: async () => {
+  // Xử lý response từ VNPay
+  handleVNPayResponse: async (returnUrl) => {
     try {
       set({ loading: true, error: null });
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/wallets/balance', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+
+      // Gọi API để xử lý response từ VNPay
+      const response = await axios.get('/api/wallets/vn-pay/response', {
+        params: {
+          returnUrl: returnUrl
         }
       });
-      set({ balance: response.data, loading: false });
+
+      // Nếu thanh toán thành công, cập nhật lại số dư và lịch sử giao dịch
+      if (response.data) {
+        await Promise.all([
+          get().fetchBalance(),
+          get().fetchTransactions()
+        ]);
+      }
+
+      set({ loading: false });
+      return response.data;
     } catch (error) {
       set({ 
         loading: false, 
-        error: error.response?.data?.message || 'Không thể lấy số dư' 
+        error: error.response?.data?.message || 'Có lỗi xảy ra khi xử lý giao dịch' 
       });
+      throw error;
+    }
+  },
+
+  // Lấy số dư ví
+  fetchBalance: async () => {
+    try {
+      // Reset state before fetching
+      set({ loading: true, error: null });
+
+      // Get user data from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        throw new Error('Vui lòng đăng nhập để xem số dư ví');
+      }
+
+      const user = JSON.parse(userStr);
+      const userId = user.id;
+      
+      if (!userId) {
+        throw new Error('Vui lòng đăng nhập để xem số dư ví');
+      }
+
+      // Make API call
+      const response = await axios.get(`/api/wallets/user${userId}`);
+      
+      if (!response.data) {
+        throw new Error('Không nhận được dữ liệu từ server');
+      }
+
+      // Update state with wallet data
+      set({ 
+        balance: response.data.amount ?? 0,
+        walletId: response.data.id,
+        walletName: response.data.name,
+        loading: false,
+        error: null
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error in fetchBalance:', error);
+      
+      // Set error state
+      set({ 
+        loading: false,
+        balance: 0,
+        walletId: null,
+        walletName: null,
+        error: error.response?.data?.message || error.message || 'Không thể lấy số dư' 
+      });
+
+      throw error;
     }
   },
 
   // Lấy lịch sử giao dịch
   fetchTransactions: async () => {
     try {
-      set({ loading: true, error: null });
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/wallets/transactions', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      set({ transactionsLoading: true, transactionsError: null });
+
+      const walletId = get().walletId;
+      if (!walletId) {
+        // Nếu chưa có walletId, gọi fetchBalance trước
+        await get().fetchBalance();
+      }
+
+      // Lấy lại walletId sau khi fetchBalance (để đảm bảo có giá trị mới nhất)
+      const currentWalletId = get().walletId;
+      if (!currentWalletId) {
+        throw new Error('Không tìm thấy thông tin ví');
+      }
+
+      const response = await axios.get(`/api/wallets/${currentWalletId}`);
+
+      if (!response.data) {
+        throw new Error('Không nhận được dữ liệu từ server');
+      }
+
+      set({ 
+        transactions: response.data.walletLogs || [], 
+        transactionsLoading: false,
+        transactionsError: null
       });
-      set({ transactions: response.data, loading: false });
+
+      return response.data.walletLogs;
+    } catch (error) {
+      console.error('Error in fetchTransactions:', error);
+      set({ 
+        transactionsLoading: false, 
+        transactionsError: error.response?.data?.message || error.message || 'Không thể lấy lịch sử giao dịch' 
+      });
+      throw error;
+    }
+  },
+
+  // Create new bill
+  createBill: async (serviceOrderId, amount) => {
+    try {
+      set({ loading: true, error: null });
+      const walletId = get().walletId;
+      
+      if (!walletId) {
+        throw new Error('Không tìm thấy thông tin ví');
+      }
+
+      const billData = {
+        walletId: walletId,
+        orderId: null,
+        serviceOrderId: serviceOrderId,
+        amount: amount,
+        description: "Thanh toán đơn hàng"
+      };
+
+      const response = await axios.post('/api/bill', billData);
+      set({ loading: false });
+      return response.data;
     } catch (error) {
       set({ 
         loading: false, 
-        error: error.response?.data?.message || 'Không thể lấy lịch sử giao dịch' 
+        error: error.response?.data?.message || 'Có lỗi xảy ra khi tạo hóa đơn' 
       });
+      throw error;
     }
   },
 
@@ -71,41 +194,18 @@ const useWalletStore = create((set) => ({
   reset: () => {
     set({
       balance: 0,
+      walletId: null,
+      walletName: null,
       transactions: [],
       loading: false,
-      error: null
+      transactionsLoading: false,
+      error: null,
+      transactionsError: null
     });
-  },
-
-  // Xử lý callback từ VNPay
-  handlePaymentCallback: async (queryParams) => {
-    try {
-      set({ loading: true, error: null });
-      
-      // Kiểm tra trạng thái giao dịch
-      const isSuccess = queryParams.vnp_ResponseCode === '00' && 
-                       queryParams.vnp_TransactionStatus === '00';
-
-      if (!isSuccess) {
-        throw new Error('Giao dịch không thành công');
-      }
-
-      // Cập nhật số dư và lịch sử giao dịch
-      await Promise.all([
-        get().fetchBalance(),
-        get().fetchTransactions()
-      ]);
-
-      set({ loading: false });
-      return true;
-    } catch (error) {
-      set({ 
-        loading: false, 
-        error: error.message || 'Có lỗi xảy ra khi xử lý giao dịch' 
-      });
-      return false;
-    }
   }
+}), {
+  name: 'wallet-storage',
+  getStorage: () => localStorage
 }));
 
-export default useWalletStore; 
+export default useWalletStore;

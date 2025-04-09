@@ -1,0 +1,37 @@
+.blog-management {
+  padding: 0px;
+
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+  }
+
+  .ant-table-wrapper {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .ant-input-affix-wrapper {
+    min-width: 300px;
+  }
+
+  .ant-space {
+    gap: 16px;
+  }
+
+  .ant-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}

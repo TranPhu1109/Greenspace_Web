@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .wallet-layout {
   min-height: 100vh;
   background: #f5f5f5;
@@ -5,7 +7,7 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    // padding: 0;
   }
 
   .wallet-content {
@@ -103,8 +105,8 @@
         font-size: 1.1rem;
 
         &:hover {
-          background: #49ad18;
-          border-color: #49ad18;
+          background: color.adjust(#52c41a, $lightness: -5%);
+          border-color: color.adjust(#52c41a, $lightness: -5%);
         }
       }
 
@@ -534,8 +536,8 @@
         border-color: #52c41a;
 
         &:hover {
-          background: darken(#52c41a, 5%);
-          border-color: darken(#52c41a, 5%);
+          background: color.adjust(#52c41a, $lightness: -5%);
+          border-color: color.adjust(#52c41a, $lightness: -5%);
         }
       }
     }

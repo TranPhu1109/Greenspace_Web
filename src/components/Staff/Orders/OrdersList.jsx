@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Typography, Row, Col, Alert } from "antd";
 import useOrderStore from "../../../stores/orderStore";
+import useProductStore from "../../../stores/useProductStore";
 import OrdersTable from "./components/OrdersTable";
 import OrdersFilter from "./components/OrdersFilter";
 
@@ -8,6 +9,7 @@ const { Title } = Typography;
 
 const OrdersList = () => {
   const { orders, isLoading, error, fetchOrders } = useOrderStore();
+  const { products, fetchProducts } = useProductStore();
   const [searchText, setSearchText] = useState("");
   const [filterStatus, setFilterStatus] = useState(null);
   const [filterPayment, setFilterPayment] = useState(null);
@@ -15,42 +17,40 @@ const OrdersList = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
-  // Fetch orders khi component mount
+  // Fetch orders và products khi component mount
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+    fetchProducts();
+  }, [fetchOrders, fetchProducts]);
 
   // Lọc dữ liệu khi orders, searchText, filterStatus, filterPayment hoặc dateRange thay đổi
   useEffect(() => {
-    let result = [...orders];
+    let result = orders ? [...orders] : [];
 
     // Lọc theo searchText
-    if (searchText) {
+    if (searchText && result.length > 0) {
       const lowercasedSearch = searchText.toLowerCase();
       result = result.filter(
         (order) =>
-          order.orderNumber.toLowerCase().includes(lowercasedSearch) ||
-          order.customer.name.toLowerCase().includes(lowercasedSearch) ||
-          order.customer.email.toLowerCase().includes(lowercasedSearch) ||
-          order.customer.phone.includes(searchText)
+          order.id.toLowerCase().includes(lowercasedSearch) ||
+          (order && (
+            (order.userName && order.userName.toLowerCase().includes(lowercasedSearch)) ||
+            (order.email && order.email.toLowerCase().includes(lowercasedSearch)) ||
+            (order.phone && order.phone.includes(searchText))
+          ))
       );
     }
 
     // Lọc theo trạng thái đơn hàng
-    if (filterStatus) {
-      result = result.filter((order) => order.orderStatus === filterStatus);
-    }
-
-    // Lọc theo trạng thái thanh toán
-    if (filterPayment) {
-      result = result.filter((order) => order.payment.status === filterPayment);
+    if (filterStatus && result.length > 0) {
+      result = result.filter((order) => order.status === filterStatus);
     }
 
     // Lọc theo khoảng thời gian
-    if (dateRange && dateRange[0] && dateRange[1]) {
+    if (dateRange && dateRange[0] && dateRange[1] && result.length > 0) {
       result = result.filter((order) => {
         const orderDate = new Date(
-          order.orderDate.split("/").reverse().join("-")
+          order.creationDate.split("/").reverse().join("-")
         );
         const startDate = dateRange[0].startOf("day").toDate();
         const endDate = dateRange[1].endOf("day").toDate();
@@ -59,21 +59,9 @@ const OrdersList = () => {
     }
 
     setFilteredData(result);
-  }, [orders, searchText, filterStatus, filterPayment, dateRange]);
+  }, [orders, searchText, filterStatus, dateRange]);
 
-  if (error && orders.length === 0) {
-    return (
-      <Alert
-        message="Lỗi khi tải dữ liệu"
-        description={error}
-        type="error"
-        showIcon
-        className="mb-4"
-      />
-    );
-        }
-
-        return (
+  return (
     <div className="w-full">
       <Card className="shadow-sm rounded-lg">
         <Title level={4} className="mb-6">Danh sách đơn hàng</Title>
@@ -83,14 +71,13 @@ const OrdersList = () => {
           setSearchText={setSearchText}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
-          filterPayment={filterPayment}
-          setFilterPayment={setFilterPayment}
           dateRange={dateRange}
           setDateRange={setDateRange}
         />
         
         <OrdersTable 
           data={filteredData}
+          products={products}
           isLoading={isLoading}
           expandedRowKeys={expandedRowKeys}
           setExpandedRowKeys={setExpandedRowKeys}

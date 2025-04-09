@@ -204,15 +204,14 @@ const ProductsList = () => {
             src={record.image.imageUrl}
             alt={text}
             className="imageUrl"
-            width={50}
-            height={50}
-            style={{ marginRight: "10px" }}
+            width={70}
+            height={70}
+            style={{ marginRight: "10px", borderRadius: "8px" }}
           />
           <Col className="product-details">
             <span className="product-name">{text}</span>
-            <Tag color="processing" className="product-category">
+            <Tag color="processing" style={{ width: "100%" }}>
               {getCategoryNameById(record.categoryId)}
-              {/* {record.categoryName} */}
             </Tag>
           </Col>
         </div>
@@ -224,14 +223,31 @@ const ProductsList = () => {
       title: "Mô tả",
       dataIndex: "description",
       key: "description",
-      sorter: (a, b) => a.description.localeCompare(b.description),
-      sortOrder: sortedInfo.columnKey === "description" && sortedInfo.order,
+      render: (text) => (
+        <Tooltip title={text}>
+          <span
+            style={{
+              display: "inline-block",
+              maxWidth: "200px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <div dangerouslySetInnerHTML={{ __html: text }} />
+          </span>
+        </Tooltip>
+      ),
     },
     {
       title: "Giá",
       dataIndex: "price",
       key: "price",
-      render: (price) => `${price.toLocaleString("vi-VN", { style: 'currency', currency: 'VND' })}`,
+      render: (price) =>
+        `${price.toLocaleString("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        })}`,
       sorter: (a, b) => a.price - b.price,
       sortOrder: sortedInfo.columnKey === "price" && sortedInfo.order,
     },
@@ -311,20 +327,22 @@ const ProductsList = () => {
           getCategoryNameById(item.categoryId),
           item.price?.toString(),
           item.stock?.toString(),
-        ].map(field => (field || '').toLowerCase());
+        ].map((field) => (field || "").toLowerCase());
 
-        const matchSearch = !searchText || searchFields.some(field => 
-          field.includes(searchText.toLowerCase())
-        );
+        const matchSearch =
+          !searchText ||
+          searchFields.some((field) =>
+            field.includes(searchText.toLowerCase())
+          );
 
         const matchCategory = filterCategory
           ? item.categoryId === parseInt(filterCategory)
           : true;
 
         const matchStatus = filterStatus
-          ? (filterStatus === 'out' && item.stock === 0) ||
-            (filterStatus === 'low' && item.stock > 0 && item.stock <= 10) ||
-            (filterStatus === 'in' && item.stock > 10)
+          ? (filterStatus === "out" && item.stock === 0) ||
+            (filterStatus === "low" && item.stock > 0 && item.stock <= 10) ||
+            (filterStatus === "in" && item.stock > 10)
           : true;
 
         return matchSearch && matchCategory && matchStatus;

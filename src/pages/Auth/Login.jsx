@@ -24,21 +24,31 @@ const Login = () => {
     const { email, password, rememberMe } = values;
     setLoading(true);
     try {
+      console.log('Attempting login with email:', email);
       const userData = await login(email, password, rememberMe);
-      message.success("Đăng nhập thành công");
+      console.log('Login successful. User data:', {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.roleName
+      });
+
+      message.success(`Đăng nhập thành công! Xin chào ${userData.name}`);
 
       // Navigate based on role
       const role = userData.roleName.toLowerCase();
       if (
         ["admin", "staff", "manager", "accountant", "designer"].includes(role)
       ) {
+        console.log(`Navigating to /${role}/dashboard`);
         navigate(`/${role}/dashboard`);
       } else {
+        console.log('Navigating to /home');
         navigate("/home"); // Default route for other roles
       }
     } catch (error) {
       console.error("Login failed:", error);
-      message.error("Tài khoản hoặc mật khẩu không đúng!");
+      message.error(error.message || "Tài khoản hoặc mật khẩu không đúng!");
     } finally {
       setLoading(false);
     }

@@ -13,6 +13,7 @@ import {
   Divider,
   Space,
 } from "antd";
+import EditorComponent from "@/components/Common/EditorComponent";
 import { useCloudinaryStorage } from "../../../../hooks/useCloudinaryStorage";
 import { PlusOutlined } from "@ant-design/icons";
 import useProductStore from "@/stores/useProductStore";
@@ -33,7 +34,7 @@ const CreateProductModal = ({
   const { createCategory } = useProductStore();
   const [isDuplicateCategory, setIsDuplicateCategory] = useState(false);
   const [isDuplicateProduct, setIsDuplicateProduct] = useState(false);
-  const { products, fetchCategories } = useProductStore();
+  const { products, fetchCategories, fetchProducts } = useProductStore();
 
   const handleCreateCategory = async () => {
     try {
@@ -65,7 +66,12 @@ const CreateProductModal = ({
 
       // Upload images only when form is submitted
       const uploadPromises = [];
-      const imageUrls = { imageUrl: "", image2: "", image3: "" };
+      const imageUrls = {
+        imageUrl: "",
+        image2: "",
+        image3: ""
+      };
+      let designImage1URL = "";
 
       if (selectedFiles.imageUrl) {
         uploadPromises.push(
@@ -91,6 +97,14 @@ const CreateProductModal = ({
         );
       }
 
+      if (selectedFiles.designImage1URL) {
+        uploadPromises.push(
+          uploadImages([selectedFiles.designImage1URL]).then((urls) => {
+            designImage1URL = urls[0];
+          })
+        );
+      }
+
       // Wait for all images to upload
       await Promise.all(uploadPromises);
 
@@ -102,6 +116,7 @@ const CreateProductModal = ({
         description: values.description || "",
         size: parseFloat(values.size) || 0,
         image: imageUrls,
+        designImage1URL: designImage1URL
       };
 
       await onSubmit(productData);
@@ -112,7 +127,10 @@ const CreateProductModal = ({
         imageUrl: null,
         image2: null,
         image3: null,
+        designImage1URL: null,
       });
+
+      fetchProducts();
     } catch (error) {
       console.error("Error submitting product:", error);
       message.error("Có lỗi xảy ra: " + error.message);
@@ -236,20 +254,6 @@ const CreateProductModal = ({
                 ))}
               </Select>
             </Form.Item>
-
-            {/* <Form.Item
-              name="categoryId"
-              label="Danh mục"
-              rules={[{ required: true, message: "Vui lòng chọn danh mục!" }]}
-            >
-              <Select placeholder="Chọn danh mục">
-                {categories.map((category) => (
-                  <Option key={category.id} value={category.id}>
-                    {category.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item> */}
           </Col>
 
           <Col span={12}>
@@ -281,21 +285,39 @@ const CreateProductModal = ({
                 min={0}
               />
             </Form.Item>
+            <Form.Item
+              name="designImage1URL"
+              required
+              label="File hướng dẫn (PDF)"
+              rules={[{ required: false }]}
+            >
+              <Upload
+                listType="text"
+                maxCount={1}
+                accept=".pdf"
+                beforeUpload={(file) => {
+                  if (file.type !== "application/pdf") {
+                    message.error("Chỉ chấp nhận file PDF!");
+                    return Upload.LIST_IGNORE;
+                  }
+                  setSelectedFiles((prev) => ({
+                    ...prev,
+                    designImage1URL: file,
+                  }));
+                  return false;
+                }}
+                onRemove={() => {
+                  setSelectedFiles((prev) => ({
+                    ...prev,
+                    designImage1URL: null,
+                  }));
+                }}
+              >
+                <Button icon={<PlusOutlined />}>Tải lên file PDF</Button>
+              </Upload>
+            </Form.Item>
           </Col>
         </Row>
-
-        <Form.Item
-          name="description"
-          label="Mô tả"
-          rules={[
-            {
-              required: true,
-              message: "Vui lòng nhập mô tả!",
-            },
-          ]}
-        >
-          <Input.TextArea placeholder="Nhập mô tả" />
-        </Form.Item>
 
         {/* Image Upload Section */}
         <Row gutter={16}>
@@ -366,6 +388,22 @@ const CreateProductModal = ({
             </Form.Item>
           </Col>
         </Row>
+        <Form.Item
+          name="description"
+          label="Mô tả"
+          rules={[
+            {
+              required: true,
+              message: "Vui lòng nhập mô tả!",
+            },
+          ]}
+        >
+          <EditorComponent
+            value={form.getFieldValue("description") || ""}
+            onChange={(value) => form.setFieldsValue({ description: value })}
+            height={350}
+          />
+        </Form.Item>
 
         <Form.Item
           className="form-actions"

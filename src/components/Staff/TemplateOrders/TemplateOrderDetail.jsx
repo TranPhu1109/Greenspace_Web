@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card,
   Row,
@@ -27,19 +27,21 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useProductStore from "@/stores/useProductStore";
-
+import useShippingStore from "@/stores/useShippingStore";
 const { Step } = Steps;
 
 const TemplateOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDesignOrderById, selectedOrder, isLoading } =
+  const { getDesignOrderById, selectedOrder, isLoading, updateStatus } =
     useDesignOrderStore();
-  const { products, fetchProducts, categories, fetchCategories } =
+  const { products, fetchProducts, categories, fetchCategories, getProductById } =
     useProductStore();
+  const { createShippingOrder, trackOrder } = useShippingStore();
   const { getBasePath } = useRoleBasedPath();
+  const trackingInterval = useRef(null);
 
-  console.log("selectedOrder", selectedOrder);
+  //console.log("selectedOrder sttus", selectedOrder);
 
   const handleBack = () => {
     navigate(`${getBasePath()}/design-orders/template-orders`);
@@ -61,6 +63,206 @@ const TemplateOrderDetail = () => {
     };
     fetchOrderDetail();
   }, [id]);
+
+  const refreshOrderDetails = async () => {
+    try {
+      await getDesignOrderById(id);
+    } catch (error) {
+      message.error("Không thể tải lại thông tin đơn hàng");
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    try {
+      // Step 1: Update status to Processing
+      await updateStatus(id, "Processing");
+      
+      // Parse address components
+      const addressParts = selectedOrder.address.split(', ');
+      const addressDetail = addressParts[0];
+      const province = addressParts[1];
+      const district = addressParts[2];
+      const ward = addressParts[3];
+
+      // Fetch product names for items
+      const items = await Promise.all(
+        selectedOrder.serviceOrderDetails.map(async (detail) => {
+          const product = await getProductById(detail.productId);
+          return {
+            name: product.name,
+            code: detail.productId,
+            quantity: detail.quantity
+          };
+        })
+      );
+
+      // Prepare shipping data
+      const shippingData = {
+        toName: selectedOrder.userName,
+        toPhone: selectedOrder.cusPhone,
+        toAddress: addressDetail,
+        toProvince: province,
+        toDistrict: district,
+        toWard: ward,
+        items: items
+      };
+
+      // Step 2: Create shipping order
+      const shippingResponse = await createShippingOrder(shippingData);
+      const orderCode = shippingResponse?.data?.data?.order_code;
+      
+      // Step 3: Update status with delivery code
+      await updateStatus(id, "Processing", orderCode);
+      
+      message.success("Đã xác nhận đơn hàng và tạo đơn vận chuyển thành công");
+      await refreshOrderDetails();
+    } catch (error) {
+      console.error("Error confirming order:", error);
+      message.error("Không thể xác nhận đơn hàng: " + (error.message || "Lỗi không xác định"));
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    try {
+      await updateStatus(id, "OrderCancelled"); 
+      message.success("Đã hủy đơn hàng thành công");
+      await refreshOrderDetails(); 
+    } catch (error) {
+      message.error("Không thể hủy đơn hàng");
+    }
+  };
+  const handleResetPending = async () => {
+    try {
+      await updateStatus(id, "Pending"); 
+      message.success("Đã reset đơn hàng thành công");
+      await refreshOrderDetails(); 
+    } catch (error) {
+      message.error("Không thể reset đơn hàng");
+    }
+  };
+  // Add status mapping for display
+  const getStatusDisplay = (status) => {
+    const statusMap = {
+      "Pending": "Chờ xử lý",
+      "PaymentSuccess": "Đã thanh toán",
+      "Processing": "Đang xử lý",
+      "PickedPackageAndDelivery": "Đang giao hàng",
+      "DeliveryFail": "Giao hàng thất bại",
+      "ReDelivery": "Giao hàng lại",
+      "DeliveredSuccessfully": "Đã giao hàng",
+      "CompleteOrder": "Hoàn thành",
+      "OrderCancelled": "Đã hủy"
+    };
+    return statusMap[status] || status;
+  };
+
+  // Add status color mapping
+  const getStatusColor = (status) => {
+    const colorMap = {
+      "Pending": "gold",
+      "PaymentSuccess": "blue",
+      "Processing": "processing",
+      "PickedPackageAndDelivery": "processing",
+      "DeliveryFail": "error",
+      "ReDelivery": "warning",
+      "DeliveredSuccessfully": "success",
+      "CompleteOrder": "success",
+      "OrderCancelled": "error"
+    };
+    return colorMap[status] || "default";
+  };
+
+  // Update Steps component to show all statuses
+  const getCurrentStep = (status) => {
+    const stepMap = {
+      "Pending": 0,
+      "PaymentSuccess": 1,
+      "Processing": 2,
+      "PickedPackageAndDelivery": 3,
+      "DeliveryFail": 6,
+      "ReDelivery": 7,
+      "DeliveredSuccessfully": 4,
+      "CompleteOrder": 5,
+      "OrderCancelled": 8
+    };
+    return stepMap[status] || 0;
+  };
+
+  // Map shipping status to our status
+  const shippingStatusMap = {
+    'ready_to_pick': 'Processing',
+    'delivering': 'PickedPackageAndDelivery',
+    'delivery_fail': 'DeliveryFail',
+    'return': 'ReDelivery',
+    'delivered': 'DeliveredSuccessfully',
+    'cancel': 'OrderCancelled'
+  };
+
+  // Start tracking when component mounts and order has a delivery code
+  useEffect(() => {
+    if (selectedOrder?.deliveryCode) {
+      const startTracking = () => {
+        // Clear any existing interval
+        if (trackingInterval.current) {
+          clearInterval(trackingInterval.current);
+        }
+
+        // Initial check
+        checkShippingStatus();
+
+        // Set up interval for checking every 60 seconds
+        trackingInterval.current = setInterval(checkShippingStatus, 20000);
+      };
+
+      const checkShippingStatus = async () => {
+        try {
+          // Stop tracking if status is DeliveredSuccessfully or CompleteOrder
+          if (selectedOrder.status === "DeliveredSuccessfully" || selectedOrder.status === "CompleteOrder") {
+            if (trackingInterval.current) {
+              clearInterval(trackingInterval.current);
+              trackingInterval.current = null;
+            }
+            return;
+          }
+
+          const shippingStatus = await trackOrder(selectedOrder.deliveryCode);
+          const mappedStatus = shippingStatusMap[shippingStatus];
+          
+          console.log('Current shipping status:', {
+            shippingStatus,
+            mappedStatus,
+            currentStatus: selectedOrder.status
+          });
+
+          // Only update if we have a valid mapped status and it's different from current status
+          if (mappedStatus && mappedStatus !== selectedOrder.status) {
+            console.log('Updating status:', {
+              from: selectedOrder.status,
+              to: mappedStatus,
+              shippingStatus: shippingStatus
+            });
+            
+            await updateStatus(selectedOrder.id, mappedStatus, selectedOrder.deliveryCode);
+            message.success(`Trạng thái đơn hàng đã được cập nhật: ${getStatusDisplay(mappedStatus)}`);
+            
+            // Refresh order details to get the latest status
+            await refreshOrderDetails();
+          }
+        } catch (error) {
+          console.error('Error checking shipping status:', error);
+        }
+      };
+
+      startTracking();
+
+      // Cleanup interval on unmount
+      return () => {
+        if (trackingInterval.current) {
+          clearInterval(trackingInterval.current);
+        }
+      };
+    }
+  }, [selectedOrder?.deliveryCode, selectedOrder?.status]); 
 
   if (isLoading || !selectedOrder) {
     return (
@@ -87,71 +289,139 @@ const TemplateOrderDetail = () => {
         <Col span={24}>
           <Card
             title="Tiến độ đơn hàng"
-            bordered={true}
             style={{
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               borderRadius: "12px",
-              border: "none",
+              border: "1px solid #f0f0f0",
             }}
-            headStyle={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0",
-              padding: "16px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              border: "none",
+            styles={{
+              header: {
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "14px",
+                fontWeight: "600",
+                border: "none",
+              }
             }}
           >
-            <Steps
-              current={
-                selectedOrder.status === "Pending" ? 0 :
-                selectedOrder.status === "PaymentSuccess" ? 1 :
-                selectedOrder.status === "Processing" ? 2 :
-                selectedOrder.status === "PickedPackageAndDelivery" ? 3 :
-                selectedOrder.status === "DeliveryFail" ? 3 :
-                selectedOrder.status === "ReDelivery" ? 3 :
-                selectedOrder.status === "DeliveredSuccessfully" ? 4 :
-                selectedOrder.status === "CompleteOrder" ? 5 :
-                selectedOrder.status === "OrderCancelled" ? -1 :
-                selectedOrder.status === "Refund" ? -1 :
-                selectedOrder.status === "DoneRefund" ? -1 : 0
-              }
-              status={
-                selectedOrder.status === "OrderCancelled" || 
-                selectedOrder.status === "Refund" || 
-                selectedOrder.status === "DoneRefund" || 
-                selectedOrder.status === "DeliveryFail" 
-                ? "error" 
-                : "process"
-              }
-            >
-              <Step title="Chờ xử lý" description="Đơn hàng mới" />
-              <Step title="Thanh toán" description="Đã thanh toán" />
-              <Step title="Xử lý" description="Đang xử lý đơn hàng" />
-              <Step title="Vận chuyển" description="Đang giao hàng" />
-              <Step title="Đã giao" description="Giao hàng thành công" />
-              <Step title="Hoàn thành" description="Đơn hàng hoàn thành" />
-            </Steps>
+            <div style={{ padding: "24px" }}>
+              <Steps
+                current={getCurrentStep(selectedOrder.status)}
+                status={selectedOrder.status === "OrderCancelled" || selectedOrder.status === "DeliveryFail" ? "error" : "process"}
+                style={{ 
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "24px"
+                }}
+              >
+                <Step 
+                  title="Chờ xử lý" 
+                  description="Đơn hàng mới" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
+                  title="Thanh toán" 
+                  description="Đã thanh toán" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
+                  title="Đang xử lý" 
+                  description="Đang xử lý đơn hàng" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
+                  title="Vận chuyển" 
+                  description="Đang giao hàng" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
+                  title="Đã giao" 
+                  description="Giao hàng thành công" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
+                  title="Hoàn thành" 
+                  description="Đơn hàng hoàn thành" 
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }} 
+                />
+                <Step 
+                  title="Giao thất bại" 
+                  description="Giao hàng không thành công"
+                  status={selectedOrder.status === "DeliveryFail" ? "error" : "wait"}
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }}
+                />
+                <Step 
+                  title="Giao lại" 
+                  description="Đang giao hàng lại"
+                  status={selectedOrder.status === "ReDelivery" ? "process" : "wait"}
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }}
+                />
+                <Step 
+                  title="Đã hủy" 
+                  description="Đơn hàng đã bị hủy"
+                  status={selectedOrder.status === "OrderCancelled" ? "error" : "wait"}
+                  style={{ 
+                    paddingRight: "16px",
+                    minWidth: "200px",
+                    flex: "1 1 auto"
+                  }}
+                />
+              </Steps>
+            </div>
           </Card>
         </Col>
         <Col span={16}>
           <Card
             title="Thông tin đơn hàng"
-            bordered={true}
             style={{
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               borderRadius: "12px",
-              border: "none",
+              border: "1px solid #f0f0f0",
             }}
-            headStyle={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0",
-              padding: "16px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              border: "none",
+            styles={{
+              header: {
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }
             }}
           >
             <div>
@@ -162,7 +432,7 @@ const TemplateOrderDetail = () => {
                 </Descriptions.Item>
 
                 <Descriptions.Item label="Mẫu thiết kế">
-                  {selectedOrder.templateName}
+                  {selectedOrder.serviceType}
                 </Descriptions.Item>
                 <Descriptions.Item label="Giá thiết kế">
                   <strong>
@@ -172,7 +442,7 @@ const TemplateOrderDetail = () => {
               </Descriptions>
 
               {/* Customer Requirements Section */}
-              <Descriptions
+              {/* <Descriptions
                 column={3}
                 bordered
                 title="Yêu cầu khách hàng"
@@ -190,7 +460,7 @@ const TemplateOrderDetail = () => {
                 <Descriptions.Item label="Mô tả">
                   {selectedOrder.description}
                 </Descriptions.Item>
-              </Descriptions>
+              </Descriptions> */}
             </div>
 
             <Divider />
@@ -198,7 +468,7 @@ const TemplateOrderDetail = () => {
             {selectedOrder.serviceOrderDetails &&
               selectedOrder.serviceOrderDetails.length > 0 && (
                 <div className="selected-materials">
-                  <h4>Vật liệu đã chọn:</h4>
+                  <h4>Vật liệu:</h4>
                   <div style={{ marginBottom: "10px" }}>
                     <Table
                       dataSource={selectedOrder.serviceOrderDetails.map(
@@ -288,16 +558,18 @@ const TemplateOrderDetail = () => {
             style={{
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               borderRadius: "12px",
-              border: "none",
+              border: "1px solid #f0f0f0",
             }}
-            headStyle={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              color: "white",
-              borderRadius: "12px 12px 0 0",
-              padding: "16px 20px",
-              fontSize: "16px",
-              fontWeight: "600",
-              border: "none",
+            styles={{
+              header: {
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }
             }}
           >
             <Descriptions column={1} size="small" layout="horizontal" bordered>
@@ -421,10 +693,8 @@ const TemplateOrderDetail = () => {
                   </Space>
                 }
               >
-                <Tag
-                  color={selectedOrder.status === "active" ? "green" : "gold"}
-                >
-                  {selectedOrder.status}
+                <Tag color={getStatusColor(selectedOrder.status)}>
+                  {getStatusDisplay(selectedOrder.status)}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item
@@ -434,62 +704,70 @@ const TemplateOrderDetail = () => {
                   </span>
                 }
               >
-                <strong>
-                  {selectedOrder.totalCost.toLocaleString("vi-VN")} đ
-                </strong>
+                <span style={{ 
+                  fontSize: "24px", 
+                  fontWeight: "bold",
+                  color: "#4CAF50",
+                  display: "block",
+                  marginTop: "4px"
+                }}>
+                  {((selectedOrder.designPrice || 0) + (selectedOrder.materialPrice || 0)).toLocaleString("vi-VN")} đ
+                </span>
               </Descriptions.Item>
             </Descriptions>
-            <div
-              style={{
-                marginTop: "16px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <Button
-                type="primary"
+            {selectedOrder.status !== "OrderCancelled" && (
+              <div
                 style={{
-                  backgroundColor: "#4CAF50",
-                  borderColor: "#4CAF50",
-                  width: "100%",
-                }}
-                onClick={() => {
-                  Modal.confirm({
-                    title: "Xác nhận đơn hàng",
-                    content: "Bạn có chắc chắn muốn xác nhận đơn hàng này?",
-                    okText: "Xác nhận",
-                    cancelText: "Hủy",
-                    onOk: () => {
-                      message.success("Đã xác nhận đơn hàng thành công");
-                    },
-                  });
+                  marginTop: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
               >
-                Xác nhận đơn hàng
-              </Button>
-              <Button
-                danger
-                style={{
-                  width: "100%",
-                }}
-                onClick={() => {
-                  Modal.confirm({
-                    title: "Hủy đơn hàng",
-                    content: "Bạn có chắc chắn muốn hủy đơn hàng này?",
-                    okText: "Hủy đơn",
-                    cancelText: "Đóng",
-                    okButtonProps: { danger: true },
-                    onOk: () => {
-                      message.success("Đã hủy đơn hàng thành công");
-                    },
-                  });
-                }}
-              >
-                Hủy đơn hàng
-              </Button>
-            </div>
+                {selectedOrder.status === "Pending" && (
+                  <Button
+                    type="primary"
+                    style={{
+                      backgroundColor: "#4CAF50",
+                      borderColor: "#4CAF50",
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      Modal.confirm({
+                        title: "Xác nhận đơn hàng",
+                        content: "Bạn có chắc chắn muốn xác nhận đơn hàng này?",
+                        okText: "Xác nhận",
+                        cancelText: "Hủy",
+                        onOk: handleConfirmOrder,
+                      });
+                    }}
+                  >
+                    Xác nhận đơn hàng
+                  </Button>
+                )}
+                {selectedOrder.status !== "DeliveredSuccessfully" && selectedOrder.status !== "CompleteOrder" && (
+                  <Button
+                    danger
+                    style={{
+                      width: "100%",
+                    }}
+                    onClick={() => {
+                      Modal.confirm({
+                        title: "Hủy đơn hàng",
+                        content: "Bạn có chắc chắn muốn hủy đơn hàng này?",
+                        okText: "Hủy đơn",
+                        cancelText: "Đóng",
+                        okButtonProps: { danger: true },
+                        onOk: handleCancelOrder,
+                      });
+                    }}
+                  >
+                    Hủy đơn hàng
+                  </Button>
+                )}
+              </div>
+            )}
           </Card>
         </Col>
       </Row>

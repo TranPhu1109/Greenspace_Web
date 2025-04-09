@@ -1,250 +1,262 @@
-import { create } from 'zustand';
-import api from '../api/api';
+import { create } from "zustand";
+import api from "../api/api";
 
 const useScheduleStore = create((set, get) => ({
+  orders: [],
+  noIdeaOrders: [],
+  usingIdeaOrders: [],
   designers: [],
   selectedDesigner: null,
+  workTasks: [],
   isLoading: false,
   error: null,
 
-  // Lấy danh sách tất cả designers và tasks của họ
-  fetchDesigners: async () => {
+  // Lấy danh sách tất cả work tasks đang hoạt động
+  getAllTasks: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('api/users');
-      const designersOnly = response.data.filter(user => user.roleName === 'Designer');
-      set({ 
-        designers: designersOnly,
-        isLoading: false 
+      const response = await api.get('/api/worktask');
+      const tasks = response.data;
+      
+      set({
+        workTasks: tasks,
+        isLoading: false
       });
-      return designersOnly;
+      return tasks;
     } catch (error) {
-      set({ 
-        error: error.message || 'Không thể tải dữ liệu designers', 
-        isLoading: false 
+      set({
+        error: error.message || 'Không thể tải danh sách công việc',
+        isLoading: false
       });
       return [];
     }
   },
 
-  // Lấy thông tin chi tiết của một designer
-  fetchDesignerById: async (id) => {
+  // Lấy danh sách tất cả designers và tasks của họ
+  fetchDesigners: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get(`http://localhost:3000/schedule/${id}`);
-      set({ selectedDesigner: response.data, isLoading: false });
-      return response.data;
-    } catch (error) {
-      set({ 
-        error: error.message || 'Không thể tải thông tin designer', 
-        isLoading: false 
+      const response = await api.get("api/users/designer");
+      const designersOnly = response.data
+      set({
+        designers: designersOnly,
+        isLoading: false,
       });
-      return null;
+      return designersOnly;
+    } catch (error) {
+      set({
+        error: error.message || "Không thể tải dữ liệu designers",
+        isLoading: false,
+      });
+      return [];
     }
   },
+
+  // Lấy danh sách đơn thiết kế không có mẫu đang trong giai đoạn tư vấn và phác thảo
+  fetchNoIdeaOrders: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get("api/serviceorder/noidea");
+      const consultingOrders = response.data.filter(
+        (order) => order.status === "Pending"
+      );
+      set({
+        noIdeaOrders: consultingOrders,
+        isLoading: false,
+        orders: consultingOrders,
+        error: null
+      });
+      return consultingOrders;
+    } catch (error) {
+      set({
+        error: error.message || "Không thể tải danh sách đơn thiết kế",
+        isLoading: false,
+      });
+      return [];
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // Lấy danh sách đơn thiết kế có sử dụng mẫu, tùy chỉnh và đang trong giai đoạn tư vấn và phác thảo
+  fetchUsingIdeaOrders: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get("api/serviceorder/usingidea");
+      const customConsultingOrders = response.data.filter(
+        (order) => order.isCustom === true && order.status === "Pending"
+      );
+      set({
+        usingIdeaOrders: customConsultingOrders,
+        isLoading: false,
+        orders: customConsultingOrders,
+      });
+      return customConsultingOrders;
+    } catch (error) {
+      set({
+        error: error.message || "Không thể tải danh sách đơn thiết kế",
+        isLoading: false,
+      });
+      return [];
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // Lấy danh sách tasks theo ngày
 
   // Thêm task mới cho designer
   addTask: async (taskData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post('api/worktask', taskData);
+      // Gọi API để thêm task mới
+      const response = await api.post('/api/worktask', {
+        serviceOrderId: taskData.serviceOrderId,
+        userId: taskData.userId,
+        note: taskData.note || ''
+      });
+      const newTask = response.data;
+      
+      // Cập nhật state với task mới
+      set(state => ({
+        workTasks: [...state.workTasks, newTask],
+        isLoading: false,
+        error: null
+      }));
+      
+      // Tự động fetch lại danh sách tasks
+      await get().getAllTasks();
+      
+      return newTask;
+    } catch (error) {
+      set({
+        error: error.message || 'Không thể thêm công việc mới',
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
+  // Cập nhật trạng thái task
+  updateTask: async (taskId, taskData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.put(`/api/worktask/${taskId}`, taskData);
+      const updatedTask = response.data;
+      
+      set(state => ({
+        workTasks: state.workTasks.map(task =>
+          task.id === taskId ? updatedTask : task
+        ),
+        isLoading: false
+      }));
+      
+      // Cập nhật lại danh sách tasks
+      await get().getAllActiveTasks();
+      
+      return updatedTask;
+    } catch (error) {
+      set({
+        error: error.message || 'Không thể cập nhật công việc',
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
+  // Thêm hàm để cập nhật trạng thái task cho đơn hàng có trạng thái DepositSuccessful
+  updateTasksForDepositSuccessfulOrders: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      // Lấy danh sách đơn hàng có trạng thái DepositSuccessful
+      const responseNoIdea = await api.get("/api/serviceorder/noidea");
+      const responseUsingIdea = await api.get("/api/serviceorder/usingidea");
+      const responseDepositSuccessful = responseNoIdea.data && responseUsingIdea.data;
+      
+      if (!responseDepositSuccessful || responseDepositSuccessful.length === 0) {
+        set({ isLoading: false });
+        return { message: "Không có đơn hàng nào có trạng thái DepositSuccessful" };
+      }
+      
+      // Lấy danh sách task hiện tại
+      const tasks = get().workTasks;
+      
+      // Cập nhật trạng thái task cho từng đơn hàng
+      const updatePromises = responseDepositSuccessful.map(async (order) => {
+        // Tìm task tương ứng với đơn hàng
+        const task = tasks.find(task => task.serviceOrderId === order.id);
+        
+        if (task) {
+          // Kiểm tra nếu task đã có trạng thái 2 (Design) hoặc service order có trạng thái AssignToDesigner thì bỏ qua
+          if (task.status === 2 || task.status === "Design" || order.status === "AssignToDesigner") {
+            return null;
+          }
+
+          // Chỉ cập nhật khi order có trạng thái DepositSuccessful và task có trạng thái DoneConsulting
+          if (order.status !== "DepositSuccessful" || task.status !== "DoneConsulting") {
+            return null;
+          }
+          
+          // Cập nhật trạng thái task lên 2
+          const updateResponse = await api.put(`/api/worktask/${task.id}`, {
+            serviceOrderId: task.serviceOrderId,
+            userId: task.userId,
+            status: 2,
+            note: task.note || "Khách hàng đã đặt cọc"
+          });
+
+          // Chỉ cập nhật service order nếu cập nhật task thành công
+          if (updateResponse.data) {
+            console.log("Updating service order status for order:", order.id);
+            // Tự động cập nhật trạng thái service order lên 4 (Designing)
+            const updateServiceOrder = await api.put(`/api/serviceorder/status/${order.id}`, {
+              status: 4, // Trạng thái 4 tương ứng với "Designing"
+              deliveryCode: "" // Thêm trường deliveryCode theo yêu cầu API
+            });
+            
+            console.log("Service order update response:", updateServiceOrder.data);
+          }
+          
+          return updateResponse.data;
+        }
+        return null;
+      });
+      
+      // Đợi tất cả các promise hoàn thành
+      const results = await Promise.all(updatePromises);
+      const updatedTasks = results.filter(result => result !== null);
+      
+      // Cập nhật state với danh sách task mới
+      if (updatedTasks.length > 0) {
+        // Cập nhật workTasks trong state
+        const currentTasks = get().workTasks;
+        const updatedWorkTasks = currentTasks.map(task => {
+          const updatedTask = updatedTasks.find(ut => ut.id === task.id);
+          return updatedTask || task;
+        });
+        
+        set({ 
+          workTasks: updatedWorkTasks,
+          isLoading: false 
+        });
+        
+        return { 
+          message: `Đã cập nhật ${updatedTasks.length} task và trạng thái đơn hàng cho đơn hàng có trạng thái DepositSuccessful`,
+          updatedTasks
+        };
+      }
+      
       set({ isLoading: false });
-      return response.data;
+      return { message: "Không có task nào cần cập nhật" };
     } catch (error) {
+      console.error("Error updating tasks for deposit successful orders:", error);
       set({ 
-        error: error.message || 'Không thể thêm task mới', 
+        error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful",
         isLoading: false 
       });
-      throw error;
+      return { error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful" };
     }
-  },
-  // addTask: async (designerId, taskData) => {
-  //   set({ isLoading: true, error: null });
-  //   try {
-  //     // Lấy designer hiện tại
-  //     const designer = get().designers.find(d => d.id == designerId);
-  //     if (!designer) throw new Error('Không tìm thấy designer');
-
-  //     // Tạo task mới với ID tự tạo
-  //     const newTask = {
-  //       task_id: Date.now(), // Tạo ID tạm thời
-  //       title: taskData.title,
-  //       customer: taskData.customer,
-  //       deadline: taskData.deadline,
-  //       task_status: taskData.status || 'thiết kế',
-  //       notes: taskData.notes || ''
-  //     };
-
-  //     // Cập nhật trạng thái designer thành "đang bận"
-  //     const updatedDesigner = {
-  //       ...designer,
-  //       status: 'đang bận',
-  //       tasks: [...(designer.tasks || []), newTask]
-  //     };
-
-  //     // Gọi API để cập nhật
-  //     const response = await api.put(`https://67d3cec08bca322cc26b1d5e.mockapi.io/schedule/${designerId}`, updatedDesigner);
-
-  //     // Cập nhật state
-  //     const updatedDesigners = get().designers.map(d => 
-  //       d.id == designerId ? response.data : d
-  //     );
-
-  //     set({ 
-  //       designers: updatedDesigners,
-  //       isLoading: false 
-  //     });
-
-  //     return response.data;
-  //   } catch (error) {
-  //     set({ 
-  //       error: error.message || 'Không thể thêm task mới', 
-  //       isLoading: false 
-  //     });
-  //     throw error;
-  //   }
-  // },
-
-  // Cập nhật task
-  updateTask: async (designerId, taskId, taskData) => {
-    set({ isLoading: true, error: null });
-    try {
-      // Lấy designer hiện tại
-      const designer = get().designers.find(d => d.id == designerId);
-      if (!designer) throw new Error('Không tìm thấy designer');
-
-      // Tìm và cập nhật task
-      const updatedTasks = designer.tasks.map(task => 
-        task.task_id == taskId ? { ...task, ...taskData } : task
-      );
-
-      // Kiểm tra nếu không còn task nào đang thực hiện thì cập nhật trạng thái designer
-      const hasActiveTasks = updatedTasks.some(task => 
-        task.task_status !== 'hoàn thành'
-      );
-
-      const updatedDesigner = {
-        ...designer,
-        status: hasActiveTasks ? 'đang bận' : 'đang rảnh',
-        tasks: updatedTasks
-      };
-
-      // Gọi API để cập nhật
-      const response = await api.put(`https://67d3cec08bca322cc26b1d5e.mockapi.io/schedule/${designerId}`, updatedDesigner);
-
-      // Cập nhật state
-      const updatedDesigners = get().designers.map(d => 
-        d.id == designerId ? response.data : d
-      );
-
-      set({ 
-        designers: updatedDesigners,
-        isLoading: false 
-      });
-
-      return response.data;
-    } catch (error) {
-      set({ 
-        error: error.message || 'Không thể cập nhật task', 
-        isLoading: false 
-      });
-      throw error;
-    }
-  },
-
-  // Xóa task
-  deleteTask: async (designerId, taskId) => {
-    set({ isLoading: true, error: null });
-    try {
-      // Lấy designer hiện tại
-      const designer = get().designers.find(d => d.id == designerId);
-      if (!designer) throw new Error('Không tìm thấy designer');
-
-      // Lọc bỏ task cần xóa
-      const updatedTasks = designer.tasks.filter(task => 
-        task.task_id != taskId
-      );
-
-      // Kiểm tra nếu không còn task nào thì cập nhật trạng thái designer
-      const hasActiveTasks = updatedTasks.some(task => 
-        task.task_status !== 'hoàn thành'
-      );
-
-      const updatedDesigner = {
-        ...designer,
-        status: hasActiveTasks ? 'đang bận' : 'đang rảnh',
-        tasks: updatedTasks
-      };
-
-      // Gọi API để cập nhật
-      const response = await api.put(`https://67d3cec08bca322cc26b1d5e.mockapi.io/schedule/${designerId}`, updatedDesigner);
-
-      // Cập nhật state
-      const updatedDesigners = get().designers.map(d => 
-        d.id == designerId ? response.data : d
-      );
-
-      set({ 
-        designers: updatedDesigners,
-        isLoading: false 
-      });
-
-      return response.data;
-    } catch (error) {
-      set({ 
-        error: error.message || 'Không thể xóa task', 
-        isLoading: false 
-      });
-      throw error;
-    }
-  },
-
-  // Lấy tất cả tasks từ tất cả designers (chỉ lấy tasks chưa hoàn thành)
-  getAllActiveTasks: () => {
-    const { designers } = get();
-    return designers.reduce((allTasks, designer) => {
-      const designerTasks = (designer.tasks || [])
-        .filter(task => task.task_status !== 'hoàn thành')
-        .map(task => ({
-          ...task,
-          designerId: designer.id,
-          designerName: designer.name,
-          designerStatus: designer.status,
-          designerAvatar: designer.avatar,
-          designerEmail: designer.email
-        }));
-      return [...allTasks, ...designerTasks];
-    }, []);
-  },
-
-  // Lấy tasks theo ngày
-  getTasksByDate: (date) => {
-    const allTasks = get().getAllActiveTasks();
-    return allTasks.filter(task => {
-      const taskDate = new Date(task.deadline).toISOString().split('T')[0];
-      return taskDate === date;
-    });
-  },
-
-  // Lấy designers đang rảnh
-  getAvailableDesigners: () => {
-    return get().designers.filter(designer => designer.status === 'đang rảnh');
-  },
-
-  // Lấy designers đang bận
-  getBusyDesigners: () => {
-    return get().designers.filter(designer => designer.status === 'đang bận');
-  },
-
-  // Reset state
-  resetState: () => {
-    set({
-      designers: [],
-      selectedDesigner: null,
-      isLoading: false,
-      error: null
-    });
   }
 }));
 
-export default useScheduleStore; 
+export default useScheduleStore;

@@ -1,18 +1,24 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import axios from "../api/api";
+import api from "@/api/api";
 
-const useProductStore = create((set, get) => ({
+const useProductStore = create(persist((set, get) => ({
   // State
   products: [],
   categories: [],
   isLoading: false,
   error: null,
   selectedProduct: null,
+  abortController: null,
+  lastFetch: null,
+  cacheTimeout: 5 * 60 * 1000, // 5 minutes cache
 
   // Add new state for feedback
   productFeedbacks: {}, // Change to object to store feedbacks by productId
   selectedProductFeedbacks: [],
   feedbackLoading: false,
+  allFeedbacks: [], // Store all feedbacks from API
 
   // Actions
   setProducts: (products) => set({ products }),
@@ -28,43 +34,53 @@ const useProductStore = create((set, get) => ({
       } 
     })),
 
-  // Fetch feedbacks for all products
+  // Fetch all feedbacks and organize by product
   fetchAllProductFeedbacks: async () => {
-    const { products } = get();
-    const feedbacksMap = {};
-    
-    for (const product of products) {
-      try {
-        const response = await axios.get(`/api/productfeedback/${product.id}/products`);
-        if (response.status === 200) {
-          const feedbacksArray = Array.isArray(response.data) ? response.data.map(feedback => ({
-            id: feedback.id,
-            userName: feedback.userName || 'Ẩn danh',
-            productName: feedback.productName,
-            rating: feedback.rating,
-            description: feedback.description,
-            reply: feedback.reply,
-            createdAt: feedback.createdAt
-          })) : [];
-          
-          feedbacksMap[product.id] = feedbacksArray;
-        } else {
-          // If no feedbacks found, set empty array for this product
-          feedbacksMap[product.id] = [];
-        }
-      } catch (error) {
-        console.error(`Error fetching feedbacks for product ${product.id}:`, error);
-        feedbacksMap[product.id] = [];
+    set({ feedbackLoading: true, error: null });
+    try {
+      const response = await axios.get('/api/productfeedback');
+      if (response.status === 200) {
+        const allFeedbacks = Array.isArray(response.data) ? response.data : [];
+        const feedbacksMap = {};
+        
+        // Group feedbacks by product name
+        allFeedbacks.forEach(feedback => {
+          const product = get().products.find(p => p.name === feedback.productName);
+          if (product) {
+            if (!feedbacksMap[product.id]) {
+              feedbacksMap[product.id] = [];
+            }
+            feedbacksMap[product.id].push({
+              id: feedback.id,
+              userName: feedback.userName || 'Ẩn danh',
+              productName: feedback.productName,
+              rating: feedback.rating,
+              description: feedback.description,
+              reply: feedback.reply,
+              createdAt: feedback.creationDate
+            });
+          }
+        });
+        
+        set({ 
+          productFeedbacks: feedbacksMap,
+          allFeedbacks: allFeedbacks,
+          feedbackLoading: false 
+        });
+        return feedbacksMap;
       }
+      set({ feedbackLoading: false });
+      return {};
+    } catch (error) {
+      console.error('Error fetching all feedbacks:', error);
+      set({ error: error.message, feedbackLoading: false });
+      return {};
     }
-    
-    set({ productFeedbacks: feedbacksMap });
-    return feedbacksMap;
   },
 
   // Get feedbacks for specific product
   getProductFeedbacks: async (productId) => {
-    set({ feedbackLoading: true, error: null, selectedProductFeedbacks: [] }); // Reset selectedProductFeedbacks
+    set({ feedbackLoading: true, error: null, selectedProductFeedbacks: [] });
     try {
       const response = await axios.get(`/api/productfeedback/${productId}/products`);
 
@@ -79,7 +95,6 @@ const useProductStore = create((set, get) => ({
           createdAt: feedback.createdAt
         })) : [];
         
-        // Update both selectedProductFeedbacks and productFeedbacks
         set(state => ({ 
           selectedProductFeedbacks: feedbacksArray,
           productFeedbacks: {
@@ -91,7 +106,6 @@ const useProductStore = create((set, get) => ({
         return feedbacksArray;
       }
       
-      // If no feedbacks found, set empty arrays
       set(state => ({
         selectedProductFeedbacks: [],
         productFeedbacks: {
@@ -103,8 +117,6 @@ const useProductStore = create((set, get) => ({
       return [];
       
     } catch (error) {
-      console.error("Error fetching feedbacks:", error);
-      // Reset feedbacks on error
       set(state => ({ 
         error: error.message, 
         feedbackLoading: false,
@@ -120,18 +132,27 @@ const useProductStore = create((set, get) => ({
 
   // API Actions
   fetchProducts: async (componentId) => {
+    const { products, isLoading, lastFetch, cacheTimeout } = get();
+    
+    if (products.length === 0) {
+      set({ lastFetch: null });
+    }
+
+    if (isLoading) {
+      return products;
+    }
+    
     set({ isLoading: true, error: null });
     try {
       const response = await axios.get("/api/product", {
         params: {
           pageNumber: 0,
-          pageSize: 100, // Increased to load more products
+          pageSize: 100,
         },
         componentId,
         allowDuplicate: false
       });
       
-      // Skip processing if the request was canceled
       if (response.status === 'canceled') {
         set({ isLoading: false });
         return [];
@@ -147,26 +168,26 @@ const useProductStore = create((set, get) => ({
             },
           }))
         : [];
-      set({ products: productsArray, isLoading: false });
+      
+      set({ products: productsArray, isLoading: false, lastFetch: Date.now() });
       return productsArray;
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error fetching products:", error);
-        set({ error: error.message, isLoading: false });
+        set({ 
+          error: error.message,
+          isLoading: false 
+        });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return [];
     }
   },
 
-  // Add this to the API Actions section
   createProduct: async (productData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.post(
+      const response = api.post(
         "/api/product",
         {
           name: productData.name,
@@ -176,6 +197,7 @@ const useProductStore = create((set, get) => ({
           description: productData.description,
           size: productData.size || 0,
           image: productData.image, // Pass the entire image object
+          designImage1URL: productData.designImage1URL || null,
         },
         {
           headers: {
@@ -185,13 +207,12 @@ const useProductStore = create((set, get) => ({
       );
 
       if (response.status === 201) {
-        await get().fetchProducts(); // Refresh the products list
+        await get().fetchProducts();
         set({ isLoading: false });
         return response.data;
       }
       throw new Error("Failed to create product");
     } catch (error) {
-      console.error("Error creating product:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -200,7 +221,7 @@ const useProductStore = create((set, get) => ({
   updateProduct: async (id, productData, componentId) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await axios.put(`/api/product/${id}`, productData, {
+      const response = await api.put(`/api/product/${id}`, productData, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -212,7 +233,6 @@ const useProductStore = create((set, get) => ({
         return null;
       }
       
-      // Update the product in the products list
       set((state) => ({
         products: state.products.map(product => 
           product.id === id ? { ...product, ...productData } : product
@@ -222,13 +242,10 @@ const useProductStore = create((set, get) => ({
       
       return response.data;
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error updating product:", error);
         set({ error: error.message, isLoading: false });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return null;
     }
@@ -255,13 +272,10 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to delete product");
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error deleting product:", error);
         set({ error: error.message, isLoading: false });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return null;
     }
@@ -275,7 +289,6 @@ const useProductStore = create((set, get) => ({
         allowDuplicate: false
       });
       
-      // Skip processing if the request was canceled
       if (response.status === 'canceled') {
         set({ isLoading: false });
         return null;
@@ -293,15 +306,22 @@ const useProductStore = create((set, get) => ({
         set({ selectedProduct: formattedProduct, isLoading: false });
         return formattedProduct;
       }
-      throw new Error("Failed to fetch product");
+      
+      const processedProduct = {
+        ...response.data,
+        image: {
+          imageUrl: response.data.image?.imageUrl || "",
+          image2: response.data.image?.image2 || "",
+          image3: response.data.image?.image3 || "",
+        }
+      };
+
+      return processedProduct;
     } catch (error) {
-      // Only handle non-cancellation errors
       if (!axios.isCancel(error)) {
-        console.error("Error fetching product:", error);
         set({ error: error.message, isLoading: false });
         throw error;
       }
-      // Reset loading state for cancellations
       set({ isLoading: false });
       return null;
     }
@@ -324,9 +344,8 @@ const useProductStore = create((set, get) => ({
         set({ isLoading: false });
         return [];
       }
-      
       const categoriesArray = Array.isArray(response.data) ? response.data : [];
-      set({ categories: categoriesArray, isLoading: false });
+      set({ categories: categoriesArray, isLoading: false, abortController: null });
       return categoriesArray;
     } catch (error) {
       // Only handle non-cancellation errors
@@ -372,7 +391,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to create category");
     } catch (error) {
-      console.error("Error creating category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -409,7 +427,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to update category");
     } catch (error) {
-      console.error("Error updating category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -428,7 +445,6 @@ const useProductStore = create((set, get) => ({
       }
       throw new Error("Failed to delete category");
     } catch (error) {
-      console.error("Error deleting category:", error);
       set({ error: error.message, isLoading: false });
       throw error;
     }
@@ -540,6 +556,6 @@ const useProductStore = create((set, get) => ({
       throw error;
     }
   },
-}));
+})));
 
 export default useProductStore;

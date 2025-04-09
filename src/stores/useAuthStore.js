@@ -19,27 +19,67 @@ const useAuthStore = create(
       login: async (email, password) => {
         set({ loading: true, error: null });
         try {
+          console.log('Starting login process...');
+          
           // First, authenticate with Firebase
-          const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-          );
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          console.log('Firebase authentication successful');
 
           // Then authenticate with backend using Firebase token
-          const userData = await useAuthStore
-            .getState()
-            .authenticateWithFirebase(userCredential.user);
+          const userData = await useAuthStore.getState().authenticateWithFirebase(userCredential.user);
+          console.log('Backend authentication successful', { 
+            userId: userData.id,
+            email: userData.email,
+            role: userData.roleName
+          });
 
           // Store user data and token in localStorage
-          localStorage.setItem("user", JSON.stringify(userData));
+          const userToStore = {
+            id: userData.id,
+            email: userData.email,
+            name: userData.name,
+            roleName: userData.roleName,
+            phone: userData.phone,
+            address: userData.address,
+            avatarUrl: userData.avatarUrl,
+            backendToken: userData.backendToken
+          };
+          
+          localStorage.setItem("user", JSON.stringify(userToStore));
           localStorage.setItem("token", userData.backendToken);
           localStorage.setItem("selectedRole", userData.roleName.toLowerCase());
+          console.log('User data stored in localStorage');
 
-          set({ user: userData, isAuthenticated: true, loading: false });
-          return userData;
+          set({ 
+            user: userToStore, 
+            isAuthenticated: true, 
+            loading: false 
+          });
+
+          // Fetch wallet balance after successful login
+          if (userData.roleName === 'Customer') {
+            const walletStore = (await import('./useWalletStore')).default;
+            await walletStore.getState().fetchBalance();
+            
+            // Fetch cart items after successful login
+            const cartStore = (await import('./useCartStore')).default;
+            await cartStore.getState().fetchCartItems();
+          }
+          
+          return userToStore;
         } catch (err) {
-          set({ error: err.message, loading: false });
+          console.error('Login error details:', {
+            message: err.message,
+            code: err.code,
+            response: err.response?.data,
+            status: err.response?.status
+          });
+          set({ 
+            error: err.message, 
+            loading: false,
+            user: null,
+            isAuthenticated: false 
+          });
           throw err;
         }
       },
@@ -47,12 +87,17 @@ const useAuthStore = create(
       authenticateWithFirebase: async (firebaseUser, role = "string") => {
         try {
           const idToken = await firebaseUser.getIdToken();
+          console.log('Firebase ID token obtained');
 
-          const response = await axios.post("/api/auth", {
+          const requestData = {
             token: idToken,
             fcmToken: "",
             role: role,
-          });
+          };
+          console.log('Sending authentication request with data:', requestData);
+
+          const response = await axios.post("/api/auth", requestData);
+          console.log('Backend authentication response:', response.data);
 
           const userData = {
             ...response.data.user,
@@ -61,6 +106,11 @@ const useAuthStore = create(
 
           return userData;
         } catch (err) {
+          console.error('Backend authentication error:', {
+            message: err.message,
+            response: err.response?.data,
+            status: err.response?.status
+          });
           throw err;
         }
       },
@@ -77,6 +127,14 @@ const useAuthStore = create(
 
           // Reset store state
           set({ user: null, isAuthenticated: false });
+
+          // Reset wallet store state
+          const walletStore = (await import('./useWalletStore')).default;
+          walletStore.getState().reset();
+
+          // Reset design order store state
+          const designOrderStore = (await import('./useDesignOrderStore')).default;
+          designOrderStore.getState().reset();
         } catch (err) {
           console.error("Logout error:", err);
           throw err;

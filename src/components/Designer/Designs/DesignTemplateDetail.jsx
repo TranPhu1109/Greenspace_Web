@@ -56,6 +56,8 @@ const DesignTemplateDetail = () => {
     };
   }, [id, componentId, fetchDesignIdeaById, fetchProducts]);
 
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -223,105 +225,6 @@ const DesignTemplateDetail = () => {
                 )}
               </Row>
             </Card>
-          </Col>
-
-          <Col xs={24} lg={12}>
-            <Card
-              title="Thông tin chi tiết"
-              bordered={true}
-              style={{
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                borderRadius: "12px",
-                border: "none",
-                marginBottom: "16px",
-              }}
-              headStyle={{
-                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                color: "white",
-                borderRadius: "12px 12px 0 0",
-                padding: "16px 20px",
-                fontSize: "16px",
-                fontWeight: "600",
-                border: "none",
-              }}
-            >
-              <Descriptions column={1} bordered>
-                <Descriptions.Item label="Mã thiết kế">
-                  <Text copyable>{designIdeaById?.id}</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Tên thiết kế">
-                  <Text strong>{designIdeaById?.name}</Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Danh mục">
-                  <Tag color="blue">{designIdeaById?.categoryName}</Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Ngày tạo">
-                  <Space>
-                    <CalendarOutlined />
-                    {formatDate(designIdeaById?.creationDate)}
-                  </Space>
-                </Descriptions.Item>
-                <Descriptions.Item label="Cập nhật lần cuối">
-                  <Space>
-                    <CalendarOutlined />
-                    {formatDate(designIdeaById?.modificationDate)}
-                  </Space>
-                </Descriptions.Item>
-                <Descriptions.Item label="Mô tả">
-                  {designIdeaById?.description || 'Không có mô tả'}
-                </Descriptions.Item>
-                <Descriptions.Item label="File thiết kế">
-                  <a
-                    href={designIdeaById?.designImage3URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button type="text" icon={<DownloadOutlined />}>
-                      Tải file thiết kế
-                    </Button>
-                  </a>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-
-            <Card
-              title="Chi phí"
-              bordered={true}
-              style={{
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                borderRadius: "12px",
-                border: "none",
-                marginBottom: "16px",
-              }}
-              headStyle={{
-                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                color: "white",
-                borderRadius: "12px 12px 0 0",
-                padding: "16px 20px",
-                fontSize: "16px",
-                fontWeight: "600",
-                border: "none",
-              }}
-            >
-              <Descriptions column={1} bordered>
-                <Descriptions.Item label="Giá thiết kế">
-                  <Text strong>
-                    {(designIdeaById?.designPrice || 0).toLocaleString("vi-VN")}đ
-                  </Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Giá vật liệu">
-                  <Text strong>
-                    {(designIdeaById?.materialPrice || 0).toLocaleString("vi-VN")}đ
-                  </Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Tổng chi phí">
-                  <Text strong type="danger" className="text-xl">
-                    {(designIdeaById?.totalPrice || 0).toLocaleString("vi-VN")}đ
-                  </Text>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-
             {designIdeaById?.productDetails && designIdeaById.productDetails.length > 0 && (
               <Card
                 title="Danh sách vật liệu"
@@ -421,6 +324,127 @@ const DesignTemplateDetail = () => {
                 />
               </Card>
             )}
+          </Col>
+
+          <Col xs={24} lg={12}>
+            <Card
+              title="Thông tin chi tiết"
+              bordered={true}
+              style={{
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                borderRadius: "12px",
+                border: "none",
+                marginBottom: "16px",
+              }}
+              headStyle={{
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }}
+            >
+              <Descriptions column={1} bordered>
+                <Descriptions.Item label="Mã thiết kế">
+                  <Text copyable>{designIdeaById?.id}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Tên thiết kế">
+                  <Text strong>{designIdeaById?.name}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Danh mục">
+                  <Tag color="blue">{designIdeaById?.categoryName}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Ngày tạo">
+                  <Space>
+                    <CalendarOutlined />
+                    {formatDate(designIdeaById?.creationDate)}
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label="Cập nhật lần cuối">
+                  <Space>
+                    <CalendarOutlined />
+                    {formatDate(designIdeaById?.modificationDate)}
+                  </Space>
+                </Descriptions.Item>
+                {/* <Descriptions.Item label="Mô tả">
+                  {designIdeaById?.description || 'Không có mô tả'}
+                </Descriptions.Item> */}
+                <Descriptions.Item label="File thiết kế">
+                  <a
+                    href={designIdeaById?.designImage3URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button type="text" icon={<DownloadOutlined />}>
+                      Tải file thiết kế
+                    </Button>
+                  </a>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            <Card
+              title="Chi phí"
+              bordered={true}
+              style={{
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                borderRadius: "12px",
+                border: "none",
+                marginBottom: "16px",
+              }}
+              headStyle={{
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }}
+            >
+              <Descriptions column={1} bordered>
+                <Descriptions.Item label="Giá thiết kế">
+                  <Text strong>
+                    {(designIdeaById?.designPrice || 0).toLocaleString("vi-VN")}đ
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Giá vật liệu">
+                  <Text strong>
+                    {(designIdeaById?.materialPrice || 0).toLocaleString("vi-VN")}đ
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Tổng chi phí">
+                  <Text strong type="danger" className="text-xl">
+                    {(designIdeaById?.totalPrice || 0).toLocaleString("vi-VN")}đ
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+            {/* thêm phần mô tả */}
+            <Card
+              title="Mô tả"
+              bordered={true}
+              style={{
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                borderRadius: "12px",
+                border: "none",
+                marginBottom: "16px",
+              }}
+              headStyle={{
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: "12px 12px 0 0",
+                padding: "16px 20px",
+                fontSize: "16px",
+                fontWeight: "600",
+                border: "none",
+              }}
+            >
+              <div dangerouslySetInnerHTML={{ __html: designIdeaById?.description }} />
+            </Card>
+            
           </Col>
         </Row>
       </Card>
