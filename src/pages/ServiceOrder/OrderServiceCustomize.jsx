@@ -44,6 +44,7 @@ import useWalletStore from "@/stores/useWalletStore";
 import useShippingStore from "@/stores/useShippingStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import EditorComponent from "@/components/Common/EditorComponent";
+import useServiceOrderStore from "@/stores/useServiceOrderStore";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -81,8 +82,11 @@ const OrderServiceCustomize = () => {
   } = useShippingStore();
   const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
   const { getProductById, fetchProducts, products, updateProduct } = useProductStore();
+  const { updateServiceForCus } = useServiceOrderStore();
   
   const [productDetails, setProductDetails] = useState([]);
+  //console.log("productDetails", productDetails);
+  
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productError, setProductError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -291,14 +295,6 @@ const OrderServiceCustomize = () => {
       
       const fullAddress = `${addressDetail}, ${provinceName}, ${districtName}, ${wardName}`;
 
-      // Prepare product details and recalculate prices to ensure they're up-to-date
-      const serviceOrderDetails = productDetails.map(item => ({
-        productId: item.detail.productId,
-        quantity: item.detail.quantity,
-        price: item.product.price,
-        totalPrice: item.product.price * item.detail.quantity
-      }));
-      
       // Recalculate prices one final time to ensure accuracy
       const finalPrices = updateAllPrices(productDetails);
 
@@ -310,23 +306,22 @@ const OrderServiceCustomize = () => {
         length: values.length,
         width: values.width,
         isCustom: true,
-        totalPrice: finalPrices.totalPrice,
+        totalPrice: currentDesign.totalPrice,
         designPrice: currentDesign.designPrice,
-        materialPrice: finalPrices.materialPrice,
+        materialPrice: currentDesign.materialPrice,
         description: values.description,
         image: {
           imageUrl: imageUrls[0] || "",
           image2: imageUrls[1] || "",
           image3: imageUrls[2] || "",
-        },
-        serviceOrderDetails: serviceOrderDetails // Add product details to order data
+        }
+        // serviceOrderDetails is not needed here as it will be added in the second API call
       };
       
       console.log("Order data prepared with prices:", {
         materialPrice: finalPrices.materialPrice,
         designPrice: currentDesign.designPrice,
-        totalPrice: finalPrices.totalPrice,
-        products: serviceOrderDetails
+        totalPrice: finalPrices.totalPrice
       });
       
       setOrderData(data);
@@ -340,14 +335,61 @@ const OrderServiceCustomize = () => {
   const handleConfirmOrder = async () => {
     try {
       console.log("Submitting order with data:", orderData);
+      
+      // Step 1: Create the service order first
       const orderResponse = await createDesignOrder(orderData);
+      console.log("Order response:", orderResponse);
+      
+      // Check for response structure based on the logged data
+      const orderId = orderResponse?.data?.id;
+      
+      if (!orderId) {
+        console.error("Invalid order response structure:", orderResponse);
+        throw new Error("Không thể lấy thông tin đơn hàng");
+      }
+      
+      // Only proceed to Step 2 if Step 1 was successful
+      try {
+        // Step 2: Update the order with product details using updateServiceForCus
+        const serviceOrderDetails = productDetails.map(item => ({
+          productId: item.detail.productId,
+          quantity: item.detail.quantity,
+        }));
+        console.log("serviceOrderDetails", serviceOrderDetails);
+        
+        const updateData = {
+          serviceType: 0,
+          designPrice: orderResponse.data.designPrice || 0,
+          description: orderResponse.data.description || "",
+          status: 0,
+          report: "",
+          image: {
+            imageUrl: orderResponse.data.image?.imageUrl || "",
+            image2: orderResponse.data.image?.image2 || "",
+            image3: orderResponse.data.image?.image3 || "",
+          },
+          serviceOrderDetails: serviceOrderDetails
+        };
+        
+        console.log("Updating order with product details:", updateData);
+        
+        // Call the API to update the order with product details
+        const updateResponse = await updateServiceForCus(orderId, updateData);
+        console.log("Update response:", updateResponse);
+      } catch (updateError) {
+        console.error("Error updating order with products:", updateError);
+        // Even if the update fails, the order was created successfully
+        message.warning("Đơn hàng đã được tạo nhưng không thể cập nhật danh sách sản phẩm: " + 
+          (updateError.message || "Lỗi không xác định"));
+      }
+      
       await fetchBalance();
       message.success("Đặt hàng thành công!");
       setIsModalOpen(false);
       navigate("/serviceorderhistory");
     } catch (error) {
       console.error("Order submission error:", error);
-      message.error("Có lỗi xảy ra khi đặt hàng");
+      message.error("Có lỗi xảy ra khi đặt hàng: " + (error.message || "Lỗi không xác định"));
     }
   };
 

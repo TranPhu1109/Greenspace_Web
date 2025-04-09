@@ -26,6 +26,25 @@ const useServiceOrderStore = create((set) => ({
     }
   },
 
+  // Cập nhật service order cho khách hàng
+  updateServiceForCus: async (id, updateData) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.put(`/api/serviceorder/customer/${id}`, updateData);
+      
+      if (!response.data) {
+        throw new Error('Cập nhật đơn hàng thất bại');
+      }
+      
+      return response.data;
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
   // Lấy danh sách đơn đặt thiết kế
   getServiceOrders: async (userId) => {
     set({ loading: true, error: null });
