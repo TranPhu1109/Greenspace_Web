@@ -12,6 +12,8 @@ import {
   Spin,
   message,
   Tabs,
+  Tooltip,
+  Modal,
 } from "antd";
 import AddTaskModal from "./AddTaskModal";
 import {
@@ -19,50 +21,221 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  EditOutlined,
+  CheckOutlined,
+  DeleteOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import useScheduleStore from "../../../../stores/useScheduleStore";
+import api from "../../../../api/api";
 
 const { Title, Text } = Typography;
+const { confirm } = Modal;
 
 const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
-  const { isLoading, designers, workTasks, getAllTasks, fetchDesigners, updateTask } = useScheduleStore();
+  const { 
+    isLoading, 
+    designers, 
+    workTasks, 
+    getAllTasks, 
+    fetchDesigners, 
+    updateTask,
+    updateTasksForDepositSuccessfulOrders 
+  } = useScheduleStore();
   const [isAddTaskModalVisible, setIsAddTaskModalVisible] = useState(false);
   const [selectedDesigner, setSelectedDesigner] = useState(null);
   const [availableDesigners, setAvailableDesigners] = useState([]);
   const [busyDesigners, setBusyDesigners] = useState([]);
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [isUpdatingTasks, setIsUpdatingTasks] = useState(false);
 
   useEffect(() => {
     fetchDesigners();
     getAllTasks();
+    // Tự động kiểm tra và cập nhật task cho đơn hàng có trạng thái DepositSuccessful
+    checkAndUpdateDepositSuccessfulTasks();
   }, []);
+
+  // Hàm kiểm tra và cập nhật task cho đơn hàng có trạng thái DepositSuccessful
+  const checkAndUpdateDepositSuccessfulTasks = async () => {
+    try {
+      setIsUpdatingTasks(true);
+      const result = await updateTasksForDepositSuccessfulOrders();
+      if (result.error) {
+        console.error("Lỗi khi cập nhật task:", result.error);
+      } else if (result.updatedTasks && result.updatedTasks.length > 0) {
+        message.success(result.message);
+      }
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra và cập nhật task:", error);
+    } finally {
+      setIsUpdatingTasks(false);
+    }
+  };
 
   useEffect(() => {
     if (designers && workTasks) {
-      const busyIds = new Set(workTasks.map(task => task.userId));
+      // Group tasks by designer
+      const designerTasksMap = {};
       
-      const busy = designers.filter(designer => 
-        workTasks.some(task => task.userId === designer.id)
-      );
-      const available = designers.filter(designer => 
-        !workTasks.some(task => task.userId === designer.id)
-      );
+      // Initialize map with all designers
+      designers.forEach(designer => {
+        designerTasksMap[designer.id] = {
+          designer,
+          tasks: [],
+          taskCount: 0,
+          consultingTasks: [],
+          designTasks: [],
+          completedTasks: []
+        };
+      });
       
-      setBusyDesigners(busy.map(designer => ({
-        ...designer,
-        tasks: workTasks
-          .filter(task => task.userId === designer.id)
-          .sort((a, b) => dayjs(a.creationDate) - dayjs(b.creationDate)),
-        taskCount: workTasks.filter(task => task.userId === designer.id).length,
-        consultingTasks: workTasks.filter(task => task.userId === designer.id && task.status === 'ConsultingAndSket'),
-        designingTasks: workTasks.filter(task => task.userId === designer.id && task.status === 'Designing'),
-        completedTasks: workTasks.filter(task => task.userId === designer.id && task.status === 'Completed')
-      })));
+      // Distribute tasks to designers
+      workTasks.forEach(task => {
+        if (designerTasksMap[task.userId]) {
+          designerTasksMap[task.userId].tasks.push(task);
+          designerTasksMap[task.userId].taskCount++;
+          
+          // Categorize tasks by status
+          if (task.status === 'ConsultingAndSket') {
+            designerTasksMap[task.userId].consultingTasks.push(task);
+          } else if (task.status === 'DoneConsulting') {
+            designerTasksMap[task.userId].completedTasks.push(task);
+          } else if (task.status === 'Design') {
+            designerTasksMap[task.userId].designTasks.push(task);
+          }
+        }
+      });
+      
+      // Separate available and busy designers
+      const available = [];
+      const busy = [];
+      
+      Object.values(designerTasksMap).forEach(designerData => {
+        if (designerData.taskCount === 0) {
+          available.push(designerData.designer);
+        } else {
+          busy.push({
+            ...designerData.designer,
+            tasks: designerData.tasks,
+            taskCount: designerData.taskCount,
+            consultingTasks: designerData.consultingTasks,
+            designTasks: designerData.designTasks,
+            completedTasks: designerData.completedTasks
+          });
+        }
+      });
       
       setAvailableDesigners(available);
+      setBusyDesigners(busy);
     }
   }, [designers, workTasks]);
- 
+
+  const formatDate = (dateString) => {
+    return dayjs(dateString).format('DD/MM/YYYY HH:mm');
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "DoneConsulting":
+        return "green";
+      case "ConsultingAndSket":
+        return "blue";
+      case "Design":
+        return "purple";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "DoneConsulting":
+        return "Đã hoàn thành tư vấn";
+      case "ConsultingAndSket":
+        return "Đang tư vấn & phác thảo";
+      case "Design":
+        return "Đang thiết kế";
+      default:
+        return status;
+    }
+  };
+
+  // Add function to handle task deletion
+  const handleDeleteTask = async (taskId, serviceOrderId) => {
+    try {
+      setDeletingTaskId(taskId);
+      
+      // Call API to delete task
+      await api.delete(`/api/worktask/${taskId}`);
+      
+      // Update order status to 0 (Pending)
+      await api.put(`/api/serviceorder/status/${serviceOrderId}`, { status: 0 });
+      
+      message.success("Đã xóa task và cập nhật trạng thái đơn hàng");
+      
+      // Refresh tasks
+      await getAllTasks();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      message.error("Không thể xóa task: " + (error.response?.data?.message || error.message));
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
+
+  // Add function to show confirmation modal before deleting
+  const showDeleteConfirm = (taskId, serviceOrderId) => {
+    confirm({
+      title: "Xác nhận xóa task",
+      content: "Bạn có chắc chắn muốn xóa task này? Hành động này sẽ cập nhật trạng thái đơn hàng về 'Chờ xác nhận'.",
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk() {
+        handleDeleteTask(taskId, serviceOrderId);
+      },
+    });
+  };
+
+  // Update the task rendering in all tabs to include delete button
+  const renderTaskItem = (task) => (
+    <List.Item
+      actions={[
+        <Tooltip title="Xem chi tiết">
+          <Button type="link" icon={<EditOutlined />} />
+        </Tooltip>,
+        <Tooltip title="Xóa task">
+          <Button 
+            type="link" 
+            danger 
+            icon={<DeleteOutlined />} 
+            loading={deletingTaskId === task.id}
+            onClick={() => showDeleteConfirm(task.id, task.serviceOrderId)}
+          />
+        </Tooltip>
+      ]}
+    >
+      <List.Item.Meta
+        title={
+          <Space>
+            <Text strong>Đơn hàng #{task.serviceOrderId.slice(0, 8)}</Text>
+            <Tag color={getStatusColor(task.status)}>{getStatusText(task.status)}</Tag>
+          </Space>
+        }
+        description={
+          <Space direction="vertical" size={0}>
+            <Text type="secondary">Ghi chú: {task.note || "Không có"}</Text>
+            <Text type="secondary">Tạo: {formatDate(task.creationDate)}</Text>
+            {task.modificationDate && (
+              <Text type="secondary">Cập nhật: {formatDate(task.modificationDate)}</Text>
+            )}
+          </Space>
+        }
+      />
+    </List.Item>
+  );
 
   if (isLoading) {
     return (
@@ -76,6 +249,15 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
     <Card className="day-detail">
       <div className="day-header">
         <Title level={4}>{selectedDate.format("DD/MM/YYYY")}</Title>
+        <Button 
+          type="primary" 
+          icon={<SyncOutlined />} 
+          onClick={checkAndUpdateDepositSuccessfulTasks}
+          loading={isUpdatingTasks}
+          style={{ marginLeft: 'auto' }}
+        >
+          Cập nhật task đã thanh toán
+        </Button>
       </div>
 
       {/* Phần designers đang rảnh */}
@@ -167,42 +349,25 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                       <Tabs.TabPane tab={`Tất cả (${designer.tasks.length})`} key="all">
                         <List
                           dataSource={designer.tasks}
-                          renderItem={(task) => (
-                            <List.Item>
-                              <div>{task.title}</div>
-                            </List.Item>
-                          )}
+                          renderItem={renderTaskItem}
                         />
                       </Tabs.TabPane>
                       <Tabs.TabPane tab={`Đang tư vấn (${designer.consultingTasks.length})`} key="consulting">
                         <List
                           dataSource={designer.consultingTasks}
-                          renderItem={(task) => (
-                            <List.Item>
-                              <div>{task.title}</div>
-                            </List.Item>
-                          )}
+                          renderItem={renderTaskItem}
                         />
                       </Tabs.TabPane>
-                      <Tabs.TabPane tab={`Đang thiết kế (${designer.designingTasks.length})`} key="designing">
+                      <Tabs.TabPane tab={`Đang thiết kế (${designer.designTasks.length})`} key="design">
                         <List
-                          dataSource={designer.designingTasks}
-                          renderItem={(task) => (
-                            <List.Item>
-                              <div>{task.title}</div>
-                            </List.Item>
-                          )}
+                          dataSource={designer.designTasks}
+                          renderItem={renderTaskItem}
                         />
                       </Tabs.TabPane>
                       <Tabs.TabPane tab={`Hoàn thành (${designer.completedTasks.length})`} key="completed">
                         <List
                           dataSource={designer.completedTasks}
-                          renderItem={(task) => (
-                            <List.Item>
-                              <div>{task.title}</div>
-                              <span>Đã hoàn thành</span>
-                            </List.Item>
-                          )}
+                          renderItem={renderTaskItem}
                         />
                       </Tabs.TabPane>
                     </Tabs>
@@ -228,19 +393,6 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
       />
     </Card>
   );
-};
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "Completed":
-      return "green";
-    case "ConsultingAndSket":
-      return "blue";
-    case "DoneDesignDetail":
-      return "purple";
-    default:
-      return "default";
-  }
 };
 
 export default DayDetail;

@@ -21,6 +21,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useCartStore from "@/stores/useCartStore";
 import useWalletStore from "@/stores/useWalletStore";
+import useProductStore from "@/stores/useProductStore";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -37,13 +38,13 @@ const CartPage = () => {
     checkout,
   } = useCartStore();
   const { balance, fetchBalance } = useWalletStore();
+  const { products, fetchProducts } = useProductStore();
 
   useEffect(() => {
     fetchBalance();
     fetchCartItems();
+    fetchProducts();
   }, [fetchCartItems]);
-
-  console.log("cartItems:", cartItems);
 
   const handleQuantityChange = async (productId, quantity) => {
     if (quantity < 1) return;
@@ -60,6 +61,15 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
+    for (let item of cartItems) {
+      const product = products.find(product => product.id === item.id);
+      if (!product) continue;
+  
+      if (item.quantity > product.stock) {
+        message.error(`Sản phẩm ${item.name} vượt quá số lượng tồn kho.`);
+        return;
+      }
+    }
     const total = calculateTotal();
     if (total > balance) {
       message.error("Số dư không đủ. Vui lòng nạp thêm tiền vào ví.");

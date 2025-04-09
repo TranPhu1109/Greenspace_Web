@@ -4,12 +4,14 @@ import api from "../api/api";
 const useAccountantStore = create((set, get) => ({
   // State
   serviceOrders: [],
+  materialPriceOrders: [],
   selectedOrder: null,
   isLoading: false,
   error: null,
 
   // Actions
   setServiceOrders: (orders) => set({ serviceOrders: orders }),
+  setMaterialPriceOrders: (orders) => set({ materialPriceOrders: orders }),
   setSelectedOrder: (order) => set({ selectedOrder: order }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
@@ -24,6 +26,21 @@ const useAccountantStore = create((set, get) => ({
         return response.data;
       }
       throw new Error("Không thể lấy danh sách đơn thiết kế");
+    } catch (error) {
+      set({ error: error.message, isLoading: false });
+      throw error;
+    }
+  },
+
+  fetchMaterialPriceOrders: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get("/api/serviceorder/materialprice");
+      if (response.data) {
+        set({ materialPriceOrders: response.data, isLoading: false });
+        return response.data;
+      }
+      throw new Error("Không thể lấy danh sách đơn thiết kế đang xác định giá vật liệu");
     } catch (error) {
       set({ error: error.message, isLoading: false });
       throw error;
@@ -88,6 +105,7 @@ const useAccountantStore = create((set, get) => ({
   resetState: () => {
     set({
       serviceOrders: [],
+      materialPriceOrders: [],
       selectedOrder: null,
       isLoading: false,
       error: null,
