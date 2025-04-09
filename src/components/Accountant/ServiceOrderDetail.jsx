@@ -81,6 +81,16 @@ const ServiceOrderDetail = () => {
     }
   };
 
+  const handleConfirmMaterialPrice = async () => {
+    try {
+      await updateOrderStatus(id, 6); // 5 = DeterminingMaterialPrice
+      message.success("Xác nhận giá vật liệu thành công");
+      getServiceOrderById(id);
+    } catch (error) {
+      message.error("Không thể xác nhận giá vật liệu");
+    }
+  };
+
   const showModal = () => {
     setIsModalVisible(true);
   };
@@ -253,7 +263,7 @@ const ServiceOrderDetail = () => {
                 {selectedOrder.materialPrice?.toLocaleString("vi-VN")} đ
               </Descriptions.Item>
               <Descriptions.Item label="Tổng chi phí">
-                {selectedOrder.totalCost?.toLocaleString("vi-VN")} đ
+                <strong style={{ color: "#4caf50" }}>{selectedOrder.totalCost?.toLocaleString("vi-VN")} đ</strong>
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -307,7 +317,7 @@ const ServiceOrderDetail = () => {
         </Col>
 
 
-        <Col span={12}>
+        <Col span={24}>
           <Card title="Hình ảnh">
             <Space size="large">
               {selectedOrder.image?.imageUrl && (
@@ -341,14 +351,34 @@ const ServiceOrderDetail = () => {
           </Card>
         </Col>
 
-        <Col span={12}>
+        <Col span={24}>
           <Card title="Chi tiết vật liệu">
             <Table
               columns={columns}
               dataSource={orderDetails}
               rowKey="productId"
               pagination={false}
+              summary={(pageData) => {
+                const totalMaterialPrice = selectedOrder.materialPrice || 0;
+                return (
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={3}>
+                      <strong>Tổng giá vật liệu:</strong>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1}>
+                      <strong>{totalMaterialPrice.toLocaleString("vi-VN")} đ</strong>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                );
+              }}
             />
+            {selectedOrder?.status === "DeterminingMaterialPrice" && (
+              <div style={{ marginTop: 16, textAlign: "right" }}>
+                <Button type="primary" onClick={handleConfirmMaterialPrice}>
+                  Xác nhận giá vật liệu
+                </Button>
+              </div>
+            )}
           </Card>
         </Col>
 

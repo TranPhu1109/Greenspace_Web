@@ -135,11 +135,11 @@ const Checkout = () => {
             });
           }
         } catch (error) {
-          message.error('Có lỗi xảy ra khi thanh toán');
+          message.error(error.response.data.error);
         }
       }
     } catch (error) {
-      message.error('Có lỗi xảy ra khi đặt hàng');
+      message.error(error.response.data.error);
     }
   };
 

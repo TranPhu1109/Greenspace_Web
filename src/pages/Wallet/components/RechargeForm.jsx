@@ -135,11 +135,11 @@ const RechargeForm = () => {
                           "Số tiền tối thiểu là 10,000 VNĐ"
                         );
                       }
-                      if (amount > 100000000) {
-                        return Promise.reject(
-                          "Số tiền tối đa là 100,000,000 VNĐ"
-                        );
-                      }
+                      // if (amount > 14000000) {
+                      //   return Promise.reject(
+                      //     "Số tiền tối đa là 14,000,000 VNĐ"
+                      //   );
+                      // }
                       return Promise.resolve();
                     },
                   },

@@ -81,13 +81,19 @@ const TaskDetail = () => {
   const [isModalVisibleDesign, setIsModalVisibleDesign] = useState(false);
   const [sketchImageUrls, setSketchImageUrls] = useState([]);
   const [uploadingSketch, setUploadingSketch] = useState(false);
-  const { updateServiceOrder } = useDesignOrderStore();
+  const { updateServiceOrder, updateProductOrder } = useDesignOrderStore();
   const [uploadingDesign, setUploadingDesign] = useState(false);
   const [designImageUrls, setDesignImageUrls] = useState([]);
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [tempServiceOrderDetails, setTempServiceOrderDetails] = useState([]);
+
+  // Debug log để kiểm tra các hàm
+  useEffect(() => {
+    console.log("Task state:", { task });
+    console.log("Set task function:", typeof setTask === 'function' ? 'Available' : 'Not a function');
+  }, [task, setTask]);
 
   //console.log("task", task);
 
@@ -175,8 +181,13 @@ const TaskDetail = () => {
       // Reload the page after successful update
       window.location.reload();
     } catch (error) {
-      message.error("Cập nhật bản vẽ thiết kế thất bại");
       console.error("Update error:", error);
+      // Xử lý các trường hợp lỗi cụ thể
+      if (error.response?.data?.error?.includes("maximum number of edits")) {
+        message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
+      } else {
+        message.error("Cập nhật bản vẽ thiết kế thất bại");
+      }
     }
   };
 
@@ -208,17 +219,23 @@ const TaskDetail = () => {
       });
 
       message.success("Cập nhật bản vẽ thiết kế thành công");
-      setIsModalVisible(false);
+      setIsModalVisibleDesign(false);
       // Reload the page after successful update
       window.location.reload();
     } catch (error) {
-      message.error("Cập nhật bản vẽ thiết kế thất bại");
       console.error("Update error:", error);
+      // Xử lý các trường hợp lỗi cụ thể
+      if (error.response?.data?.error?.includes("maximum number of edits")) {
+        message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
+      } else {
+        message.error("Cập nhật bản vẽ thiết kế thất bại");
+      }
     }
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
+    setIsModalVisibleDesign(false);
   };
 
   // Hàm mở modal tùy chỉnh sản phẩm
@@ -272,7 +289,9 @@ const TaskDetail = () => {
     // Thêm sản phẩm mới vào danh sách tạm
     const newProduct = {
       productId: selectedProductId,
-      quantity: 1
+      quantity: 1,
+      price: selectedProduct.price || 0,
+      totalPrice: selectedProduct.price || 0
     };
 
     // Cập nhật danh sách tạm thời
@@ -298,16 +317,24 @@ const TaskDetail = () => {
 
   // Hàm cập nhật số lượng sản phẩm trong danh sách tạm
   const handleUpdateQuantity = (productId, quantity) => {
-    const newQuantity = parseInt(quantity) || 0;
-    if (newQuantity < 0) {
-      message.warning("Số lượng không thể âm");
+    const newQuantity = parseInt(quantity);
+    if (isNaN(newQuantity) || newQuantity < 1) {
+      message.warning("Số lượng phải là số nguyên dương");
       return;
     }
 
-    // Cập nhật số lượng trong danh sách tạm thời
+    const product = allProducts.find(p => p.id === productId);
+    const price = product?.price || 0;
+
+    // Cập nhật số lượng và tổng giá trong danh sách tạm thời
     setTempServiceOrderDetails(prev =>
       prev.map(item =>
-        item.productId === productId ? { ...item, quantity: newQuantity } : item
+        item.productId === productId ? {
+          ...item,
+          quantity: newQuantity,
+          price: price,
+          totalPrice: price * newQuantity
+        } : item
       )
     );
   };
@@ -322,71 +349,80 @@ const TaskDetail = () => {
       }
 
       // Kiểm tra số lượng của từng sản phẩm trong danh sách tạm
-      const invalidProducts = tempServiceOrderDetails.filter(item => item.quantity <= 0);
+      const invalidProducts = tempServiceOrderDetails.filter(item => !item.quantity || item.quantity <= 0);
       if (invalidProducts.length > 0) {
         message.warning("Vui lòng kiểm tra lại số lượng sản phẩm");
         return;
       }
+
+      // Đảm bảo mỗi sản phẩm có đầy đủ thông tin
+      const updatedServiceOrderDetails = tempServiceOrderDetails.map(item => {
+        const product = allProducts.find(p => p.id === item.productId);
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: product?.price || 0,
+          totalPrice: (product?.price || 0) * item.quantity
+        };
+      });
 
       // Cập nhật service order với danh sách sản phẩm từ mảng tạm
       const serviceOrderUpdateData = {
         serviceType: 0,
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
-        status: 4, // Designing
+        status: 4, // AssignToDesigner
         report: "",
         image: task.serviceOrder.image,
-        serviceOrderDetails: tempServiceOrderDetails // Sử dụng danh sách từ mảng tạm
+        serviceOrderDetails: updatedServiceOrderDetails // Sử dụng danh sách đã được cập nhật
       };
 
-      await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
-
-      // Cập nhật state của task với serviceOrder mới
-      const updatedTask = {
-        ...task,
-        serviceOrder: {
-          ...task.serviceOrder,
-          serviceOrderDetails: tempServiceOrderDetails
+      try {
+        const response = await updateProductOrder(task.serviceOrder.id, serviceOrderUpdateData);
+        
+        // Bỏ phần cập nhật task state vì có thể gây lỗi
+        // Thay vào đó, chỉ cập nhật chi tiết sản phẩm
+        await loadProductDetails(updatedServiceOrderDetails);
+        
+        message.success("Cập nhật danh sách sản phẩm thành công");
+        setIsProductModalVisible(false); // Tự động tắt modal sau khi cập nhật thành công
+        
+        // Làm mới dữ liệu task sau khi cập nhật
+        fetchTaskDetail(id);
+      } catch (apiError) {
+        console.error("API Error:", apiError);
+        // Xử lý các trường hợp lỗi cụ thể
+        if (apiError.response?.data?.error?.includes("maximum number of edits")) {
+          message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
+        } else {
+          message.error("Cập nhật danh sách sản phẩm thất bại: " + (apiError.message || "Lỗi không xác định"));
         }
-      };
-      setTask(updatedTask);
-
-      message.success("Cập nhật danh sách sản phẩm thành công");
-      setIsProductModalVisible(false);
+      }
     } catch (error) {
-      message.error("Cập nhật danh sách sản phẩm thất bại");
-      console.error("Update error:", error);
+      console.error("General Error:", error);
+      message.error("Có lỗi xảy ra khi xử lý yêu cầu");
     }
   };
 
   // Hàm hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm
   const handleCompleteDesign = async () => {
-    try {
       // Cập nhật trạng thái service order thành DeterminingMaterialPrice (5)
-      const response = await api.put(`/api/serviceorder/status/${task.serviceOrder.id}`, {
+      const responseStatus = await api.put(`/api/serviceorder/status/${task.serviceOrder.id}`, {
         status: 5,
         deliveryCode: ""
       });
 
-      if (response.status === 200) {
-        // Cập nhật state của task với serviceOrder mới
-        const updatedTask = {
-          ...task,
-          serviceOrder: {
-            ...task.serviceOrder,
-            status: 5
-          }
-        };
-        setTask(updatedTask);
+      console.log("responseStatus", responseStatus);
 
+      if (responseStatus === 'Update Successfully!') {
+        // Không sử dụng setTask trực tiếp
+        // Làm mới dữ liệu task sau khi cập nhật
+        await fetchTaskDetail(id);
         message.success("Hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm");
       } else {
         message.error("Không thể cập nhật trạng thái service order");
       }
-    } catch (error) {
-      message.error("Cập nhật trạng thái service order thất bại");
-      console.error("Update error:", error);
-    }
+    
   };
 
   useEffect(() => {
@@ -632,38 +668,38 @@ const TaskDetail = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24}>
-          <Card
+          <Card 
             style={{ marginBottom: "10px" }}
             title={
               <Space>
                 <FileTextOutlined />
                 <span>Thông tin chi tiết</span>
               </Space>
-            }
+            } 
             className="mb-6 shadow-sm"
             extra={
               task.status !== "Completed" &&
-              task.status !== "Cancelled" && (
-                <Space>
-                  {task.status === "ConsultingAndSketching" && (
-                    <Button
-                      type="primary"
+                    task.status !== "Cancelled" && (
+                      <Space>
+                        {task.status === "ConsultingAndSketching" && (
+                          <Button
+                            type="primary"
                       icon={<RightCircleOutlined />}
-                      onClick={() => handleStatusUpdate("Designing")}
-                    >
-                      Chuyển sang thiết kế
-                    </Button>
-                  )}
-                  {task.status === "Designing" && (
-                    <Button
-                      type="primary"
+                            onClick={() => handleStatusUpdate("Designing")}
+                          >
+                            Chuyển sang thiết kế
+                          </Button>
+                        )}
+                        {task.status === "Designing" && (
+                          <Button
+                            type="primary"
                       icon={<CheckCircleOutlined />}
-                      onClick={() => handleStatusUpdate("Completed")}
-                    >
-                      Đánh dấu hoàn thành
-                    </Button>
-                  )}
-                </Space>
+                            onClick={() => handleStatusUpdate("Completed")}
+                          >
+                            Đánh dấu hoàn thành
+                          </Button>
+                        )}
+                      </Space>
               )
             }
           >
@@ -698,16 +734,16 @@ const TaskDetail = () => {
               <Descriptions.Item label="Ngày tạo" span={1}>
                 <Space>
                   <CalendarOutlined />
-                  {dayjs(task.creationDate).format("DD/MM/YYYY HH:mm")}
+                {dayjs(task.creationDate).format("DD/MM/YYYY HH:mm")}
                 </Space>
               </Descriptions.Item>
 
               {task.modificationDate && (
                 <Descriptions.Item label="Ngày cập nhật" span={1}>
-                  <Space>
+              <Space>
                     <CalendarOutlined />
                     {dayjs(task.modificationDate).format("DD/MM/YYYY HH:mm")}
-                  </Space>
+              </Space>
                 </Descriptions.Item>
               )}
 
@@ -828,18 +864,19 @@ const TaskDetail = () => {
                 </Row>
               </div>
             )}
-            {task.status === "ConsultingAndSket" && task.serviceOrder.status === "ReConsultingAndSketching" && (
-              <Button
-                type="primary"
-                icon={<UploadOutlined />}
-                onClick={showModal}
-              >
-                Tải lên bản vẽ phác thảo
-              </Button>
-            )}
+            {task.status === "ConsultingAndSket" &&
+              (task.serviceOrder.status === "ConsultingAndSketching") && (
+                <Button
+                  type="primary"
+                  icon={<UploadOutlined />}
+                  onClick={showModal}
+                >
+                  Tải lên bản vẽ phác thảo
+                </Button>
+              )}
             {task.status === "Design" &&
-              task.serviceOrder.status === "AssignToDesigner" &&
-              task.serviceOrder.status === "ReDesign" && (
+              (task.serviceOrder.status === "AssignToDesigner" ||
+                task.serviceOrder.status === "ReDesign") && (
                 <Button
                   type="primary"
                   icon={<UploadOutlined />}
@@ -852,17 +889,17 @@ const TaskDetail = () => {
         </Col>
       </Row>
 
-      <Card
+      <Card 
         title={
           <Space>
             <DollarOutlined />
             <span>Danh sách sản phẩm</span>
           </Space>
-        }
+        } 
         className="mb-6 shadow-sm"
         extra={
           <Space>
-            {task.status === "Design" && task.status === "AssignToDesigner" && (
+            {task.status === "Design" && task.serviceOrder.status === "AssignToDesigner" && (
               <Button
                 type="primary"
                 icon={<EditOutlined />}
@@ -892,13 +929,13 @@ const TaskDetail = () => {
         )}
       </Card>
 
-      <Card
+      <Card 
         title={
           <Space>
             <FileTextOutlined />
             <span>Ghi chú</span>
           </Space>
-        }
+        } 
         className="mb-6 shadow-sm"
       >
         <Space direction="vertical" style={{ width: "100%" }}>
@@ -913,7 +950,7 @@ const TaskDetail = () => {
 
 
 
-      <Card
+      <Card 
         title={
           <Space>
             <ClockCircleOutlined />
@@ -1043,7 +1080,6 @@ const TaskDetail = () => {
               placeholder="Chọn sản phẩm"
               value={selectedProducts}
               onChange={(value) => {
-                console.log("Selected product:", value);
                 setSelectedProducts(value ? [value] : []);
               }}
               mode="single"
@@ -1071,7 +1107,7 @@ const TaskDetail = () => {
             return {
               key: index,
               productId: item.productId,
-              productName: product ? product.name : "Đang tải...",
+              productName: product ? product.name : "Sản phẩm không tồn tại",
               productImage: product?.image?.imageUrl || "",
               productPrice: product?.price || 0,
               quantity: item.quantity,
@@ -1101,7 +1137,7 @@ const TaskDetail = () => {
                       </div>
                     )}
                     <div>
-                      <div className="font-medium">{product ? product.name : "Đang tải..."}</div>
+                      <div className="font-medium">{product ? product.name : "Sản phẩm không tồn tại"}</div>
                       <div className="text-xs text-gray-500">ID: {record.productId}</div>
                     </div>
                   </div>
@@ -1114,7 +1150,7 @@ const TaskDetail = () => {
               key: "productPrice",
               render: (_, record) => {
                 const product = allProducts.find(p => p.id === record.productId);
-                return product ? product.price?.toLocaleString("vi-VN") + " đ" : "Đang tải...";
+                return product ? product.price?.toLocaleString("vi-VN") + " đ" : "0 đ";
               },
             },
             {
@@ -1123,10 +1159,9 @@ const TaskDetail = () => {
               key: "quantity",
               render: (_, record) => (
                 <InputNumber
-                  type="number"
                   min={1}
                   value={record.quantity}
-                  onChange={(e) => handleUpdateQuantity(record.productId, e.target.value)}
+                  onChange={(value) => handleUpdateQuantity(record.productId, value)}
                   style={{ width: 100 }}
                 />
               ),

@@ -133,7 +133,7 @@ const useCartStore = create((set, get) => ({
       }
       throw new Error('Tạo đơn hàng thất bại');
     } catch (error) {
-      message.error('Không thể tạo đơn hàng: ' + error.message);
+      // message.error(error.response.data.error);
       set({ error: error.message });
       throw error;
     } finally {
