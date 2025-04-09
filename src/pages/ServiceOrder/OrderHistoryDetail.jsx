@@ -252,7 +252,7 @@ const OrderHistoryDetail = () => {
             setShowContractButton(true);
           } catch (genError) {
             console.error("Error generating contract:", genError);
-            setShowContractButton(false);
+          setShowContractButton(false);
           }
         }
       } else {

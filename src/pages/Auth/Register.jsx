@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Input, Checkbox, Button, Form, message, Typography, Card } from 'antd';
 import { GoogleOutlined, LockOutlined, MailOutlined, UserOutlined, ArrowLeftOutlined, PhoneOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './Auth.scss';
 import logoImage from '../../assets/logo.png';
 import loginBg from '../../assets/login.png';
@@ -12,8 +12,13 @@ const { Title, Text } = Typography;
 const Register = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuthStore();
   const [loading, setLoading] = useState(false);
+
+  // Lấy returnUrl và actionType từ state (nếu có)
+  const returnUrl = location.state?.returnUrl || "/home";
+  const actionType = location.state?.actionType;
 
   const handleRegister = async (values) => {
     if (!values.agreeTerms) {
@@ -31,8 +36,16 @@ const Register = () => {
         address: values.address || '',
         avatarUrl: ''
       });
-      message.success('Đăng ký thành công');;
-      navigate('/login');
+      message.success('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.');
+      
+      // Chuyển đến trang đăng nhập với returnUrl để sau khi đăng nhập có thể quay lại
+      navigate('/login', { 
+        state: { 
+          returnUrl, 
+          actionType,
+          fromRegister: true 
+        } 
+      });
     } catch (error) {
       console.error('Register failed:', error);
       if (error.response?.data?.error?.includes('EMAIL_EXISTS')) {

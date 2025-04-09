@@ -2,12 +2,22 @@ import React from "react";
 import { Typography, Button } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
+import heroBg from "@/assets/login.png";
+import "./styles.scss";
 
 const { Title, Paragraph } = Typography;
 
 const HeroSection = () => {
   return (
-    <section className="hero-section">
+    <section 
+      className="hero-section" 
+      style={{ 
+        backgroundImage: `url(${heroBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative'
+      }}
+    >
       <div className="hero-content">
         <Title className="animate__animated animate__fadeInDown">
           Không Gian Xanh Cho Cuộc Sống Hiện Đại

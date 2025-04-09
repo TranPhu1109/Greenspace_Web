@@ -12,13 +12,16 @@ import {
   message,
   InputNumber,
   Tag,
+  notification,
 } from "antd";
 import { SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useProductStore from "@/stores/useProductStore";
 import useCartStore from "@/stores/useCartStore";
+import useAuthStore from "@/stores/useAuthStore";
+import LoginRequiredModal from "@/components/Auth/LoginRequiredModal";
 import "./styles.scss";
 import { Modal } from "antd";
 const { Content } = Layout;
@@ -34,12 +37,43 @@ const AddToCartModal = ({
   onQuantityChange,
   onConfirm,
 }) => {
+  // Xử lý khi người dùng nhập số lượng - không giới hạn số lượng nhập
+  const handleQuantityChange = (value) => {
+    // Chỉ đảm bảo giá trị không âm và là số nguyên
+    if (value < 1) {
+      onQuantityChange(1);
+    } else {
+      onQuantityChange(value);
+    }
+  };
+
+  // Xử lý khi nhấn nút Xác nhận
+  const handleConfirm = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    onConfirm();
+  };
+
+  // Xử lý khi đóng modal
+  const handleClose = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    // Reset về giá trị mặc định (1) trước khi đóng modal
+    onQuantityChange(1);
+    onClose();
+  };
+
   return (
     <Modal
       visible={isOpen}
-      onCancel={onClose}
+      onCancel={handleClose}
       footer={null}
       centered
+      maskClosable={false} // Ngăn chặn việc đóng modal khi click vào vùng ngoài
       title="Thêm vào giỏ hàng"
       style={{
         width: 500,
@@ -106,13 +140,13 @@ const AddToCartModal = ({
             })}
           </Typography.Title>
         </div>
-        <div
+        {/* <div
           dangerouslySetInnerHTML={{ __html: product?.description }}
           style={{
             marginBottom: 16,
             color: "#666",
           }}
-        />
+        /> */}
 
         <div
           style={{
@@ -124,19 +158,25 @@ const AddToCartModal = ({
             justifyContent: "space-between",
           }}
         >
-          <Typography.Text
-            style={{
-              color: "#333",
-              marginRight: 12,
-            }}
-          >
-            🎉 Bạn muốn thêm bao nhiêu sản phẩm này vào giỏ hàng?
-          </Typography.Text>
+          <div>
+            <Typography.Text
+              style={{
+                color: "#333",
+                marginRight: 12,
+              }}
+            >
+              🎉 Bạn muốn thêm bao nhiêu sản phẩm này vào giỏ hàng?
+            </Typography.Text>
+            <div style={{ marginTop: 5 }}>
+              <Typography.Text type="secondary">
+                Còn lại: {product?.stock} sản phẩm
+              </Typography.Text>
+            </div>
+          </div>
           <InputNumber
             min={1}
-            max={99}
             value={quantity}
-            onChange={onQuantityChange}
+            onChange={handleQuantityChange}
             style={{
               width: "80px",
               height: "auto",
@@ -153,13 +193,14 @@ const AddToCartModal = ({
             marginTop: 24,
           }}
         >
-          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={handleClose}>Hủy</Button>
           <Button
             type="primary"
-            onClick={onConfirm}
+            onClick={handleConfirm}
             icon={<ShoppingCartOutlined />}
+            disabled={product?.stock <= 0}
           >
-            Xác nhận
+            {product?.stock <= 0 ? "Hết hàng" : "Xác nhận"}
           </Button>
         </div>
       </div>
@@ -169,11 +210,13 @@ const AddToCartModal = ({
 
 const ProductsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { products, fetchProducts, categories, fetchCategories, isLoading } =
     useProductStore();
-  const { addToCart } = useCartStore();
+  const { addToCart, cartItems, fetchCartItems } = useCartStore();
+  const { user } = useAuthStore();
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [filters, setFilters] = useState({
@@ -181,8 +224,30 @@ const ProductsPage = () => {
     category: "all",
     sort: "newest",
   });
+  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+  const [actionType, setActionType] = useState('cart');
   const mountedRef = useRef(true);
   const componentId = useRef(`products-page-${Date.now()}`).current;
+
+  // Kiểm tra nếu người dùng quay lại từ trang đăng nhập/đăng ký
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      // Nếu có thông tin state và người dùng đã đăng nhập
+      if (location?.state?.actionCompleted && user && selectedProduct) {
+        const action = location.state.actionType;
+        
+        // Xóa state để tránh thực hiện lại hành động nếu người dùng refresh trang
+        window.history.replaceState({}, document.title);
+        
+        // Thực hiện hành động tương ứng
+        if (action === 'cart') {
+          setIsModalOpen(true); // Hiển thị modal thay vì tự động thêm vào giỏ hàng
+        }
+      }
+    };
+    
+    checkLoginStatus();
+  }, [user, selectedProduct, location?.state]);
 
   // Cleanup function
   useEffect(() => {
@@ -195,6 +260,13 @@ const ProductsPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Fetch cart items when component mounts if user is logged in
+  useEffect(() => {
+    if (user) {
+      fetchCartItems();
+    }
+  }, [user, fetchCartItems]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -293,21 +365,71 @@ const ProductsPage = () => {
     setFilters((prev) => ({ ...prev, sort: value }));
   };
 
+  const handleShowAddToCartModal = (product) => {
+    // Kiểm tra user đã đăng nhập chưa
+    if (!user) {
+      setActionType('cart');
+      setIsLoginModalVisible(true);
+      setSelectedProduct(product); // Lưu sản phẩm để sau khi đăng nhập có thể tiếp tục thêm vào giỏ hàng
+      return;
+    }
+
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   const handleAddToCart = async (product) => {
+    // Kiểm tra user đã đăng nhập chưa
+    if (!user) {
+      setActionType('cart');
+      setIsLoginModalVisible(true);
+      setSelectedProduct(product);
+      return;
+    }
+
     try {
-      await addToCart(product.id, quantities[product.id] || 1);
+      // Kiểm tra stock
+      const quantity = quantities[product.id] || 1;
+      
+      // Kiểm tra số lượng trong giỏ hàng hiện tại
+      const existingCartItem = cartItems.find(item => item.id === product.id);
+      const existingQuantity = existingCartItem ? existingCartItem.quantity : 0;
+      const totalQuantity = existingQuantity + quantity;
+      
+      if (totalQuantity > product.stock) {
+        message.error(`Tổng số lượng trong giỏ hàng (${existingQuantity}) và số lượng thêm vào (${quantity}) không được vượt quá tồn kho (${product.stock})`);
+        return;
+      }
+      
+      await addToCart(product.id, quantity);
+      // Cập nhật lại giỏ hàng sau khi thêm sản phẩm
+      await fetchCartItems();
     } catch (error) {
       // Error handling is done in the store
     }
   };
 
   const handleModalClose = () => {
+    // Reset số lượng về 1 cho sản phẩm đang chọn
+    if (selectedProduct) {
+      setQuantities(prev => ({
+        ...prev,
+        [selectedProduct.id]: 1
+      }));
+    }
     setIsModalOpen(false);
     setSelectedProduct(null);
   };
 
+  const handleLoginModalClose = () => {
+    setIsLoginModalVisible(false);
+  };
+
   const handleQuantityChange = (value) => {
     if (selectedProduct) {
+      // Không kiểm tra giới hạn stock ở đây, chỉ đảm bảo giá trị hợp lệ (>=1)
+      if (value < 1) value = 1;
+      
       setQuantities((prev) => ({
         ...prev,
         [selectedProduct.id]: value,
@@ -317,6 +439,23 @@ const ProductsPage = () => {
 
   const handleConfirmAddToCart = async () => {
     if (selectedProduct) {
+      const quantity = quantities[selectedProduct.id] || 1;
+      
+      // Kiểm tra số lượng trong giỏ hàng hiện tại
+      const existingCartItem = cartItems.find(item => item.id === selectedProduct.id);
+      const existingQuantity = existingCartItem ? existingCartItem.quantity : 0;
+      const totalQuantity = existingQuantity + quantity;
+      
+      // Kiểm tra stock
+      if (totalQuantity > selectedProduct.stock) {
+        notification.warning({
+          message: "Số lượng vượt quá giới hạn",
+          description: `Tổng số lượng trong giỏ hàng (${existingQuantity}) và số lượng thêm vào (${quantity}) không được vượt quá tồn kho (${selectedProduct.stock}). Vui lòng nhập lại số lượng phù hợp.`,
+          duration: 5,
+        });
+        return;
+      }
+      
       await handleAddToCart(selectedProduct);
       handleModalClose();
     }
@@ -334,6 +473,14 @@ const ProductsPage = () => {
           onQuantityChange={handleQuantityChange}
           onConfirm={handleConfirmAddToCart}
         />
+
+        <LoginRequiredModal
+          isVisible={isLoginModalVisible}
+          onCancel={handleLoginModalClose}
+          actionType={actionType}
+          returnUrl="/products"
+        />
+
         <div className="products-hero">
           <div className="container">
             <Title level={1}>Sản Phẩm</Title>
@@ -393,7 +540,11 @@ const ProductsPage = () => {
                       className="product-card"
                       onClick={(e) => {
                         // Prevent navigation when clicking on action buttons
-                        if (e.target.closest(".ant-card-actions")) return;
+                        if (e.target.closest(".ant-card-actions")) {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          return;
+                        }
                         navigate(`/products/${product.id}`);
                       }}
                       cover={
@@ -404,19 +555,25 @@ const ProductsPage = () => {
                         />
                       }
                       actions={[
-                        <Link to={`/products/${product.id}`} key="view">
+                        <Link 
+                          to={`/products/${product.id}`} 
+                          key="view"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button type="link">Xem Chi Tiết</Button>
                         </Link>,
                         <Button
                           key="cart"
                           type="primary"
                           icon={<ShoppingCartOutlined />}
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setIsModalOpen(true);
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault(); // Thêm dòng này để ngăn các hành động mặc định
+                            handleShowAddToCartModal(product);
                           }}
+                          disabled={product.stock <= 0}
                         >
-                          Thêm vào giỏ
+                          {product.stock <= 0 ? "Hết hàng" : "Thêm vào giỏ"}
                         </Button>,
                       ]}
                     >
@@ -427,18 +584,9 @@ const ProductsPage = () => {
                             <span className="product-category">
                               {product.categoryName}
                             </span>
-                            {/* <p className="product-description"> */}
-                              <div
-                              className="product-description"
-                                dangerouslySetInnerHTML={{
-                                  __html: product?.description,
-                                }}
-                                style={{
-                                  marginBottom: 16,
-                                  color: "#666",
-                                }}
-                              />
-                            {/* </p> */}
+                            <p className="product-stock">
+                              Số lượng: {product.stock}
+                            </p>
                             <p className="product-price">
                               {product.price.toLocaleString("vi-VN", {
                                 style: "currency",

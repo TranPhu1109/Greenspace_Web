@@ -6,7 +6,7 @@ import {
   MailOutlined,
   ArrowLeftOutlined,
 } from "@ant-design/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "./Auth.scss";
 import logoImage from "../../assets/logo.png";
 import loginBg from "../../assets/login.png";
@@ -17,8 +17,13 @@ const { Title, Text } = Typography;
 const Login = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuthStore();
   const [loading, setLoading] = useState(false);
+
+  // Lấy returnUrl và actionType từ state (nếu có)
+  const returnUrl = location.state?.returnUrl || "/home";
+  const actionType = location.state?.actionType;
 
   const handleLogin = async (values) => {
     const { email, password, rememberMe } = values;
@@ -35,13 +40,17 @@ const Login = () => {
 
       message.success(`Đăng nhập thành công! Xin chào ${userData.name}`);
 
-      // Navigate based on role
+      // Navigate based on role or return to previous page
       const role = userData.roleName.toLowerCase();
       if (
         ["admin", "staff", "manager", "accountant", "designer"].includes(role)
       ) {
         console.log(`Navigating to /${role}/dashboard`);
         navigate(`/${role}/dashboard`);
+      } else if (returnUrl !== "/home") {
+        // Nếu có returnUrl, trở về trang trước đó
+        console.log(`Navigating to ${returnUrl} with action: ${actionType || 'none'}`);
+        navigate(returnUrl, { state: { actionCompleted: true, actionType } });
       } else {
         console.log('Navigating to /home');
         navigate("/home"); // Default route for other roles

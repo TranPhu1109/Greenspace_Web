@@ -145,6 +145,38 @@ const useAuthStore = create(
         user: { ...state.user, ...userData },
       })),
 
+      // Hàm cập nhật địa chỉ người dùng
+      updateUserAddress: async (address) => {
+        try {
+          set({ loading: true, error: null });
+          const user = useAuthStore.getState().user;
+          
+          if (!user || !user.id) {
+            throw new Error("Không tìm thấy thông tin người dùng");
+          }
+          
+          const response = await axios.put(`/api/users/${user.id}`, { address });
+          
+          // Cập nhật thông tin user trong store và localStorage
+          const updatedUser = { ...user, address };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          
+          set({ 
+            user: updatedUser,
+            loading: false 
+          });
+          
+          return updatedUser;
+        } catch (err) {
+          console.error('Update address error:', err);
+          set({ 
+            error: err.message, 
+            loading: false
+          });
+          throw err;
+        }
+      },
+
       // Regular registration with email/password
       register: async (userData) => {
         set({ loading: true, error: null });
