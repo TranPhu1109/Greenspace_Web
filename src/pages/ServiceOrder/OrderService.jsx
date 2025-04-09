@@ -46,7 +46,7 @@ const OrderService = () => {
     fetchDesignIdeaById,
     isLoading: designLoading,
   } = useDesignIdeaStore();
-  const { getProductById } = useProductStore();
+  const { getProductById, updateProduct } = useProductStore();
   const { user } = useAuthStore();
   const { createDesignOrder, isLoading: orderLoading } = useDesignOrderStore();
   const {
@@ -301,6 +301,38 @@ const OrderService = () => {
       // For non-custom orders, create bill after successful order creation
       if (!isCustomOrder) {
         await createBill(orderResponse.id, currentDesign.totalPrice);
+        
+        // Update stock for each product in the order
+        if (productDetails && productDetails.length > 0) {
+          for (const { detail, product } of productDetails) {
+            try {
+              // Calculate new stock by subtracting ordered quantity
+              const newStock = product.stock - detail.quantity;
+              
+              // Prepare update data
+              const updateData = {
+                name: product.name,
+                categoryId: product.categoryId,
+                price: product.price,
+                stock: newStock,
+                description: product.description,
+                designImage1URL: product.designImage1URL || "",
+                size: product.size,
+                image: {
+                  imageUrl: product.image?.imageUrl || "",
+                  image2: product.image?.image2 || "",
+                  image3: product.image?.image3 || ""
+                }
+              };
+              
+              // Update product stock
+              await updateProduct(product.id, updateData);
+            } catch (error) {
+              console.error(`Error updating stock for product ${product.id}:`, error);
+              // Continue with other products even if one fails
+            }
+          }
+        }
       }
       
       // Refresh wallet balance after successful order creation and bill creation

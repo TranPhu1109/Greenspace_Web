@@ -54,6 +54,8 @@ const ProductDetail = () => {
   const { addToCart } = useCartStore();
   const { user } = useAuthStore();
   const [product, setProduct] = useState(null);
+  console.log("product", product);
+  
   const [quantity, setQuantity] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
   const [form] = Form.useForm();
@@ -157,6 +159,10 @@ const ProductDetail = () => {
   }, [id, getProductById]);
 
   const handleAddToCart = async () => {
+    if (quantity > product.stock) {
+      message.warning(`Số lượng sản phẩm vượt quá số lượng tồn kho (${product.stock} sản phẩm)`);
+      return;
+    }
     try {
       await addToCart(product.id, quantity);
     } catch (error) {
@@ -278,6 +284,9 @@ const ProductDetail = () => {
                       </Descriptions.Item>
                       <Descriptions.Item label="Tình trạng">
                         {getStockStatus(product.stock)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Số lượng tồn kho">
+                        {product.stock} sản phẩm
                       </Descriptions.Item>
                       {/* Add more product details as needed */}
                     </Descriptions>
