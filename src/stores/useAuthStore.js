@@ -56,6 +56,14 @@ const useAuthStore = create(
             loading: false 
           });
 
+          // Đồng bộ giỏ hàng local lên server sau khi đăng nhập thành công
+          try {
+            const cartStore = (await import('./useCartStore')).default;
+            await cartStore.getState().syncLocalCartToServer();
+          } catch (syncError) {
+            console.error('Error syncing local cart:', syncError);
+          }
+
           // Fetch wallet balance after successful login
           if (userData.roleName === 'Customer') {
             const walletStore = (await import('./useWalletStore')).default;
@@ -74,13 +82,20 @@ const useAuthStore = create(
             response: err.response?.data,
             status: err.response?.status
           });
+          
+          // Chuyển đổi thông báo lỗi
+          let errorMessage = err.message;
+          if (err.code === 'auth/invalid-credential') {
+            errorMessage = 'Tài khoản hoặc mật khẩu không đúng';
+          }
+          
           set({ 
-            error: err.message, 
+            error: errorMessage, 
             loading: false,
             user: null,
             isAuthenticated: false 
           });
-          throw err;
+          throw { ...err, message: errorMessage };
         }
       },
 
@@ -234,6 +249,16 @@ const useAuthStore = create(
             .authenticateWithFirebase(user);
 
           set({ user: authenticatedUser, loading: false });
+          
+          // Đồng bộ giỏ hàng local lên server sau khi đăng nhập thành công
+          try {
+            const cartStore = (await import('./useCartStore')).default;
+            await cartStore.getState().syncLocalCartToServer();
+            await cartStore.getState().fetchCartItems();
+          } catch (syncError) {
+            console.error('Error syncing local cart:', syncError);
+          }
+          
           return authenticatedUser;
         } catch (err) {
           set({ error: err.message, loading: false });
