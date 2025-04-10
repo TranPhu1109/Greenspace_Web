@@ -13,6 +13,49 @@
     padding: 0 24px;
   }
 
+  .left-column-scrollable {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+  }
+
+  .right-column-sticky {
+    position: sticky !important;
+    top: 80px !important;
+    z-index: 10;
+    transition: transform 0.2s ease;
+
+    &.hidden {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .order-summary-card {
+      border-radius: 8px;
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15) !important;
+      }
+    }
+  }
+
   .order-form {
     .form-section {
       margin-bottom: 24px;

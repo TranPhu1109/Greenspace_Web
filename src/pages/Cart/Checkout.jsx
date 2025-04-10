@@ -297,7 +297,7 @@ const Checkout = () => {
                       </Form.Item>
                     )}
 
-                    <Form.Item name="note" label="Ghi chú">
+                    {/* <Form.Item name="note" label="Ghi chú">
                       <Input.TextArea
                         prefix={
                           <MessageOutlined className="site-form-item-icon" />
@@ -305,7 +305,7 @@ const Checkout = () => {
                         placeholder="Ghi chú thêm về địa chỉ giao hàng (nếu có)"
                         rows={4}
                       />
-                    </Form.Item>
+                    </Form.Item> */}
 
                     <Form.Item>
                       <Button

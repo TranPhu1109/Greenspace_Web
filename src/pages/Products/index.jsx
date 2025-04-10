@@ -366,27 +366,11 @@ const ProductsPage = () => {
   };
 
   const handleShowAddToCartModal = (product) => {
-    // Kiểm tra user đã đăng nhập chưa
-    if (!user) {
-      setActionType('cart');
-      setIsLoginModalVisible(true);
-      setSelectedProduct(product); // Lưu sản phẩm để sau khi đăng nhập có thể tiếp tục thêm vào giỏ hàng
-      return;
-    }
-
     setSelectedProduct(product);
     setIsModalOpen(true);
   };
 
   const handleAddToCart = async (product) => {
-    // Kiểm tra user đã đăng nhập chưa
-    if (!user) {
-      setActionType('cart');
-      setIsLoginModalVisible(true);
-      setSelectedProduct(product);
-      return;
-    }
-
     try {
       // Kiểm tra stock
       const quantity = quantities[product.id] || 1;
@@ -402,8 +386,14 @@ const ProductsPage = () => {
       }
       
       await addToCart(product.id, quantity);
+      
+      // Trigger sự kiện cập nhật giỏ hàng local
+      window.dispatchEvent(new Event('localCartUpdated'));
+      
       // Cập nhật lại giỏ hàng sau khi thêm sản phẩm
-      await fetchCartItems();
+      if (user) {
+        await fetchCartItems();
+      }
     } catch (error) {
       // Error handling is done in the store
     }
