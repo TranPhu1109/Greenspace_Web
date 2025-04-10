@@ -20,7 +20,7 @@ const { Option } = Select;
 
 const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
   const [form] = Form.useForm();
-  const { uploadImages } = useCloudinaryStorage();
+  const { uploadImages, progress } = useCloudinaryStorage();
   const { products, fetchProducts } = useProductStore();
   const [selectedFiles, setSelectedFiles] = useState({
     imageUrl: null,
@@ -30,6 +30,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
     designImage2URL: null,
     designImage3URL: null,
   });
+  const [uploading, setUploading] = useState(false);
   const [productQuantities, setProductQuantities] = useState({});
   const [selectedProducts, setSelectedProducts] = useState([]);
 
@@ -40,6 +41,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
   const handleSubmit = async (values) => {
     try {
       const loadingMessage = message.loading("Đang xử lý...", 0);
+      setUploading(true);
 
       const uploadPromises = [];
       const imageUrls = { imageUrl: "", image2: "", image3: "" };
@@ -116,6 +118,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
 
       await onSubmit(designData);
       loadingMessage();
+      setUploading(false);
       form.resetFields();
       setSelectedFiles({
         imageUrl: null,
@@ -128,6 +131,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
       setSelectedProducts([]);
       setProductQuantities({});
     } catch (error) {
+      setUploading(false);
       message.error("Có lỗi xảy ra: " + error.message);
     }
   };
@@ -315,7 +319,22 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
           </Col>
         </Row>
 
-        
+        {uploading && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8 }}>Đang tải lên: {progress}%</div>
+            <div style={{ width: '100%', background: '#f0f0f0', borderRadius: 4 }}>
+              <div 
+                style={{ 
+                  height: 8, 
+                  background: '#1890ff', 
+                  borderRadius: 4,
+                  width: `${progress}%`,
+                  transition: 'width 0.3s'
+                }} 
+              />
+            </div>
+          </div>
+        )}
 
         <Row gutter={16}>
           <Col span={24}>
@@ -431,9 +450,9 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
           <Col span={8}>
             <Form.Item
               name="designImage1URL"
-              label="Ảnh thiết kế 1"
+              label="Ảnh thiết kế"
               rules={[
-                { required: true, message: "Vui lòng tải lên ảnh thiết kế 1!" },
+                { required: true, message: "Vui lòng tải lên ảnh thiết kế!" },
               ]}
             >
               <Upload
@@ -456,7 +475,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
               >
                 <div>
                   <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                  <div style={{ marginTop: 8 }}>Tải lên ảnh</div>
                 </div>
               </Upload>
             </Form.Item>
@@ -464,15 +483,14 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
           <Col span={8}>
             <Form.Item
               name="designImage2URL"
-              label="Ảnh thiết kế 2"
+              label="Hướng dẫn lắp đặt (PDF)"
               rules={[
-                { required: true, message: "Vui lòng tải lên ảnh thiết kế 2!" },
+                { required: true, message: "Vui lòng tải lên file hướng dẫn lắp đặt (PDF)!" },
               ]}
             >
               <Upload
-                listType="picture-card"
                 maxCount={1}
-                accept="image/*"
+                accept=".pdf"
                 beforeUpload={(file) => {
                   setSelectedFiles((prev) => ({
                     ...prev,
@@ -487,24 +505,21 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
                   }));
                 }}
               >
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Tải lên</div>
-                </div>
+                <Button icon={<UploadOutlined />}>Tải lên file PDF</Button>
               </Upload>
             </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item
               name="designImage3URL"
-              label="File thiết kế"
+              label="Video hướng dẫn lắp đặt"
               rules={[
-                { required: true, message: "Vui lòng tải lên file thiết kế!" },
+                { required: true, message: "Vui lòng tải lên video hướng dẫn lắp đặt!" },
               ]}
             >
               <Upload
                 maxCount={1}
-                accept=".pdf,.doc,.docx,.dwg,.skp"
+                accept="video/*,.mp4,.avi,.mov,.wmv"
                 beforeUpload={(file) => {
                   setSelectedFiles((prev) => ({
                     ...prev,
@@ -519,7 +534,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
                   }));
                 }}
               >
-                <Button icon={<UploadOutlined />}>Tải lên file thiết kế</Button>
+                <Button icon={<UploadOutlined />}>Tải lên video</Button>
               </Upload>
             </Form.Item>
           </Col>
@@ -541,7 +556,7 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
           <Button onClick={onCancel} style={{ marginRight: 8 }}>
             Hủy
           </Button>
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" loading={uploading}>
             Thêm mới
           </Button>
         </Form.Item>

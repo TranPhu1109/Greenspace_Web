@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Cloudinary } from '@cloudinary/url-gen';
 
 /**
- * Custom hook upload ảnh lên Cloudinary sử dụng thư viện @cloudinary/url-gen
+ * Custom hook upload ảnh, video và file lên Cloudinary sử dụng thư viện @cloudinary/url-gen
  */
 export const useCloudinaryStorage = () => {
   const [progress, setProgress] = useState(0);
@@ -10,7 +10,7 @@ export const useCloudinaryStorage = () => {
 
   const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-  const FOLDER_NAME = import.meta.env.VITE_CLOUDINARY_FOLDER || 'uploads';
+  const FOLDER_NAME = import.meta.env.VITE_CLOUDINARY_FOLDER || 'GreenSpace_SP25';
 
   // Khởi tạo instance Cloudinary
   const cld = new Cloudinary({
@@ -18,6 +18,27 @@ export const useCloudinaryStorage = () => {
       cloudName: CLOUD_NAME
     }
   });
+
+  // Hàm xác định loại resource dựa vào loại file
+  const getResourceType = (file) => {
+    const fileType = file.type;
+    
+    if (fileType.startsWith('image/')) {
+      return 'image';
+    } else if (fileType.startsWith('video/') || 
+              fileType.includes('mp4') || 
+              fileType.includes('avi') || 
+              fileType.includes('mov') ||
+              fileType.includes('wmv')) {
+      return 'video';
+    } else if (fileType.includes('pdf') || 
+              file.name.toLowerCase().endsWith('.pdf')) {
+      return 'raw';
+    } else {
+      // Mặc định sử dụng raw cho các loại file khác
+      return 'raw';
+    }
+  };
 
   const uploadImages = async (files) => {
     try {
@@ -46,18 +67,21 @@ export const useCloudinaryStorage = () => {
           formData.append('upload_preset', UPLOAD_PRESET);
           formData.append('folder', FOLDER_NAME);
           
+          // Xác định loại resource
+          const resourceType = getResourceType(file);
+          
           // Log thông tin file để debug
           console.log('Uploading file:', {
             fileName: file.name,
             fileType: file.type,
-            fileSize: file.size
+            fileSize: file.size,
+            resourceType: resourceType
           });
 
           // Sử dụng XMLHttpRequest để upload
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+          xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`);
           
-          // Thêm header Content-Type để Cloudinary xử lý đúng request
           // Không cần set Content-Type khi sử dụng FormData, browser sẽ tự thêm boundary
 
           xhr.onload = () => {
@@ -66,7 +90,7 @@ export const useCloudinaryStorage = () => {
               if (response.secure_url) {
                 // Trả về URL bảo mật từ Cloudinary
                 resolve(response.secure_url);
-                console.log("response.secure_url", response.secure_url);
+                console.log(`${resourceType} upload successful:`, response.secure_url);
                 
               } else {
                 reject(new Error('Không nhận được URL từ Cloudinary'));

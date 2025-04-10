@@ -29,7 +29,9 @@ import {
   ReloadOutlined,
   HomeOutlined,
   HistoryOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  FilePdfOutlined,
+  VideoCameraOutlined
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -235,6 +237,25 @@ const StandardOrderDetail = () => {
             <Space direction="vertical" size={0}>
               <Text strong>{product?.name || "N/A"}</Text>
               <Text type="secondary">{product?.categoryName || "N/A"}</Text>
+              {product?.designImage1URL && (
+                <Button 
+                  type="link" 
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(product.designImage1URL, '_blank');
+                  }}
+                  style={{ padding: "0", height: "auto" }}
+                >
+                  <Space>
+                    <Text type="success">
+                      {product.designImage1URL.includes('.pdf') 
+                        ? 'Xem hướng dẫn lắp đặt (PDF)' 
+                        : 'Xem hướng dẫn lắp đặt (Video)'}
+                    </Text>
+                  </Space>
+                </Button>
+              )}
             </Space>
           </Space>
         );
@@ -546,49 +567,141 @@ const StandardOrderDetail = () => {
                   >
                     {designIdea.designImage1URL && (
                       <div>
-                        <Image
-                          src={designIdea.designImage1URL}
-                          alt="Bản vẽ thiết kế 1"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
+                        <div style={{ width: "100%", height: "200px", overflow: "hidden", borderRadius: "8px" }}>
+                          <Image
+                            src={designIdea.designImage1URL}
+                            alt="Bản vẽ thiết kế"
+                            style={{ 
+                              width: "100%", 
+                              height: "100%", 
+                              objectFit: "cover"
+                            }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask"
+                            }}
+                          />
+                        </div>
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ thiết kế 1</Text>
+                          <Text type="secondary">Bản vẽ thiết kế</Text>
+                          <div>
+                            <Button 
+                              type="primary" 
+                              icon={<BulbOutlined />}
+                              onClick={() => {
+                                // Tìm và kích hoạt nút phóng to của Image
+                                const previewButton = document.querySelector('.ant-image-mask');
+                                if (previewButton) {
+                                  previewButton.click();
+                                }
+                              }}
+                              style={{ marginTop: "8px" }}
+                            >
+                              Xem chi tiết
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
                     {designIdea.designImage2URL && (
                       <div>
-                        <Image
-                          src={designIdea.designImage2URL}
-                          alt="Bản vẽ thiết kế 2"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
+                        <div style={{ position: "relative", width: "100%", height: "200px", overflow: "hidden", borderRadius: "8px" }}>
+                          <div 
+                            style={{ 
+                              position: "absolute", 
+                              top: 0, 
+                              left: 0, 
+                              width: "100%", 
+                              height: "100%", 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "center",
+                              backgroundColor: "#f5f5f5"
+                            }}
+                          >
+                            <FilePdfOutlined style={{ fontSize: 64, color: "#ff4d4f" }} />
+                          </div>
+                        </div>
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ thiết kế 2</Text>
+                          <Text type="secondary">Hướng dẫn lắp đặt (PDF)</Text>
+                          <div>
+                            <Button 
+                              type="primary" 
+                              icon={<FilePdfOutlined />}
+                              onClick={() => window.open(designIdea.designImage2URL, '_blank')}
+                              style={{ marginTop: "8px" }}
+                            >
+                              Mở file PDF
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
                     {designIdea.designImage3URL && (
                       <div>
-                        <Image
-                          src={designIdea.designImage3URL}
-                          alt="Bản vẽ thiết kế 3"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
+                        <div style={{ position: "relative", width: "100%", height: "200px", overflow: "hidden", borderRadius: "8px" }}>
+                          {designIdea.designImage3URL.includes('.mp4') || 
+                           designIdea.designImage3URL.includes('.avi') || 
+                           designIdea.designImage3URL.includes('.mov') || 
+                           !designIdea.designImage3URL.includes('.pdf') ? (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#000",
+                                cursor: "pointer"
+                              }}
+                              onClick={() => window.open(designIdea.designImage3URL, '_blank')}
+                            >
+                              <VideoCameraOutlined style={{ fontSize: 64, color: "#fff" }} />
+                            </div>
+                          ) : (
+                            <div 
+                              style={{ 
+                                position: "absolute", 
+                                top: 0, 
+                                left: 0, 
+                                width: "100%", 
+                                height: "100%", 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center",
+                                backgroundColor: "#f5f5f5",
+                                cursor: "pointer"
+                              }}
+                              onClick={() => window.open(designIdea.designImage3URL, '_blank')}
+                            >
+                              <FilePdfOutlined style={{ fontSize: 64, color: "#ff4d4f" }} />
+                            </div>
+                          )}
+                        </div>
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
-                          <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                          <Text type="secondary">
+                            {designIdea.designImage3URL.includes('.pdf') 
+                              ? 'Hướng dẫn bổ sung (PDF)' 
+                              : 'Video hướng dẫn lắp đặt'}
+                          </Text>
+                          <div>
+                            <Button 
+                              type="primary" 
+                              icon={designIdea.designImage3URL.includes('.pdf') 
+                                ? <FilePdfOutlined /> 
+                                : <VideoCameraOutlined />
+                              }
+                              onClick={() => window.open(designIdea.designImage3URL, '_blank')}
+                              style={{ marginTop: "8px" }}
+                            >
+                              {designIdea.designImage3URL.includes('.pdf') 
+                                ? 'Mở file PDF' 
+                                : 'Xem video hướng dẫn'}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -628,6 +741,63 @@ const StandardOrderDetail = () => {
                   )}
                 />
               </Card>
+
+              {/* Product Installation Guides */}
+              {products.some(product => product?.designImage1URL) && (
+                <Card
+                  title={
+                    <Space>
+                      <CheckCircleOutlined />
+                      <span>Hướng dẫn lắp đặt sản phẩm</span>
+                    </Space>
+                  }
+                  type="inner"
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                      gap: "16px",
+                      padding: "16px",
+                    }}
+                  >
+                    {products.map((product, index) => 
+                      product?.designImage1URL ? (
+                        <Card
+                          key={index}
+                          hoverable
+                          onClick={() => window.open(product.designImage1URL, '_blank')}
+                          cover={
+                            <img 
+                              alt={product.name} 
+                              src={product.image?.imageUrl} 
+                              style={{ height: 200, objectFit: "cover" }}
+                            />
+                          }
+                        >
+                          <Card.Meta
+                            title={product.name}
+                            description={
+                              <Space direction="vertical">
+                                <Text type="secondary">{product.categoryName}</Text>
+                                <Button 
+                                  type="primary" 
+                                  icon={product.designImage1URL.includes('.pdf') ? <FilePdfOutlined /> : <VideoCameraOutlined />}
+                                  size="small"
+                                >
+                                  {product.designImage1URL.includes('.pdf') 
+                                    ? 'Mở hướng dẫn PDF' 
+                                    : 'Xem video hướng dẫn'}
+                                </Button>
+                              </Space>
+                            }
+                          />
+                        </Card>
+                      ) : null
+                    )}
+                  </div>
+                </Card>
+              )}
 
               {/* Order Details */}
               <Card

@@ -26,10 +26,11 @@ const EditDesignModal = ({
   initialValues,
 }) => {
   const [form] = Form.useForm();
-  const { uploadImages } = useCloudinaryStorage();
+  const { uploadImages, progress } = useCloudinaryStorage();
   const { products, fetchProducts } = useProductStore();
   const [productQuantities, setProductQuantities] = useState({});
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState({
     imageUrl: null,
     image2: null,
@@ -66,6 +67,7 @@ const EditDesignModal = ({
   const handleSubmit = async (values) => {
     try {
       const loadingMessage = message.loading("Đang xử lý...", 0);
+      setUploading(true);
 
       const uploadPromises = [];
       const imageUrls = {
@@ -148,6 +150,7 @@ const EditDesignModal = ({
 
       await onSubmit(designData);
       loadingMessage();
+      setUploading(false);
       setSelectedFiles({
         imageUrl: null,
         image2: null,
@@ -157,6 +160,7 @@ const EditDesignModal = ({
         designImage3URL: null,
       });
     } catch (error) {
+      setUploading(false);
       message.error("Có lỗi xảy ra: " + error.message);
     }
   };
@@ -498,11 +502,11 @@ const EditDesignModal = ({
           <Col span={8}>
             <Form.Item
               name="designImage1URL"
-              label="Ảnh thiết kế 1"
+              label="Ảnh thiết kế"
               rules={[
                 {
                   required: initialValues?.designImage1URL ? false : true,
-                  message: "Vui lòng tải lên ảnh thiết kế 1!",
+                  message: "Vui lòng tải lên ảnh thiết kế!",
                 },
               ]}
             >
@@ -520,7 +524,7 @@ const EditDesignModal = ({
                           url: URL.createObjectURL(selectedFiles.designImage1URL),
                         },
                       ]
-                    : getFileList(initialValues?.designImage1URL, "Ảnh thiết kế 1")
+                    : getFileList(initialValues?.designImage1URL, "Ảnh thiết kế")
                 }
                 beforeUpload={(file) => {
                   setSelectedFiles((prev) => ({ ...prev, designImage1URL: file }));
@@ -533,7 +537,7 @@ const EditDesignModal = ({
               >
                 <div>
                   <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Tải lên</div>
+                  <div style={{ marginTop: 8 }}>Tải lên ảnh</div>
                 </div>
               </Upload>
             </Form.Item>
@@ -541,29 +545,27 @@ const EditDesignModal = ({
           <Col span={8}>
             <Form.Item
               name="designImage2URL"
-              label="Ảnh thiết kế 2"
+              label="Hướng dẫn lắp đặt (PDF)"
               rules={[
                 {
                   required: initialValues?.designImage2URL ? false : true,
-                  message: "Vui lòng tải lên ảnh thiết kế 2!",
+                  message: "Vui lòng tải lên file hướng dẫn lắp đặt (PDF)!",
                 },
               ]}
             >
               <Upload
-                listType="picture-card"
                 maxCount={1}
-                accept="image/*"
+                accept=".pdf"
                 fileList={
                   selectedFiles.designImage2URL
                     ? [
                         {
                           uid: "-1",
-                          name: "Ảnh mới",
+                          name: "File PDF mới",
                           status: "done",
-                          url: URL.createObjectURL(selectedFiles.designImage2URL),
                         },
                       ]
-                    : getFileList(initialValues?.designImage2URL, "Ảnh thiết kế 2")
+                    : getFileList(initialValues?.designImage2URL, "Hướng dẫn lắp đặt (PDF)")
                 }
                 beforeUpload={(file) => {
                   setSelectedFiles((prev) => ({ ...prev, designImage2URL: file }));
@@ -574,37 +576,34 @@ const EditDesignModal = ({
                   form.setFieldsValue({ designImage2URL: "" });
                 }}
               >
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Tải lên</div>
-                </div>
+                <Button icon={<UploadOutlined />}>Tải lên file PDF</Button>
               </Upload>
             </Form.Item>
           </Col>
           <Col span={8}>
             <Form.Item
               name="designImage3URL"
-              label="File thiết kế"
+              label="Video hướng dẫn lắp đặt"
               rules={[
                 {
                   required: initialValues?.designImage3URL ? false : true,
-                  message: "Vui lòng tải lên file thiết kế!",
+                  message: "Vui lòng tải lên video hướng dẫn lắp đặt!",
                 },
               ]}
             >
               <Upload
                 maxCount={1}
-                accept=".pdf,.doc,.docx,.dwg,.skp"
+                accept="video/*,.mp4,.avi,.mov,.wmv"
                 fileList={
                   selectedFiles.designImage3URL
                     ? [
                         {
                           uid: "-1",
-                          name: "File mới",
+                          name: "Video mới",
                           status: "done",
                         },
                       ]
-                    : getFileList(initialValues?.designImage3URL, "File thiết kế")
+                    : getFileList(initialValues?.designImage3URL, "Video hướng dẫn lắp đặt")
                 }
                 beforeUpload={(file) => {
                   setSelectedFiles((prev) => ({ ...prev, designImage3URL: file }));
@@ -615,17 +614,34 @@ const EditDesignModal = ({
                   form.setFieldsValue({ designImage3URL: "" });
                 }}
               >
-                <Button icon={<UploadOutlined />}>Tải lên file thiết kế</Button>
+                <Button icon={<UploadOutlined />}>Tải lên video</Button>
               </Upload>
             </Form.Item>
           </Col>
         </Row>
 
+        {uploading && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8 }}>Đang tải lên: {progress}%</div>
+            <div style={{ width: '100%', background: '#f0f0f0', borderRadius: 4 }}>
+              <div 
+                style={{ 
+                  height: 8, 
+                  background: '#1890ff', 
+                  borderRadius: 4,
+                  width: `${progress}%`,
+                  transition: 'width 0.3s'
+                }} 
+              />
+            </div>
+          </div>
+        )}
+
         <Form.Item style={{ textAlign: "right", marginTop: 10 }}>
           <Button onClick={onCancel} style={{ marginRight: 8 }}>
             Hủy
           </Button>
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" loading={uploading}>
             Cập nhật
           </Button>
         </Form.Item>
