@@ -15,87 +15,81 @@ const TaskList = () => {
     }
   }, [user]);
 
-  const getStatusColor = (status, serviceOrderStatus) => {
-    // Task status colors
-    const taskStatusColors = {
-      ConsultingAndSket: "purple",
-      DoneConsulting: "green",
-      Design: "processing",
-      DoneDesign: "success",
-      DesignDetail: "processing",
-      DoneDesignDetail: "success"
-    };
-
-    // Service order status colors
-    const serviceOrderStatusColors = {
-      Pending: "default",
-      ConsultingAndSketching: "blue",
-      DeterminingDesignPrice: "orange",
-      DepositSuccessful: "green",
-      AssignToDesigner: "blue",
-      DeterminingMaterialPrice: "orange",
-      DoneDesign: "success",
-      PaymentSuccess: "green",
-      Processing: "processing",
-      PickedPackageAndDelivery: "processing",
-      DeliveryFail: "error",
-      ReDelivery: "warning",
-      DeliveredSuccessfully: "success",
-      CompleteOrder: "success",
-      OrderCancelled: "error",
-      Warning: "warning",
-      Refund: "warning",
-      DoneRefund: "success",
-      Completed: "success",
-      ReConsultingAndSketching: "orange",
-      ReDesign: "orange",
-      WaitDeposit: "gold"
-    };
-
-    // Return color based on service order status if available, otherwise use task status
-    return serviceOrderStatusColors[serviceOrderStatus] || taskStatusColors[status] || "default";
+  // --- Màu và Text cho TRẠNG THÁI ĐƠN HÀNG ---
+  const serviceOrderStatusColors = {
+    Pending: "default",
+    ConsultingAndSketching: "blue",
+    DeterminingDesignPrice: "orange",
+    DepositSuccessful: "green",
+    AssignToDesigner: "blue",
+    DeterminingMaterialPrice: "orange",
+    DoneDesign: "success",
+    PaymentSuccess: "green",
+    Processing: "processing",
+    PickedPackageAndDelivery: "processing",
+    DeliveryFail: "error",
+    ReDelivery: "warning",
+    DeliveredSuccessfully: "success",
+    CompleteOrder: "success",
+    OrderCancelled: "error",
+    Warning: "warning",
+    Refund: "warning",
+    DoneRefund: "success",
+    Completed: "success",
+    ReConsultingAndSketching: "orange",
+    ReDesign: "orange",
+    WaitDeposit: "gold"
   };
 
-  const getStatusText = (status, serviceOrderStatus) => {
-    // Task status texts
-    const taskStatusTexts = {
-      ConsultingAndSket: "Tư vấn & Phác thảo",
-      DoneConsulting: "Hoàn thành tư vấn",
-      Design: "Đang thiết kế",
-      DoneDesign: "Hoàn thành thiết kế",
-      DesignDetail: "Đang thiết kế chi tiết",
-      DoneDesignDetail: "Hoàn thành thiết kế chi tiết"
-    };
-
-    // Service order status texts
-    const serviceOrderStatusTexts = {
-      Pending: "Chờ xử lý",
-      ConsultingAndSketching: "Đang tư vấn & phác thảo",
-      DeterminingDesignPrice: "Đang xác định giá",
-      DepositSuccessful: "Đặt cọc thành công",
-      AssignToDesigner: "Đã giao cho nhà thiết kế",
-      DeterminingMaterialPrice: "Xác định giá vật liệu",
-      DoneDesign: "Hoàn thành thiết kế",
-      PaymentSuccess: "Thanh toán thành công",
-      Processing: "Đang xử lý",
-      PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
-      DeliveryFail: "Giao hàng thất bại",
-      ReDelivery: "Giao lại",
-      DeliveredSuccessfully: "Đã giao hàng thành công",
-      CompleteOrder: "Hoàn thành đơn hàng",
-      OrderCancelled: "Đơn hàng đã bị hủy",
-      Warning: "Cảnh báo vượt 30%",
-      Refund: "Hoàn tiền",
-      DoneRefund: "Hoàn tiền thành công",
-      Completed: "Hoàn thành",
-      ReConsultingAndSketching: "Phác thảo lại",
-      ReDesign: "Thiết kế lại",
-      WaitDeposit: "Chờ đặt cọc"
-    };
-
-    // Return text based on service order status if available, otherwise use task status
-    return serviceOrderStatusTexts[serviceOrderStatus] || taskStatusTexts[status] || status;
+  const serviceOrderStatusTexts = {
+    Pending: "Chờ xử lý",
+    ConsultingAndSketching: "Đang tư vấn & phác thảo",
+    DeterminingDesignPrice: "Đang xác định giá",
+    DepositSuccessful: "Đặt cọc thành công",
+    AssignToDesigner: "Đã giao cho nhà thiết kế",
+    DeterminingMaterialPrice: "Xác định giá vật liệu",
+    DoneDesign: "Hoàn thành thiết kế",
+    PaymentSuccess: "Thanh toán thành công",
+    Processing: "Đang xử lý",
+    PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
+    DeliveryFail: "Giao hàng thất bại",
+    ReDelivery: "Giao lại",
+    DeliveredSuccessfully: "Đã giao hàng thành công",
+    CompleteOrder: "Hoàn thành đơn hàng",
+    OrderCancelled: "Đơn hàng đã bị hủy",
+    Warning: "Cảnh báo vượt 30%",
+    Refund: "Hoàn tiền",
+    DoneRefund: "Hoàn tiền thành công",
+    Completed: "Hoàn thành",
+    ReConsultingAndSketching: "Phác thảo lại",
+    ReDesign: "Thiết kế lại",
+    WaitDeposit: "Chờ đặt cọc"
   };
+
+  const getOrderStatusColor = (status) => serviceOrderStatusColors[status] || "default";
+  const getOrderStatusText = (status) => serviceOrderStatusTexts[status] || status;
+
+  // --- Màu và Text cho TRẠNG THÁI CÔNG VIỆC (TASK) ---
+  const taskStatusColors = {
+    ConsultingAndSket: "purple",
+    DoneConsulting: "green",
+    Design: "processing",
+    DoneDesign: "success",
+    DesignDetail: "processing",
+    DoneDesignDetail: "success"
+  };
+
+  const taskStatusTexts = {
+    ConsultingAndSket: "Tư vấn & Phác thảo",
+    DoneConsulting: "Hoàn thành tư vấn",
+    Design: "Đang thiết kế",
+    DoneDesign: "Hoàn thành thiết kế",
+    DesignDetail: "Đang thiết kế chi tiết",
+    DoneDesignDetail: "Hoàn thành thiết kế chi tiết"
+  };
+
+  const getTaskStatusColor = (status) => taskStatusColors[status] || "default";
+  const getTaskStatusText = (status) => taskStatusTexts[status] || status;
 
   const columns = [
     {
@@ -121,38 +115,32 @@ const TaskList = () => {
           : "Thiết kế tùy chỉnh",
     },
     {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status, record) => (
-        <Space direction="vertical" size={2}>
-          <Tag color={getStatusColor(status, record.serviceOrder?.status)}>
-            {getStatusText(status, record.serviceOrder?.status)}
-          </Tag>
-          {record.serviceOrder?.status && record.serviceOrder.status !== status && (
-            <Tag color={getStatusColor(status)}>
-              Task: {getStatusText(status)}
-            </Tag>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: "Ghi chú từ staff",
+      title: "Ghi chú",
       dataIndex: "note",
       key: "note",
-      render: (text) => {
-        const displayText = text || "---";
-        const truncatedText = displayText.length > 50 
-          ? displayText.slice(0, 50) + "..." 
-          : displayText;
-        
+    },
+    {
+      title: "Trạng thái đơn hàng",
+      key: "orderStatus",
+      render: (_, record) => {
+        const orderStatus = record.serviceOrder?.status;
+        if (!orderStatus) return <Tag>Không có</Tag>;
         return (
-          <Tooltip title={displayText}>
-            <span>{truncatedText}</span>
-          </Tooltip>
+          <Tag color={getOrderStatusColor(orderStatus)}>
+            {getOrderStatusText(orderStatus)}
+          </Tag>
         );
       },
+    },
+    {
+      title: "Trạng thái công việc",
+      dataIndex: "status",
+      key: "taskStatus",
+      render: (status) => (
+        <Tag color={getTaskStatusColor(status)}>
+          {getTaskStatusText(status)}
+        </Tag>
+      ),
     },
     {
       title: "Ngày tạo",

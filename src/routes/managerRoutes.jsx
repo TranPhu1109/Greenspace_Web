@@ -8,6 +8,8 @@ import ProductDetail from "../components/Staff/Products/ProductDetail";
 import Categories from "../components/Staff/Products/Categories";
 import PromotionsList from "@/components/Manager/Promotions/PromotionsList";
 import TransactionsList from "@/components/Manager/Transactions/TransactionsList";
+import NewDesignOrdersList from "@/components/Manager/NewDesignOrders/NewDesignOrdersList";
+import NewDesignOrderDetail from "@/components/Manager/NewDesignOrders/NewDesignOrderDetail";
 
 export const managerRoutes = {
   path: "/manager",
@@ -65,6 +67,19 @@ export const managerRoutes = {
     {
       path: "transactions",
       element: <TransactionsList />,
+    },
+    {
+      path: "new-design-orders",
+      children: [
+        {
+          index: true,
+          element: <NewDesignOrdersList />,
+        },
+        {
+          path: ":id",
+          element: <NewDesignOrderDetail />,
+        },
+      ],
     },
   ],
 };

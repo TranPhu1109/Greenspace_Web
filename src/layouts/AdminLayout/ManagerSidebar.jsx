@@ -80,6 +80,10 @@ const ManagerSidebar = ({ collapsed }) => {
               </Menu.Item>
             </SubMenu>
 
+            <Menu.Item key="/manager/new-design-orders" icon={<ProjectOutlined />}>
+              <Link to="/manager/new-design-orders">Đơn đặt thiết kế mới</Link>
+            </Menu.Item>
+
             <Menu.Item key="/manager/transactions" icon={<HistoryOutlined />}>
               <Link to="/manager/transactions">Lịch sử giao dịch</Link>
             </Menu.Item>

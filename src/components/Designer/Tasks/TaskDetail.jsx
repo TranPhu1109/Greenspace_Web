@@ -25,6 +25,7 @@ import {
   Select,
   Popconfirm,
   InputNumber,
+  Form,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -55,6 +56,7 @@ import useAuthStore from "@/stores/useAuthStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import api from "@/api/api";
+import EditorComponent from "@/components/Common/EditorComponent";
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -80,7 +82,9 @@ const TaskDetail = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModalVisibleDesign, setIsModalVisibleDesign] = useState(false);
   const [sketchImageUrls, setSketchImageUrls] = useState([]);
+  const [sketchFiles, setSketchFiles] = useState([]);
   const [uploadingSketch, setUploadingSketch] = useState(false);
+  const [sketchForm] = Form.useForm();
   const { updateServiceOrder, updateProductOrder } = useDesignOrderStore();
   const [uploadingDesign, setUploadingDesign] = useState(false);
   const [designImageUrls, setDesignImageUrls] = useState([]);
@@ -150,44 +154,84 @@ const TaskDetail = () => {
   };
 
   const handleOkSketch = async () => {
+    let uploadedUrls = [];
     try {
-      // Step 1: Update service order
+      // Validate form fields first
+      const values = await sketchForm.validateFields();
+
+      setUploadingSketch(true); // Bắt đầu hiển thị loading/progress
+
+      // Step 1: Upload images if new files were selected
+      if (sketchFiles.length > 0) {
+        message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0); // Thông báo bắt đầu upload
+        uploadedUrls = await uploadImages(sketchFiles);
+        message.destroy(); // Xóa thông báo loading
+        if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
+          throw new Error("Lỗi trong quá trình tải ảnh lên.");
+        }
+        message.success("Tải ảnh lên thành công!");
+      } else {
+        // Nếu không có file mới, kiểm tra xem có cần giữ ảnh cũ không (tùy logic)
+        // Ví dụ: giữ lại ảnh cũ nếu có
+        const existingImages = [
+          task.serviceOrder.image?.imageUrl,
+          task.serviceOrder.image?.image2,
+          task.serviceOrder.image?.image3
+        ].filter(Boolean); // Lọc bỏ các giá trị null/undefined
+        uploadedUrls = existingImages;
+        // Hoặc nếu logic là xóa hết ảnh cũ khi không chọn ảnh mới:
+        // uploadedUrls = [];
+      }
+      
+      // Step 2: Update service order with new data (including uploaded URLs)
       const serviceOrderUpdateData = {
-        serviceType: 0,
-        designPrice: 0,
+        serviceType: 1, 
+        designPrice: values.designPrice, 
         description: task.serviceOrder.description,
-        status: 1,
-        report: "",
+        status: 1, 
+        report: values.report || "",
         image: {
-          imageUrl: sketchImageUrls[0] || "",
-          image2: sketchImageUrls[1] || "",
-          image3: sketchImageUrls[2] || ""
+          imageUrl: uploadedUrls[0] || "", // Sử dụng URL đã upload
+          image2: uploadedUrls[1] || "",
+          image3: uploadedUrls[2] || ""
         },
         serviceOrderDetails: task.serviceOrder.serviceOrderDetails
       };
 
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
 
-      // Step 2: Update task status
+      // Step 3: Update task status
       await updateTaskStatus(task.id, {
         serviceOrderId: task.serviceOrder.id,
         userId: user.id,
-        status: 1,
-        note: "Đã cập nhật bản vẽ thiết kế"
+        status: 1, // Chuyển task sang DoneConsulting
+        note: "Hoàn thành phác thảo và báo giá dự kiến." 
       });
 
-      message.success("Cập nhật bản vẽ thiết kế thành công");
+      message.success("Cập nhật phác thảo và giá thành công");
       setIsModalVisible(false);
-      // Reload the page after successful update
-      window.location.reload();
+      sketchForm.resetFields(); 
+      setSketchFiles([]); // Reset state File khi đóng modal Cancel
+      setSketchImageUrls(uploadedUrls); // Cập nhật lại URL để hiển thị (nếu cần)
+      
+      // Consider refetching data instead of reload
+      await fetchTaskDetail(id); // Fetch lại data sau khi thành công
+      // window.location.reload(); 
+
     } catch (error) {
-      console.error("Update error:", error);
-      // Xử lý các trường hợp lỗi cụ thể
-      if (error.response?.data?.error?.includes("maximum number of edits")) {
+      message.destroy(); // Đảm bảo xóa thông báo loading nếu có lỗi
+      if (error.name === 'ValidationError') {
+        message.error("Vui lòng điền đầy đủ thông tin được yêu cầu.");
+      } else if (error.message.includes("Lỗi trong quá trình tải ảnh lên")) {
+         message.error(error.message);
+      } else if (error.response?.data?.error?.includes("maximum number of edits")) {
         message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
       } else {
-        message.error("Cập nhật bản vẽ thiết kế thất bại");
+        message.error("Cập nhật thất bại: " + (error.message || "Lỗi không xác định"));
+        console.error("Update error:", error);
       }
+    } finally {
+      setUploadingSketch(false); // Kết thúc hiển thị loading/progress
     }
   };
 
@@ -195,7 +239,7 @@ const TaskDetail = () => {
     try {
       // Step 1: Update service order
       const serviceOrderUpdateData = {
-        serviceType: 0,
+        serviceType: 1,
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
         status: 4,
@@ -236,6 +280,8 @@ const TaskDetail = () => {
   const handleCancel = () => {
     setIsModalVisible(false);
     setIsModalVisibleDesign(false);
+    sketchForm.resetFields(); // Reset form phác thảo khi đóng
+    setSketchFiles([]); // Reset state File khi đóng modal Cancel
   };
 
   // Hàm mở modal tùy chỉnh sản phẩm
@@ -368,7 +414,7 @@ const TaskDetail = () => {
 
       // Cập nhật service order với danh sách sản phẩm từ mảng tạm
       const serviceOrderUpdateData = {
-        serviceType: 0,
+        serviceType: 1,
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
         status: 4, // AssignToDesigner
@@ -816,17 +862,17 @@ const TaskDetail = () => {
                   </span>
                 </Descriptions.Item>
               )}
-
-              {task.serviceOrder.description && (
-                <Descriptions.Item label="Mô tả" span={3}>
-                  <Paragraph
-                    ellipsis={{ rows: 3, expandable: true, symbol: "Xem thêm" }}
-                  >
-                    {task.serviceOrder.description}
-                  </Paragraph>
-                </Descriptions.Item>
-              )}
             </Descriptions>
+
+            {/* Hiển thị Mô tả riêng biệt bên dưới */}
+            {task.serviceOrder.description && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <Title level={5}>
+                  <FileTextOutlined /> Mô tả yêu cầu của khách hàng
+                </Title>
+                <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.description }} />
+              </div>
+            )}
 
             {hasImages && (
               <div className="mt-4">
@@ -989,39 +1035,79 @@ const TaskDetail = () => {
         onOk={handleOkSketch}
         onCancel={handleCancel}
         width={800}
+        okText="Cập nhật"
+        cancelText="Hủy"
       >
-        <div>
-          <Upload
-            listType="picture-card"
-            beforeUpload={handleSketchImageUpload}
-            onRemove={handleSketchImageRemove}
-            maxCount={3}
-            accept="image/*"
-            fileList={sketchImageUrls.map((url, index) => ({
-              uid: `-${index}`,
-              name: `sketch-${index + 1}`,
-              status: "done",
-              url: url,
-            }))}
+        <Form form={sketchForm} layout="vertical">
+          <Form.Item
+            label="Bản vẽ phác thảo (Tối đa 3 ảnh)"
+            required
           >
-            {sketchImageUrls.length < 3 && (
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>
-                  Tải ảnh
+            <Upload
+              listType="picture-card"
+              beforeUpload={(file) => {
+                setSketchFiles(prev => [...prev, file]);
+                return false;
+              }}
+              onRemove={(file) => {
+                setSketchFiles(prev => prev.filter(f => f.uid !== file.uid));
+                return true;
+              }}
+              maxCount={3}
+              accept="image/*"
+              fileList={sketchFiles.map((file, index) => ({
+                uid: file.uid || `-${index}`,
+                name: file.name,
+                status: "done",
+                thumbUrl: URL.createObjectURL(file),
+                url: URL.createObjectURL(file),
+              }))}
+            >
+              {sketchFiles.length < 3 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Tải ảnh</div>
                 </div>
+              )}
+            </Upload>
+            {uploadError && (
+              <div style={{ color: "red", marginTop: 8 }}>{uploadError}</div>
+            )}
+            {/* Hiển thị progress bar khi đang upload trong handleOkSketch */}
+            {uploadingSketch && (
+              <div style={{ marginTop: 8, textAlign: 'center' }}>
+                <Spin tip={`Đang tải lên ${sketchFiles.length} ảnh... ${progress}%`} />
+                <Progress percent={progress} size="small" showInfo={false} />
               </div>
             )}
-          </Upload>
-          {uploadingSketch && (
-            <div style={{ marginTop: 8 }}>
-              <Progress percent={progress} size="small" />
-            </div>
-          )}
-          {uploadError && (
-            <div style={{ color: "red", marginTop: 8 }}>{uploadError}</div>
-          )}
-        </div>
+          </Form.Item>
+
+          <Form.Item
+            name="designPrice"
+            label="Giá thiết kế dự kiến"
+            rules={[
+              { required: true, message: "Vui lòng nhập giá thiết kế dự kiến" },
+              { type: 'number', min: 0, message: 'Giá phải là số không âm' }
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+              placeholder="Nhập giá dự kiến (VNĐ)"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="report"
+            label="Báo cáo / Ghi chú phác thảo"
+            rules={[{ required: true, message: "Vui lòng nhập báo cáo/ghi chú" }]} 
+          >
+            <EditorComponent 
+              height={300}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
       {/* Modal cập nhật bản vẽ thiết kế */}
       <Modal
