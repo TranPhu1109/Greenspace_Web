@@ -85,7 +85,7 @@ const TaskDetail = () => {
   const [sketchFiles, setSketchFiles] = useState([]);
   const [uploadingSketch, setUploadingSketch] = useState(false);
   const [sketchForm] = Form.useForm();
-  const { updateServiceOrder, updateProductOrder } = useDesignOrderStore();
+  const { updateServiceOrder, updateProductOrder, updateStatus } = useDesignOrderStore();
   const [uploadingDesign, setUploadingDesign] = useState(false);
   const [designImageUrls, setDesignImageUrls] = useState([]);
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
@@ -171,16 +171,12 @@ const TaskDetail = () => {
         }
         message.success("Tải ảnh lên thành công!");
       } else {
-        // Nếu không có file mới, kiểm tra xem có cần giữ ảnh cũ không (tùy logic)
-        // Ví dụ: giữ lại ảnh cũ nếu có
         const existingImages = [
           task.serviceOrder.image?.imageUrl,
           task.serviceOrder.image?.image2,
           task.serviceOrder.image?.image3
         ].filter(Boolean); // Lọc bỏ các giá trị null/undefined
         uploadedUrls = existingImages;
-        // Hoặc nếu logic là xóa hết ảnh cũ khi không chọn ảnh mới:
-        // uploadedUrls = [];
       }
       
       // Step 2: Update service order with new data (including uploaded URLs)
@@ -191,16 +187,23 @@ const TaskDetail = () => {
         status: 1, 
         report: values.report || "",
         image: {
-          imageUrl: uploadedUrls[0] || "", // Sử dụng URL đã upload
+          imageUrl: uploadedUrls[0] || "",
           image2: uploadedUrls[1] || "",
           image3: uploadedUrls[2] || ""
         },
-        serviceOrderDetails: task.serviceOrder.serviceOrderDetails
+        // serviceOrderDetails might not need to be sent if only price/report/images change
+        // serviceOrderDetails: task.serviceOrder.serviceOrderDetails
       };
 
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
 
+      // Step 2.1: Update Service Order Status to DeterminingDesignPrice (2)
+      console.log('Updating Service Order Status to 2 (DeterminingDesignPrice)...');
+      await updateStatus(task.serviceOrder.id, 2); // Call updateStatus from useDesignOrderStore
+      console.log('Service Order Status updated to 2.');
+
       // Step 3: Update task status
+      console.log('Updating Designer Task Status to 1 (DoneConsulting)...');
       await updateTaskStatus(task.id, {
         serviceOrderId: task.serviceOrder.id,
         userId: user.id,
@@ -208,7 +211,7 @@ const TaskDetail = () => {
         note: "Hoàn thành phác thảo và báo giá dự kiến." 
       });
 
-      message.success("Cập nhật phác thảo và giá thành công");
+      message.success("Đã gửi phác thảo và giá dự kiến cho quản lý.");
       setIsModalVisible(false);
       sketchForm.resetFields(); 
       setSketchFiles([]); // Reset state File khi đóng modal Cancel
