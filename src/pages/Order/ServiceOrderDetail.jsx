@@ -3,6 +3,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import useServiceOrderStore from "@/stores/useServiceOrderStore";
 import useProductStore from "@/stores/useProductStore";
 import useRecordStore from "@/stores/useRecordStore";
+import useDesignOrderStore from "@/stores/useDesignOrderStore";
+import useContractStore from "@/stores/useContractStore";
+import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
+import api from "@/api/api";
 import {
   Typography,
   Spin,
@@ -22,7 +26,9 @@ import {
   Table,
   message,
   Popconfirm,
-  Empty
+  Empty,
+  Modal,
+  Upload
 } from "antd";
 import { format } from "date-fns";
 import Footer from "@/components/Footer";
@@ -38,7 +44,8 @@ import {
   TagsOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  UploadOutlined
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
@@ -47,6 +54,7 @@ const { Content } = Layout;
 const ServiceOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const {updateStatus} = useDesignOrderStore();
   const { selectedOrder, loading, error, getServiceOrderById } = useServiceOrderStore();
   const { getProductById, isLoading: productLoading } = useProductStore();
   const {
@@ -56,11 +64,29 @@ const ServiceOrderDetail = () => {
     isLoading: recordLoading,
     error: recordError
   } = useRecordStore();
+  const {
+    getContractByServiceOrder,
+    contract,
+    loading: contractLoading,
+    signContract,
+    generateContract,
+  } = useContractStore();
+  const { uploadImages, progress } = useCloudinaryStorage();
   const [order, setOrder] = useState(null);
   const [localError, setLocalError] = useState(null);
   const [productDetailsMap, setProductDetailsMap] = useState({});
   const [fetchingProducts, setFetchingProducts] = useState(false);
-
+  const [showContractButton, setShowContractButton] = useState(false);
+  const [isContractModalVisible, setIsContractModalVisible] = useState(false);
+  const [showPaymentButton, setShowPaymentButton] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isSignAndPayModalVisible, setIsSignAndPayModalVisible] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState(null);
+  const [selectedSketchId, setSelectedSketchId] = useState(null);
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  
   // Define statuses where ONLY phase 0 sketches are shown initially
   const showOnlyPhase0Statuses = [
     'ConsultingAndSketching' // 16
@@ -85,6 +111,27 @@ const ServiceOrderDetail = () => {
     'Warning',                  // 15
     // Add other relevant statuses if needed
   ];
+  
+  // Define statuses where contract should be visible
+  const contractVisibleStatuses = [
+    'WaitDeposit',                // 21
+    'DepositSuccessful',          // 3
+    'AssignToDesigner',           // 4
+    'DeterminingMaterialPrice',   // 5
+    'DoneDesign',                 // 6
+    'DoneDeterminingMaterialPrice', // 23
+    'PaymentSuccess',             // 7
+    'Processing',                 // 8
+    'PickedPackageAndDelivery',   // 9
+    'DeliveryFail',               // 10
+    'ReDelivery',                 // 11
+    'DeliveredSuccessfully',      // 12
+    'CompleteOrder',              // 13
+    'Warning',                    // 15
+  ];
+
+  // Define numeric status codes where contract should be visible
+  const contractVisibleStatusCodes = [21, 3, 4, 5, 6, 23, 7, 8, 9, 10, 11, 12, 13, 15];
 
   useEffect(() => {
     const fetchOrderDetailAndSketches = async () => {
@@ -141,6 +188,82 @@ const ServiceOrderDetail = () => {
   // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
   }, [id, getServiceOrderById, getProductById, getRecordSketch]); // Ensure all store actions are dependencies
 
+  // Update useEffect to fetch contract correctly
+  useEffect(() => {
+    const fetchContract = async () => {
+      // Check if current status should show contract (either by name or code)
+      const shouldShowContract = 
+        contractVisibleStatuses.includes(selectedOrder?.status) || 
+        contractVisibleStatusCodes.includes(selectedOrder?.status);
+      
+      if (shouldShowContract) {
+        console.log("Status requires contract visibility, checking for contract...");
+        try {
+          // First try to get existing contract
+          await getContractByServiceOrder(selectedOrder.id);
+          setShowContractButton(true);
+        } catch (error) {
+          console.error("Error fetching contract:", error);
+          // If no contract exists, generate a new one if in WaitDeposit status
+          if (selectedOrder?.status === "WaitDeposit" || selectedOrder?.status === 21) {
+            try {
+              console.log("Generating new contract for order:", selectedOrder.id);
+              await generateContract({
+                userId: selectedOrder.userId,
+                serviceOrderId: selectedOrder.id,
+                userName: selectedOrder.userName,
+                email: selectedOrder.email,
+                phone: selectedOrder.cusPhone,
+                address: selectedOrder.address,
+                designPrice: selectedOrder.designPrice,
+              });
+              
+              // Fetch the contract again after generating it
+              await getContractByServiceOrder(selectedOrder.id);
+              console.log("Contract generated successfully");
+              setShowContractButton(true);
+              message.success("Hợp đồng đã được tạo thành công!");
+            } catch (genError) {
+              console.error("Error generating contract:", genError);
+              message.error("Không thể tạo hợp đồng: " + genError.message);
+              setShowContractButton(false);
+            }
+          } else {
+            console.error("Contract not found and not in WaitDeposit status to generate");
+            setShowContractButton(false);
+          }
+        }
+      } else {
+        console.log("Status does not require contract visibility:", selectedOrder?.status);
+        setShowContractButton(false);
+      }
+    };
+
+    // Call fetchContract when selectedOrder status changes or selectedOrder.id changes
+    if (selectedOrder?.id) {
+      console.log("Triggering contract fetch for status:", selectedOrder.status);
+      fetchContract();
+    }
+  }, [selectedOrder?.status, selectedOrder?.id, getContractByServiceOrder, generateContract]);
+
+  // Add useEffect to check contract modification date and update UI
+  useEffect(() => {
+    if (contract?.modificationDate) {
+      setShowPaymentButton(true);
+    } else {
+      setShowPaymentButton(false);
+    }
+    
+    // Ensure contract button is visible if contract exists and status should show contract
+    const shouldShowContract = 
+      contractVisibleStatuses.includes(selectedOrder?.status) || 
+      contractVisibleStatusCodes.includes(selectedOrder?.status);
+      
+    if (contract && !showContractButton && shouldShowContract) {
+      setShowContractButton(true);
+    }
+  }, [contract, selectedOrder?.status, showContractButton, contractVisibleStatuses, contractVisibleStatusCodes]);
+
   const getStatusColor = (status) => {
     const statusColors = {
       Pending: "orange",
@@ -175,17 +298,167 @@ const ServiceOrderDetail = () => {
     return statusTexts[status] || status;
   };
 
-  // Hàm xử lý xác nhận bản phác thảo
-  const handleConfirmSketch = async (recordId) => {
+  // Update handleViewContract function
+  const handleViewContract = async () => {
+    if (contract?.description) {
+      setIsContractModalVisible(true);
+    } else {
+      // Try to fetch the contract if it's not already loaded
+      try {
+        if (selectedOrder?.id) {
+          const contractData = await getContractByServiceOrder(selectedOrder.id);
+          if (contractData?.description) {
+            setIsContractModalVisible(true);
+          } else {
+            message.error("Không tìm thấy hợp đồng hoặc hợp đồng chưa được tạo");
+          }
+        } else {
+          message.error("Không tìm thấy thông tin đơn hàng");
+        }
+      } catch (error) {
+        console.error("Error loading contract:", error);
+        message.error("Không thể tải hợp đồng: " + error.message);
+      }
+    }
+  };
+
+  const handleCloseContractModal = () => {
+    setIsContractModalVisible(false);
+  };
+
+  // Update the handleConfirmSketch function to use the new confirmation modal approach
+  const handleConfirmSketch = (recordId) => {
+    setSelectedSketchId(recordId);
+    setIsConfirmModalVisible(true);
+  };
+
+  // New function to confirm sketch selection
+  const handleConfirmSelection = async () => {
     try {
-      await confirmRecord(recordId);
+      setLocalError(null);
+      
+      // First step: Confirm the sketch selection
+      await confirmRecord(selectedSketchId);
       message.success('Đã chọn bản phác thảo thành công!');
-      // Fetch lại dữ liệu đơn hàng để cập nhật trạng thái và giao diện
-      await getServiceOrderById(id);
-      // Hoặc có thể chỉ cần fetch lại sketch records nếu API confirm không trả về đủ thông tin
-      // await getRecordSketch(id);
+      setIsConfirmModalVisible(false);
+      
+      // Second step: Update status to WaitDeposit (status code 21)
+      try {
+        await updateStatus(id, 21);
+        message.success('Đã cập nhật trạng thái đơn hàng');
+        
+        // Third step: Refresh all relevant data
+        const updatedOrder = await getServiceOrderById(id);
+        console.log('Updated order status:', updatedOrder?.status);
+        
+        // Refresh sketch records
+        await getRecordSketch(id);
+        
+        // The message will serve as a visual cue that something is happening
+        message.info("Hợp đồng sẽ được tạo tự động, vui lòng chờ một lát...");
+      } catch (statusError) {
+        console.error("Error updating status:", statusError);
+        message.error('Không thể cập nhật trạng thái đơn hàng: ' + statusError.message);
+      }
     } catch (err) {
+      console.error("Error confirming sketch:", err);
       message.error('Không thể chọn bản phác thảo: ' + err.message);
+    }
+  };
+
+  // Function to cancel sketch selection
+  const handleCancelSelection = () => {
+    setSelectedSketchId(null);
+    setIsConfirmModalVisible(false);
+  };
+
+  const openSignAndPayModal = () => {
+    setIsSignAndPayModalVisible(true);
+  };
+
+  const closeSignAndPayModal = () => {
+    setIsSignAndPayModalVisible(false);
+    setPreviewImage(null);
+  };
+
+  // Update handleSignAndPay function for better error handling
+  const handleSignAndPay = async () => {
+    try {
+      if (!previewImage) {
+        message.error("Vui lòng tải lên chữ ký trước khi xác nhận");
+        return;
+      }
+
+      setUploading(true);
+      setPaymentLoading(true);
+      
+      // First upload the signature image
+      const uploadedUrls = await uploadImages([previewImage]);
+      console.log('Uploaded URLs:', uploadedUrls);
+      
+      if (!uploadedUrls || uploadedUrls.length === 0) {
+        throw new Error('Không nhận được URL hình ảnh sau khi tải lên');
+      }
+      
+      // Store the signature URL
+      const signatureImageUrl = uploadedUrls[0];
+      setSignatureUrl(signatureImageUrl);
+      
+      // Process payment FIRST
+      try {
+        const walletStorage = localStorage.getItem("wallet-storage");
+        if (!walletStorage) {
+          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
+        }
+        const walletData = JSON.parse(walletStorage);
+        const walletId = walletData.state.walletId;
+        if (!walletId) {
+          throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
+        }
+
+        const amount = selectedOrder.designPrice * 0.5;
+
+        const response = await api.post("/api/bill", {
+          walletId: walletId,
+          serviceOrderId: selectedOrder.id,
+          amount: amount,
+          description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`,
+        });
+
+        if (response.data) {
+          // Payment successful, THEN sign the contract
+          if (contract?.id) {
+            await signContract(contract.id, signatureImageUrl);
+            message.success("Thanh toán và ký hợp đồng thành công");
+            
+            // Update order status to DepositSuccessful (status code 3)
+            await updateStatus(selectedOrder.id, 3); 
+            message.success("Đã cập nhật trạng thái đơn hàng");
+            
+            // Refresh data
+            await getContractByServiceOrder(selectedOrder.id);
+            await getServiceOrderById(id); // Fetch latest order details
+            
+            // Close modal
+            closeSignAndPayModal();
+          } else {
+            throw new Error("Không tìm thấy thông tin hợp đồng để ký");
+          }
+        }
+      } catch (error) {
+        console.error("Payment error:", error);
+        throw new Error("Thanh toán thất bại: " + (error.response?.data?.error || error.message));
+      }
+    } catch (error) {
+      message.error(error.message || "Xử lý thất bại");
+      console.error("Process error:", error);
+    } finally {
+      setUploading(false);
+      setPaymentLoading(false);
+      // Only close the modal if there was no error
+      // We can't access the error from the catch block here in finally,
+      // so we won't try to automatically close the modal.
+      // The modal is already closed on success in the try block
     }
   };
 
@@ -643,22 +916,15 @@ const ServiceOrderDetail = () => {
                                         </Card>
                                          {/* Selection button - Place AFTER the image card */} 
                                          {canSelect && (
-                                           <Popconfirm
-                                             title="Xác nhận chọn bản phác thảo này?"
-                                             onConfirm={() => handleConfirmSketch(record.id)}
-                                             okText="Xác nhận"
-                                             cancelText="Hủy"
-                                             disabled={recordLoading} 
+                                           <Button
+                                             type="primary"
+                                             icon={<CheckCircleOutlined />}
+                                             style={{ marginTop: '10px', width: '100%' }} 
+                                             loading={recordLoading}
+                                             onClick={() => handleConfirmSketch(record.id)}
                                            >
-                                             <Button
-                                               type="primary"
-                                               icon={<CheckCircleOutlined />}
-                                               style={{ marginTop: '10px', width: '100%' }} 
-                                               loading={recordLoading} 
-                                             >
-                                               Chọn bản này
-                                             </Button>
-                                           </Popconfirm>
+                                             Chọn bản này
+                                           </Button>
                                          )}
                                      </div>
                                   ))}
@@ -853,8 +1119,205 @@ const ServiceOrderDetail = () => {
               </Timeline>
             </Card>
 
+            {/* Add this after the timeline Card, before the closing Card tag */} 
+            {(showContractButton || contractVisibleStatuses.includes(order?.status) || contractVisibleStatusCodes.includes(order?.status)) && (
+              <Card
+                title={
+                  <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileTextOutlined /> Hợp đồng
+                  </span>
+                }
+                style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginTop: '24px' }}
+                loading={contractLoading}
+              >
+                <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                  <Button
+                    type="primary"
+                    icon={<FileTextOutlined />}
+                    onClick={handleViewContract}
+                    disabled={!contract} // Disable if contract is not loaded yet
+                    loading={contractLoading}
+                    style={{ width: '100%' }}
+                  >
+                    Xem hợp đồng
+                  </Button>
+                  <div style={{ padding: '8px 16px', backgroundColor: '#f5f5f5', borderRadius: '4px', margin: '8px 0' }}>
+                    <Text type="secondary">
+                      Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây
+                    </Text>
+                  </div>
+                  {!contract?.modificationDate && (selectedOrder?.status === "WaitDeposit" || selectedOrder?.status === 21) && (
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      onClick={openSignAndPayModal}
+                      disabled={!contract} // Disable if contract is not loaded yet
+                      style={{ width: '100%' }}
+                    >
+                      Ký hợp đồng & Thanh toán cọc
+                    </Button>
+                  )}
+                  {contract?.modificationDate && (
+                     <Tag icon={<CheckCircleOutlined />} color="success">
+                        Hợp đồng đã được ký vào {format(new Date(contract.modificationDate), "dd/MM/yyyy HH:mm")}
+                     </Tag>
+                  )}
+                </Space>
+              </Card>
+            )}
+
           </Card>
         </div>
+
+        {/* Contract Modal */} 
+        <Modal
+          title="Hợp đồng"
+          open={isContractModalVisible}
+          onCancel={handleCloseContractModal}
+          width="80%"
+          footer={null}
+          style={{ top: 20 }}
+          styles={{
+            body: {
+              height: "80vh",
+              padding: "0",
+              display: "flex",
+              flexDirection: "column",
+            },
+          }}
+        >
+          {contract?.description ? (
+            <iframe
+              src={contract.description}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                flex: 1,
+              }}
+              title="Contract PDF"
+            />
+          ) : (
+            <Spin tip="Đang tải hợp đồng..." />
+          )}
+        </Modal>
+
+        {/* Sign and Pay Modal */} 
+        <Modal
+          title="Ký hợp đồng và thanh toán cọc"
+          open={isSignAndPayModalVisible}
+          onCancel={closeSignAndPayModal}
+          footer={[
+            <Button key="cancel" onClick={closeSignAndPayModal}>
+              Hủy
+            </Button>,
+            <Button
+              key="confirm"
+              type="primary"
+              loading={uploading || paymentLoading}
+              onClick={handleSignAndPay}
+              disabled={!previewImage} // Disable confirm if no signature is uploaded
+            >
+              Xác nhận ký và thanh toán
+            </Button>,
+          ]}
+          width={600}
+        >
+          <div style={{ marginBottom: "20px" }}>
+            <Text>Bạn cần ký hợp đồng và thanh toán 50% phí thiết kế ({formatPrice(selectedOrder?.designPrice * 0.5)}) để tiếp tục.</Text>
+          </div>
+
+          <Divider />
+
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <Text strong>Chữ ký của bạn</Text>
+            <div style={{ marginTop: "10px", minHeight: '150px', border: '1px dashed #d9d9d9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+              {previewImage ? (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <Image
+                    src={previewImage}
+                    alt="Chữ ký xem trước"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "150px",
+                      objectFit: "contain",
+                    }}
+                    preview={false}
+                  />
+                  <Button 
+                    type="link" 
+                    danger 
+                    icon={<CloseCircleOutlined />} 
+                    onClick={() => setPreviewImage(null)}
+                    style={{ position: 'absolute', top: -5, right: -5, background: 'rgba(255,255,255,0.7)', borderRadius: '50%' }}
+                  />
+                </div>
+              ) : (
+                <Button
+                  type="dashed"
+                  icon={<UploadOutlined />}
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.onchange = (e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) { // Check file size (e.g., 5MB)
+                           message.error('Kích thước ảnh chữ ký quá lớn (tối đa 5MB).');
+                           return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                          setPreviewImage(e.target.result);
+                        };
+                        reader.onerror = (error) => {
+                          console.error('Error reading file:', error);
+                          message.error('Không thể đọc tệp hình ảnh. Vui lòng thử lại.');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    };
+                    input.click();
+                  }}
+                >
+                  Tải lên chữ ký
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <Divider />
+
+          <div style={{ marginBottom: "10px" }}>
+            <Text strong>Thông tin thanh toán:</Text>
+            <Descriptions bordered column={1} size="small" style={{ marginTop: '10px' }}>
+              <Descriptions.Item label="Phí thiết kế">{formatPrice(selectedOrder?.designPrice)}</Descriptions.Item>
+              <Descriptions.Item label="Thanh toán đợt này (50%)"><Text strong style={{ color: '#cf1322' }}>{formatPrice(selectedOrder?.designPrice * 0.5)}</Text></Descriptions.Item>
+            </Descriptions>
+          </div>
+
+          <div style={{ backgroundColor: "#fffbe6", border: '1px solid #ffe58f', padding: "10px", borderRadius: "4px" }}>
+            <Text type="warning">
+              Bằng việc nhấn nút "Xác nhận", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán 50% phí thiết kế.
+            </Text>
+          </div>
+        </Modal>
+
+        {/* Add Confirmation Modal */}
+        <Modal
+          title="Xác nhận chọn bản phác thảo"
+          open={isConfirmModalVisible}
+          onOk={handleConfirmSelection}
+          onCancel={handleCancelSelection}
+          okText="Xác nhận"
+          cancelText="Hủy"
+          confirmLoading={recordLoading}
+        >
+          <p>Bạn có chắc chắn muốn chọn bản phác thảo này không?</p>
+          <p>Sau khi chọn, hệ thống sẽ tự động tạo hợp đồng và bạn sẽ cần thanh toán 50% phí thiết kế để tiếp tục.</p>
+        </Modal>
+
       </Content>
       <Footer />
     </Layout>
