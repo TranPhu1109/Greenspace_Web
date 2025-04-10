@@ -65,6 +65,10 @@ const NewDesignOrderDetail = () => {
     });
   };
 
+  const handleAssignToDesigner = () => {
+    navigate(`/staff/schedule`);
+  };
+
   const handleRejectOrder = () => {
     setIsRejectModalVisible(true);
   };
@@ -129,11 +133,11 @@ const NewDesignOrderDetail = () => {
               </Button>
               <Button 
                 type="primary"
-                icon={<CheckCircleOutlined />}
-                onClick={handleAcceptOrder}
+                icon={<UserOutlined />}
+                onClick={handleAssignToDesigner}
                 loading={loading}
               >
-                Nhận đơn
+                Giao task cho designer
               </Button>
             </Space>
           )}

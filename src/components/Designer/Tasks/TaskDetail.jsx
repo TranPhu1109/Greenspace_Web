@@ -678,7 +678,7 @@ const TaskDetail = () => {
       task.serviceOrder.image.image3);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-10xl mx-auto">
       <div
         className="mb-6 flex items-center justify-between"
         style={{ marginBottom: "10px" }}
@@ -978,59 +978,11 @@ const TaskDetail = () => {
         )}
       </Card>
 
-      <Card 
-        title={
-          <Space>
-            <FileTextOutlined />
-            <span>Ghi chú</span>
-          </Space>
-        } 
-        className="mb-6 shadow-sm"
-      >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <TextArea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Nhập ghi chú về công việc"
-            autoSize={{ minRows: 3, maxRows: 6 }}
-          />
-        </Space>
-      </Card>
+     
 
 
 
-      <Card 
-        title={
-          <Space>
-            <ClockCircleOutlined />
-            <span>Lịch sử cập nhật</span>
-          </Space>
-        }
-        className="shadow-sm"
-        style={{ marginTop: 16 }}
-      >
-        <Timeline>
-          {task.statusHistory?.map((history, index) => (
-            <Timeline.Item key={index} color={getStatusColor(history.status)}>
-              <div className="mb-2">
-                <Text strong>
-                  {dayjs(history.updateDate).format("DD/MM/YYYY HH:mm")}
-                </Text>
-                <Tag color={getStatusColor(history.status)} className="ml-2">
-                  {getStatusText(history.status)}
-                </Tag>
-              </div>
-              {history.note && (
-                <Paragraph className="text-gray-600">{history.note}</Paragraph>
-              )}
-            </Timeline.Item>
-          ))}
-          {(!task.statusHistory || task.statusHistory.length === 0) && (
-            <Empty description="Chưa có lịch sử cập nhật" />
-          )}
-        </Timeline>
-      </Card>
-
+     
       {/* Modal cập nhật bản vẽ phác thảo */}
       <Modal
         title="Cập nhật bản vẽ phác thảo"

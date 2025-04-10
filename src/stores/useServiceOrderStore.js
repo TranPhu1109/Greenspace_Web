@@ -68,17 +68,33 @@ const useServiceOrderStore = create((set) => ({
   getServiceOrdersNoIdea: async () => {
     set({ loading: true, error: null });
     try {
+      console.log('Fetching service orders with no idea...');
       const response = await api.get('/api/serviceorder/noidea');
-      if (!response.data) {
+      
+      // Check if response exists and has data property
+      if (!response || !response.data) {
+        console.error('Invalid API response:', response);
         throw new Error('Không thể lấy danh sách đơn thiết kế mới');
       }
-      set({ serviceOrders: response.data });
-      return response.data;
+      
+      // Ensure we're setting an array
+      const orders = Array.isArray(response.data) ? response.data : [];
+      console.log('Service orders with no idea loaded:', orders.length);
+      
+      set({ 
+        serviceOrders: orders,
+        loading: false,
+        error: null
+      });
+      
+      return orders;
     } catch (error) {
-      set({ error: error.message });
+      console.error('Error in getServiceOrdersNoIdea:', error);
+      set({ 
+        error: error.message || 'Không thể lấy danh sách đơn thiết kế mới',
+        loading: false
+      });
       throw error;
-    } finally {
-      set({ loading: false });
     }
   },
 

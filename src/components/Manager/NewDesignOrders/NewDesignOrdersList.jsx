@@ -18,13 +18,28 @@ const NewDesignOrdersList = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    getServiceOrdersNoIdea();
+    const fetchData = async () => {
+      try {
+        await getServiceOrdersNoIdea();
+      } catch (error) {
+        console.error('Error fetching design orders:', error);
+        // Error is already set in the store, so no need to set it here
+      }
+    };
+    
+    fetchData();
   }, [getServiceOrdersNoIdea]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await getServiceOrdersNoIdea();
-    setRefreshing(false);
+    try {
+      await getServiceOrdersNoIdea();
+    } catch (error) {
+      console.error('Error refreshing design orders:', error);
+      // Error is already set in the store, so no need to set it here
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -101,7 +116,28 @@ const NewDesignOrdersList = () => {
           Làm mới
         </Button>
       </div>
-      {error && <Alert message="Lỗi" description={error} type="error" showIcon style={{ marginBottom: '16px' }} />}
+      {error && (
+        <Alert
+          message="Lỗi"
+          description={
+            <div>
+              <p>{error}</p>
+              <Button 
+                type="primary" 
+                size="small" 
+                onClick={handleRefresh} 
+                loading={refreshing}
+                style={{ marginTop: '8px' }}
+              >
+                Thử lại
+              </Button>
+            </div>
+          }
+          type="error"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
+      )}
       <Table
         columns={columns}
         dataSource={serviceOrders}
