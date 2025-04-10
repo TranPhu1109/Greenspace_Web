@@ -563,9 +563,9 @@ const OrderService = () => {
       if (useExistingAddress && hasExistingAddress) {
         fullAddress = user.address;
       } else {
-        const provinceName = selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : '';
-        const districtName = selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : '';
-        const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
+      const provinceName = selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : '';
+      const districtName = selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : '';
+      const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
         fullAddress = `${addressDetail}|${provinceName}|${districtName}|${wardName}`;
       }
 
@@ -579,7 +579,7 @@ const OrderService = () => {
 
       // Log để kiểm tra danh sách sản phẩm
       console.log("Submitting order with products:", updatedProductDetails);
-      
+
       const data = {
         userId: user.id,
         designIdeaId: currentDesign.id,
@@ -639,33 +639,33 @@ const OrderService = () => {
       await createBill(orderResponse.data.id, totalPrice);
       
       // Update stock for each product in the order using the latest productDetails
-      if (productDetails && productDetails.length > 0) {
-        for (const { detail, product } of productDetails) {
-          try {
-            // Calculate new stock by subtracting ordered quantity
-            const newStock = product.stock - detail.quantity;
-            
-            // Prepare update data
-            const updateData = {
-              name: product.name,
-              categoryId: product.categoryId,
-              price: product.price,
-              stock: newStock,
-              description: product.description,
-              designImage1URL: product.designImage1URL || "",
-              size: product.size,
-              image: {
-                imageUrl: product.image?.imageUrl || "",
-                image2: product.image?.image2 || "",
-                image3: product.image?.image3 || ""
-              }
-            };
-            
-            // Update product stock
-            await updateProduct(product.id, updateData);
-          } catch (error) {
-            console.error(`Error updating stock for product ${product.id}:`, error);
-            // Continue with other products even if one fails
+        if (productDetails && productDetails.length > 0) {
+          for (const { detail, product } of productDetails) {
+            try {
+              // Calculate new stock by subtracting ordered quantity
+              const newStock = product.stock - detail.quantity;
+              
+              // Prepare update data
+              const updateData = {
+                name: product.name,
+                categoryId: product.categoryId,
+                price: product.price,
+                stock: newStock,
+                description: product.description,
+                designImage1URL: product.designImage1URL || "",
+                size: product.size,
+                image: {
+                  imageUrl: product.image?.imageUrl || "",
+                  image2: product.image?.image2 || "",
+                  image3: product.image?.image3 || ""
+                }
+              };
+              
+              // Update product stock
+              await updateProduct(product.id, updateData);
+            } catch (error) {
+              console.error(`Error updating stock for product ${product.id}:`, error);
+              // Continue with other products even if one fails
           }
         }
       }
@@ -1036,7 +1036,7 @@ const OrderService = () => {
                     }
                   }}
                 >
-                  <div className="order-form">
+            <div className="order-form">
                     {/* Design Information */}
                     <Card className="form-section design-info-card">
                       <Row gutter={[16, 16]}>
@@ -1239,7 +1239,7 @@ const OrderService = () => {
                         )}
                       </Panel>
 
-                      {/* Customer Information */}
+              {/* Customer Information */}
                       <Panel
                         header={
                           <div className="panel-header">
@@ -1250,56 +1250,56 @@ const OrderService = () => {
                         key="2"
                         forceRender
                       >
-                        <Form
-                          form={form}
-                          layout="vertical"
-                          initialValues={{
-                            fullName: user?.name || "",
-                            phone: user?.phone || "",
-                            email: user?.email || "",
-                          }}
-                        >
-                          <Row gutter={[16, 16]}>
-                            <Col span={12}>
-                              <Form.Item
-                                name="fullName"
-                                label="Họ và tên"
-                                rules={[
-                                  {
-                                    required: true,
-                                    message: "Vui lòng nhập họ và tên",
-                                  },
-                                ]}
-                              >
+                <Form
+                  form={form}
+                  layout="vertical"
+                  initialValues={{
+                    fullName: user?.name || "",
+                    phone: user?.phone || "",
+                    email: user?.email || "",
+                  }}
+                >
+                  <Row gutter={[16, 16]}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="fullName"
+                        label="Họ và tên"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng nhập họ và tên",
+                          },
+                        ]}
+                      >
                                 <Input disabled={true} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                              <Form.Item
-                                name="phone"
-                                label="Số điện thoại"
-                                rules={[
-                                  {
-                                    required: true,
-                                    message: "Vui lòng nhập số điện thoại",
-                                  },
-                                ]}
-                              >
-                                <Input />
-                              </Form.Item>
-                            </Col>
-                            <Col span={24}>
-                              <Form.Item
-                                name="email"
-                                label="Email"
-                                rules={[
-                                  { required: true, message: "Vui lòng nhập email" },
-                                  { type: "email", message: "Email không hợp lệ" },
-                                ]}
-                              >
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="phone"
+                        label="Số điện thoại"
+                        rules={[
+                          {
+                            required: true,
+                            message: "Vui lòng nhập số điện thoại",
+                          },
+                        ]}
+                      >
+                        <Input />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="email"
+                        label="Email"
+                        rules={[
+                          { required: true, message: "Vui lòng nhập email" },
+                          { type: "email", message: "Email không hợp lệ" },
+                        ]}
+                      >
                                 <Input disabled={true} />
-                              </Form.Item>
-                            </Col>
+                      </Form.Item>
+                    </Col>
                           </Row>
                         </Form>
                       </Panel>
@@ -1349,79 +1349,79 @@ const OrderService = () => {
                         {!useExistingAddress && (
                           <>
                             <Row gutter={[16, 16]}>
-                              <Col span={24}>
-                                <Form.Item label="Tỉnh/Thành phố" required>
-                                  <Select
-                                    placeholder="Chọn tỉnh/thành phố"
-                                    value={selectedProvince}
-                                    onChange={handleProvinceChange}
-                                    loading={provincesLoading}
-                                    style={{ width: "100%" }}
-                                  >
-                                    {provinces.map((province) => (
-                                      <Option
-                                        key={province.provinceId}
-                                        value={province.provinceId}
-                                      >
-                                        {province.provinceName}
-                                      </Option>
-                                    ))}
-                                  </Select>
-                                </Form.Item>
-                              </Col>
+                    <Col span={24}>
+                      <Form.Item label="Tỉnh/Thành phố" required>
+                        <Select
+                          placeholder="Chọn tỉnh/thành phố"
+                          value={selectedProvince}
+                          onChange={handleProvinceChange}
+                          loading={provincesLoading}
+                          style={{ width: "100%" }}
+                        >
+                          {provinces.map((province) => (
+                            <Option
+                              key={province.provinceId}
+                              value={province.provinceId}
+                            >
+                              {province.provinceName}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
 
-                              <Col span={24}>
-                                <Form.Item label="Quận/Huyện" required>
-                                  <Select
-                                    placeholder="Chọn quận/huyện"
-                                    value={selectedDistrict}
-                                    onChange={handleDistrictChange}
-                                    loading={districtsLoading}
-                                    disabled={!selectedProvince}
-                                    style={{ width: "100%" }}
-                                  >
-                                    {districts.map((district) => (
-                                      <Option
-                                        key={district.districtId}
-                                        value={district.districtId}
-                                      >
-                                        {district.districtName}
-                                      </Option>
-                                    ))}
-                                  </Select>
-                                </Form.Item>
-                              </Col>
+                    <Col span={24}>
+                      <Form.Item label="Quận/Huyện" required>
+                        <Select
+                          placeholder="Chọn quận/huyện"
+                          value={selectedDistrict}
+                          onChange={handleDistrictChange}
+                          loading={districtsLoading}
+                          disabled={!selectedProvince}
+                          style={{ width: "100%" }}
+                        >
+                          {districts.map((district) => (
+                            <Option
+                              key={district.districtId}
+                              value={district.districtId}
+                            >
+                              {district.districtName}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
 
-                              <Col span={24}>
-                                <Form.Item label="Phường/Xã" required>
-                                  <Select
-                                    placeholder="Chọn phường/xã"
-                                    value={selectedWard}
-                                    onChange={handleWardChange}
-                                    loading={wardsLoading}
-                                    disabled={!selectedDistrict}
-                                    style={{ width: "100%" }}
-                                  >
-                                    {wards.map((ward) => (
-                                      <Option key={ward.wardCode} value={ward.wardCode}>
-                                        {ward.wardName}
-                                      </Option>
-                                    ))}
-                                  </Select>
-                                </Form.Item>
-                              </Col>
+                    <Col span={24}>
+                      <Form.Item label="Phường/Xã" required>
+                        <Select
+                          placeholder="Chọn phường/xã"
+                          value={selectedWard}
+                          onChange={handleWardChange}
+                          loading={wardsLoading}
+                          disabled={!selectedDistrict}
+                          style={{ width: "100%" }}
+                        >
+                          {wards.map((ward) => (
+                            <Option key={ward.wardCode} value={ward.wardCode}>
+                              {ward.wardName}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
 
-                              <Col span={24}>
-                                <Form.Item label="Địa chỉ chi tiết" required>
-                                  <Input.TextArea
-                                    rows={3}
-                                    placeholder="Nhập số nhà, tên đường, tòa nhà, v.v."
-                                    value={addressDetail}
-                                    onChange={handleAddressDetailChange}
-                                  />
-                                </Form.Item>
-                              </Col>
-                            </Row>
+                    <Col span={24}>
+                      <Form.Item label="Địa chỉ chi tiết" required>
+                        <Input.TextArea
+                          rows={3}
+                          placeholder="Nhập số nhà, tên đường, tòa nhà, v.v."
+                          value={addressDetail}
+                          onChange={handleAddressDetailChange}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                             
                             {/* Checkbox lưu địa chỉ mới - chỉ hiển thị nếu chưa có địa chỉ */}
                             {!hasExistingAddress && (
@@ -1441,14 +1441,14 @@ const OrderService = () => {
                     </Collapse>
                   </div>
                 </div>
-              </Col>
+                        </Col>
 
               {/* Cột phải (1/3) */}
               <Col xs={24} md={8}>
-                <div 
+                  <div
                   ref={rightColumnRef}
                   className="right-column-sticky"
-                  style={{
+                    style={{
                     position: 'sticky',
                     top: '80px',
                     maxHeight: 'calc(100vh - 100px)',
@@ -1464,7 +1464,7 @@ const OrderService = () => {
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <DollarOutlined style={{ marginRight: '8px', color: '#4caf50' }} />
                         <span>Thông tin đơn hàng</span>
-                      </div>
+                  </div>
                     }
                     style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   >
@@ -1473,7 +1473,7 @@ const OrderService = () => {
                       <div className="total-price-container" style={{
                         background: 'linear-gradient(135deg, #f6ffed 0%, #e8f5e9 100%)',
                         padding: '16px',
-                        borderRadius: '8px',
+                            borderRadius: '8px',
                         textAlign: 'center',
                         marginBottom: '16px'
                       }}>
@@ -1487,11 +1487,11 @@ const OrderService = () => {
                           fontFamily: "'Roboto', sans-serif"
                         }}>
                           {totalPrice.toLocaleString("vi-VN", {
-                            style: "currency",
-                            currency: "VND",
-                          })}
+                              style: "currency",
+                              currency: "VND",
+                            })}
                         </Text>
-                      </div>
+                    </div>
 
                       {/* Chi tiết giá */}
                       <div className="price-details" style={{
@@ -1508,12 +1508,12 @@ const OrderService = () => {
                         }}>
                           <Text type="secondary">Giá thiết kế:</Text>
                           <Text>
-                            {currentDesign?.designPrice?.toLocaleString("vi-VN", {
-                              style: "currency",
-                              currency: "VND",
-                            })}
+                      {currentDesign?.designPrice?.toLocaleString("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                      })}
                           </Text>
-                        </div>
+                  </div>
                         <div className="price-detail-item" style={{
                           display: 'flex',
                           justifyContent: 'space-between'
@@ -1521,12 +1521,12 @@ const OrderService = () => {
                           <Text type="secondary">Giá vật liệu:</Text>
                           <Text>
                             {materialPrice.toLocaleString("vi-VN", {
-                              style: "currency",
-                              currency: "VND",
-                            })}
+                        style: "currency",
+                        currency: "VND",
+                      })}
                           </Text>
-                        </div>
-                      </div>
+                  </div>
+                  </div>
 
 
                       {/* Số dư ví */}
@@ -1550,50 +1550,50 @@ const OrderService = () => {
                               fontSize: '18px',
                               color: balance >= totalPrice ? '#4caf50' : '#f5222d'
                             }}>
-                              {walletLoading ? (
-                                <Spin size="small" />
-                              ) : (
-                                balance?.toLocaleString("vi-VN", {
-                                  style: "currency",
-                                  currency: "VND",
-                                })
-                              )}
+                      {walletLoading ? (
+                        <Spin size="small" />
+                      ) : (
+                        balance?.toLocaleString("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        })
+                      )}
                             </Text>
-                          </div>
+                  </div>
                           {balance >= totalPrice && (
                             <Badge
                               status="success"
                               text={<Text style={{ color: '#4caf50' }}>Đủ để thanh toán</Text>}
                             />
                           )}
-                        </div>
+                      </div>
 
                         {balance < totalPrice && (
                           <div style={{ marginTop: '12px' }}>
                             <Text type="danger" style={{ display: 'block', marginBottom: '8px' }}>
                               Số dư ví không đủ để thanh toán.
                             </Text>
-                            <Button
-                              type="primary"
+                      <Button
+                        type="primary"
                               danger
                               onClick={() => navigate("/userwallets")}
                               icon={<DollarOutlined />}
                               block
                             >
                               Nạp tiền ngay
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
                       {/* Nút đặt hàng */}
                       <div style={{ margin: '20px 0' }}>
-                        <Button
-                          type="primary"
-                          size="large"
+                <Button
+                  type="primary"
+                  size="large"
                           icon={<ShoppingCartOutlined />}
-                          onClick={handleSubmit}
-                          loading={orderLoading}
+                  onClick={handleSubmit}
+                  loading={orderLoading}
                           disabled={balance < totalPrice || !isAddressValid}
                           block
                           style={{
@@ -1602,22 +1602,22 @@ const OrderService = () => {
                             background: balance >= totalPrice && isAddressValid ? '#4caf50' : '#d9d9d9',
                             borderColor: balance >= totalPrice && isAddressValid ? '#3d9140' : '#d9d9d9'
                           }}
-                        >
-                          Xác nhận đặt hàng
-                        </Button>
+                >
+                  Xác nhận đặt hàng
+                </Button>
                         {!isAddressValid && (
                           <Text type="danger" style={{ display: 'block', textAlign: 'center', marginTop: '8px' }}>
                             Vui lòng {hasExistingAddress ? 'chọn địa chỉ có sẵn hoặc điền đầy đủ thông tin địa chỉ mới' : 'điền đầy đủ thông tin địa chỉ'}
                           </Text>
                         )}
-                      </div>
+              </div>
 
                       <div style={{ textAlign: 'center' }}>
                         <Space>
                           <CheckCircleOutlined style={{ color: '#4caf50' }} />
                           <Text type="secondary">Đảm bảo 100% chính hãng</Text>
                         </Space>
-                      </div>
+            </div>
                     </div>
                   </Card>
                 </div>
@@ -1648,66 +1648,66 @@ const OrderService = () => {
           <h2 style={{ color: '#4caf50', marginBottom: "16px" }}>
             Hoàn tất đơn hàng!
           </h2>
-          <div style={{ marginBottom: "24px" }}>
-            <p style={{ fontSize: "16px", marginBottom: "8px" }}>
-              Số tiền cần thanh toán:
-            </p>
-            <p
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: "#f5222d",
-                marginBottom: "16px",
-              }}
-            >
+              <div style={{ marginBottom: "24px" }}>
+                <p style={{ fontSize: "16px", marginBottom: "8px" }}>
+                  Số tiền cần thanh toán:
+                </p>
+                <p
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "#f5222d",
+                    marginBottom: "16px",
+                  }}
+                >
               {totalPrice.toLocaleString("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              })}
-            </p>
-            <div
-              style={{
-                padding: "16px",
-                backgroundColor: "#f5f5f5",
-                borderRadius: "8px",
-                marginBottom: "16px",
-              }}
-            >
-              <p style={{ fontSize: "16px", marginBottom: "8px" }}>
-                Số dư ví hiện tại:
-              </p>
-              <p
-                style={{
-                  fontSize: "20px",
-                  fontWeight: "bold",
-                  color:
-                    balance >= totalPrice
-                      ? "#52c41a"
-                      : "#f5222d",
-                }}
-              >
-                {walletLoading ? (
-                  <Spin size="small" />
-                ) : (
-                  balance?.toLocaleString("vi-VN", {
                     style: "currency",
                     currency: "VND",
-                  })
-                )}
-              </p>
-            </div>
+                  })}
+                </p>
+                <div
+                  style={{
+                    padding: "16px",
+                    backgroundColor: "#f5f5f5",
+                    borderRadius: "8px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <p style={{ fontSize: "16px", marginBottom: "8px" }}>
+                    Số dư ví hiện tại:
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                      color:
+                    balance >= totalPrice
+                          ? "#52c41a"
+                          : "#f5222d",
+                    }}
+                  >
+                    {walletLoading ? (
+                      <Spin size="small" />
+                    ) : (
+                      balance?.toLocaleString("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                      })
+                    )}
+                  </p>
+                </div>
             {balance < totalPrice && (
-              <div
-                style={{
-                  color: "#f5222d",
-                  fontSize: "14px",
-                  marginBottom: "16px",
-                }}
-              >
-                Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.
+                  <div
+                    style={{
+                      color: "#f5222d",
+                      fontSize: "14px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
           <p style={{ color: "#666" }}>
             {balance >= totalPrice
               ? 'Nhấn "Xác nhận đặt hàng" để hoàn tất'

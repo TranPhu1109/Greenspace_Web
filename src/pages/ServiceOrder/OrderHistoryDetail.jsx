@@ -52,8 +52,14 @@ const { Title, Text } = Typography;
 const OrderHistoryDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { selectedOrder, isLoading, getDesignOrderById, updateStatus, getServiceOrderById } =
-    useDesignOrderStore();
+  const {
+    selectedOrder,
+    isLoading,
+    getDesignOrderById,
+    updateStatus,
+    getServiceOrderById,
+  } = useDesignOrderStore();
+  //console.log("selectedOrder", selectedOrder);
   const {
     sketchRecords,
     getRecordSketch,
@@ -84,7 +90,7 @@ const OrderHistoryDetail = () => {
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
 
   const [designIdea, setDesignIdea] = useState(null);
-  console.log("designIdea",designIdea);
+  //console.log("designIdea",designIdea);
   const [products, setProducts] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,9 +106,12 @@ const OrderHistoryDetail = () => {
   const [selectedDesignId, setSelectedDesignId] = useState(null);
   const [isConfirmDesignModalVisible, setIsConfirmDesignModalVisible] =
     useState(false);
-  const [isConfirmMaterialModalVisible, setIsConfirmMaterialModalVisible] = useState(false);
-  const [isPaymentRemainModalVisible, setIsPaymentRemainModalVisible] = useState(false);
-  const [isCancelOrderModalVisible, setIsCancelOrderModalVisible] = useState(false);
+  const [isConfirmMaterialModalVisible, setIsConfirmMaterialModalVisible] =
+    useState(false);
+  const [isPaymentRemainModalVisible, setIsPaymentRemainModalVisible] =
+    useState(false);
+  const [isCancelOrderModalVisible, setIsCancelOrderModalVisible] =
+    useState(false);
   const [isStopOrderModalVisible, setIsStopOrderModalVisible] = useState(false);
 
   const componentId = React.useRef("order-detail");
@@ -252,7 +261,7 @@ const OrderHistoryDetail = () => {
             setShowContractButton(true);
           } catch (genError) {
             console.error("Error generating contract:", genError);
-          setShowContractButton(false);
+            setShowContractButton(false);
           }
         }
       } else {
@@ -294,7 +303,10 @@ const OrderHistoryDetail = () => {
     };
 
     const fetchDesignRecords = async () => {
-      if (selectedOrder?.isCustom && selectedOrder?.status !== "DeterminingMaterialPrice") {
+      if (
+        selectedOrder?.isCustom &&
+        selectedOrder?.status !== "DeterminingMaterialPrice"
+      ) {
         try {
           setLoadingDesign(true);
           await getRecordDesign(selectedOrder.id);
@@ -305,7 +317,6 @@ const OrderHistoryDetail = () => {
         }
       }
     };
-
 
     fetchSketchRecords();
     fetchDesignRecords();
@@ -322,10 +333,10 @@ const OrderHistoryDetail = () => {
     const fetchDesignRecords = async () => {
       if (
         selectedOrder?.isCustom &&
-        (selectedOrder.status !== "Pending" &&
-          selectedOrder.status !== "ConsultingAndSketching" &&
-          selectedOrder.status !== "DeterminingDesignPrice" &&
-          selectedOrder.status !== "DepositSuccessful")
+        selectedOrder.status !== "Pending" &&
+        selectedOrder.status !== "ConsultingAndSketching" &&
+        selectedOrder.status !== "DeterminingDesignPrice" &&
+        selectedOrder.status !== "DepositSuccessful"
       ) {
         try {
           setLoadingDesign(true);
@@ -398,7 +409,10 @@ const OrderHistoryDetail = () => {
   // Add function to calculate material price
   const calculateMaterialPrice = (order) => {
     if (order.materialPrice === 0 && order.serviceOrderDetails?.length > 0) {
-      return order.serviceOrderDetails.reduce((total, detail) => total + detail.totalPrice, 0);
+      return order.serviceOrderDetails.reduce(
+        (total, detail) => total + detail.totalPrice,
+        0
+      );
     }
     return order.materialPrice;
   };
@@ -473,7 +487,7 @@ const OrderHistoryDetail = () => {
           if (selectedOrder.status === "WaitDeposit") {
             message.success("Đã ký hợp đồng 50% thành công");
             // Fetch contract again to check modificationDate
-          await getContractByServiceOrder(selectedOrder.id);
+            await getContractByServiceOrder(selectedOrder.id);
           } else {
             message.success("Ký hợp đồng thành công");
           }
@@ -709,7 +723,9 @@ const OrderHistoryDetail = () => {
 
       await createBill(selectedOrder.id, remainingDesignPrice);
       await updateStatus(selectedOrder.id, "StopService");
-      message.success("Đã dừng đơn hàng và thanh toán 50% phí thiết kế còn lại thành công");
+      message.success(
+        "Đã dừng đơn hàng và thanh toán 50% phí thiết kế còn lại thành công"
+      );
       await getDesignOrderById(id, componentId.current);
       setIsStopOrderModalVisible(false);
     } catch (error) {
@@ -894,20 +910,18 @@ const OrderHistoryDetail = () => {
                       {designIdea?.name || "Chưa có tên thiết kế"}
                     </Descriptions.Item>
 
-                    {selectedOrder?.length > 0 && selectedOrder?.width > 0 && (
-                      <>
-                        <Descriptions.Item label="Chiều dài">
-                          {selectedOrder.length}m
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Chiều rộng">
-                          {selectedOrder.width}m
-                        </Descriptions.Item>
-                      </>
-                    )}
+                    <Descriptions.Item label="Chiều dài">
+                      {selectedOrder.length}m
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Chiều rộng">
+                      {selectedOrder.width}m
+                    </Descriptions.Item>
+
                     <Descriptions.Item label="Mô tả">
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: designIdea?.description || "Không có mô tả",
+                          __html:
+                            selectedOrder?.description || "Không có mô tả",
                         }}
                         style={{
                           maxWidth: "100%",
@@ -982,7 +996,7 @@ const OrderHistoryDetail = () => {
                               objectFit: "contain",
                             }}
                           />
-                      )}
+                        )}
                         {designIdea?.image?.image2 && (
                           <img
                             src={designIdea.image.image2}
@@ -993,7 +1007,7 @@ const OrderHistoryDetail = () => {
                               objectFit: "contain",
                             }}
                           />
-                      )}
+                        )}
                         {designIdea?.image?.image3 && (
                           <img
                             src={designIdea.image.image3}
@@ -1004,7 +1018,7 @@ const OrderHistoryDetail = () => {
                               objectFit: "contain",
                             }}
                           />
-                      )}
+                        )}
                       </div>
                     </Card>
                   )}
@@ -1014,139 +1028,143 @@ const OrderHistoryDetail = () => {
               {/* Design Images Section */}
               {!selectedOrder.isCustom &&
                 selectedOrder.status !== "Pending" && (
+                  <Card
+                    title={
+                      <Space>
+                        <BulbOutlined />
+                        <span>
+                          Danh sách bản vẽ thiết kế và hướng dẫn lắp đặt
+                        </span>
+                      </Space>
+                    }
+                    type="inner"
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(300px, 1fr))",
+                        gap: "16px",
+                        padding: "16px",
+                      }}
+                    >
+                      {designIdea.designImage1URL && (
+                        <div>
+                          <Image
+                            src={designIdea.designImage1URL}
+                            alt="Bản vẽ thiết kế 1"
+                            style={{ width: "100%", height: "auto" }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask",
+                            }}
+                          />
+                          <div
+                            style={{ textAlign: "center", marginTop: "8px" }}
+                          >
+                            <Text type="secondary">Bản vẽ thiết kế 1</Text>
+                          </div>
+                        </div>
+                      )}
+                      {designIdea.designImage2URL && (
+                        <div>
+                          <Image
+                            src={designIdea.designImage2URL}
+                            alt="Bản vẽ thiết kế 2"
+                            style={{ width: "100%", height: "auto" }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask",
+                            }}
+                          />
+                          <div
+                            style={{ textAlign: "center", marginTop: "8px" }}
+                          >
+                            <Text type="secondary">Bản vẽ thiết kế 2</Text>
+                          </div>
+                        </div>
+                      )}
+                      {designIdea.designImage3URL && (
+                        <div>
+                          <Image
+                            src={designIdea.designImage3URL}
+                            alt="Bản vẽ thiết kế 3"
+                            style={{ width: "100%", height: "auto" }}
+                            preview={{
+                              mask: "Phóng to",
+                              maskClassName: "custom-mask",
+                            }}
+                          />
+                          <div
+                            style={{ textAlign: "center", marginTop: "8px" }}
+                          >
+                            <Text type="secondary">Bản vẽ thiết kế 3</Text>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+              {selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
                 <Card
                   title={
                     <Space>
                       <BulbOutlined />
-                      <span>
-                        Danh sách bản vẽ thiết kế và hướng dẫn lắp đặt
-                      </span>
+                      <span>Bản vẽ phác thảo</span>
                     </Space>
                   }
                   type="inner"
                 >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(300px, 1fr))",
-                      gap: "16px",
-                      padding: "16px",
-                    }}
-                  >
-                    {designIdea.designImage1URL && (
-                      <div>
-                        <Image
-                          src={designIdea.designImage1URL}
-                          alt="Bản vẽ thiết kế 1"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                          <div
-                            style={{ textAlign: "center", marginTop: "8px" }}
-                          >
-                          <Text type="secondary">Bản vẽ thiết kế 1</Text>
-                        </div>
-                      </div>
-                    )}
-                    {designIdea.designImage2URL && (
-                      <div>
-                        <Image
-                          src={designIdea.designImage2URL}
-                          alt="Bản vẽ thiết kế 2"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                          <div
-                            style={{ textAlign: "center", marginTop: "8px" }}
-                          >
-                          <Text type="secondary">Bản vẽ thiết kế 2</Text>
-                        </div>
-                      </div>
-                    )}
-                    {designIdea.designImage3URL && (
-                      <div>
-                        <Image
-                          src={designIdea.designImage3URL}
-                          alt="Bản vẽ thiết kế 3"
-                          style={{ width: "100%", height: "auto" }}
-                          preview={{
-                            mask: "Phóng to",
-                            maskClassName: "custom-mask",
-                          }}
-                        />
-                          <div
-                            style={{ textAlign: "center", marginTop: "8px" }}
-                          >
-                          <Text type="secondary">Bản vẽ thiết kế 3</Text>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
-
-              {selectedOrder.isCustom && selectedOrder.status !== "Pending" && (
-              <Card
-                title={
-                  <Space>
-                      <BulbOutlined />
-                      <span>Bản vẽ phác thảo</span>
-                  </Space>
-                }
-                type="inner"
-              >
                   {loadingSketch ? (
-                  <div style={{ textAlign: "center", padding: "20px" }}>
+                    <div style={{ textAlign: "center", padding: "20px" }}>
                       <Spin tip="Đang tải bản vẽ phác thảo..." />
                     </div>
-                  ) : sketchRecords && (selectedOrder.status === "ConsultingAndSketching"
+                  ) : sketchRecords &&
+                    (selectedOrder.status === "ConsultingAndSketching"
                       ? sketchRecords
                       : sketchRecords.filter((record) => record.isSelected)
                     ).length > 0 ? (
                     <div>
-                      {sketchRecords && (selectedOrder.status === "ConsultingAndSketching"
-                        ? sketchRecords
-                        : sketchRecords.filter((record) => record.isSelected)
-                      ).map((record, index) => (
-                        <div key={record.id} style={{ marginBottom: "24px" }}>
-                          <div
-                            style={{
-                              marginBottom: "8px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <div>
-                              <Text strong>
-                                {/* Bản vẽ phác thảo {record.phase + 1} */}
-                                {record.phase === 0 
+                      {sketchRecords &&
+                        (selectedOrder.status === "ConsultingAndSketching"
+                          ? sketchRecords
+                          : sketchRecords.filter((record) => record.isSelected)
+                        ).map((record, index) => (
+                          <div key={record.id} style={{ marginBottom: "24px" }}>
+                            <div
+                              style={{
+                                marginBottom: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <div>
+                                <Text strong>
+                                  {/* Bản vẽ phác thảo {record.phase + 1} */}
+                                  {record.phase === 0
                                     ? "Ảnh mẫu của khách hàng"
                                     : `Bản vẽ phác thảo ${record.phase}`}
-                              </Text>
-                              <Text strong></Text>
-                    <Text
-                      type="secondary"
-                                style={{ marginLeft: "8px" }}
-                              >
-                                (
-                                {new Date(record.creationDate).toLocaleString(
-                                  "vi-VN"
-                                )}
-                                )
-                              </Text>
-                            </div>
+                                </Text>
+                                <Text strong></Text>
+                                <Text
+                                  type="secondary"
+                                  style={{ marginLeft: "8px" }}
+                                >
+                                  (
+                                  {new Date(record.creationDate).toLocaleString(
+                                    "vi-VN"
+                                  )}
+                                  )
+                                </Text>
+                              </div>
 
-                            {record.phase !== 0 && (
+                              {record.phase !== 0 && (
                                 <Button
-                                  type={record.isSelected ? "primary" : "default"}
+                                  type={
+                                    record.isSelected ? "primary" : "default"
+                                  }
                                   onClick={() => handleSelectSketch(record.id)}
                                   disabled={record.isSelected}
                                 >
@@ -1155,87 +1173,86 @@ const OrderHistoryDetail = () => {
                                     : "Chọn bản vẽ này"}
                                 </Button>
                               )}
-
+                            </div>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "repeat(auto-fit, minmax(300px, 1fr))",
+                                gap: "16px",
+                                padding: "16px",
+                                backgroundColor: "#f5f5f5",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              {record.image?.imageUrl && (
+                                <div>
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Bản vẽ phác thảo ${index + 1} - 1`}
+                                    style={{ width: "100%", height: "auto" }}
+                                    preview={{
+                                      mask: "Phóng to",
+                                      maskClassName: "custom-mask",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      textAlign: "center",
+                                      marginTop: "8px",
+                                    }}
+                                  >
+                                    <Text type="secondary">Hình ảnh 1</Text>
+                                  </div>
+                                </div>
+                              )}
+                              {record.image?.image2 && (
+                                <div>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Bản vẽ phác thảo ${index + 1} - 2`}
+                                    style={{ width: "100%", height: "auto" }}
+                                    preview={{
+                                      mask: "Phóng to",
+                                      maskClassName: "custom-mask",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      textAlign: "center",
+                                      marginTop: "8px",
+                                    }}
+                                  >
+                                    <Text type="secondary">Hình ảnh 2</Text>
+                                  </div>
+                                </div>
+                              )}
+                              {record.image?.image3 && (
+                                <div>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Bản vẽ phác thảo ${index + 1} - 3`}
+                                    style={{ width: "100%", height: "auto" }}
+                                    preview={{
+                                      mask: "Phóng to",
+                                      maskClassName: "custom-mask",
+                                    }}
+                                  />
+                                  <div
+                                    style={{
+                                      textAlign: "center",
+                                      marginTop: "8px",
+                                    }}
+                                  >
+                                    <Text type="secondary">Hình ảnh 3</Text>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div
-                      style={{
-                              display: "grid",
-                              gridTemplateColumns:
-                                "repeat(auto-fit, minmax(300px, 1fr))",
-                              gap: "16px",
-                              padding: "16px",
-                        backgroundColor: "#f5f5f5",
-                        borderRadius: "8px",
-                            }}
-                          >
-                            {record.image?.imageUrl && (
-                              <div>
-                                <Image
-                                  src={record.image.imageUrl}
-                                  alt={`Bản vẽ phác thảo ${index + 1} - 1`}
-                                  style={{ width: "100%", height: "auto" }}
-                                  preview={{
-                                    mask: "Phóng to",
-                                    maskClassName: "custom-mask",
-                                  }}
-                                />
-                                <div
-                                  style={{
-                        textAlign: "center",
-                                    marginTop: "8px",
-                                  }}
-                                >
-                                  <Text type="secondary">Hình ảnh 1</Text>
-                                </div>
-                              </div>
-                            )}
-                            {record.image?.image2 && (
-                              <div>
-                                <Image
-                                  src={record.image.image2}
-                                  alt={`Bản vẽ phác thảo ${index + 1} - 2`}
-                                  style={{ width: "100%", height: "auto" }}
-                                  preview={{
-                                    mask: "Phóng to",
-                                    maskClassName: "custom-mask",
-                                  }}
-                                />
-                                <div
-                                  style={{
-                                    textAlign: "center",
-                                    marginTop: "8px",
-                                  }}
-                                >
-                                  <Text type="secondary">Hình ảnh 2</Text>
-                                </div>
-                              </div>
-                            )}
-                            {record.image?.image3 && (
-                              <div>
-                                <Image
-                                  src={record.image.image3}
-                                  alt={`Bản vẽ phác thảo ${index + 1} - 3`}
-                                  style={{ width: "100%", height: "auto" }}
-                                  preview={{
-                                    mask: "Phóng to",
-                                    maskClassName: "custom-mask",
-                                  }}
-                                />
-                                <div
-                                  style={{
-                                    textAlign: "center",
-                                    marginTop: "8px",
-                                  }}
-                                >
-                                  <Text type="secondary">Hình ảnh 3</Text>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
+                        ))}
+                    </div>
+                  ) : (
                     <Empty
                       description="Chưa có bản vẽ phác thảo nào"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -1266,12 +1283,14 @@ const OrderHistoryDetail = () => {
                       </div>
                     ) : !designRecords ? (
                       <Empty description="Chưa có bản vẽ chi tiết nào" />
-                    ) : (selectedOrder.status === "DoneDesign" || selectedOrder.status === "DeterminingMaterialPrice"
+                    ) : (selectedOrder.status === "DoneDesign" ||
+                      selectedOrder.status === "DeterminingMaterialPrice"
                         ? designRecords
                         : designRecords.filter((record) => record.isSelected)
                       ).length > 0 ? (
                       <div>
-                        {(selectedOrder.status === "DoneDesign" || selectedOrder.status === "DeterminingMaterialPrice"
+                        {(selectedOrder.status === "DoneDesign" ||
+                        selectedOrder.status === "DeterminingMaterialPrice"
                           ? designRecords
                           : designRecords.filter((record) => record.isSelected)
                         ).map((record, index) => (
@@ -1287,7 +1306,7 @@ const OrderHistoryDetail = () => {
                               <div>
                                 <Text strong>
                                   Bản vẽ chi tiết {record.phase}
-                            </Text>
+                                </Text>
                                 <Text
                                   type="secondary"
                                   style={{ marginLeft: "8px" }}
@@ -1391,9 +1410,9 @@ const OrderHistoryDetail = () => {
                       <Empty
                         description="Chưa có bản vẽ chi tiết nào"
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  />
-                )}
-              </Card>
+                      />
+                    )}
+                  </Card>
                 )}
 
               {/* Material Details */}
@@ -1406,7 +1425,7 @@ const OrderHistoryDetail = () => {
                 }
                 type="inner"
               >
-                {selectedOrder.isCustom ? ( 
+                {selectedOrder.isCustom ? (
                   <div style={{ textAlign: "center", padding: "20px" }}>
                     <Text
                       type="secondary"
@@ -1438,7 +1457,9 @@ const OrderHistoryDetail = () => {
                             </Table.Summary.Cell>
                             <Table.Summary.Cell index={3}>
                               <Text type="success" strong>
-                                {formatPrice(calculateMaterialPrice(selectedOrder))}
+                                {formatPrice(
+                                  calculateMaterialPrice(selectedOrder)
+                                )}
                               </Text>
                             </Table.Summary.Cell>
                           </Table.Summary.Row>
@@ -1472,7 +1493,9 @@ const OrderHistoryDetail = () => {
                           </Table.Summary.Cell>
                           <Table.Summary.Cell index={3}>
                             <Text type="success" strong>
-                              {formatPrice(calculateMaterialPrice(selectedOrder))}
+                              {formatPrice(
+                                calculateMaterialPrice(selectedOrder)
+                              )}
                             </Text>
                           </Table.Summary.Cell>
                         </Table.Summary.Row>
@@ -1513,26 +1536,26 @@ const OrderHistoryDetail = () => {
                     <div style={{ marginTop: "24px" }}>
                       <Descriptions bordered column={1}>
                         <Descriptions.Item label="Phí thiết kế">
-                            <Text type="success" strong>
-                              {formatPrice(selectedOrder.designPrice)}
-                            </Text>
+                          <Text type="success" strong>
+                            {formatPrice(selectedOrder.designPrice)}
+                          </Text>
                         </Descriptions.Item>
                         <Descriptions.Item label="Phí vật liệu dự kiến">
-                            <Text type="success" strong>
+                          <Text type="success" strong>
                             {formatPrice(calculateMaterialPrice(selectedOrder))}
-                            </Text>
+                          </Text>
                         </Descriptions.Item>
                         <Descriptions.Item label="Tổng thanh toán dự kiến">
-                            <Text
-                              type="danger"
-                              strong
-                              style={{ fontSize: "16px" }}
-                            >
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                              calculateMaterialPrice(selectedOrder)
-                              )}
-                            </Text>
+                          <Text
+                            type="danger"
+                            strong
+                            style={{ fontSize: "16px" }}
+                          >
+                            {formatPrice(
+                              selectedOrder.designPrice +
+                                calculateMaterialPrice(selectedOrder)
+                            )}
+                          </Text>
                         </Descriptions.Item>
                       </Descriptions>
                     </div>
@@ -1552,17 +1575,17 @@ const OrderHistoryDetail = () => {
                       </Descriptions.Item>
                       <Descriptions.Item label="Tổng thanh toán">
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
-                              {formatPrice(
-                                selectedOrder.designPrice +
-                            calculateMaterialPrice(selectedOrder)
-                              )}
-                            </Text>
+                          {formatPrice(
+                            selectedOrder.designPrice +
+                              calculateMaterialPrice(selectedOrder)
+                          )}
+                        </Text>
                       </Descriptions.Item>
                       <Descriptions.Item label="Đã thanh toán">
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                            calculateMaterialPrice(selectedOrder)
+                              calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1610,52 +1633,52 @@ const OrderHistoryDetail = () => {
                       </div>
                       {!contract?.modificationDate && (
                         <>
-                      <Button
-                        type="primary"
-                        icon={<UploadOutlined />}
-                        loading={uploading}
-                        onClick={() => {
-                          const input = document.createElement("input");
-                          input.type = "file";
-                          input.accept = "image/*";
-                          input.onchange = (e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              handlePreview(file);
-                            }
-                          };
-                          input.click();
-                        }}
-                        style={{ width: "100%" }}
-                      >
-                        Tải lên chữ ký
-                      </Button>
-                      {signatureUrl && (
-                        <div
-                          style={{
-                            marginTop: "16px",
-                            textAlign: "center",
-                          }}
-                        >
-                          <Image
-                            src={signatureUrl}
-                            alt="Chữ ký đã tải lên"
-                            style={{
-                              maxWidth: "200px",
-                              maxHeight: "100px",
-                              objectFit: "contain",
+                          <Button
+                            type="primary"
+                            icon={<UploadOutlined />}
+                            loading={uploading}
+                            onClick={() => {
+                              const input = document.createElement("input");
+                              input.type = "file";
+                              input.accept = "image/*";
+                              input.onchange = (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  handlePreview(file);
+                                }
+                              };
+                              input.click();
                             }}
-                            preview={false}
-                          />
-                          <div style={{ marginTop: "8px" }}>
-                            <Button
-                              type="link"
-                              onClick={() => setSignatureUrl(null)}
+                            style={{ width: "100%" }}
+                          >
+                            Tải lên chữ ký
+                          </Button>
+                          {signatureUrl && (
+                            <div
+                              style={{
+                                marginTop: "16px",
+                                textAlign: "center",
+                              }}
                             >
-                              Xóa chữ ký
-                            </Button>
-                          </div>
-                        </div>
+                              <Image
+                                src={signatureUrl}
+                                alt="Chữ ký đã tải lên"
+                                style={{
+                                  maxWidth: "200px",
+                                  maxHeight: "100px",
+                                  objectFit: "contain",
+                                }}
+                                preview={false}
+                              />
+                              <div style={{ marginTop: "8px" }}>
+                                <Button
+                                  type="link"
+                                  onClick={() => setSignatureUrl(null)}
+                                >
+                                  Xóa chữ ký
+                                </Button>
+                              </div>
+                            </div>
                           )}
                         </>
                       )}
@@ -1663,27 +1686,27 @@ const OrderHistoryDetail = () => {
                       {showPaymentButton &&
                         selectedOrder.status === "WaitDeposit" && (
                           <>
-                          <Button
-                            type="primary"
-                            danger
-                            icon={<DollarOutlined />}
-                            loading={paymentLoading}
-                            onClick={showPaymentModal}
-                            style={{ width: "100%", marginTop: "16px" }}
-                          >
-                            Thanh toán 50% phí thiết kế
-                            {formatPrice(selectedOrder.designPrice * 0.5)}
-                          </Button>
-                          <Button
-                            // type="primary"
-                            danger
-                            icon={<CloseOutlined />}
-                            onClick={showCancelOrderModal}
-                          >
+                            <Button
+                              type="primary"
+                              danger
+                              icon={<DollarOutlined />}
+                              loading={paymentLoading}
+                              onClick={showPaymentModal}
+                              style={{ width: "100%", marginTop: "16px" }}
+                            >
+                              Thanh toán 50% phí thiết kế
+                              {formatPrice(selectedOrder.designPrice * 0.5)}
+                            </Button>
+                            <Button
+                              // type="primary"
+                              danger
+                              icon={<CloseOutlined />}
+                              onClick={showCancelOrderModal}
+                            >
                               Hủy đơn hàng
                             </Button>
                           </>
-                      )}
+                        )}
                     </Space>
                   )}
                   {selectedOrder.status === "DeliveredSuccessfully" && (
@@ -1731,7 +1754,8 @@ const OrderHistoryDetail = () => {
                         border: "1px dashed #d9d9d9",
                       }}
                     >
-                      Thiết kế đã hoàn thành, bạn hãy thanh toán 50% phí thiết kế còn lại và 100% phí vật liệu
+                      Thiết kế đã hoàn thành, bạn hãy thanh toán 50% phí thiết
+                      kế còn lại và 100% phí vật liệu
                     </Text>
                     <div style={{ marginTop: "24px" }}>
                       <Space direction="vertical" style={{ width: "100%" }}>
@@ -1877,7 +1901,8 @@ const OrderHistoryDetail = () => {
             >
               <p>Bạn có chắc chắn muốn xác nhận giá vật liệu và tiếp tục?</p>
               <p>
-                Tổng giá vật liệu: {formatPrice(calculateMaterialPrice(selectedOrder))}
+                Tổng giá vật liệu:{" "}
+                {formatPrice(calculateMaterialPrice(selectedOrder))}
               </p>
             </Modal>
 
@@ -1893,13 +1918,21 @@ const OrderHistoryDetail = () => {
             >
               <p>Bạn có chắc chắn muốn thanh toán phần còn lại?</p>
               <p>
-                Phí thiết kế còn lại (50%): {formatPrice(selectedOrder.designPrice * 0.5)}
+                Phí thiết kế còn lại (50%):{" "}
+                {formatPrice(selectedOrder.designPrice * 0.5)}
               </p>
               <p>
-                Phí vật liệu (100%): {formatPrice(calculateMaterialPrice(selectedOrder))}
+                Phí vật liệu (100%):{" "}
+                {formatPrice(calculateMaterialPrice(selectedOrder))}
               </p>
               <p>
-                <Text strong>Tổng thanh toán: {formatPrice(selectedOrder.designPrice * 0.5 + calculateMaterialPrice(selectedOrder))}</Text>
+                <Text strong>
+                  Tổng thanh toán:{" "}
+                  {formatPrice(
+                    selectedOrder.designPrice * 0.5 +
+                      calculateMaterialPrice(selectedOrder)
+                  )}
+                </Text>
               </p>
             </Modal>
 
@@ -1928,10 +1961,14 @@ const OrderHistoryDetail = () => {
             >
               <p>Bạn có chắc chắn muốn dừng đơn hàng này?</p>
               <p>
-                Phí thiết kế còn lại (50%): {formatPrice(selectedOrder.designPrice * 0.5)}
+                Phí thiết kế còn lại (50%):{" "}
+                {formatPrice(selectedOrder.designPrice * 0.5)}
               </p>
               <p>
-                <Text type="warning">Lưu ý: Khi dừng đơn hàng, bạn sẽ phải thanh toán 50% phí thiết kế còn lại và không thể tiếp tục đơn hàng này.</Text>
+                <Text type="warning">
+                  Lưu ý: Khi dừng đơn hàng, bạn sẽ phải thanh toán 50% phí thiết
+                  kế còn lại và không thể tiếp tục đơn hàng này.
+                </Text>
               </p>
             </Modal>
           </Card>
