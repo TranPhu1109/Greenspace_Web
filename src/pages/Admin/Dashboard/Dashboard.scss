@@ -1,0 +1,72 @@
+.dashboard {
+  &-title {
+    margin-bottom: 24px;
+    font-size: 24px;
+    font-weight: 500;
+  }
+  
+  &-section {
+    margin-top: 24px;
+  }
+  
+  .statistic-footer {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    
+    .increase {
+      color: #3f8600;
+      margin-right: 8px;
+    }
+    
+    .decrease {
+      color: #cf1322;
+      margin-right: 8px;
+    }
+    
+    .compared-text {
+      color: #8c8c8c;
+      font-size: 12px;
+    }
+  }
+  
+  .recent-orders-card {
+    height: 100%;
+  }
+  
+  .top-products-card {
+    height: 100%;
+    
+    .product-item {
+      width: 100%;
+      
+      .product-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        
+        .product-name {
+          font-weight: 500;
+        }
+        
+        .product-sales {
+          color: #8c8c8c;
+        }
+      }
+    }
+  }
+  
+  .recent-activities-card {
+    .activity-time {
+      color: #8c8c8c;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    &-title {
+      font-size: 20px;
+    }
+  }
+} 

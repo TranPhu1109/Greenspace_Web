@@ -1,0 +1,30 @@
+.reply-form {
+  padding: 12px;
+  // background: #95ff95;
+  border-top: 1px solid #e6f7ee;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+
+  .ant-input {
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 32px;
+    resize: none;
+  }
+
+  .ant-btn {
+    border-radius: 4px;
+    height: 28px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+}
+
+// Responsive styles
+@media screen and (max-width: 768px) {
+  .reply-form {
+    padding: 8px;
+  }
+} 

@@ -1,0 +1,207 @@
+.header-nav {
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+  }
+
+  .menu-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    height: 20px;
+  }
+
+  .mobile-menu-button {
+    display: none;
+    padding: 0px;
+    border: none;
+    background: transparent;
+    color: #333;
+    font-size: 20px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      color: #52c41a;
+      background-color: rgba(82, 196, 26, 0.1);
+    }
+
+    .anticon {
+      font-size: 20px;
+    }
+  }
+
+  .nav-menu {
+    flex: 1;
+    ul {
+      display: flex;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .nav-item {
+      position: relative;
+
+      margin: 0 14px;
+
+
+      &.active {
+        .nav-link {
+          color: #52c41a;
+          
+          &:after {
+            transform: scaleX(1);
+          }
+        }
+      }
+
+      .nav-link {
+        display: block;
+        padding: 16px 20px;
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+
+        &:after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background-color: #52c41a;
+          transform: scaleX(0);
+          transition: transform 0.3s ease;
+        }
+
+        &:hover {
+          color: #52c41a;
+
+          &:after {
+            transform: scaleX(1);
+          }
+        }
+      }
+    }
+
+
+    .dropdown-link {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: inherit;
+      cursor: pointer;
+      padding: 8px 20px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        color: #52c41a;
+      }
+
+      .anticon {
+        font-size: 12px;
+      }
+    }
+
+  }
+
+  .right-nav-section {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-left: 24px;
+
+    .wallet-link,
+    .support-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      text-decoration: none;
+      transition: color 0.3s ease;
+
+      &:hover {
+        color: #52c41a;
+      }
+
+      .anticon {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .header-nav {
+    .menu-container {
+      padding: 8px 0;
+    }
+
+    .mobile-menu-button {
+      display: flex;
+      order: -1;
+      margin-right: auto;
+    }
+
+    .nav-menu {
+      display: none;
+    }
+
+    .right-nav-section {
+      margin-left: 0;
+      gap: 16px;
+
+      .wallet-link span,
+      .support-link span {
+        display: none;
+      }
+
+      .anticon {
+        font-size: 20px;
+      }
+    }
+  }
+
+}
+
+// Override Ant Design dropdown styles
+.design-dropdown {
+  .ant-dropdown-menu {
+    padding: 4px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: auto;
+    text-align: left;
+
+    .ant-dropdown-menu-item {
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      
+      a {
+        color: rgba(0, 0, 0, 0.85);
+        display: block;
+        
+        &:hover {
+          color: #52c41a;
+        }
+      }
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+    }
+  }
+
+} 

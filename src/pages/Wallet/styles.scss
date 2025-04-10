@@ -1,0 +1,676 @@
+@use "sass:color";
+
+.wallet-layout {
+  min-height: 100vh;
+  background: #f5f5f5;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    // padding: 0;
+  }
+
+  .wallet-content {
+    padding: 40px 0;
+    margin-top: 160px;
+
+    .wallet-card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+      .ant-card-body {
+        padding: 24px;
+      }
+
+      .anticon {
+        margin-right: 8px;
+      }
+
+      .wallet-balance {
+        margin-top: 14px;
+        text-align: center;
+
+        .ant-typography {
+          font-size: 1.1rem;
+          
+          &.balance-amount {
+            display: block;
+            font-size: 2rem;
+            color: #52c41a;
+            font-weight: bold;
+            margin-top: 8px;
+          }
+        }
+      }
+
+      .amount-selection {
+        .amount-button {
+          width: 100%;
+          height: 48px;
+          font-size: 1.1rem;
+          border: 1px solid #d9d9d9;
+          
+          &:hover {
+            color: #52c41a;
+            border-color: #52c41a;
+          }
+          
+          &.selected {
+            color: #52c41a;
+            border-color: #52c41a;
+            background: rgba(82, 196, 26, 0.1);
+          }
+        }
+
+        .custom-amount {
+          margin-top: 16px;
+
+          .ant-input-group-addon {
+            background: #fafafa;
+            color: #666;
+          }
+        }
+      }
+
+      .payment-method {
+        width: 100%;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+
+        .anticon {
+          font-size: 1.2rem;
+        }
+
+        &.ant-radio-button-wrapper-checked {
+          border-color: #52c41a;
+          color: #52c41a;
+
+          &::before {
+            background-color: #52c41a;
+          }
+        }
+      }
+
+      .ant-form-item-label {
+        font-weight: 500;
+      }
+
+      .ant-btn-primary {
+        background: #52c41a;
+        border-color: #52c41a;
+        height: 48px;
+        font-size: 1.1rem;
+
+        &:hover {
+          background: color.adjust(#52c41a, $lightness: -5%);
+          border-color: color.adjust(#52c41a, $lightness: -5%);
+        }
+      }
+
+      .ant-tabs {
+        .ant-tabs-nav {
+          margin-bottom: 24px;
+
+          .ant-tabs-tab {
+            padding: 12px 24px;
+            font-size: 1.1rem;
+
+            .anticon {
+              margin-right: 8px;
+            }
+
+            &.ant-tabs-tab-active {
+              .ant-tabs-tab-btn {
+                color: #52c41a;
+              }
+            }
+          }
+
+          .ant-tabs-ink-bar {
+            background: #52c41a;
+          }
+        }
+      }
+
+      .transaction-history {
+        min-height: 550px;
+        .history-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          // margin-bottom: 14px;
+
+          .ant-typography {
+            margin: 0;
+          }
+
+          .history-filters {
+            display: flex;
+            gap: 16px;
+          }
+        }
+
+        .history-table {
+          .ant-table-thead > tr > th {
+            background: #e0e0e0;
+            font-weight: 500;
+          }
+
+          .ant-table-tbody > tr > td {
+            vertical-align: middle;
+          }
+
+          .ant-pagination {
+            margin-top: 16px;
+            
+            .ant-pagination-item-active {
+              border-color: #52c41a;
+              
+              a {
+                color: #52c41a;
+              }
+            }
+          }
+        }
+      }
+
+      .payment-info {
+        .qr-section {
+          display: flex;
+          gap: 32px;
+          align-items: flex-start;
+          margin: 24px 0;
+
+          .qr-instruction {
+            flex: 1;
+            
+            p {
+              margin-bottom: 12px;
+              color: #666;
+              font-size: 1rem;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              &:before {
+                content: '';
+                display: inline-block;
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #52c41a;
+              }
+            }
+          }
+
+          .qr-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            border: 1px dashed #d9d9d9;
+            border-radius: 8px;
+            background: #fafafa;
+
+            .ant-typography {
+              color: #999;
+            }
+          }
+        }
+      }
+
+      .ant-btn-primary {
+        &.ant-btn-lg {
+          height: 48px;
+          font-size: 1.1rem;
+
+          .anticon {
+            font-size: 1.2rem;
+          }
+        }
+      }
+
+      .payment-url {
+        text-align: center;
+        margin-top: 16px;
+        padding: 16px;
+        background: #f9f9f9;
+        border-radius: 4px;
+
+        a {
+          color: #52c41a;
+          font-weight: 500;
+          
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+
+      .wallet-tabs {
+        .ant-tabs-nav {
+          margin-bottom: 24px;
+          
+          &::before {
+            border-bottom: 1px solid #f0f0f0;
+          }
+
+          .ant-tabs-nav-wrap {
+            .ant-tabs-nav-list {
+              .ant-tabs-tab {
+                padding: 12px 0;
+                margin: 0 24px 0 0;
+                transition: all 0.3s ease;
+                
+                .tab-label {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-size: 14px;
+                  color: #8c8c8c;
+                  
+                  .anticon {
+                    font-size: 16px;
+                  }
+                }
+                
+                &:hover {
+                  color: #52c41a;
+                }
+                
+                &.ant-tabs-tab-active {
+                  .tab-label {
+                    color: #52c41a;
+                    font-weight: 500;
+                  }
+                }
+              }
+            }
+          }
+
+          .ant-tabs-ink-bar {
+            background: #52c41a;
+            height: 2px;
+            border-radius: 2px;
+          }
+        }
+      }
+    }
+  }
+
+  .qr-code-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+    h5.ant-typography {
+      margin: 0;
+      color: #52c41a;
+    }
+
+    canvas {
+      margin: 8px 0;
+    }
+
+    .ant-typography {
+      color: #666;
+    }
+  }
+}
+
+.vnpay-qr-container {
+  .qr-loading {
+    text-align: center;
+    padding: 20px;
+  }
+
+  .qr-code-display {
+    text-align: center;
+    padding: 20px 0;
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 16px;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .qr-instruction {
+      color: #666;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+  }
+
+  .ant-form-item {
+    margin-bottom: 16px;
+  }
+
+  .ant-input-affix-wrapper {
+    .ant-input-suffix {
+      color: #666;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .wallet-layout {
+    .wallet-content {
+      margin-top: 150px;
+      padding: 20px 0;
+
+      .wallet-card {
+        .wallet-tabs {
+          .ant-tabs-nav {
+            .ant-tabs-nav-wrap {
+              .ant-tabs-nav-list {
+                .ant-tabs-tab {
+                  margin: 0 16px 0 0;
+                  
+                  .tab-label {
+                    font-size: 13px;
+                    
+                    .anticon {
+                      font-size: 15px;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        .wallet-balance {
+          .balance-amount {
+            font-size: 1.5rem;
+          }
+        }
+
+        .amount-button {
+          height: 40px;
+          font-size: 1rem;
+        }
+
+        .payment-method {
+          height: 40px;
+          font-size: 0.9rem;
+        }
+
+        .ant-tabs-nav {
+          .ant-tabs-tab {
+            padding: 8px 16px;
+            font-size: 1rem;
+          }
+        }
+
+        .transaction-history {
+          .history-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+          }
+
+          .history-table {
+            .ant-table {
+              font-size: 0.9rem;
+            }
+          }
+        }
+
+        .payment-info {
+          .qr-section {
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+
+            .qr-instruction {
+              width: 100%;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.recharge-form-container {
+  // padding: 24px;
+
+  .amount-selection-card,
+  .qr-code-card {
+    height: 100%;
+    min-height: 500px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    .ant-card-body {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .amount-selection-card {
+    .ant-form {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .amount-radio-group {
+      margin-bottom: 24px;
+
+      .ant-radio-group {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+
+        .ant-radio-button-wrapper {
+          width: 100%;
+          height: 48px;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          transition: all 0.3s;
+          margin-right: 0;
+
+          &:first-child {
+            border-radius: 8px;
+          }
+
+          &:last-child {
+            border-radius: 8px;
+          }
+
+          &:hover {
+            color: #52c41a;
+            border-color: #52c41a;
+          }
+
+          &.ant-radio-button-wrapper-checked {
+            background: #52c41a;
+            border-color: #52c41a;
+            color: white;
+
+            &::before {
+              display: none;
+            }
+          }
+        }
+      }
+    }
+
+    .ant-input-affix-wrapper {
+      height: 48px;
+      border-radius: 8px;
+
+      &:hover,
+      &:focus {
+        border-color: #52c41a;
+      }
+    }
+
+    .ant-btn {
+      height: 48px;
+      border-radius: 8px;
+      font-weight: 500;
+      margin-top: auto;
+
+      &.ant-btn-primary {
+        background: #52c41a;
+        border-color: #52c41a;
+
+        &:hover {
+          background: color.adjust(#52c41a, $lightness: -5%);
+          border-color: color.adjust(#52c41a, $lightness: -5%);
+        }
+      }
+    }
+  }
+
+  .qr-code-card {
+    .qr-code-section {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .qr-loading {
+      .ant-spin {
+        .ant-spin-text {
+          margin-top: 16px;
+          color: #666;
+        }
+      }
+    }
+
+    .qr-code-wrapper {
+      margin: 24px 0;
+      padding: 16px;
+      background: white;
+      border: 1px solid #f0f0f0;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+      .qr-actions {
+        margin-top: 16px;
+        width: 100%;
+        text-align: center;
+
+        .ant-btn-link {
+          color: #1890ff;
+          font-weight: 500;
+          height: auto;
+          padding: 8px 16px;
+          border-radius: 4px;
+          transition: all 0.3s;
+
+          &:hover {
+            background: rgba(24, 144, 255, 0.1);
+            color: #40a9ff;
+          }
+
+          .anticon {
+            font-size: 16px;
+          }
+        }
+
+        .qr-note {
+          font-size: 13px;
+        }
+      }
+    }
+
+    .payment-instructions {
+      margin-top: 24px;
+      width: 100%;
+
+      .instruction-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 24px;
+        padding: 16px;
+        background: #f6ffed;
+        border-radius: 8px;
+
+        .instruction-icon {
+          font-size: 24px;
+          color: #52c41a;
+          margin-right: 16px;
+        }
+
+        .instruction-text {
+          text-align: left;
+          
+          .ant-typography {
+            display: block;
+            line-height: 1.5;
+
+            &:first-child {
+              color: #52c41a;
+            }
+          }
+        }
+      }
+
+      .instruction-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        background: #fafafa;
+        border-radius: 8px;
+
+        .ant-typography {
+          text-align: left;
+          color: #666;
+        }
+      }
+    }
+
+    .qr-placeholder {
+      color: #999;
+
+      .placeholder-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 16px;
+
+    .amount-selection-card,
+    .qr-code-card {
+      min-height: auto;
+    }
+
+    .amount-selection-card {
+      .amount-radio-group {
+        .ant-radio-group {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+  }
+} 
