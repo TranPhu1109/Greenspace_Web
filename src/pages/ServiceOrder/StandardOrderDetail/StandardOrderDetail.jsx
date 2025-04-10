@@ -742,7 +742,7 @@ const StandardOrderDetail = () => {
                 />
               </Card>
 
-              {/* Product Installation Guides */}
+              {/* Product Installation Guides
               {products.some(product => product?.designImage1URL) && (
                 <Card
                   title={
@@ -797,7 +797,7 @@ const StandardOrderDetail = () => {
                     )}
                   </div>
                 </Card>
-              )}
+              )} */}
 
               {/* Order Details */}
               <Card

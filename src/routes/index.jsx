@@ -27,11 +27,11 @@ import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
 import OrderService from "@/pages/ServiceOrder/OrderService";
 import Checkout from "@/pages/Cart/Checkout";
 import OrderHistory from "@/pages/Order/OrderHistory";
-import BookDesign from "@/pages/ServiceOrder/BookDesign";
 import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 import ServiceOrderDetail from "@/pages/Order/ServiceOrderDetail";
 import OrderServiceCustomize from "@/pages/ServiceOrder/OrderServiceCustomize";
 import StandardOrderDetail from "@/pages/ServiceOrder/StandardOrderDetail";
+import BookDesign from "@/pages/ServiceOrder/BookingServicesDesign/BookDesign";
 // import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 
 const router = createBrowserRouter([

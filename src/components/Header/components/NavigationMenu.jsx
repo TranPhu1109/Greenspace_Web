@@ -17,17 +17,6 @@ function NavigationMenu({ user }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const designMenuItems = [
-    {
-      key: "designs",
-      label: <Link to="/designs">Thiết kế mẫu</Link>,
-    },
-    {
-      key: "create-design",
-      label: <Link to="/create-design">Tạo thiết kế mới</Link>,
-    },
-  ];
-
   const historyMenuItems = [
     {
       key: "product-history",
@@ -37,37 +26,23 @@ function NavigationMenu({ user }) {
       key: "service-history",
       label: <Link to="/serviceorderhistory">Lịch sử đặt dịch vụ</Link>,
     },
+    {
+      key: "booking-history",
+      label: <Link to="/history-booking-services">Lịch sử đặt thiết kế mới</Link>,
+    },
   ];
 
   const menuItems = React.useMemo(() => {
     const items = [
       { key: "home", label: "Trang chủ", path: "/home" },
-      {
-        key: "design",
-        label: (
-          <Dropdown
-            menu={{ items: designMenuItems }}
-            placement="bottom"
-            overlayClassName="design-dropdown"
-          >
-            <span className="dropdown-link">
-              Thiết kế <DownOutlined />
-            </span>
-          </Dropdown>
-        ),
-        path: "/designs",
-      },
       { key: "products", label: "Sản phẩm", path: "/products" },
-      {
-        key: "services",
-        label: "Lịch sử đặt dịch vụ thiết kế mới",
-        path: "/history-booking-services",
-      },
+      { key: "designs", label: "Thiết kế mẫu", path: "/designs" },
+      { key: "create-design", label: "Tạo thiết kế mới", path: "/create-design" },
       { key: "about", label: "Giới thiệu", path: "/about" },
     ];
 
     if (user) {
-      items.splice(3, 0, {
+      items.splice(4, 0, {
         key: "orderHistory",
         label: (
           <Dropdown
@@ -89,22 +64,30 @@ function NavigationMenu({ user }) {
 
   const isActivePath = React.useCallback(
     (path) => {
-      if (path === "/designs") {
-        return location.pathname.includes("/design");
+      // Logic kiểm tra active cho các mục thiết kế
+      if (path === "/designs" && location.pathname === "/designs") {
+        return true; // Chỉ active khi đúng là trang /designs
+      }
+      if (path === "/create-design" && location.pathname === "/create-design") {
+        return true; // Chỉ active khi đúng là trang /create-design
+      }
+      // Không active /designs nếu đang ở /create-design và ngược lại
+      if ((path === "/designs" && location.pathname === "/create-design") || 
+          (path === "/create-design" && location.pathname === "/designs")) {
+        return false;
+      }
+      // Nếu là trang chi tiết thiết kế, vẫn active mục "Thiết kế mẫu"
+      if (path === "/designs" && location.pathname.startsWith("/design/")) {
+        return true;
       }
       
-      if (path === "/history-booking-services") {
-        return location.pathname.includes("/history-booking-services") || 
-               location.pathname.includes("/service-order/");
-      }
-      
+      // Cập nhật logic cho lịch sử
       if (path === "/orderhistory") {
         return location.pathname.includes("/orderhistory") || 
-               location.pathname.includes("/order/");
-      }
-
-      if (path === "/orderhistory" || path === "/serviceorderhistory") {
-        return location.pathname.includes(path);
+               location.pathname.includes("/order/") || 
+               location.pathname.includes("/serviceorderhistory") || 
+               location.pathname.includes("/service-order/") ||
+               location.pathname.includes("/history-booking-services");
       }
 
       return location.pathname === path;
@@ -148,7 +131,7 @@ function NavigationMenu({ user }) {
                     isActivePath(item.path) ? "active" : ""
                   }`}
                 >
-                  {item.key === "design" || item.key === "orderHistory" ? (
+                  {item.key === "orderHistory" ? (
                     item.label
                   ) : (
                     <Link to={item.path} className="nav-link">
