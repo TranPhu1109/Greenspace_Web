@@ -612,8 +612,6 @@ const OrderService = () => {
         productDetails: productDetails.map(({ detail }) => ({
           productId: detail.productId,
           quantity: detail.quantity,
-          // price: detail.price,
-          // categoryName: detail.categoryName
         }))
       };
       
