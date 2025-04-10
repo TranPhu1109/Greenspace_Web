@@ -81,11 +81,19 @@ const NewDesignOrderDetail = () => {
 
                 // Fetch related data only if the main fetch was successful and matches the current ID
                 if (freshlyFetchedOrder && freshlyFetchedOrder.id === id) {
-                    // Fetch records based on status
-                    if (freshlyFetchedOrder.status === 'ConsultingAndSketching') {
-                        console.log('[Effect] Fetching sketch records...');
-                        getRecordSketch(id);
-                    } else if (freshlyFetchedOrder.status === 'DoneDesign') {
+                    const currentStatus = freshlyFetchedOrder.status;
+                    console.log(`[Effect] Current order status: ${currentStatus}`);
+
+                    // Fetch sketch records for most statuses (EXCEPT Pending/Consulting)
+                    if (currentStatus !== 'Pending' && currentStatus !== 0 && currentStatus !== 'ConsultingAndSketching' && currentStatus !== 1) {
+                        console.log('[Effect] Status is past initial phase, fetching sketch records...');
+                        getRecordSketch(id); 
+                    } else {
+                        console.log('[Effect] Status is Pending or Consulting, skipping sketch record fetch.');
+                    }
+
+                    // Fetch design records specifically when design is done
+                    if (currentStatus === 'DoneDesign' || currentStatus === 6) { // Check for both string and potential number
                         console.log('[Effect] Fetching design records...');
                         getRecordDesign(id);
                     }

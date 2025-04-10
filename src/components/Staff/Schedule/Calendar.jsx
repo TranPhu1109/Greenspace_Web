@@ -52,40 +52,59 @@ const Calendar = ({ designers = [], onAddNew }) => {
     getAllTasks,
     addTask,
     updateTask,
-    tasksByDate,
     fetchNoIdeaOrders,
     fetchUsingIdeaOrders,
     noIdeaOrders,
     usingIdeaOrders,
     workTasks,
-    updateTasksForDepositSuccessfulOrders
+    updateTasksForDepositSuccessfulOrders,
+    syncTasksForReConsultingOrders
   } = useScheduleStore();
   const { designOrders } = useDesignOrderStore();
 
-  // Fetch tasks và orders khi component mount
+  // Fetch tasks và orders khi component mount, và đồng bộ trạng thái task
   useEffect(() => {
-    getAllTasks();
-    fetchNoIdeaOrders();
-    fetchUsingIdeaOrders();
-    // Tự động kiểm tra và cập nhật task cho đơn hàng có trạng thái DepositSuccessful
-    checkAndUpdateDepositSuccessfulTasks();
-  }, []);
+    const initializeAndSync = async () => {
+      console.log("Calendar: Initializing and syncing tasks...");
+      try {
+        // Fetch initial data
+        await Promise.all([
+          fetchNoIdeaOrders(),
+          fetchUsingIdeaOrders()
+        ]);
+        console.log("Calendar: Fetched initial orders.");
 
-  // Hàm kiểm tra và cập nhật task cho đơn hàng có trạng thái DepositSuccessful
-  const checkAndUpdateDepositSuccessfulTasks = async () => {
-    try {
-      const result = await updateTasksForDepositSuccessfulOrders();
-      if (result.error) {
-        console.error("Lỗi khi cập nhật task:", result.error);
-      } else if (result.updatedTasks && result.updatedTasks.length > 0) {
-        message.success(result.message);
-        // Làm mới danh sách task
-        getAllTasks();
+        // Run sync functions sequentially or in parallel if independent
+        // Using sequential await for clearer logging and dependency
+        console.log("Calendar: Running Deposit Successful sync...");
+        const depositResult = await updateTasksForDepositSuccessfulOrders();
+        if (depositResult.error) {
+          console.error("Lỗi khi đồng bộ task (Deposit Successful):", depositResult.error);
+        } else if (depositResult.message && !depositResult.message.includes("Không có")) {
+          console.log("Kết quả đồng bộ (Deposit):", depositResult.message);
+        }
+
+        console.log("Calendar: Running Re-Consulting sync...");
+        const reConsultingResult = await syncTasksForReConsultingOrders(); 
+        if (reConsultingResult.error) {
+          console.error("Lỗi khi đồng bộ task (Re-Consulting):", reConsultingResult.error);
+        } else if (reConsultingResult.message && !reConsultingResult.message.includes("Không có")) {
+          console.log("Kết quả đồng bộ (Re-Consulting):", reConsultingResult.message);
+        }
+
+        // Fetch all tasks AFTER sync functions might have updated them
+        console.log("Calendar: Fetching all tasks after sync...");
+        await getAllTasks();
+        console.log("Calendar: Initialization and sync complete.");
+
+      } catch (error) {
+        console.error("Calendar: Lỗi trong quá trình khởi tạo và đồng bộ:", error);
+        message.error("Đã xảy ra lỗi khi tải dữ liệu lịch trình.");
       }
-    } catch (error) {
-      console.error("Lỗi khi kiểm tra và cập nhật task:", error);
-    }
-  };
+    };
+
+    initializeAndSync();
+  }, []); // Chạy một lần khi component mount
 
   // Xử lý khi chọn designer
   const handleDesignerChange = (value) => {
@@ -271,7 +290,7 @@ const Calendar = ({ designers = [], onAddNew }) => {
       case "DoneDesign":
         return "green";
       case "DoneDesignDetail":
-        return "green";
+        return "success";
       default:
         return "default";
     }
@@ -286,6 +305,8 @@ const Calendar = ({ designers = [], onAddNew }) => {
         return "Đang tư vấn & phác thảo";
       case "Design":
         return "Đang thiết kế";
+      case "DoneDesign":
+        return "Đã hoàn thành thiết kế";
       case "DoneDesignDetail":
         return "Đã hoàn thành thiết kế";
       default:

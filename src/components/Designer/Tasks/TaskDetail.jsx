@@ -202,85 +202,105 @@ const TaskDetail = () => {
   const handleOkSketch = async () => {
     let uploadedUrls = [];
     try {
-      // Validate form fields first
       const values = await sketchForm.validateFields();
+      const currentOrderStatus = task?.serviceOrder?.status; // Get current order status
 
-      setUploadingSketch(true); // Bắt đầu hiển thị loading/progress
+      setUploadingSketch(true); 
 
-      // Step 1: Upload images if new files were selected
+      // Step 1: Upload images
       if (sketchFiles.length > 0) {
-        message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0); // Thông báo bắt đầu upload
+        message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0); 
         uploadedUrls = await uploadImages(sketchFiles);
-        message.destroy(); // Xóa thông báo loading
+        message.destroy(); 
         if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
           throw new Error("Lỗi trong quá trình tải ảnh lên.");
         }
         message.success("Tải ảnh lên thành công!");
       } else {
+        // If no new files, check if *any* existing images are present before assuming old ones
         const existingImages = [
           task.serviceOrder.image?.imageUrl,
           task.serviceOrder.image?.image2,
           task.serviceOrder.image?.image3
-        ].filter(Boolean); // Lọc bỏ các giá trị null/undefined
-        uploadedUrls = existingImages;
+        ].filter(Boolean); 
+        if(existingImages.length === 0 && sketchFiles.length === 0){
+            // If no existing images AND no new files, require upload
+            throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
+        }
+         // Use existing images if no new files were uploaded BUT existing images are present
+        uploadedUrls = existingImages; 
       }
+      
+      // Determine the status to send for record creation based on current order status
+      let statusForRecordCreation;
+      if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
+        statusForRecordCreation = 1;
+      } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
+        statusForRecordCreation = 19;
+      } else {
+        // Handle unexpected status - log a warning and default or throw error
+        console.warn(`Unexpected initial status ${currentOrderStatus} for sketch submission. Defaulting status to 1.`);
+        statusForRecordCreation = 1; // Defaulting to 1 might be safer than failing
+      }
+      console.log(`Using status ${statusForRecordCreation} for initial update (record creation).`);
 
-      // Step 2: Update service order with new data (including uploaded URLs)
+      // Step 2: Update service order with initial status (for record creation)
       const serviceOrderUpdateData = {
-        serviceType: 1,
+        serviceType: 1, 
         designPrice: values.designPrice,
-        description: task.serviceOrder.description,
-        status: 1,
+        description: task.serviceOrder.description, // Keep original description?
+        status: statusForRecordCreation, // Use the determined status (1 or 19)
         report: values.report || "",
         image: {
-          imageUrl: uploadedUrls[0] || "",
-          image2: uploadedUrls[1] || "",
-          image3: uploadedUrls[2] || ""
+          imageUrl: uploadedUrls[0] || null, // Use null instead of empty string
+          image2: uploadedUrls[1] || null,
+          image3: uploadedUrls[2] || null
         },
-        // serviceOrderDetails might not need to be sent if only price/report/images change
-        // serviceOrderDetails: task.serviceOrder.serviceOrderDetails
+        // Do NOT send serviceOrderDetails unless they are also being updated here
       };
-
+      console.log("Payload for updateServiceOrder:", serviceOrderUpdateData);
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+      console.log(`ServiceOrder updated with status ${statusForRecordCreation}.`);
 
-      // Step 2.1: Update Service Order Status to DeterminingDesignPrice (2)
+      // Step 3: Update Service Order Status to DeterminingDesignPrice (2)
       console.log('Updating Service Order Status to 2 (DeterminingDesignPrice)...');
-      await updateStatus(task.serviceOrder.id, 2); // Call updateStatus from useDesignOrderStore
+      await updateStatus(task.serviceOrder.id, 2); // Call updateStatus to set final status
       console.log('Service Order Status updated to 2.');
 
-      // Step 3: Update task status
+      // Step 4: Update task status to DoneConsulting (1)
       console.log('Updating Designer Task Status to 1 (DoneConsulting)...');
       await updateTaskStatus(task.id, {
-        serviceOrderId: task.serviceOrder.id,
+        serviceOrderId: task.serviceOrder.id, // Ensure correct ID is passed
         userId: user.id,
-        status: 1, // Chuyển task sang DoneConsulting
+        status: 1, // Task status: DoneConsulting
         note: "Hoàn thành phác thảo và báo giá dự kiến."
       });
+      console.log('Designer Task status updated to 1.');
 
+      // --- Success handling ---
       message.success("Đã gửi phác thảo và giá dự kiến cho quản lý.");
       setIsModalVisible(false);
       sketchForm.resetFields();
-      setSketchFiles([]); // Reset state File khi đóng modal Cancel
-      setSketchImageUrls(uploadedUrls); // Cập nhật lại URL để hiển thị (nếu cần)
+      setSketchFiles([]); 
+      // Don't setSketchImageUrls here, rely on fetchTaskDetail to show latest
 
-      // Consider refetching data instead of reload
-      await fetchTaskDetail(id); // Fetch lại data sau khi thành công
-      // window.location.reload(); 
+      await fetchTaskDetail(id); 
+      console.log("Task detail refetched.");
 
     } catch (error) {
-      message.destroy(); // Đảm bảo xóa thông báo loading nếu có lỗi
+      message.destroy();
       if (error.name === 'ValidationError') {
         message.error("Vui lòng điền đầy đủ thông tin được yêu cầu.");
-      } else if (error.message.includes("Lỗi trong quá trình tải ảnh lên")) {
+      } else if (error.message.includes("Lỗi trong quá trình tải ảnh lên") || error.message.includes("Vui lòng tải lên ít nhất một ảnh phác thảo")) {
         message.error(error.message);
       } else if (error.response?.data?.error?.includes("maximum number of edits")) {
         message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
       } else {
-        message.error("Cập nhật thất bại: " + (error.message || "Lỗi không xác định"));
-        console.error("Update error:", error);
+        message.error("Cập nhật thất bại: " + (error.response?.data?.message || error.message || "Lỗi không xác định"));
+        console.error("Update error in handleOkSketch:", error);
       }
     } finally {
-      setUploadingSketch(false); // Kết thúc hiển thị loading/progress
+      setUploadingSketch(false); 
     }
   };
 
@@ -1033,7 +1053,7 @@ const TaskDetail = () => {
             )}
 
             {task.status === "ConsultingAndSket" &&
-              (task.serviceOrder.status === "ConsultingAndSketching") && (
+              (task.serviceOrder.status === "ConsultingAndSketching" || task.serviceOrder.status === "ReConsultingAndSketching") && (
                 <Button
                   type="primary"
                   icon={<UploadOutlined />}
