@@ -1,11 +1,13 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Layout, Typography, Row, Col, Card, Spin, Empty, Button } from "antd";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
 import useProductStore from "@/stores/useProductStore";
+import useAuthStore from "@/stores/useAuthStore";
+import DesignLoginModal from "./components/DesignLoginModal";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -13,6 +15,7 @@ const { Title, Paragraph } = Typography;
 
 const DesignDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const componentId = useRef(`design-detail-${id}`);
   const {
     currentDesign,
@@ -21,10 +24,13 @@ const DesignDetailPage = () => {
     error: designError,
   } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
+  const { user, isAuthenticated } = useAuthStore();
   const mountedRef = useRef(true);
   const [productDetails, setProductDetails] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productError, setProductError] = useState(null);
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
+  const [actionType, setActionType] = useState('');
 
   //console.log("currentDesign", currentDesign);
   // Cleanup on unmount
@@ -39,11 +45,8 @@ const DesignDetailPage = () => {
     if (!id || !mountedRef.current) return;
 
     try {
-      console.log("Fetching design details for ID:", id);
       const design = await fetchDesignIdeaById(id, componentId.current);
-      console.log("Design details received:", design);
     } catch (error) {
-      console.error("Error loading design:", error);
       if (error.name !== "CanceledError" && mountedRef.current) {
         // Handle error silently
       }
@@ -120,6 +123,30 @@ const DesignDetailPage = () => {
       isMounted = false;
     };
   }, [currentDesign, getProductById]);
+
+  const handleBuyDesign = (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      setActionType('buy');
+      setLoginModalVisible(true);
+    } else {
+      navigate(`/order-service/${currentDesign.id}`, { state: { isCustom: false } });
+    }
+  };
+
+  const handleCustomizeDesign = (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      setActionType('customize');
+      setLoginModalVisible(true);
+    } else {
+      navigate(`/service-order-customize/${currentDesign.id}`, { state: { isCustom: true } });
+    }
+  };
+
+  const handleLoginModalClose = () => {
+    setLoginModalVisible(false);
+  };
 
   if (designLoading) {
     return (
@@ -247,27 +274,22 @@ const DesignDetailPage = () => {
                     </div>
 
                     <div className="design-actions">
-                      <Link
-                        to={`/order-service/${currentDesign.id}`}
-                        state={{ isCustom: false }}
+                      <Button 
+                        type="primary" 
+                        block
+                        onClick={handleBuyDesign}
                       >
-                        <Button type="primary" block>
-                          Mua thiết kế
-                        </Button>
-                      </Link>
-                      <Link
-                        to={`/service-order-customize/${currentDesign.id}`}
-                        state={{ isCustom: true }}
+                        Mua thiết kế
+                      </Button>
+                      <Button
+                        type="default"
+                        size="large"
+                        block
+                        style={{ marginTop: "10px" }}
+                        onClick={handleCustomizeDesign}
                       >
-                        <Button
-                          type="default"
-                          size="large"
-                          block
-                          style={{ marginTop: "10px" }}
-                        >
-                          Tùy chỉnh
-                        </Button>
-                      </Link>
+                        Tùy chỉnh
+                      </Button>
                     </div>
 
                     <div className="product-details">
@@ -318,6 +340,14 @@ const DesignDetailPage = () => {
           </div>
         </Content>
         <Footer />
+
+        {/* Sử dụng component DesignLoginModal */}
+        <DesignLoginModal 
+          isVisible={loginModalVisible}
+          onCancel={handleLoginModalClose}
+          actionType={actionType}
+          designId={id}
+        />
       </Layout>
     </>
   );

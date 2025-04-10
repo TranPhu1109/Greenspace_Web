@@ -161,7 +161,7 @@ const ProductsList = () => {
   };
 
   const handleSubmit = async (productData) => {
-    try {
+    // try {
       console.log("Submitting product data:", productData); // Add this for debugging
 
       if (editingProduct) {
@@ -178,11 +178,11 @@ const ProductsList = () => {
       form.resetFields();
       setEditingProduct(null);
       return true;
-    } catch (error) {
-      console.error("Error submitting product:", error);
-      message.error("Có lỗi xảy ra: " + error.message);
-      return false;
-    }
+    // } catch (error) {
+    //   console.error("Error submitting product:", error);
+    //   message.error("Có lỗi xảy ra: " + error.message);
+    //   return false;
+    // }
   };
 
   const rowSelection = {
