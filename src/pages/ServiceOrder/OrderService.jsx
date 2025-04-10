@@ -120,7 +120,7 @@ const OrderService = () => {
   const [isAddressValid, setIsAddressValid] = useState(false);
 
   // Cleanup on unmount
-  useEffect(() => {
+  useEffect(() => { 
     return () => {
       mountedRef.current = false;
     };

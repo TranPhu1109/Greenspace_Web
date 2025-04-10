@@ -21,7 +21,10 @@ import {
   Popconfirm,
   InputNumber,
   Space,
-  Image
+  Image,
+  Collapse,
+  Checkbox,
+  Alert,
 } from "antd";
 import {
   UploadOutlined,
@@ -33,6 +36,7 @@ import {
   DollarOutlined,
   EditOutlined,
   ShoppingOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -50,6 +54,7 @@ import "./styles.scss";
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
+const { Panel } = Collapse;
 
 const OrderServiceCustomize = () => {
   const { id } = useParams();
@@ -95,10 +100,6 @@ const OrderServiceCustomize = () => {
   const [form] = Form.useForm();
   
   // State for address selection
-  const [selectedProvince, setSelectedProvince] = useState(null);
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
-  const [selectedWard, setSelectedWard] = useState(null);
-  const [addressDetail, setAddressDetail] = useState("");
   const [uploading, setUploading] = useState(false);
   const [imageUrls, setImageUrls] = useState([]);
 
@@ -115,6 +116,52 @@ const OrderServiceCustomize = () => {
   // State for material price and total price
   const [materialPrice, setMaterialPrice] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
+
+  
+    // State for address selection
+    const [selectedProvince, setSelectedProvince] = useState(null);
+    const [selectedDistrict, setSelectedDistrict] = useState(null);
+    const [selectedWard, setSelectedWard] = useState(null);
+    const [addressDetail, setAddressDetail] = useState("");
+    const [useExistingAddress, setUseExistingAddress] = useState(false);
+    const [saveNewAddress, setSaveNewAddress] = useState(false);
+    const [isAddressValid, setIsAddressValid] = useState(false);
+
+  const hasExistingAddress = user?.address && user.address.trim() !== "";
+
+  useEffect(() => {
+    if (useExistingAddress && hasExistingAddress) {
+      // Nếu sử dụng địa chỉ có sẵn và có địa chỉ
+      setIsAddressValid(true);
+    } else if (!useExistingAddress) {
+      // Nếu nhập địa chỉ mới, kiểm tra đầy đủ thông tin
+      const isValid = selectedProvince && selectedDistrict && selectedWard && addressDetail.trim() !== "";
+      setIsAddressValid(isValid);
+    } else {
+      setIsAddressValid(false);
+    }
+  }, [useExistingAddress, hasExistingAddress, selectedProvince, selectedDistrict, selectedWard, addressDetail]);
+
+  // Xử lý khi chọn sử dụng địa chỉ có sẵn
+  const handleUseExistingAddress = (e) => {
+    const checked = e.target.checked;
+    setUseExistingAddress(checked);
+
+    if (checked && hasExistingAddress) {
+      // Reset các trường địa chỉ khi sử dụng địa chỉ có sẵn
+      setSelectedProvince(null);
+      setSelectedDistrict(null);
+      setSelectedWard(null);
+      setAddressDetail("");
+    }
+  };
+
+  // Xử lý khi chọn lưu địa chỉ mới
+  const handleSaveNewAddress = (e) => {
+    setSaveNewAddress(e.target.checked);
+  };
+
+
 
   // Cleanup on unmount
   useEffect(() => {
@@ -288,13 +335,17 @@ const OrderServiceCustomize = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
-      const provinceName = selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : '';
-      const districtName = selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : '';
-      const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
-      
-      const fullAddress = `${addressDetail}, ${provinceName}, ${districtName}, ${wardName}`;
 
+      let fullAddress = "";
+      
+      if (useExistingAddress && hasExistingAddress) {
+        fullAddress = user.address;
+      } else {
+        const provinceName = selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : '';
+        const districtName = selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : '';
+        const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
+        fullAddress = `${addressDetail}|${provinceName}|${districtName}|${wardName}`;
+      }
       // Recalculate prices one final time to ensure accuracy
       const finalPrices = updateAllPrices(productDetails);
 
@@ -324,7 +375,10 @@ const OrderServiceCustomize = () => {
         totalPrice: finalPrices.totalPrice
       });
       
-      setOrderData(data);
+      setOrderData({
+        ...data,
+        saveAddress: saveNewAddress && !hasExistingAddress && !useExistingAddress
+      });
       setIsModalOpen(true);
     } catch (error) {
       console.error("Form validation error:", error);
@@ -694,79 +748,139 @@ const OrderServiceCustomize = () => {
                       </Form.Item>
                     </Col>
                     
-                    {/* Address Selection */}
-                    <Col span={24}>
-                      <Form.Item label="Tỉnh/Thành phố" required>
-                        <Select
-                          placeholder="Chọn tỉnh/thành phố"
-                          value={selectedProvince}
-                          onChange={handleProvinceChange}
-                          loading={provincesLoading}
-                          style={{ width: "100%" }}
-                        >
-                          {provinces.map((province) => (
-                            <Option
-                              key={province.provinceId}
-                              value={province.provinceId}
+                    {/* Address Information */}
+                    <Panel
+                        header={
+                          <div className="panel-header">
+                            <HomeOutlined style={{ marginRight: '8px' }} />
+                            <span>Thông tin địa chỉ</span>
+                          </div>
+                        }
+                        key="3"
+                        forceRender
+                      >
+                        <div style={{ marginBottom: '16px' }}>
+                          <Text strong style={{ fontSize: '16px', color: '#333' }}>Địa chỉ giao hàng</Text>
+                          <Text type="secondary" style={{ display: 'block', marginTop: '4px' }}>
+                            Vui lòng chọn địa chỉ giao hàng chính xác để đảm bảo đơn hàng được giao đúng nơi nhận
+                          </Text>
+                        </div>
+                        
+                        {/* Checkbox sử dụng địa chỉ có sẵn - chỉ hiển thị nếu người dùng đã có địa chỉ */}
+                        {hasExistingAddress && (
+                          <Form.Item>
+                            <Checkbox 
+                              checked={useExistingAddress} 
+                              onChange={handleUseExistingAddress}
+                              style={{ marginBottom: '16px' }}
                             >
-                              {province.provinceName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+                              <span style={{ fontWeight: 'bold' }}>Sử dụng địa chỉ có sẵn</span>
+                            </Checkbox>
+                            
+                            {/* {useExistingAddress && ( */}
+                              <Alert
+                                message="Địa chỉ hiện tại"
+                                description={user.address.replace(/\|/g, ', ')}
+                                type="info"
+                                showIcon
+                                style={{ marginBottom: '16px' }}
+                              />
+                            {/* )} */}
+                          </Form.Item>
+                        )}
+                        
+                        {/* Address Selection - Hiển thị nếu không sử dụng địa chỉ có sẵn */}
+                        {!useExistingAddress && (
+                          <>
+                            <Row gutter={[16, 16]}>
+                              <Col span={24}>
+                                <Form.Item label="Tỉnh/Thành phố" required>
+                                  <Select
+                                    placeholder="Chọn tỉnh/thành phố"
+                                    value={selectedProvince}
+                                    onChange={handleProvinceChange}
+                                    loading={provincesLoading}
+                                    style={{ width: "100%" }}
+                                  >
+                                    {provinces.map((province) => (
+                                      <Option
+                                        key={province.provinceId}
+                                        value={province.provinceId}
+                                      >
+                                        {province.provinceName}
+                                      </Option>
+                                    ))}
+                                  </Select>
+                                </Form.Item>
+                              </Col>
 
-                    <Col span={24}>
-                      <Form.Item label="Quận/Huyện" required>
-                        <Select
-                          placeholder="Chọn quận/huyện"
-                          value={selectedDistrict}
-                          onChange={handleDistrictChange}
-                          loading={districtsLoading}
-                          disabled={!selectedProvince}
-                          style={{ width: "100%" }}
-                        >
-                          {districts.map((district) => (
-                            <Option
-                              key={district.districtId}
-                              value={district.districtId}
-                            >
-                              {district.districtName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+                              <Col span={24}>
+                                <Form.Item label="Quận/Huyện" required>
+                                  <Select
+                                    placeholder="Chọn quận/huyện"
+                                    value={selectedDistrict}
+                                    onChange={handleDistrictChange}
+                                    loading={districtsLoading}
+                                    disabled={!selectedProvince}
+                                    style={{ width: "100%" }}
+                                  >
+                                    {districts.map((district) => (
+                                      <Option
+                                        key={district.districtId}
+                                        value={district.districtId}
+                                      >
+                                        {district.districtName}
+                                      </Option>
+                                    ))}
+                                  </Select>
+                                </Form.Item>
+                              </Col>
 
-                    <Col span={24}>
-                      <Form.Item label="Phường/Xã" required>
-                        <Select
-                          placeholder="Chọn phường/xã"
-                          value={selectedWard}
-                          onChange={handleWardChange}
-                          loading={wardsLoading}
-                          disabled={!selectedDistrict}
-                          style={{ width: "100%" }}
-                        >
-                          {wards.map((ward) => (
-                            <Option key={ward.wardCode} value={ward.wardCode}>
-                              {ward.wardName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+                              <Col span={24}>
+                                <Form.Item label="Phường/Xã" required>
+                                  <Select
+                                    placeholder="Chọn phường/xã"
+                                    value={selectedWard}
+                                    onChange={handleWardChange}
+                                    loading={wardsLoading}
+                                    disabled={!selectedDistrict}
+                                    style={{ width: "100%" }}
+                                  >
+                                    {wards.map((ward) => (
+                                      <Option key={ward.wardCode} value={ward.wardCode}>
+                                        {ward.wardName}
+                                      </Option>
+                                    ))}
+                                  </Select>
+                                </Form.Item>
+                              </Col>
 
-                    <Col span={24}>
-                      <Form.Item label="Địa chỉ chi tiết" required>
-                        <Input.TextArea
-                          rows={3}
-                          placeholder="Nhập số nhà, tên đường, tòa nhà, v.v."
-                          value={addressDetail}
-                          onChange={handleAddressDetailChange}
-                        />
-                      </Form.Item>
-                    </Col>
+                              <Col span={24}>
+                                <Form.Item label="Địa chỉ chi tiết" required>
+                                  <Input.TextArea
+                                    rows={3}
+                                    placeholder="Nhập số nhà, tên đường, tòa nhà, v.v."
+                                    value={addressDetail}
+                                    onChange={handleAddressDetailChange}
+                                  />
+                                </Form.Item>
+                              </Col>
+                            </Row>
+                            
+                            {/* Checkbox lưu địa chỉ mới - chỉ hiển thị nếu chưa có địa chỉ */}
+                            {!hasExistingAddress && (
+                              <Form.Item>
+                                <Checkbox 
+                                  checked={saveNewAddress}
+                                  onChange={handleSaveNewAddress}
+                                >
+                                  Lưu địa chỉ này cho lần sau
+                                </Checkbox>
+                              </Form.Item>
+                            )}
+                          </>
+                        )}
+                      </Panel>
                   </Row>
                 </Form>
               </Card>
