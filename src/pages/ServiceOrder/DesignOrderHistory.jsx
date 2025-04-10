@@ -25,7 +25,7 @@ const DesignOrderHistory = () => {
     useDesignOrderStore();
   const { user } = useAuthStore();
   //console.log(user);
-  
+
   const componentId = React.useRef('design-order-history');
 
   useEffect(() => {
@@ -46,6 +46,17 @@ const DesignOrderHistory = () => {
       designOrderStore.reset();
     };
   }, []);
+
+  // Xử lý điều hướng dựa trên isCustom
+  const handleViewOrderDetail = (record) => {
+    if (record.isCustom === true) {
+      // Nếu là đơn hàng custom thì dẫn đến trang OrderHistoryDetail
+      navigate(`/serviceorderhistory/detail/${record.id}`);
+    } else {
+      // Nếu là đơn hàng không custom thì dẫn đến trang StandardOrderDetail
+      navigate(`/serviceorderhistory/standard/${record.id}`);
+    }
+  };
 
   const columns = [
     {
@@ -94,8 +105,8 @@ const DesignOrderHistory = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      render: (status) => {
-        const statusConfig = {  
+      render: (status, record) => {
+        const statusConfig = {
           'Pending': { color: 'gold', text: 'Chờ xử lý' },
           'ConsultingAndSketching': { color: 'blue', text: 'Đang tư vấn & phác thảo' },
           'DeterminingDesignPrice': { color: 'cyan', text: 'Đang xác định giá' },
@@ -119,6 +130,9 @@ const DesignOrderHistory = () => {
           'ReDesign': { color: 'volcano', text: 'Thiết kế lại' },
           'WaitDeposit': { color: 'gold', text: 'Chờ đặt cọc' }
         };
+
+        // Xóa bỏ logic kiểm tra excludedStatusForNonCustom vì nó gây hiển thị sai
+        // Hiển thị trạng thái thực tế của đơn hàng
         const config = statusConfig[status] || {
           color: "default",
           text: "Không xác định",
@@ -134,12 +148,12 @@ const DesignOrderHistory = () => {
         <Text>
           {date
             ? new Date(date).toLocaleDateString("vi-VN", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : "Invalid Date"}
         </Text>
       ),
@@ -153,7 +167,7 @@ const DesignOrderHistory = () => {
           className="detail-button"
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/serviceorderhistory/detail/${record.id}`);
+            handleViewOrderDetail(record);
           }}
         >
           Xem chi tiết
@@ -194,8 +208,7 @@ const DesignOrderHistory = () => {
               rowKey="id"
               pagination={false}
               onRow={(record) => ({
-                onClick: () =>
-                  navigate(`/serviceorderhistory/detail/${record.id}`),
+                onClick: () => handleViewOrderDetail(record)
               })}
               components={{
                 body: {

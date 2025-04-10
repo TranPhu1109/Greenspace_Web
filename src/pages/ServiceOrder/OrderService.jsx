@@ -21,7 +21,8 @@ import {
   Alert,
   Tag,
   Statistic,
-  Checkbox
+  Checkbox,
+  Tooltip
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -34,7 +35,8 @@ import {
   PlusOutlined,
   FilterOutlined,
   TagOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
+  SwapOutlined
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -1007,7 +1009,7 @@ const OrderService = () => {
   return (
     <Layout className="order-service-layout">
       <Header />
-      <Content style={{ paddingTop: '30px', paddingBottom: '10px' }}>
+      <Content style={{ paddingTop: '0px', paddingBottom: '0px' }}>
         <div className="order-service-content" ref={containerRef} style={{ paddingBottom: '50px' }}>
           <div className="container order-service-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
 
@@ -1717,46 +1719,89 @@ const OrderService = () => {
       {/* Change Product Modal */}
       <Modal
         title={
-          <div style={{ textAlign: 'center' }}>
-            <FilterOutlined style={{ color: '#1890ff', fontSize: '24px', marginRight: '8px' }} />
-            <span>Thay đổi sản phẩm</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
+            <FilterOutlined style={{ color: '#1890ff', fontSize: '20px', marginRight: '12px' }} />
+            <span style={{ fontSize: '18px', fontWeight: '600' }}>Thay đổi sản phẩm</span>
           </div>
         }
         open={isChangeProductModalOpen}
         onCancel={() => setIsChangeProductModalOpen(false)}
         footer={null}
         width={800}
+        centered
+        destroyOnClose
+        className="change-product-modal"
+        bodyStyle={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}
       >
         <div>
           {selectedProductToChange && (
-            <Alert
-              message="Sản phẩm hiện tại"
-              description={
-                <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ 
+              background: 'linear-gradient(to right, #e6f7ff, #f0f5ff)',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '24px',
+              border: '1px solid #91d5ff'
+            }}>
+              <div style={{ marginBottom: '12px' }}>
+                <Text strong style={{ fontSize: '16px', color: '#0050b3' }}>
+                  <SwapOutlined style={{ marginRight: '8px' }} />
+                  Sản phẩm đang được thay thế
+                </Text>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                background: 'white',
+                padding: '12px',
+                borderRadius: '6px'
+              }}>
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  borderRadius: '6px', 
+                  overflow: 'hidden',
+                  border: '1px solid #f0f0f0',
+                  flexShrink: 0
+                }}>
                   <img 
                     src={selectedProductToChange.product.image?.imageUrl} 
                     alt={selectedProductToChange.product.name}
-                    style={{ width: '60px', height: '60px', objectFit: 'cover', marginRight: '12px', borderRadius: '4px' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  <div>
-                    <Text strong>{selectedProductToChange.product.name}</Text>
-                    <div>
-                      <Tag color="blue">{selectedProductToChange.detail.categoryName}</Tag>
-                      <Text type="secondary" style={{ marginLeft: '8px' }}>
-                        Số lượng: {selectedProductToChange.detail.quantity}
-                      </Text>
-                    </div>
+                </div>
+                <div style={{ marginLeft: '16px', flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Title level={5} style={{ margin: 0 }}>{selectedProductToChange.product.name}</Title>
+                    <Badge 
+                      count={`x${selectedProductToChange.detail.quantity}`} 
+                      style={{ backgroundColor: '#1890ff' }} 
+                    />
+                  </div>
+                  <div style={{ display: 'flex', marginTop: '8px', alignItems: 'center' }}>
+                    <Tag color="blue">{selectedProductToChange.detail.categoryName}</Tag>
+                    <Text type="secondary" style={{ marginLeft: '12px', fontSize: '13px' }}>
+                      Kho: {selectedProductToChange.product.stock}
+                    </Text>
+                  </div>
+                  <div style={{ marginTop: '8px' }}>
+                    <Text style={{ color: '#f5222d', fontWeight: 'bold' }}>
+                      {selectedProductToChange.product.price.toLocaleString("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                      })}
+                      <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#8c8c8c' }}>/đơn vị</span>
+                    </Text>
                   </div>
                 </div>
-              }
-              type="info"
-              showIcon
-              style={{ marginBottom: '20px' }}
-            />
+              </div>
+            </div>
           )}
 
           <Divider>
-            <Text type="secondary">Chọn sản phẩm thay thế</Text>
+            <Space>
+              <AppstoreOutlined />
+              <Text style={{ fontWeight: '500', color: '#595959' }}>Sản phẩm thay thế cùng loại</Text>
+            </Space>
           </Divider>
 
           {productsForCategory.length > 0 ? (
@@ -1772,8 +1817,11 @@ const OrderService = () => {
                       hoverable={!isCurrentProduct}
                       style={{ 
                         height: '100%', 
+                        borderRadius: '8px',
                         opacity: isCurrentProduct ? 0.7 : 1,
-                        border: isCurrentProduct ? '2px solid #d9d9d9' : '1px solid #f0f0f0'
+                        border: isCurrentProduct ? '2px solid #d9d9d9' : '1px solid #f0f0f0',
+                        boxShadow: isCurrentProduct ? 'none' : '0 2px 8px rgba(0,0,0,0.09)',
+                        transition: 'all 0.3s'
                       }}
                       onClick={() => {
                         if (!isCurrentProduct) {
@@ -1781,11 +1829,22 @@ const OrderService = () => {
                         }
                       }}
                       cover={
-                        <div style={{ position: 'relative', height: '150px' }}>
+                        <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
                           <img
                             alt={product.name}
                             src={product.image?.imageUrl}
-                            style={{ height: '100%', width: '100%', objectFit: 'cover' }}
+                            style={{ 
+                              height: '100%', 
+                              width: '100%', 
+                              objectFit: 'cover',
+                              transition: 'transform 0.3s',
+                              ...((!isCurrentProduct && product.stock > 0) ? {
+                                transform: 'scale(1)',
+                                '&:hover': {
+                                  transform: 'scale(1.05)'
+                                }
+                              } : {})
+                            }}
                           />
                           {isCurrentProduct && (
                             <div style={{
@@ -1799,19 +1858,68 @@ const OrderService = () => {
                               alignItems: 'center',
                               justifyContent: 'center'
                             }}>
-                              <Badge.Ribbon text="Đang sử dụng" color="grey" />
+                              <div style={{
+                                background: 'rgba(255,255,255,0.85)',
+                                padding: '6px 16px',
+                                borderRadius: '20px'
+                              }}>
+                                <Text strong>Đang sử dụng</Text>
+                              </div>
+                            </div>
+                          )}
+                          {product.stock <= 0 && (
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(0,0,0,0.5)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <div style={{
+                                background: 'rgba(255,255,255,0.85)',
+                                padding: '6px 16px',
+                                borderRadius: '20px'
+                              }}>
+                                <Text type="danger" strong>Hết hàng</Text>
+                              </div>
                             </div>
                           )}
                         </div>
                       }
+                      bodyStyle={{ padding: '16px' }}
                     >
                       <Card.Meta
-                        title={product.name}
+                        title={
+                          <Tooltip title={product.name}>
+                            <div style={{ 
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis',
+                              fontSize: '15px'
+                            }}>
+                              {product.name}
+                            </div>
+                          </Tooltip>
+                        }
                         description={
                           <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                              <Text type="secondary">Kho: {product.stock}</Text>
-                              <Text strong style={{ color: '#f50' }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              marginTop: '8px',
+                              alignItems: 'center'
+                            }}>
+                              <Tag 
+                                color={product.stock > 0 ? 'green' : 'red'} 
+                                style={{ margin: 0 }}
+                              >
+                                Kho: {product.stock}
+                              </Tag>
+                              <Text strong style={{ color: '#f50', fontSize: '16px' }}>
                                 {product.price.toLocaleString("vi-VN", {
                                   style: "currency",
                                   currency: "VND",
@@ -1821,16 +1929,21 @@ const OrderService = () => {
                             {!isCurrentProduct && (
                               <Button
                                 type="primary"
-                                size="small"
+                                size="middle"
                                 block
-                                style={{ marginTop: '12px' }}
+                                style={{ 
+                                  marginTop: '12px',
+                                  borderRadius: '4px',
+                                  height: '36px'
+                                }}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleChangeProduct(product);
                                 }}
                                 disabled={product.stock <= 0}
+                                icon={<SwapOutlined />}
                               >
-                                Chọn sản phẩm này
+                                Chọn sản phẩm
                               </Button>
                             )}
                           </div>
@@ -1842,7 +1955,13 @@ const OrderService = () => {
               })}
             </Row>
           ) : (
-            <Empty description="Không tìm thấy sản phẩm cùng loại" />
+            <Empty 
+              description="Không tìm thấy sản phẩm cùng loại" 
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              style={{
+                margin: '40px 0'
+              }}
+            />
           )}
         </div>
       </Modal>

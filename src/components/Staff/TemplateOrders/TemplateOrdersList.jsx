@@ -195,11 +195,6 @@ const TemplateOrdersList = () => {
       key: "cusPhone",
     },
     {
-      title: "Kích thước",
-      key: "size",
-      render: (_, record) => `${record.length}m x ${record.width}m`,
-    },
-    {
       title: "Tổng tiền",
       key: "totalCost",
       render: (_, record) => {
@@ -209,6 +204,12 @@ const TemplateOrdersList = () => {
           currency: "VND",
         });
       },
+    },
+    {
+      title: "Mã đơn",
+      dataIndex: "deliveryCode",
+      key: "deliveryCode",
+
     },
     {
       title: "Trạng thái",

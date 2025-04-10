@@ -78,11 +78,11 @@ const TemplateOrderDetail = () => {
       await updateStatus(id, "Processing");
       
       // Parse address components
-      const addressParts = selectedOrder.address.split(', ');
+      const addressParts = selectedOrder.address.split('|');
       const addressDetail = addressParts[0];
-      const province = addressParts[1];
+      const province = addressParts[3];
       const district = addressParts[2];
-      const ward = addressParts[3];
+      const ward = addressParts[1];
 
       // Fetch product names for items
       const items = await Promise.all(
@@ -746,7 +746,8 @@ const TemplateOrderDetail = () => {
                     Xác nhận đơn hàng
                   </Button>
                 )}
-                {selectedOrder.status !== "DeliveredSuccessfully" && selectedOrder.status !== "CompleteOrder" && (
+                {/* {selectedOrder.status !== "DeliveredSuccessfully" && selectedOrder.status !== "CompleteOrder" && ( */}
+                {selectedOrder.status === "Pending" && (
                   <Button
                     danger
                     style={{
