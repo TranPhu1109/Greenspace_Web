@@ -157,38 +157,118 @@ const ServiceOrderDetail = () => {
     // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
   }, [id, getServiceOrderById, getProductById, getRecordSketch]); // Ensure all store actions are dependencies
 
-  const getStatusColor = (status) => {
-    const statusColors = {
-      Pending: "orange",
-      PaymentSuccess: "green",
-      Processing: "blue",
-      PickedPackageAndDelivery: "cyan",
-      DeliveryFail: "red",
-      ReDelivery: "purple",
-      DeliveredSuccessfully: "green",
-      CompleteOrder: "green",
-      OrderCancelled: "red",
-      ConsultingAndSketching: "blue",
-      NoDesignIdea: "default",
+  // Mapping from backend status number/name to customer-friendly text
+  const getStatusText = (status) => {
+    const statusMap = {
+      0: "Chờ xử lý",
+      'Pending': "Chờ xử lý",
+      1: "Đang tư vấn & phác thảo",
+      'ConsultingAndSketching': "Đang tư vấn & phác thảo",
+      2: "Đang tư vấn & phác thảo", // Hide DeterminingDesignPrice
+      'DeterminingDesignPrice': "Đang tư vấn & phác thảo", 
+      22: "Chờ duyệt phác thảo",
+      'DoneDeterminingDesignPrice': "Chờ duyệt phác thảo",
+      19: "Đang tư vấn & phác thảo", // Hide ReConsultingAndSketching
+      'ReConsultingAndSketching': "Đang tư vấn & phác thảo", 
+      21: "Chờ đặt cọc",
+      'WaitDeposit': "Chờ đặt cọc",
+      3: "Đang thiết kế",
+      'DepositSuccessful': "Đang thiết kế",
+      4: "Đang thiết kế",
+      'AssignToDesigner': "Đang thiết kế",
+      5: "Đang thiết kế", 
+      'DeterminingMaterialPrice': "Đang thiết kế",
+      20: "Đang thiết kế", // Hide ReDesign
+      'ReDesign': "Đang thiết kế",
+      6: "Đang báo giá vật liệu",
+      'DoneDesign': "Đang báo giá vật liệu",
+      23: "Chờ thanh toán chi phí còn lại",
+      'DoneDeterminingMaterialPrice': "Chờ thanh toán chi phí còn lại",
+      7: "Đang chuẩn bị hàng",
+      'PaymentSuccess': "Đang chuẩn bị hàng",
+      8: "Đang chuẩn bị hàng",
+      'Processing': "Đang chuẩn bị hàng",
+      9: "Đang giao hàng",
+      'PickedPackageAndDelivery': "Đang giao hàng",
+      12: "Đã giao hàng thành công",
+      'DeliveredSuccessfully': "Đã giao hàng thành công",
+      13: "Hoàn thành đơn hàng",
+      'CompleteOrder': "Hoàn thành đơn hàng",
+      14: "Đã hủy",
+      'OrderCancelled': "Đã hủy",
+      18: "Đã hủy",
+      'StopService': "Đã hủy",
+      10: "Giao hàng thất bại",
+      'DeliveryFail': "Giao hàng thất bại",
+      11: "Đang giao lại",
+      'ReDelivery': "Đang giao lại",
+      15: "Đang xử lý", // Consider a generic status for Warning
+      'Warning': "Đang xử lý",
+      16: "Đang hoàn tiền",
+      'Refund': "Đang hoàn tiền",
+      17: "Đã hoàn tiền",
+      'DoneRefund': "Đã hoàn tiền",
+      // Add other statuses if needed
     };
-    return statusColors[status] || "default";
+    // Return mapped text or the original status if not found
+    return statusMap[status] || status?.toString() || 'Không xác định'; 
   };
 
-  const getStatusText = (status) => {
-    const statusTexts = {
-      Pending: "Chờ xử lý",
-      PaymentSuccess: "Đã thanh toán",
-      Processing: "Đang xử lý",
-      PickedPackageAndDelivery: "Đã nhận gói và giao hàng",
-      DeliveryFail: "Giao hàng thất bại",
-      ReDelivery: "Giao hàng lại",
-      DeliveredSuccessfully: "Giao hàng thành công",
-      CompleteOrder: "Hoàn thành đơn hàng",
-      OrderCancelled: "Đã hủy đơn hàng",
-      ConsultingAndSketching: "Đang tư vấn và phác thảo",
-      NoDesignIdea: "Không có mẫu thiết kế",
+  // Mapping from backend status number/name to display color
+  const getStatusColor = (status) => {
+    const colorMap = {
+      0: "orange",
+      'Pending': "orange",
+      1: "blue",
+      'ConsultingAndSketching': "blue",
+      2: "blue", // Hide DeterminingDesignPrice
+      'DeterminingDesignPrice': "blue",
+      22: "gold",
+      'DoneDeterminingDesignPrice': "gold",
+      19: "blue", // Hide ReConsultingAndSketching
+      'ReConsultingAndSketching': "blue",
+      21: "purple",
+      'WaitDeposit': "purple",
+      3: "cyan",
+      'DepositSuccessful': "cyan",
+      4: "cyan",
+      'AssignToDesigner': "cyan",
+      5: "cyan",
+      'DeterminingMaterialPrice': "cyan",
+      20: "cyan", // Hide ReDesign
+      'ReDesign': "cyan",
+      6: "gold",
+      'DoneDesign': "gold",
+      23: "purple",
+      'DoneDeterminingMaterialPrice': "purple",
+      7: "processing", // Antd color name
+      'PaymentSuccess': "processing",
+      8: "processing",
+      'Processing': "processing",
+      9: "geekblue",
+      'PickedPackageAndDelivery': "geekblue",
+      12: "success",
+      'DeliveredSuccessfully': "success",
+      13: "success",
+      'CompleteOrder': "success",
+      14: "error",
+      'OrderCancelled': "error",
+      18: "error",
+      'StopService': "error",
+      10: "error",
+      'DeliveryFail': "error",
+      11: "geekblue",
+      'ReDelivery': "geekblue",
+      15: "warning",
+      'Warning': "warning",
+      16: "orange",
+      'Refund': "orange",
+      17: "default",
+      'DoneRefund': "default",
+      // Add other statuses if needed
     };
-    return statusTexts[status] || status;
+    // Return mapped color or 'default'
+    return colorMap[status] || 'default';
   };
 
   // Hàm xử lý xác nhận bản phác thảo
@@ -790,11 +870,9 @@ const ServiceOrderDetail = () => {
                   </Card>
                 );
               }
-              // --- Case 3: Fallback to order.image ---
               else if (order?.image && (order.image.imageUrl || order.image.image2 || order.image.image3)) {
                 // ... Fallback image display logic ...
               }
-              // --- Final Fallback: No Images Available ---
               else {
                 // ... Final fallback Empty component ...
               }
@@ -915,20 +993,68 @@ const ServiceOrderDetail = () => {
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <Timeline>
-                <Timeline.Item color="green">
+              <Timeline mode="left">
+                {/* First item: Order Creation */}             
+                <Timeline.Item color="green" dot={<CheckCircleOutlined />}>
                   <p style={{ fontSize: '15px', marginBottom: '4px' }}>Đơn hàng được tạo</p>
                   <Text type="secondary" style={{ fontSize: '14px' }}>
                     {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : '...'}
                   </Text>
                 </Timeline.Item>
-                {order?.status && (
-                  <Timeline.Item color={getStatusColor(order.status)}>
-                    <p style={{ fontSize: '15px', marginBottom: '4px', color: '#4caf50', fontWeight: '600' }}>
-                      {getStatusText(order.status)}
-                    </p>
-                  </Timeline.Item>
-                )}
+
+                {/* Process and display status history */}            
+                {(() => {
+                  if (!order?.statusHistory || order.statusHistory.length === 0) {
+                    // Show current status if no history available (fallback)
+                     return (
+                        <Timeline.Item color={getStatusColor(order.status)} dot={<ClockCircleOutlined />}>
+                          <p style={{ fontSize: '15px', marginBottom: '4px', fontWeight: '600' }}>
+                            {getStatusText(order.status)}
+                          </p>
+                           {/* Optionally add modification date if available */}
+                        </Timeline.Item>
+                     );
+                  }
+
+                  const displayHistory = [];
+                  let lastDisplayedStatusText = null;
+
+                  // Add creation as the effective first status text for comparison
+                   lastDisplayedStatusText = "Đơn hàng được tạo"; // Or map status 0/Pending if creation date is the first history entry
+
+                  order.statusHistory.forEach(historyEntry => {
+                    const currentStatusText = getStatusText(historyEntry.status);
+                    // Display every entry from history
+                    displayHistory.push({
+                      text: currentStatusText, 
+                      color: getStatusColor(historyEntry.status),
+                      timestamp: historyEntry.timestamp,
+                      // Icon based on status (example: cancel icon)
+                      icon: historyEntry.status === 'OrderCancelled' || historyEntry.status === 14 
+                            ? <CloseCircleOutlined style={{ fontSize: '16px' }}/> 
+                            : <ClockCircleOutlined style={{ fontSize: '16px' }}/>
+                    });
+                  });
+
+                  // Filter out the final status if it's the same as the last history entry displayed
+                  const finalStatusText = getStatusText(order.status);
+                  const shouldShowFinalStatusSeparately = lastDisplayedStatusText !== finalStatusText;
+
+                  return (
+                    <>
+                      {displayHistory.map((item, index) => (
+                        <Timeline.Item key={index} color={item.color} dot={item.icon}>
+                          <p style={{ fontSize: '15px', marginBottom: '4px', fontWeight: '600' }}>
+                            {item.text}
+                          </p>
+                          <Text type="secondary" style={{ fontSize: '14px' }}>
+                             {item.timestamp ? format(new Date(item.timestamp), "dd/MM/yyyy HH:mm") : '...'}
+                          </Text>
+                        </Timeline.Item>
+                      ))}
+                    </>
+                  );
+                 })()}
               </Timeline>
             </Card>
 
