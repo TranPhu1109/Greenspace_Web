@@ -27,7 +27,7 @@ const AddTaskModal = ({
     }
   }, [JSON.stringify(noIdeaOrders), JSON.stringify(usingIdeaOrders)]);
 
-  console.log('designers', noIdeaOrders, usingIdeaOrders, designers);
+  //console.log('designers', noIdeaOrders, usingIdeaOrders, designers);
 
   const renderServiceType = (type) => {
     switch (type) {

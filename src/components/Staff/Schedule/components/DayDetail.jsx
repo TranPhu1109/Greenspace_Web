@@ -43,9 +43,16 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
     updateTask,
     updateTasksForDepositSuccessfulOrders 
   } = useScheduleStore();
+  console.log("designers", designers);
+  
+  
   const [isAddTaskModalVisible, setIsAddTaskModalVisible] = useState(false);
   const [selectedDesigner, setSelectedDesigner] = useState(null);
+  //console.log("selectedDesigner", selectedDesigner);
+  
   const [availableDesigners, setAvailableDesigners] = useState([]);
+  //console.log("availableDesigners", availableDesigners);
+  
   const [busyDesigners, setBusyDesigners] = useState([]);
   const [deletingTaskId, setDeletingTaskId] = useState(null);
   const [isUpdatingTasks, setIsUpdatingTasks] = useState(false);
@@ -55,7 +62,7 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
     getAllTasks();
     // Tự động kiểm tra và cập nhật task cho đơn hàng có trạng thái DepositSuccessful
     checkAndUpdateDepositSuccessfulTasks();
-  }, []);
+  }, [selectedDate]);
 
   // Hàm kiểm tra và cập nhật task cho đơn hàng có trạng thái DepositSuccessful
   const checkAndUpdateDepositSuccessfulTasks = async () => {
@@ -112,8 +119,16 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
       const available = [];
       const busy = [];
       
+      // Log the designerTasksMap to debug
+      console.log("Designer tasks map:", designerTasksMap);
+      
       Object.values(designerTasksMap).forEach(designerData => {
-        if (designerData.taskCount === 0) {
+        // Check if designer has any active tasks (not completed)
+        const hasActiveTasks = designerData.tasks.some(task => 
+          task.status !== 'DoneConsulting' && task.status !== 'DoneDesignDetail'
+        );
+        
+        if (!hasActiveTasks) {
           available.push(designerData.designer);
         } else {
           busy.push({
@@ -126,7 +141,8 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
           });
         }
       });
-      
+      console.log("Available designers:", available);
+      console.log("Busy designers:", busy);
       setAvailableDesigners(available);
       setBusyDesigners(busy);
     }
@@ -390,6 +406,7 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
         designers={[selectedDesigner].filter(Boolean)}
         noIdeaOrders={noIdeaOrders}
         usingIdeaOrders={usingIdeaOrders}
+        
       />
     </Card>
   );

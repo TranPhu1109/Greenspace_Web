@@ -21,6 +21,26 @@ export const useCloudinaryStorage = () => {
 
   // Hàm xác định loại resource dựa vào loại file
   const getResourceType = (file) => {
+    // Handle base64 string
+    if (typeof file === 'string' && file.startsWith('data:')) {
+      const mimeType = file.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/)?.[1];
+      
+      if (mimeType?.startsWith('image/')) {
+        return 'image';
+      } else if (mimeType?.startsWith('video/') || 
+                mimeType?.includes('mp4') || 
+                mimeType?.includes('avi') || 
+                mimeType?.includes('mov') ||
+                mimeType?.includes('wmv')) {
+        return 'video';
+      } else if (mimeType?.includes('pdf')) {
+        return 'raw';
+      } else {
+        return 'auto';
+      }
+    }
+    
+    // Handle File object
     const fileType = file.type;
     
     if (fileType.startsWith('image/')) {
@@ -38,6 +58,26 @@ export const useCloudinaryStorage = () => {
       // Mặc định sử dụng raw cho các loại file khác
       return 'raw';
     }
+  };
+
+  // Helper function to convert base64 to Blob
+  const base64ToBlob = (base64Data) => {
+    if (!base64Data || !base64Data.startsWith('data:')) {
+      throw new Error('Invalid base64 data');
+    }
+    
+    // Split the base64 string into parts
+    const parts = base64Data.split(';base64,');
+    const contentType = parts[0].replace('data:', '');
+    const raw = window.atob(parts[1]);
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    
+    return new Blob([uInt8Array], { type: contentType });
   };
 
   const uploadImages = async (files) => {
@@ -62,19 +102,32 @@ export const useCloudinaryStorage = () => {
 
       const uploadPromises = files.map((file, index) => {
         return new Promise((resolve, reject) => {
+          let fileToUpload;
+          let resourceType;
+          
+          // Convert base64 to blob if necessary
+          if (typeof file === 'string' && file.startsWith('data:')) {
+            try {
+              fileToUpload = base64ToBlob(file);
+              resourceType = getResourceType(file);
+            } catch (error) {
+              console.error('Error converting base64 to blob:', error);
+              reject(error);
+              return;
+            }
+          } else {
+            fileToUpload = file;
+            resourceType = getResourceType(file);
+          }
+
           const formData = new FormData();
-          formData.append('file', file);
+          formData.append('file', fileToUpload);
           formData.append('upload_preset', UPLOAD_PRESET);
           formData.append('folder', FOLDER_NAME);
           
-          // Xác định loại resource
-          const resourceType = getResourceType(file);
-          
           // Log thông tin file để debug
           console.log('Uploading file:', {
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
+            fileType: typeof fileToUpload === 'string' ? 'base64' : fileToUpload.type,
             resourceType: resourceType
           });
 

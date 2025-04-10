@@ -1205,11 +1205,31 @@ const OrderService = () => {
                                   </Col>
                                   <Col span={4}>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
+                                      <Button
+                                        icon={<MinusOutlined />}
+                                        onClick={() => handleQuantityChange(detail.productId, detail.quantity - 1)}
+                                        disabled={detail.quantity <= 1}
+                                        style={{ borderRadius: '4px 0 0 4px' }}
+                                      />
                                       <Input 
                                         value={detail.quantity} 
-                                        style={{ width: '50px', margin: '0 8px', textAlign: 'center' }} 
-                                        disabled={true}
+                                        style={{ width: '50px', margin: '0', textAlign: 'center', borderLeft: 0, borderRight: 0 }} 
+                                        onChange={(e) => {
+                                          const value = parseInt(e.target.value);
+                                          if (!isNaN(value)) {
+                                            handleQuantityChange(detail.productId, value);
+                                          }
+                                        }}
                                       />
+                                      <Button
+                                        icon={<PlusOutlined />}
+                                        onClick={() => handleQuantityChange(detail.productId, detail.quantity + 1)}
+                                        disabled={detail.quantity >= product.stock}
+                                        style={{ borderRadius: '0 4px 4px 0' }}
+                                      />
+                                    </div>
+                                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#8c8c8c', textAlign: 'center' }}>
+                                      Kho: {product.stock}
                                     </div>
                                   </Col>
                                   <Col span={4}>

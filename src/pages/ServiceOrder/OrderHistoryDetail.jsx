@@ -88,6 +88,7 @@ const OrderHistoryDetail = () => {
   const [signatureUrl, setSignatureUrl] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  const [isSignAndPayModalVisible, setIsSignAndPayModalVisible] = useState(false);
 
   const [designIdea, setDesignIdea] = useState(null);
   //console.log("designIdea",designIdea);
@@ -258,6 +259,8 @@ const OrderHistoryDetail = () => {
             });
             // Fetch updated service order data after generating contract
             await getServiceOrderById(selectedOrder.id);
+            // Fetch the contract again to make sure we have it
+            await getContractByServiceOrder(selectedOrder.id);
             setShowContractButton(true);
           } catch (genError) {
             console.error("Error generating contract:", genError);
@@ -269,10 +272,14 @@ const OrderHistoryDetail = () => {
       }
     };
 
-    fetchContract();
+    // Call fetchContract immediately after the component mounts if selectedOrder exists
+    if (selectedOrder) {
+      fetchContract();
+    }
   }, [
     selectedOrder?.status,
     selectedOrder?.id,
+    selectedOrder, // Add selectedOrder as a dependency to react to its initial load
     getContractByServiceOrder,
     generateContract,
     getServiceOrderById,
@@ -285,7 +292,13 @@ const OrderHistoryDetail = () => {
     } else {
       setShowPaymentButton(false);
     }
-  }, [contract]);
+    
+    // If contract exists but showContractButton is false, set it to true
+    // This ensures the button appears as soon as contract data is available
+    if (contract && !showContractButton && selectedOrder?.status === "WaitDeposit") {
+      setShowContractButton(true);
+    }
+  }, [contract, selectedOrder?.status, showContractButton]);
 
   // Add useEffect to fetch sketch records
   useEffect(() => {
@@ -386,11 +399,26 @@ const OrderHistoryDetail = () => {
   };
 
   // Update handleViewContract function
-  const handleViewContract = () => {
+  const handleViewContract = async () => {
     if (contract?.description) {
       setIsContractModalVisible(true);
     } else {
-      message.error("Không tìm thấy hợp đồng");
+      // Try to fetch the contract if it's not already loaded
+      try {
+        if (selectedOrder?.id) {
+          const contractData = await getContractByServiceOrder(selectedOrder.id);
+          if (contractData?.description) {
+            setIsContractModalVisible(true);
+          } else {
+            message.error("Không tìm thấy hợp đồng hoặc hợp đồng chưa được tạo");
+          }
+        } else {
+          message.error("Không tìm thấy thông tin đơn hàng");
+        }
+      } catch (error) {
+        console.error("Error loading contract:", error);
+        message.error("Không thể tải hợp đồng: " + error.message);
+      }
     }
   };
 
@@ -465,41 +493,113 @@ const OrderHistoryDetail = () => {
   ];
 
   const handlePreview = (file) => {
+    console.log('Preview file:', file);
     const reader = new FileReader();
     reader.onload = (e) => {
+      console.log('File read result:', e.target.result.substring(0, 100) + '...');
       setPreviewImage(e.target.result);
       setIsPreviewModalVisible(true);
+    };
+    reader.onerror = (error) => {
+      console.error('Error reading file:', error);
+      message.error('Không thể đọc tệp hình ảnh. Vui lòng thử lại.');
     };
     reader.readAsDataURL(file);
   };
 
-  const handleConfirmUpload = async () => {
-    try {
-      setUploading(true);
-      setIsPreviewModalVisible(false);
-      const uploadedUrls = await uploadImages([previewImage]);
-      if (uploadedUrls.length > 0) {
-        setSignatureUrl(uploadedUrls[0]);
-        if (contract?.id) {
-          await signContract(contract.id, uploadedUrls[0]);
+  const openSignAndPayModal = () => {
+    setIsSignAndPayModalVisible(true);
+  };
 
-          // Nếu đang ở trạng thái WaitDeposit, hiển thị nút thanh toán
-          if (selectedOrder.status === "WaitDeposit") {
-            message.success("Đã ký hợp đồng 50% thành công");
-            // Fetch contract again to check modificationDate
+  const closeSignAndPayModal = () => {
+    setIsSignAndPayModalVisible(false);
+    setPreviewImage(null);
+  };
+
+  const handleSignAndPay = async () => {
+    try {
+      if (!previewImage) {
+        message.error("Vui lòng tải lên chữ ký trước khi xác nhận");
+        return;
+      }
+
+      setUploading(true);
+      setPaymentLoading(true);
+      
+      // First upload the signature image but don't sign the contract yet
+      const uploadedUrls = await uploadImages([previewImage]);
+      console.log('Uploaded URLs:', uploadedUrls);
+      
+      if (!uploadedUrls || uploadedUrls.length === 0) {
+        throw new Error('Không nhận được URL hình ảnh sau khi tải lên');
+      }
+      
+      // Store the signature URL temporarily
+      const signatureImageUrl = uploadedUrls[0];
+      setSignatureUrl(signatureImageUrl);
+      
+      // Process payment first
+      try {
+        // Get walletId from localStorage and parse it correctly
+        const walletStorage = localStorage.getItem("wallet-storage");
+        if (!walletStorage) {
+          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
+        }
+
+        // Parse the JSON string to get the walletId
+        const walletData = JSON.parse(walletStorage);
+        const walletId = walletData.state.walletId;
+
+        if (!walletId) {
+          throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
+        }
+
+        // Calculate 50% of design price
+        const amount = selectedOrder.designPrice * 0.5;
+
+        // Call bill API to process payment
+        const response = await api.post("/api/bill", {
+          walletId: walletId,
+          serviceOrderId: selectedOrder.id,
+          amount: amount,
+          description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(
+            0,
+            8
+          )}`,
+        });
+
+        if (response.data) {
+          // Payment successful, now sign the contract
+          if (contract?.id) {
+            await signContract(contract.id, signatureImageUrl);
+            message.success("Thanh toán và ký hợp đồng thành công");
+            
+            // Update order status and refresh data
+            await updateStatus(selectedOrder.id, "DepositSuccessful");
             await getContractByServiceOrder(selectedOrder.id);
+            await getDesignOrderById(id, componentId.current);
           } else {
-            message.success("Ký hợp đồng thành công");
+            throw new Error("Không tìm thấy thông tin hợp đồng");
           }
         }
+      } catch (error) {
+        console.error("Payment error:", error);
+        // If payment fails, don't sign the contract
+        throw new Error("Thanh toán thất bại: " + (error.response?.data?.error || error.message));
       }
     } catch (error) {
-      message.error("Ký hợp đồng thất bại");
-      console.error("Upload error:", error);
+      message.error(error.message || "Xử lý thất bại");
+      console.error("Process error:", error);
     } finally {
       setUploading(false);
+      setIsSignAndPayModalVisible(false);
       setPreviewImage(null);
+      setPaymentLoading(false);
     }
+  };
+
+  const handleConfirmUpload = async () => {
+    // Existing code...
   };
 
   const handleCancelUpload = () => {
@@ -507,68 +607,16 @@ const OrderHistoryDetail = () => {
     setPreviewImage(null);
   };
 
-  // Add function to handle payment
   const handlePayment = async () => {
-    try {
-      setPaymentLoading(true);
-
-      // Get walletId from localStorage and parse it correctly
-      const walletStorage = localStorage.getItem("wallet-storage");
-      if (!walletStorage) {
-        message.error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
-        return;
-      }
-
-      // Parse the JSON string to get the walletId
-      const walletData = JSON.parse(walletStorage);
-      const walletId = walletData.state.walletId;
-
-      if (!walletId) {
-        message.error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
-        return;
-      }
-
-      // Calculate 50% of design price
-      const amount = selectedOrder.designPrice * 0.5;
-
-      // Call bill API
-      const response = await api.post("/api/bill", {
-        walletId: walletId,
-        serviceOrderId: selectedOrder.id,
-        amount: amount,
-        description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(
-          0,
-          8
-        )}`,
-      });
-
-      if (response.data) {
-        message.success("Thanh toán thành công");
-
-        // Update order status to DepositSuccessful
-        await updateStatus(selectedOrder.id, "DepositSuccessful");
-        message.success("Đã cập nhật trạng thái đơn hàng");
-
-        // Refresh order details
-        await getDesignOrderById(id, componentId.current);
-      }
-    } catch (error) {
-      console.error("Payment error:", error);
-      message.error(
-        "Thanh toán thất bại: " + (error.response?.data?.error || error.message)
-      );
-    } finally {
-      setPaymentLoading(false);
-      setIsPaymentModalVisible(false);
-    }
-  };
-
-  const showPaymentModal = () => {
-    setIsPaymentModalVisible(true);
+    // Existing code...
   };
 
   const handleCancelPayment = () => {
     setIsPaymentModalVisible(false);
+  };
+
+  const showPaymentModal = () => {
+    setIsPaymentModalVisible(true);
   };
 
   const handleSelectSketch = (recordId) => {
@@ -1602,7 +1650,7 @@ const OrderHistoryDetail = () => {
               {/* Actions */}
               <div style={{ textAlign: "right" }}>
                 <Space>
-                  {showContractButton && (
+                  {(showContractButton || selectedOrder?.status === "WaitDeposit") && (
                     <Space
                       direction="vertical"
                       size={8}
@@ -1626,87 +1674,24 @@ const OrderHistoryDetail = () => {
                         }}
                       >
                         <Text type="secondary">
-                          {selectedOrder.status === "WaitDeposit"
+                          {selectedOrder?.status === "WaitDeposit"
                             ? "Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"
                             : "Bạn đã đọc và đồng ý với hợp đồng, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"}
                         </Text>
                       </div>
-                      {!contract?.modificationDate && (
+                      
+                      {!contract?.modificationDate && selectedOrder?.status === "WaitDeposit" && (
                         <>
                           <Button
                             type="primary"
-                            icon={<UploadOutlined />}
-                            loading={uploading}
-                            onClick={() => {
-                              const input = document.createElement("input");
-                              input.type = "file";
-                              input.accept = "image/*";
-                              input.onchange = (e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  handlePreview(file);
-                                }
-                              };
-                              input.click();
-                            }}
+                            icon={<FileTextOutlined />}
+                            onClick={openSignAndPayModal}
                             style={{ width: "100%" }}
                           >
-                            Tải lên chữ ký
+                            Ký hợp đồng
                           </Button>
-                          {signatureUrl && (
-                            <div
-                              style={{
-                                marginTop: "16px",
-                                textAlign: "center",
-                              }}
-                            >
-                              <Image
-                                src={signatureUrl}
-                                alt="Chữ ký đã tải lên"
-                                style={{
-                                  maxWidth: "200px",
-                                  maxHeight: "100px",
-                                  objectFit: "contain",
-                                }}
-                                preview={false}
-                              />
-                              <div style={{ marginTop: "8px" }}>
-                                <Button
-                                  type="link"
-                                  onClick={() => setSignatureUrl(null)}
-                                >
-                                  Xóa chữ ký
-                                </Button>
-                              </div>
-                            </div>
-                          )}
                         </>
                       )}
-                      {/* Payment Button */}
-                      {showPaymentButton &&
-                        selectedOrder.status === "WaitDeposit" && (
-                          <>
-                            <Button
-                              type="primary"
-                              danger
-                              icon={<DollarOutlined />}
-                              loading={paymentLoading}
-                              onClick={showPaymentModal}
-                              style={{ width: "100%", marginTop: "16px" }}
-                            >
-                              Thanh toán 50% phí thiết kế
-                              {formatPrice(selectedOrder.designPrice * 0.5)}
-                            </Button>
-                            <Button
-                              // type="primary"
-                              danger
-                              icon={<CloseOutlined />}
-                              onClick={showCancelOrderModal}
-                            >
-                              Hủy đơn hàng
-                            </Button>
-                          </>
-                        )}
                     </Space>
                   )}
                   {selectedOrder.status === "DeliveredSuccessfully" && (
@@ -1726,6 +1711,17 @@ const OrderHistoryDetail = () => {
                       Xác nhận hoàn thành
                     </Button>
                   )}
+                  {showPaymentButton &&
+                    selectedOrder.status === "WaitDeposit" && (
+                      <Button
+                        danger
+                        icon={<CloseOutlined />}
+                        onClick={showCancelOrderModal}
+                        style={{ width: "100%", marginTop: "16px" }}
+                      >
+                        Hủy đơn hàng
+                      </Button>
+                    )}
                 </Space>
               </div>
 
@@ -1810,84 +1806,103 @@ const OrderHistoryDetail = () => {
               />
             </Modal>
 
-            {/* Signature Preview Modal */}
+            {/* Sign and Pay Modal */}
             <Modal
-              title="Xem trước chữ ký"
-              open={isPreviewModalVisible}
-              onCancel={handleCancelUpload}
+              title="Ký hợp đồng và thanh toán"
+              open={isSignAndPayModalVisible}
+              onCancel={closeSignAndPayModal}
               footer={[
-                <Button key="cancel" onClick={handleCancelUpload}>
+                <Button key="cancel" onClick={closeSignAndPayModal}>
                   Hủy
                 </Button>,
                 <Button
                   key="confirm"
                   type="primary"
-                  loading={uploading}
-                  onClick={handleConfirmUpload}
+                  loading={uploading || paymentLoading}
+                  onClick={handleSignAndPay}
                 >
-                  Xác nhận
+                  Xác nhận ký hợp đồng và thanh toán
                 </Button>,
               ]}
-              width={400}
+              width={600}
             >
-              <div style={{ textAlign: "center" }}>
-                <Image
-                  src={previewImage}
-                  alt="Chữ ký xem trước"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "300px",
-                    objectFit: "contain",
-                  }}
-                  preview={false}
-                />
+              <div style={{ marginBottom: "20px" }}>
+                <Text>Bạn cần ký hợp đồng và thanh toán 50% phí thiết kế ({formatPrice(selectedOrder?.designPrice * 0.5)}) để tiếp tục.</Text>
               </div>
-            </Modal>
 
-            <Modal
-              title="Xác nhận chọn bản vẽ"
-              open={isConfirmModalVisible}
-              onOk={handleConfirmSelection}
-              onCancel={handleCancelSelection}
-              okText="Xác nhận"
-              cancelText="Hủy"
-            >
-              <p>Bạn có chắc chắn muốn chọn bản vẽ này không?</p>
-              <p>
-                Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.
-              </p>
-            </Modal>
+              <Divider />
 
-            {/* Payment Confirmation Modal */}
-            <Modal
-              title="Xác nhận thanh toán"
-              open={isPaymentModalVisible}
-              onOk={handlePayment}
-              onCancel={handleCancelPayment}
-              okText="Xác nhận"
-              cancelText="Hủy"
-              confirmLoading={paymentLoading}
-            >
-              <p>Bạn có chắc chắn muốn thanh toán 50% phí thiết kế?</p>
-              <p>
-                Số tiền thanh toán:{" "}
-                {formatPrice(selectedOrder.designPrice * 0.5)}
-              </p>
-            </Modal>
+              <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                <Text strong>Chữ ký của bạn</Text>
+                <div style={{ marginTop: "10px" }}>
+                  {previewImage ? (
+                    <div>
+                      <Image
+                        src={previewImage}
+                        alt="Chữ ký xem trước"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "150px",
+                          objectFit: "contain",
+                        }}
+                        preview={false}
+                      />
+                      <div style={{ marginTop: "10px" }}>
+                        <Button 
+                          type="link" 
+                          onClick={() => setPreviewImage(null)}
+                          style={{ padding: 0 }}
+                        >
+                          Xóa và tải lên lại
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<UploadOutlined />}
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
+                        input.onchange = (e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                              setPreviewImage(e.target.result);
+                            };
+                            reader.onerror = (error) => {
+                              console.error('Error reading file:', error);
+                              message.error('Không thể đọc tệp hình ảnh. Vui lòng thử lại.');
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
+                      Tải lên chữ ký
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-            {/* Design Confirmation Modal */}
-            <Modal
-              title="Xác nhận chọn bản vẽ chi tiết"
-              open={isConfirmDesignModalVisible}
-              onOk={handleConfirmDesignSelection}
-              onCancel={handleCancelDesignSelection}
-              okText="Xác nhận"
-              cancelText="Hủy"
-            >
-              <p>Bạn có chắc chắn muốn chọn bản vẽ chi tiết này không?</p>
-              <p>
-                Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.
-              </p>
+              <Divider />
+
+              <div style={{ marginBottom: "10px" }}>
+                <Text strong>Thông tin thanh toán:</Text>
+                <ul style={{ marginTop: "10px" }}>
+                  <li>Phí thiết kế: {formatPrice(selectedOrder?.designPrice)}</li>
+                  <li>Thanh toán đợt này (50%): {formatPrice(selectedOrder?.designPrice * 0.5)}</li>
+                </ul>
+              </div>
+
+              <div style={{ backgroundColor: "#f5f5f5", padding: "10px", borderRadius: "4px" }}>
+                <Text type="secondary">
+                  Bằng việc nhấn nút "Xác nhận", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán 50% phí thiết kế.
+                </Text>
+              </div>
             </Modal>
 
             {/* Material Confirmation Modal */}
@@ -1969,6 +1984,53 @@ const OrderHistoryDetail = () => {
                   Lưu ý: Khi dừng đơn hàng, bạn sẽ phải thanh toán 50% phí thiết
                   kế còn lại và không thể tiếp tục đơn hàng này.
                 </Text>
+              </p>
+            </Modal>
+
+            {/* Payment Confirmation Modal as fallback */}
+            <Modal
+              title="Xác nhận thanh toán"
+              open={isPaymentModalVisible}
+              onOk={handlePayment}
+              onCancel={handleCancelPayment}
+              okText="Xác nhận"
+              cancelText="Hủy"
+              confirmLoading={paymentLoading}
+            >
+              <p>Bạn có chắc chắn muốn thanh toán 50% phí thiết kế?</p>
+              <p>
+                Số tiền thanh toán:{" "}
+                {formatPrice(selectedOrder?.designPrice * 0.5)}
+              </p>
+            </Modal>
+
+            {/* Confirm sketch selection Modal */}
+            <Modal
+              title="Xác nhận chọn bản vẽ"
+              open={isConfirmModalVisible}
+              onOk={handleConfirmSelection}
+              onCancel={handleCancelSelection}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <p>Bạn có chắc chắn muốn chọn bản vẽ này không?</p>
+              <p>
+                Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.
+              </p>
+            </Modal>
+
+            {/* Design Confirmation Modal */}
+            <Modal
+              title="Xác nhận chọn bản vẽ chi tiết"
+              open={isConfirmDesignModalVisible}
+              onOk={handleConfirmDesignSelection}
+              onCancel={handleCancelDesignSelection}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <p>Bạn có chắc chắn muốn chọn bản vẽ chi tiết này không?</p>
+              <p>
+                Lưu ý: Khi chọn bản vẽ mới, bản vẽ đã chọn trước đó sẽ bị hủy.
               </p>
             </Modal>
           </Card>
