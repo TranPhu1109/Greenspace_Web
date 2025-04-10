@@ -40,6 +40,7 @@ import {
     PlayCircleOutlined,
     EditOutlined,
     CloseCircleOutlined,
+    CheckSquareOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -455,110 +456,118 @@ const NewDesignOrderDetail = () => {
                     </Col>
                 </Row>
 
-                {(currentOrder.status === 'ConsultingAndSketching' && sketchRecords.length > 0) ||
-                    (currentOrder.status === 'DoneDesign' && designRecords.length > 0) ? (
-                    <Card
-                        title={
-                            <span style={{
-                                fontSize: '18px',
-                                fontWeight: '600',
-                                color: '#4caf50',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}>
-                                <PictureOutlined />
-                                {currentOrder.status === 'ConsultingAndSketching' ? 'Bản vẽ phác thảo' : 'Bản vẽ thiết kế'}
-                            </span>
-                        }
-                        style={{
-                            borderRadius: '8px',
-                            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-                            marginBottom: '24px'
-                        }}
-                        loading={recordLoading}
-                    >
-                        {[0, 1, 2].map(phase => {
-                            const recordsInPhase = (currentOrder.status === 'ConsultingAndSketching' ? sketchRecords : designRecords)
-                                                .filter(record => record.phase === phase);
-                            if (recordsInPhase.length === 0) return null;
-
-                            const phaseTitle = phase === 0
-                                ? "Ảnh khách hàng cung cấp"
-                                : `${currentOrder.status === 'ConsultingAndSketching' ? 'Bản phác thảo' : 'Bản thiết kế'} lần ${phase}`;
-                            const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
-
-                            return (
-                                <div key={phase} style={{ marginBottom: '20px' }}>
-                                    <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                                        {phaseTitle}
-                                        {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                                    </Title>
-                                    <Row gutter={[16, 16]}>
-                                        {recordsInPhase.map(record => (
-                                            <Col xs={24} sm={8} key={record.id}>
-                                                <Card hoverable style={record.isSelected ? { border: '2px solid #52c41a' } : {}} bodyStyle={{ padding: 0 }}>
-                                                    <Image src={record.image?.imageUrl || '/placeholder.png'} alt={`Ảnh ${phaseTitle} 1`} style={{ width: '100%', height: '200px', objectFit: 'cover' }}/>
-                                                    {record.image?.image2 && <Image src={record.image.image2} alt={`Ảnh ${phaseTitle} 2`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }}/>}
-                                                    {record.image?.image3 && <Image src={record.image.image3} alt={`Ảnh ${phaseTitle} 3`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }}/>}
-                                                </Card>
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </div>
-                            );
-                        })}
-                        {(currentOrder.status === 'ConsultingAndSketching' && sketchRecords.length === 0 && !recordLoading) ||
-                         (currentOrder.status === 'DoneDesign' && designRecords.length === 0 && !recordLoading) ? (
-                             <Empty description={`Chưa có ${currentOrder.status === 'ConsultingAndSketching' ? 'bản phác thảo' : 'bản thiết kế'} nào được tải lên.`} />
-                        ) : null}
-                    </Card>
-                ) : (
+                {/* Image Display Logic Based on Status */}
+                {(currentOrder.status === 'Pending' || currentOrder.status === 'ConsultingAndSketching') ? (
+                    // Status: Pending or Consulting -> Show Original Images from currentOrder.image
                     hasImages && (
                         <Card
                             title={
-                                <span style={{
-                                    fontSize: '18px',
-                                    fontWeight: '600',
-                                    color: '#4caf50',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}>
-                                    <PictureOutlined />
-                                    Hình ảnh khách hàng cung cấp
+                                <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <PictureOutlined /> Hình ảnh khách hàng cung cấp (Ban đầu)
                                 </span>
                             }
-                            style={{
-                                borderRadius: '8px',
-                                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-                                marginBottom: '24px'
-                            }}
+                            style={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)', marginBottom: '24px' }}
                         >
-                            <Row gutter={[16, 16]}>
-                                {currentOrder.image.imageUrl && (
-                                    <Col xs={24} sm={8}>
-                                        <Image src={currentOrder.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                                    </Col>
-                                )}
-                                {currentOrder.image.image2 && (
-                                    <Col xs={24} sm={8}>
-                                        <Image src={currentOrder.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                                    </Col>
-                                )}
-                                {currentOrder.image.image3 && (
-                                    <Col xs={24} sm={8}>
-                                        <Image src={currentOrder.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                                    </Col>
-                                )}
-                                {!currentOrder.image.imageUrl && !currentOrder.image.image2 && !currentOrder.image.image3 && (
-                                    <Col span={24}>
-                                        <Empty description="Khách hàng không cung cấp hình ảnh." />
-                                    </Col>
-                                )}
-                            </Row>
+                            {/* Use horizontal layout similar to sketch/design for consistency */}
+                            <Image.PreviewGroup items={[currentOrder.image.imageUrl, currentOrder.image.image2, currentOrder.image.image3].filter(Boolean)}>
+                                <Row gutter={[16, 16]}>
+                                    {currentOrder.image.imageUrl && (
+                                        <Col xs={24} sm={12} md={8}>
+                                            <div style={{ height: '200px', overflow: 'hidden', borderRadius: '8px', background: '#f0f0f0' }}>
+                                                <Image src={currentOrder.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} preview={{ src: currentOrder.image.imageUrl }}/>
+                                            </div>
+                                        </Col>
+                                    )}
+                                    {currentOrder.image.image2 && (
+                                        <Col xs={24} sm={12} md={8}>
+                                            <div style={{ height: '200px', overflow: 'hidden', borderRadius: '8px', background: '#f0f0f0' }}>
+                                                <Image src={currentOrder.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '100%', objectFit: 'cover' }} preview={{ src: currentOrder.image.image2 }}/>
+                                            </div>
+                                        </Col>
+                                    )}
+                                    {currentOrder.image.image3 && (
+                                        <Col xs={24} sm={12} md={8}>
+                                            <div style={{ height: '200px', overflow: 'hidden', borderRadius: '8px', background: '#f0f0f0' }}>
+                                                <Image src={currentOrder.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '100%', objectFit: 'cover' }} preview={{ src: currentOrder.image.image3 }}/>
+                                            </div>
+                                        </Col>
+                                    )}
+                                </Row>
+                            </Image.PreviewGroup>
+                            {!hasImages && <Empty description="Khách hàng không cung cấp hình ảnh." />}
                         </Card>
                     )
+                ) : (
+                    // Status: Other than Pending/Consulting -> Show Records (Sketch or Design)
+                    (() => {
+                        const recordsToShow = currentOrder.status === 'DoneDesign' ? designRecords : sketchRecords;
+                        const recordType = currentOrder.status === 'DoneDesign' ? 'bản thiết kế' : 'bản phác thảo';
+                        const showRecords = recordsToShow && recordsToShow.length > 0;
+
+                        return (
+                            <Card
+                                title={
+                                    <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <PictureOutlined /> Hình ảnh {recordType}
+                                    </span>
+                                }
+                                style={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)', marginBottom: '24px' }}
+                                loading={recordLoading}
+                            >
+                                {showRecords ? (
+                                    [0, 1, 2].map(phase => {
+                                        const recordsInPhase = recordsToShow.filter(record => record.phase === phase);
+                                        if (recordsInPhase.length === 0) return null;
+                                        const phaseTitle = phase === 0 ? "Ảnh khách hàng cung cấp" : `${recordType.charAt(0).toUpperCase() + recordType.slice(1)} lần ${phase}`;
+                                        const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
+
+                                        return (
+                                            <div key={phase} style={{ marginBottom: '20px' }}>
+                                                <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                                                    {phaseTitle}
+                                                    {isSelectedPhase && phase !== 0 && <Tag color="success" icon={<CheckSquareOutlined />} style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                                                </Title>
+                                                <Image.PreviewGroup items={recordsInPhase.flatMap(r => [r.image?.imageUrl, r.image?.image2, r.image?.image3].filter(Boolean))}>
+                                                    <Row gutter={[16, 16]}>
+                                                        {recordsInPhase.map((record, recordIndex) => (
+                                                            <React.Fragment key={`${record.id}-${recordIndex}`}>
+                                                                {record.image?.imageUrl && (
+                                                                    <Col xs={24} sm={12} md={8}>
+                                                                        <div style={{ height: '200px', overflow: 'hidden', borderRadius: '8px', background: '#f0f0f0' }}>
+                                                                            <Image src={record.image.imageUrl} alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.1`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} preview={{ src: record.image.imageUrl }} />
+                                                                        </div>
+                                                                    </Col>
+                                                                )}
+                                                                {record.image?.image2 && (
+                                                                    <Col xs={24} sm={12} md={8}>
+                                                                        <div style={{ height: '200px', overflow: 'hidden', borderRadius: '8px', background: '#f0f0f0' }}>
+                                                                            <Image src={record.image.image2} alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.2`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} preview={{ src: record.image.image2 }} />
+                                                                        </div>
+                                                                    </Col>
+                                                                )}
+                                                                {record.image?.image3 && (
+                                                                    <Col xs={24} sm={12} md={8}>
+                                                                        <div style={{ height: '200px', overflow: 'hidden', borderRadius: '8px', background: '#f0f0f0' }}>
+                                                                            <Image src={record.image.image3} alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.3`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} preview={{ src: record.image.image3 }} />
+                                                                        </div>
+                                                                    </Col>
+                                                                )}
+                                                                {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                                                    <Col span={24}><Text type="secondary">Không có ảnh cho bản ghi này.</Text></Col>
+                                                                )}
+                                                            </React.Fragment>
+                                                        ))}
+                                                    </Row>
+                                                </Image.PreviewGroup>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <Empty description={`Không có dữ liệu ${recordType}.`} />
+                                )}
+                            </Card>
+                        );
+                    })()
                 )}
 
                 {currentOrder.description && (

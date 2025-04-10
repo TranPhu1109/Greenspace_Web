@@ -36,7 +36,9 @@ import {
   HistoryOutlined,
   ShoppingOutlined,
   TagsOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
@@ -47,55 +49,97 @@ const ServiceOrderDetail = () => {
   const navigate = useNavigate();
   const { selectedOrder, loading, error, getServiceOrderById } = useServiceOrderStore();
   const { getProductById, isLoading: productLoading } = useProductStore();
-  const { 
-    sketchRecords, 
-    getRecordSketch, 
-    confirmRecord, 
-    isLoading: recordLoading 
+  const {
+    sketchRecords,
+    getRecordSketch,
+    confirmRecord,
+    isLoading: recordLoading,
+    error: recordError
   } = useRecordStore();
   const [order, setOrder] = useState(null);
   const [localError, setLocalError] = useState(null);
   const [productDetailsMap, setProductDetailsMap] = useState({});
   const [fetchingProducts, setFetchingProducts] = useState(false);
 
+  // Define statuses where ONLY phase 0 sketches are shown initially
+  const showOnlyPhase0Statuses = [
+    'ConsultingAndSketching' // 16
+  ];
+
+  // Define statuses where ALL sketch phases are shown
+  const showAllPhasesStatuses = [
+    'DoneDeterminingDesignPrice', // 22
+    'WaitDeposit',                // 21
+    'DepositSuccessful',          // 3
+    'AssignToDesigner',           // 4
+    'DeterminingMaterialPrice',   // 5
+    'DoneDesign',                 // 6
+    'DoneDeterminingMaterialPrice', // 23
+    'PaymentSuccess',             // 7
+    'Processing',                 // 8
+    'PickedPackageAndDelivery', // 9
+    'DeliveryFail',             // 10
+    'ReDelivery',               // 11
+    'DeliveredSuccessfully',    // 12
+    'CompleteOrder',            // 13
+    'Warning',                  // 15
+    // Add other relevant statuses if needed
+  ];
+
   useEffect(() => {
-    const fetchOrderDetail = async () => {
+    const fetchOrderDetailAndSketches = async () => {
       try {
         setLocalError(null);
-        const data = await getServiceOrderById(id);
-        setOrder(data);
+        setFetchingProducts(false); // Reset product fetching state
+        const orderData = await getServiceOrderById(id);
+        setOrder(orderData); // Set order state first
 
-        if (data && data.serviceOrderDetails && data.serviceOrderDetails.length > 0) {
+        if (!orderData) {
+          setLocalError("Không tìm thấy thông tin đơn hàng.");
+          return;
+        }
+
+        // Fetch products if details exist
+        if (orderData.serviceOrderDetails && orderData.serviceOrderDetails.length > 0) {
           setFetchingProducts(true);
-          const productPromises = data.serviceOrderDetails.map(detail =>
+          const productPromises = orderData.serviceOrderDetails.map(detail =>
             getProductById(detail.productId)
           );
           const productResults = await Promise.all(productPromises);
           const detailsMap = {};
           productResults.forEach((product, index) => {
             if (product) {
-              detailsMap[data.serviceOrderDetails[index].productId] = product;
+              detailsMap[orderData.serviceOrderDetails[index].productId] = product;
             }
           });
           setProductDetailsMap(detailsMap);
           setFetchingProducts(false);
         }
-      } catch (error) {
-        console.error("Error fetching order or product details:", error);
-        setLocalError(error.message || "Không thể tải thông tin đơn hàng hoặc sản phẩm");
-        setFetchingProducts(false);
+
+        // Fetch sketch records if the status requires it
+        if (showOnlyPhase0Statuses.includes(orderData.status) || showAllPhasesStatuses.includes(orderData.status)) {
+           console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
+           await getRecordSketch(id); // Fetch sketches
+        } else {
+           console.log(`Sketches not required for status: ${orderData.status}`);
+        }
+
+      } catch (err) {
+        console.error("Error fetching order details, products, or sketches:", err);
+        // Prioritize order fetch error
+        const errorMessage = err.message.includes("order")
+                             ? "Không thể tải thông tin đơn hàng."
+                             : "Có lỗi xảy ra khi tải dữ liệu.";
+        setLocalError(errorMessage);
+        setFetchingProducts(false); // Ensure loading states are reset on error
       }
     };
 
     if (id) {
-      fetchOrderDetail();
+      fetchOrderDetailAndSketches();
     }
-
-    // Fetch sketch records nếu đơn hàng ở trạng thái ConsultingAndSketching
-    if (selectedOrder && selectedOrder.status === 'ConsultingAndSketching') {
-      getRecordSketch(id);
-    }
-  }, [id, getServiceOrderById, getProductById, selectedOrder?.status, getRecordSketch]);
+  // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
+  }, [id, getServiceOrderById, getProductById, getRecordSketch]); // Ensure all store actions are dependencies
 
   const getStatusColor = (status) => {
     const statusColors = {
@@ -203,68 +247,42 @@ const ServiceOrderDetail = () => {
     },
   ];
 
-  if (loading) {
-    return (
-      <Spin
-        size="large"
-        className="flex justify-center items-center min-h-[400px]"
-      />
-    );
-  }
+  // Define statuses where material price is considered final and relevant
+  const finalMaterialPriceStatuses = [
+    'DoneDeterminingMaterialPrice', // 23
+    'PaymentSuccess',             // 7
+    'Processing',                 // 8
+    'PickedPackageAndDelivery', // 9
+    'DeliveryFail',             // 10 (Price was likely final before this)
+    'ReDelivery',               // 11
+    'DeliveredSuccessfully',    // 12
+    'CompleteOrder',            // 13
+    'OrderCancelled',           // 14 (Price might be relevant for refunds/records)
+    // 'ConsultingAndSketching',    // 16 - Material price usually not final here
+    // 'NoDesignIdea',             // 17 - Material price usually not final here
+    'Warning',                  // 15 (Assuming warning doesn't reset the price)
+    // Add other relevant statuses if needed
+  ];
 
-  console.log(selectedOrder);
+  // Define statuses where design price is considered approved for customer view
+  const approvedDesignPriceStatuses = [
+    'DoneDeterminingDesignPrice', // 22
+    'WaitDeposit',                // 21
+    'DepositSuccessful',          // 3
+    'AssignToDesigner',           // 4
+    'DeterminingMaterialPrice',   // 5
+    'DoneDesign',                 // 6
+    'DoneDeterminingMaterialPrice', // 23
+    'PaymentSuccess',             // 7
+    'Processing',                 // 8
+    'PickedPackageAndDelivery', // 9
+    'DeliveredSuccessfully',    // 12
+    'CompleteOrder',            // 13
+    'Warning',                  // 15
+    // Add other relevant statuses if needed
+  ];
 
-  const displayError = localError || error;
-
-  if (!selectedOrder) {
-    return (
-      <Layout>
-        <Header />
-        <Content>
-          <div className="container mx-auto px-4 py-8" style={{ marginTop: "200px" }}>
-            <Alert
-              type="error"
-              message="Lỗi"
-              description={displayError}
-              className="mb-4"
-            />
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/history-booking-services")}
-            >
-              Quay lại
-            </Button>
-          </div>
-        </Content>
-        <Footer />
-      </Layout>
-    );
-  }
-
-  if (!order) {
-    return (
-      <Layout>
-        <Header />
-        <Content>
-          <div className="container mx-auto px-4 py-8" style={{ marginTop: "200px" }}>
-            <Alert
-              type="warning"
-              message="Không tìm thấy thông tin đơn hàng"
-              className="mb-4"
-            />
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/history-booking-services")}
-            >
-              Quay lại
-            </Button>
-          </div>
-        </Content>
-        <Footer />
-      </Layout>
-    );
-  }
-
+  // -------- Main Render --------
   return (
     <Layout>
       <Header />
@@ -333,8 +351,8 @@ const ServiceOrderDetail = () => {
               </div>
             }
             extra={
-              <Tag color={getStatusColor(selectedOrder.status)} size="large">
-                {getStatusText(selectedOrder.status)}
+              <Tag color={getStatusColor(order?.status)} size="large">
+                {getStatusText(order?.status)}
               </Tag>
             }
           >
@@ -367,16 +385,16 @@ const ServiceOrderDetail = () => {
                     size="middle"
                   >
                     <Descriptions.Item label="Tên khách hàng">
-                      {order.userName}
+                      {order?.userName || 'Đang tải...'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Email">
-                      {order.email}
+                      {order?.email || 'Đang tải...'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Số điện thoại">
-                      {order.cusPhone}
+                      {order?.cusPhone || 'Đang tải...'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Địa chỉ">
-                      {order.address.replace(/\|/g, ', ')}
+                      {order?.address?.replace(/\|/g, ', ') || 'Đang tải...'}
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
@@ -410,193 +428,301 @@ const ServiceOrderDetail = () => {
                     size="middle"
                   >
                     <Descriptions.Item label="Kích thước">
-                      {order.length}m x {order.width}m
+                      {order?.length !== undefined && order?.width !== undefined
+                       ? `${order.length}m x ${order.width}m`
+                       : 'Đang tải...'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Loại dịch vụ">
-                      <Tag color={order.serviceType === "NoDesignIdea" ? "blue" : "green"}>
-                        {order.serviceType === "NoDesignIdea"
+                      <Tag color={order?.serviceType === "NoDesignIdea" ? "blue" : "green"}>
+                        {order?.serviceType === "NoDesignIdea"
                           ? "Dịch vụ tư vấn & thiết kế"
-                          : order.serviceType}
+                          : order?.serviceType || 'Đang tải...'}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Tổng chi phí">
-                      {order.totalCost === 0 ? (
+                    <Descriptions.Item label="Giá thiết kế">
+                      {order?.designPrice === 0 || !approvedDesignPriceStatuses.includes(order?.status) ? (
                         <Tag color="gold">Chưa xác định giá thiết kế</Tag>
                       ) : (
-                        <span style={{ color: '#4caf50' }}>{`${order.totalCost.toLocaleString("vi-VN")} VNĐ`}</span>
+                        <span style={{ color: '#4caf50', fontWeight: 'bold' }}>
+                          {order?.designPrice !== undefined ? formatPrice(order.designPrice) : '...'}
+                        </span>
                       )}
                     </Descriptions.Item>
+                    <Descriptions.Item
+                      label={
+                        finalMaterialPriceStatuses.includes(order?.status)
+                        ? "Giá vật liệu"
+                        : "Giá vật liệu (dự kiến)"
+                      }
+                    >
+                      {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
+                         <Tag color="default">Chưa có</Tag>
+                      ) : (
+                        <span style={{ color: '#4caf50', fontWeight: 'bold' }}>
+                          {formatPrice(order.materialPrice)}
+                        </span>
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tổng chi phí">
+                      {order?.totalCost === undefined ? 'Đang tải...' :
+                        order.totalCost === 0 ? (
+                          <Tag color="gold">Chưa xác định tổng</Tag>
+                        ) : (
+                          <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPrice(order.totalCost)}</span>
+                        )}
+                    </Descriptions.Item>
                     <Descriptions.Item label="Ngày tạo">
-                      {format(new Date(order.creationDate), "dd/MM/yyyy HH:mm")}
+                      {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : 'Đang tải...'}
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
               </Col>
             </Row>
 
-            {/* Hiển thị ảnh phác thảo hoặc ảnh gốc */}
-            {(selectedOrder.status === 'ConsultingAndSketching' && sketchRecords.length > 0) ? (
-              <Card
-                title={
-                  <span style={{
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    color: '#4caf50',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <PictureOutlined />
-                    Bản vẽ phác thảo
-                  </span>
+            {/* ------------- Conditional Image Display Section ------------- */}
+            {(() => {
+              // --- Case 1: Show ONLY Phase 0 Sketches ---
+              if (showOnlyPhase0Statuses.includes(order?.status)) {
+                if (recordLoading) {
+                   return <Card title="Hình ảnh khách hàng cung cấp (Ban đầu)" loading={true} style={{ marginBottom: '24px' }} />;
                 }
-                style={{
-                  borderRadius: '16px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                  marginBottom: '24px'
-                }}
-                loading={recordLoading} // Loading khi fetch record
-              >
-                {/* Nhóm bản ghi theo phase */} 
-                {[0, 1, 2].map(phase => {
-                  const phaseRecords = sketchRecords.filter(record => record.phase === phase);
-                  if (phaseRecords.length === 0) return null;
-
-                  const phaseTitle = phase === 0 
-                    ? "Ảnh khách hàng cung cấp" 
-                    : `Bản phác thảo lần ${phase}`;
-                  
-                  const isSelectedPhase = phaseRecords.some(record => record.isSelected);
-
+                if (recordError) {
+                  return <Card title="Hình ảnh khách hàng cung cấp (Ban đầu)" style={{ marginBottom: '24px' }}><Alert message="Lỗi tải bản phác thảo" description={recordError.toString()} type="error" showIcon /></Card>;
+                }
+                const phase0Records = sketchRecords?.filter(record => record.phase === 0) || [];
+                if (phase0Records.length > 0) {
                   return (
-                    <div key={phase} style={{ marginBottom: '20px' }}>
-                      <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                        {phaseTitle}
-                        {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                      </Title>
-                      <Row gutter={[16, 16]}>
-                        {phaseRecords.map(record => (
-                          <Col xs={24} sm={8} key={record.id}>
-                            <Card 
-                              hoverable 
-                              // Thêm style border nếu được chọn
-                              style={record.isSelected ? { border: '2px solid #52c41a' } : {}}
-                              bodyStyle={{ padding: 0 }} // Bỏ padding mặc định của Card body
-                            >
-                              <Image
-                                src={record.image?.imageUrl || '/placeholder.png'}
-                                alt={`Ảnh ${phaseTitle} 1`}
-                                style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                              />
-                              {record.image?.image2 && (
-                                <Image
-                                  src={record.image.image2}
-                                  alt={`Ảnh ${phaseTitle} 2`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }}
-                                />
-                              )}
-                              {record.image?.image3 && (
-                                <Image
-                                  src={record.image.image3}
-                                  alt={`Ảnh ${phaseTitle} 3`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }}
-                                />
-                              )}
-                            </Card>
-                             {/* Nút chọn chỉ hiển thị cho phase 1 và 2 và khi chưa có bản nào được chọn */} 
-                            {phase > 0 && !sketchRecords.some(r => r.isSelected) && (
-                              <Popconfirm
-                                title="Xác nhận chọn bản phác thảo này?"
-                                onConfirm={() => handleConfirmSketch(record.id)}
-                                okText="Xác nhận"
-                                cancelText="Hủy"
-                              >
-                                <Button 
-                                  type="primary" 
-                                  icon={<CheckCircleOutlined />} 
-                                  style={{ marginTop: '10px', width: '100%' }}
-                                >
-                                  Chọn bản này
-                                </Button>
-                              </Popconfirm>
-                            )}
-                          </Col>
+                    <Card
+                       title={
+                          <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                             <PictureOutlined /> Hình ảnh khách hàng cung cấp (Ban đầu)
+                          </span>
+                       }
+                       style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
+                    >
+                       {/* Display records for Phase 0 */}
+                        {phase0Records.map(record => (
+                          <div key={record.id} style={{ marginBottom: '16px' }}>
+                             <Card 
+                                hoverable 
+                                bodyStyle={{ padding: '12px' }} 
+                                style={{ border: '1px solid #f0f0f0', borderRadius: '8px' }} 
+                             > 
+                                <Image.PreviewGroup>
+                                  <Row gutter={[12, 12]}> { /* Inner grid for images */}
+                                    {record.image?.imageUrl && (
+                                      <Col xs={24} sm={12} md={8}> { /* Responsive column */}
+                                        <Image
+                                          src={record.image.imageUrl}
+                                          alt={`Ảnh gốc 1`}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                        />
+                                      </Col>
+                                    )}
+                                    {record.image?.image2 && (
+                                      <Col xs={24} sm={12} md={8}>
+                                        <Image
+                                          src={record.image.image2}
+                                          alt={`Ảnh gốc 2`}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                        />
+                                      </Col>
+                                    )}
+                                    {record.image?.image3 && (
+                                      <Col xs={24} sm={12} md={8}>
+                                        <Image
+                                          src={record.image.image3}
+                                          alt={`Ảnh gốc 3`}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                        />
+                                      </Col>
+                                    )}
+                                    {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                      <Col span={24}>
+                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có ảnh trong bản ghi này" />
+                                      </Col>
+                                    )}
+                                  </Row>
+                                </Image.PreviewGroup>
+                             </Card>
+                          </div>
                         ))}
-                      </Row>
-                    </div>
+                    </Card>
                   );
-                })}
-                {/* Hiển thị nếu không có bản ghi nào */} 
-                {sketchRecords.length === 0 && !recordLoading && (
-                  <Empty description="Chưa có bản phác thảo nào được tải lên." />
-                )}
-              </Card>
-            ) : (
-              // Hiển thị ảnh gốc nếu không phải trạng thái ConsultingAndSketching hoặc không có sketchRecords
-              order.image && (
-                <Card
-                  title={
-                    <span style={{
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      color: '#4caf50',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <PictureOutlined />
-                      Hình ảnh khách hàng cung cấp
-                    </span>
+                } else {
+                   return (
+                     <Card title="Hình ảnh khách hàng cung cấp (Ban đầu)" style={{ marginBottom: '24px' }}>
+                       <Empty description="Không tìm thấy hình ảnh ban đầu trong bản ghi phác thảo." />
+                     </Card>
+                   );
+                }
+              }
+              // --- Case 2: Show ALL Sketch Phases ---
+              else if (showAllPhasesStatuses.includes(order?.status)) {
+                 if (recordLoading) {
+                   return <Card title="Bản vẽ phác thảo & Hình ảnh gốc" loading={true} style={{ marginBottom: '24px' }} />;
+                 }
+                  if (recordError) {
+                    return <Card title="Bản vẽ phác thảo & Hình ảnh gốc" style={{ marginBottom: '24px' }}><Alert message="Lỗi tải bản phác thảo" description={recordError.toString()} type="error" showIcon /></Card>;
                   }
-                  style={{
-                    borderRadius: '16px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                    marginBottom: '24px'
-                  }}
-                >
-                  <Row gutter={[16, 16]}>
-                    {order.image.imageUrl && (
-                      <Col xs={24} sm={8}>
-                        <Image
-                          src={order.image.imageUrl}
-                          alt="Hình ảnh 1"
-                          className="rounded-lg"
-                          style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                        />
-                      </Col>
-                    )}
-                    {order.image.image2 && (
-                      <Col xs={24} sm={8}>
-                        <Image
-                          src={order.image.image2}
-                          alt="Hình ảnh 2"
-                          className="rounded-lg"
-                          style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                        />
-                      </Col>
-                    )}
-                    {order.image.image3 && (
-                      <Col xs={24} sm={8}>
-                        <Image
-                          src={order.image.image3}
-                          alt="Hình ảnh 3"
-                          className="rounded-lg"
-                          style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                        />
-                      </Col>
-                    )}
-                     {/* Hiển thị nếu object image tồn tại nhưng không có url nào */} 
-                    {!order.image.imageUrl && !order.image.image2 && !order.image.image3 && (
-                      <Col span={24}>
-                         <Empty description="Khách hàng không cung cấp hình ảnh." />
-                      </Col>
-                    )}
-                  </Row>
-                </Card>
-              )
-            )}
+                 if (sketchRecords && sketchRecords.length > 0) {
+                    const maxPhase = Math.max(...sketchRecords.map(r => r.phase), 0);
+                    const phasesToShow = Array.from({ length: maxPhase + 1 }, (_, i) => i);
 
-            {order.description && (
+                    return (
+                       <Card
+                          title={
+                             <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <PictureOutlined /> Bản vẽ phác thảo & Hình ảnh gốc
+                             </span>
+                          }
+                          style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
+                          loading={recordLoading}
+                       >
+                          {phasesToShow.map(phase => {
+                              const phaseRecords = sketchRecords.filter(record => record.phase === phase);
+                              if (phaseRecords.length === 0) return null;
+
+                              const phaseTitle = phase === 0
+                                ? "Hình ảnh khách hàng cung cấp (Ban đầu)"
+                                : `Bản phác thảo lần ${phase}`;
+
+                              const isAnySelectedInPhase = phaseRecords.some(record => record.isSelected);
+                              const canSelect = phase > 0 && !sketchRecords.some(r => r.isSelected);
+
+                              return (
+                                <div key={phase} style={{ marginBottom: '24px' }}> { /* Margin between phases */}
+                                  <Title level={5} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>
+                                    {phaseTitle}
+                                    {isAnySelectedInPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                                  </Title>
+                                  {/* Loop through records within the phase */}
+                                  {phaseRecords.map(record => (
+                                     <div key={record.id} style={{ marginBottom: '16px' }}> { /* Margin between records in same phase */}
+                                        <Card 
+                                           hoverable 
+                                           bodyStyle={{ padding: '12px' }} 
+                                           style={{ border: record.isSelected ? '2px solid #52c41a' : '1px solid #f0f0f0', borderRadius: '8px' }}
+                                        >
+                                           <Image.PreviewGroup>
+                                              <Row gutter={[12, 12]}> { /* Inner grid for images */}
+                                                 {record.image?.imageUrl && (
+                                                   <Col xs={24} sm={12} md={8}>
+                                                     <Image
+                                                       src={record.image.imageUrl}
+                                                       alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 1`}
+                                                       style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                                     />
+                                                   </Col>
+                                                 )}
+                                                 {record.image?.image2 && (
+                                                   <Col xs={24} sm={12} md={8}>
+                                                     <Image
+                                                       src={record.image.image2}
+                                                       alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 2`}
+                                                       style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                                     />
+                                                   </Col>
+                                                 )}
+                                                 {record.image?.image3 && (
+                                                   <Col xs={24} sm={12} md={8}>
+                                                     <Image
+                                                       src={record.image.image3}
+                                                       alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 3`}
+                                                       style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                                     />
+                                                   </Col>
+                                                 )}
+                                                  {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                                     <Col span={24}>
+                                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có ảnh trong bản ghi này" />
+                                                     </Col>
+                                                  )}
+                                              </Row>
+                                           </Image.PreviewGroup>
+                                        </Card>
+                                         {/* Selection button - Place AFTER the image card */} 
+                                         {canSelect && (
+                                           <Popconfirm
+                                             title="Xác nhận chọn bản phác thảo này?"
+                                             onConfirm={() => handleConfirmSketch(record.id)}
+                                             okText="Xác nhận"
+                                             cancelText="Hủy"
+                                             disabled={recordLoading} 
+                                           >
+                                             <Button
+                                               type="primary"
+                                               icon={<CheckCircleOutlined />}
+                                               style={{ marginTop: '10px', width: '100%' }} 
+                                               loading={recordLoading} 
+                                             >
+                                               Chọn bản này
+                                             </Button>
+                                           </Popconfirm>
+                                         )}
+                                     </div>
+                                  ))}
+                                </div>
+                              );
+                          })}
+                          {phasesToShow.every(p => sketchRecords.filter(r => r.phase === p).length === 0) && (
+                             <Empty description="Không tìm thấy bản phác thảo phù hợp." />
+                          )}
+                       </Card>
+                    );
+                 } else {
+                    return (
+                       <Card title="Bản vẽ phác thảo & Hình ảnh gốc" style={{ marginBottom: '24px' }}>
+                          <Empty description="Chưa có bản phác thảo nào được tải lên." />
+                       </Card>
+                    );
+                 }
+              }
+              // --- Case 3: Fallback to order.image (Layout seems OK here already) ---
+              else if (order?.image && (order.image.imageUrl || order.image.image2 || order.image.image3)) {
+                 return (
+                    <Card
+                       title={
+                          <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                             <PictureOutlined /> Hình ảnh khách hàng cung cấp
+                          </span>
+                       }
+                       style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
+                    >
+                       <Image.PreviewGroup>
+                          <Row gutter={[16, 16]}> { /* Existing good layout */}
+                              {order.image.imageUrl && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image src={order.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }} />
+                                </Col>
+                              )}
+                              {order.image.image2 && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image src={order.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }} />
+                                </Col>
+                              )}
+                              {order.image.image3 && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image src={order.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}/>
+                                </Col>
+                              )}
+                           </Row>
+                        </Image.PreviewGroup>
+                    </Card>
+                 );
+              }
+              // --- Final Fallback: No Images Available ---
+              else {
+                 return (
+                    <Card title="Hình ảnh" style={{ marginBottom: '24px' }}>
+                       <Empty description="Không có hình ảnh nào được cung cấp cho đơn hàng này." />
+                    </Card>
+                 );
+              }
+            })()}
+            {/* ------------- End Conditional Image Display Section ------------- */}
+
+            {order?.description && (
               <Card
                 title={
                   <span style={{
@@ -630,9 +756,9 @@ const ServiceOrderDetail = () => {
               </Card>
             )}
 
-            {/* Bảng sản phẩm đã chọn */}
-            {selectedOrder.serviceOrderDetails && selectedOrder.serviceOrderDetails.length > 0 && (
-              <Card
+            {/* Products Table Card ... */}
+            {order?.serviceOrderDetails && order.serviceOrderDetails.length > 0 && (
+               <Card
                 title={
                   <span style={{
                     fontSize: '18px',
@@ -651,28 +777,38 @@ const ServiceOrderDetail = () => {
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                   marginBottom: '24px'
                 }}
-                loading={fetchingProducts} // Thêm trạng thái loading cho Card
+                loading={fetchingProducts || productLoading} // Use combined loading
               >
                 <Table
                   columns={productColumns}
-                  dataSource={selectedOrder.serviceOrderDetails}
+                  dataSource={order?.serviceOrderDetails || []}
                   pagination={false}
-                  rowKey={(record, index) => `${record.productId}-${index}`} // Key duy nhất cho mỗi dòng
+                  rowKey={(record, index) => `${record.productId}-${index}`}
                   summary={() => {
                     let totalMaterialCost = 0;
-                    selectedOrder.serviceOrderDetails.forEach(detail => {
+                    (order?.serviceOrderDetails || []).forEach(detail => {
                       const product = productDetailsMap[detail.productId];
                       if (product && typeof product.price === 'number' && typeof detail.quantity === 'number') {
                         totalMaterialCost += product.price * detail.quantity;
                       }
                     });
+                    const displayMaterialPrice = finalMaterialPriceStatuses.includes(order?.status) && typeof order?.materialPrice === 'number'
+                                                  ? order.materialPrice
+                                                  : totalMaterialCost;
+
                     return (
                       <Table.Summary.Row>
                         <Table.Summary.Cell index={0} colSpan={3} align="right">
-                          <Text strong>Tổng tiền vật liệu:</Text>
+                           <Text strong>
+                             {finalMaterialPriceStatuses.includes(order?.status)
+                               ? "Tổng tiền vật liệu (chính thức):"
+                               : "Tổng tiền vật liệu (dự kiến):"}
+                           </Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={1} align="right">
-                          <Text strong style={{ color: '#cf1322' }}>{formatPrice(totalMaterialCost)}</Text>
+                           <Text strong style={{ color: '#cf1322' }}>
+                             {formatPrice(displayMaterialPrice)}
+                           </Text>
                         </Table.Summary.Cell>
                       </Table.Summary.Row>
                     );
@@ -696,7 +832,6 @@ const ServiceOrderDetail = () => {
                 </span>
               }
               style={{
-
                 borderRadius: '16px',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
@@ -705,17 +840,18 @@ const ServiceOrderDetail = () => {
                 <Timeline.Item color="green">
                   <p style={{ fontSize: '15px', marginBottom: '4px' }}>Đơn hàng được tạo</p>
                   <Text type="secondary" style={{ fontSize: '14px' }}>
-                    {format(new Date(order.creationDate), "dd/MM/yyyy HH:mm")}
+                    {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : '...'}
                   </Text>
                 </Timeline.Item>
-                <Timeline.Item color={getStatusColor(order.status)}>
-                  <p style={{ fontSize: '15px', marginBottom: '4px', color: '#4caf50', fontWeight: '600' }}>
-                    {getStatusText(order.status)}
-                  </p>
-                </Timeline.Item>
+                {order?.status && (
+                  <Timeline.Item color={getStatusColor(order.status)}>
+                    <p style={{ fontSize: '15px', marginBottom: '4px', color: '#4caf50', fontWeight: '600' }}>
+                      {getStatusText(order.status)}
+                    </p>
+                  </Timeline.Item>
+                )}
               </Timeline>
             </Card>
-
 
           </Card>
         </div>
