@@ -167,96 +167,148 @@ const useScheduleStore = create((set, get) => ({
 
   // Thêm hàm để cập nhật trạng thái task cho đơn hàng có trạng thái DepositSuccessful
   updateTasksForDepositSuccessfulOrders: async () => {
+    // Prevent concurrent runs if another sync is happening (optional but good practice)
+    if (get().isLoading) { // Simple check using existing loading state
+        console.log("Update (Deposit Successful) skipped: Another operation in progress.");
+        return { message: "Store is busy." };
+    }
     set({ isLoading: true, error: null });
+    console.log("Starting check for Deposit Successful orders to update tasks/orders...");
+    let updatedCount = 0;
+
     try {
-      // Lấy danh sách đơn hàng có trạng thái DepositSuccessful
-      const responseNoIdea = await api.get("/api/serviceorder/noidea");
-      const responseUsingIdea = await api.get("/api/serviceorder/usingidea");
-      const responseDepositSuccessful = responseNoIdea.data && responseUsingIdea.data;
-      
-      if (!responseDepositSuccessful || responseDepositSuccessful.length === 0) {
+      // Step 1: Fetch latest orders correctly
+      const [noIdeaResponse, usingIdeaResponse] = await Promise.all([
+          api.get("/api/serviceorder/noidea").catch(e => { console.error("Failed fetch noIdeaOrders:", e); return { data: [] }; }),
+          api.get("/api/serviceorder/usingidea").catch(e => { console.error("Failed fetch usingIdeaOrders:", e); return { data: [] }; })
+      ]);
+      const allOrders = [...(noIdeaResponse.data || []), ...(usingIdeaResponse.data || [])];
+      console.log(`Fetched ${allOrders.length} total orders.`);
+
+      // Step 2: Filter orders with DepositSuccessful status (e.g., status code 3 or string)
+      const depositSuccessfulOrders = allOrders.filter(order => 
+          order.status === 3 || order.status === 'DepositSuccessful'
+      );
+      console.log(`Found ${depositSuccessfulOrders.length} orders with DepositSuccessful status.`);
+
+      // Step 3: Check if any orders need processing
+      if (depositSuccessfulOrders.length === 0) {
         set({ isLoading: false });
-        return { message: "Không có đơn hàng nào có trạng thái DepositSuccessful" };
+        return { message: "Không có đơn hàng nào ở trạng thái DepositSuccessful cần kiểm tra." };
       }
-      
-      // Lấy danh sách task hiện tại
-      const tasks = get().workTasks;
-      
-      // Cập nhật trạng thái task cho từng đơn hàng
-      const updatePromises = responseDepositSuccessful.map(async (order) => {
-        // Tìm task tương ứng với đơn hàng
-        const task = tasks.find(task => task.serviceOrderId === order.id);
-        
+
+      // Step 4: Get current tasks from state
+      const currentTasks = get().workTasks || [];
+       if (currentTasks.length === 0) {
+          console.log("No current tasks in state to check against.");
+          set({ isLoading: false });
+          return { message: "Không có task nào trong hệ thống để kiểm tra." };
+      }
+      console.log(`Checking against ${currentTasks.length} current tasks.`);
+
+      // Step 5: Iterate through filtered orders and prepare updates
+      const updatePromises = depositSuccessfulOrders.map(async (order) => {
+        // Find the corresponding task
+        const task = currentTasks.find(t => t.serviceOrderId === order.id);
+
+        // Step 6: Apply conditions for update
         if (task) {
-          // Kiểm tra nếu task đã có trạng thái 2 (Design) hoặc service order có trạng thái AssignToDesigner thì bỏ qua
-          if (task.status === 2 || task.status === "Design" || order.status === "AssignToDesigner") {
-            return null;
-          }
+           // Check if task/order ALREADY processed or task status is not DoneConsulting
+           const isTaskAlreadyDesign = task.status === 2 || task.status === 'Design';
+           const isOrderAlreadyAssigned = order.status === 4 || order.status === 'AssignToDesigner'; // Should be DepositSuccessful here, but double check
+           const isTaskDoneConsulting = task.status === 1 || task.status === 'DoneConsulting';
 
-          // Chỉ cập nhật khi order có trạng thái DepositSuccessful và task có trạng thái DoneConsulting
-          if (order.status !== "DepositSuccessful" || task.status !== "DoneConsulting") {
-            return null;
-          }
-          
-          // Cập nhật trạng thái task lên 2
-          const updateResponse = await api.put(`/api/worktask/${task.id}`, {
-            serviceOrderId: task.serviceOrderId,
-            userId: task.userId,
-            status: 2,
-            note: task.note || "Khách hàng đã đặt cọc"
-          });
+           if (isTaskAlreadyDesign || isOrderAlreadyAssigned) {
+               console.log(`   - Skipping order ${order.id}: Task/Order already in Design/Assigned status.`);
+               return null; // Already updated, skip
+           }
+           
+           if (!isTaskDoneConsulting) {
+                console.log(`   - Skipping order ${order.id}: Task status is ${task.status}, not DoneConsulting.`);
+                return null; // Task not ready, skip
+           }
 
-          // Chỉ cập nhật service order nếu cập nhật task thành công
-          if (updateResponse.data) {
-            console.log("Updating service order status for order:", order.id);
-            // Tự động cập nhật trạng thái service order lên 4 (Designing)
-            const updateServiceOrder = await api.put(`/api/serviceorder/status/${order.id}`, {
-              status: 4, // Trạng thái 4 tương ứng với "Designing"
-              deliveryCode: "" // Thêm trường deliveryCode theo yêu cầu API
-            });
-            
-            console.log("Service order update response:", updateServiceOrder.data);
-          }
-          
-          return updateResponse.data;
+           // Conditions met: Order is DepositSuccessful AND Task is DoneConsulting
+           console.log(`   - Processing update for order ${order.id} / task ${task.id}...`);
+           try {
+             // Step 7a: Update Task status to Design (2)
+             console.log(`     Updating task ${task.id} to status 2 (Design)...`);
+             const taskUpdatePayload = {
+               serviceOrderId: task.serviceOrderId,
+               userId: task.userId,
+               status: 2, // Target status: Design
+               note: task.note || "Khách hàng đã đặt cọc, bắt đầu thiết kế."
+             };
+             const taskUpdateResponse = await api.put(`/api/worktask/${task.id}`, taskUpdatePayload);
+             const updatedTaskData = taskUpdateResponse.data;
+             console.log(`     Task ${task.id} updated successfully.`);
+
+             // Step 7b: Update ServiceOrder status to AssignToDesigner (4) ONLY IF Task update succeeded
+             if (updatedTaskData) { // Check if update response is valid
+                console.log(`     Updating order ${order.id} to status 4 (AssignToDesigner)...`);
+                const orderUpdatePayload = {
+                   status: 4, 
+                   deliveryCode: order.deliveryCode || "" // Preserve or set default
+                };
+                // Use the correct endpoint for status update
+                await api.put(`/api/serviceorder/status/${order.id}`, orderUpdatePayload);
+                console.log(`     Order ${order.id} status updated successfully.`);
+                updatedCount++; // Increment counter for successful full update
+                return updatedTaskData; // Return the updated task data for state update
+             } else {
+                console.error(`     Task ${task.id} update API call did not return expected data.`);
+                return null; // Task update failed
+             }
+           } catch (err) {
+             console.error(`   - Failed to update task ${task.id} or order ${order.id}:`, err.response?.data || err.message);
+             return null; // Indicate failure for this pair
+           }
+        } else {
+           console.log(`   - No task found for DepositSuccessful order ${order.id}.`);
+           return null; // No task found
         }
-        return null;
       });
-      
-      // Đợi tất cả các promise hoàn thành
+
+      // Step 8: Wait for all updates and process results
       const results = await Promise.all(updatePromises);
-      const updatedTasks = results.filter(result => result !== null);
-      
-      // Cập nhật state với danh sách task mới
-      if (updatedTasks.length > 0) {
-        // Cập nhật workTasks trong state
-        const currentTasks = get().workTasks;
-        const updatedWorkTasks = currentTasks.map(task => {
-          const updatedTask = updatedTasks.find(ut => ut.id === task.id);
-          return updatedTask || task;
-        });
-        
-        set({ 
-          workTasks: updatedWorkTasks,
-          isLoading: false 
+      const successfullyUpdatedTasks = results.filter(result => result !== null);
+
+      // Step 9: Update state if any tasks were successfully updated
+      if (successfullyUpdatedTasks.length > 0) {
+        console.log(`Successfully processed updates for ${updatedCount} Task/Order pairs.`);
+        // Update the main workTasks state with the results
+        set(state => {
+           const newTaskState = state.workTasks.map(task => {
+               const updatedVersion = successfullyUpdatedTasks.find(ut => ut.id === task.id);
+               return updatedVersion || task;
+           });
+           console.log("Updated workTasks state in store after DepositSuccessful sync.");
+           return { 
+             workTasks: newTaskState, 
+             isLoading: false 
+           };
         });
         
         return { 
-          message: `Đã cập nhật ${updatedTasks.length} task và trạng thái đơn hàng cho đơn hàng có trạng thái DepositSuccessful`,
-          updatedTasks
+          message: `Đã cập nhật ${updatedCount} task sang trạng thái Thiết kế và đơn hàng sang Đã giao cho nhà thiết kế.`,
+          updatedTasks: successfullyUpdatedTasks // Return the tasks that were updated
         };
       }
       
+      // Step 10: No updates were needed or performed
+      console.log("No tasks/orders required updates in this cycle.");
       set({ isLoading: false });
-      return { message: "Không có task nào cần cập nhật" };
+      return { message: "Không có task/đơn hàng nào cần cập nhật trạng thái." };
+
     } catch (error) {
-      console.error("Error updating tasks for deposit successful orders:", error);
+      console.error("General error during updateTasksForDepositSuccessfulOrders:", error);
       set({ 
-        error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful",
+        error: error.message || "Lỗi khi cập nhật task/đơn hàng cho trạng thái DepositSuccessful",
         isLoading: false 
       });
-      return { error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful" };
-    }
+      return { error: error.message || "Lỗi khi cập nhật task/đơn hàng." };
+    } 
+    // No finally block needed as isLoading is set in success/error paths
   },
 
   // --- Sync Task status for ReConsulting Orders ---

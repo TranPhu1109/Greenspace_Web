@@ -168,6 +168,10 @@ const TaskDetail = () => {
     console.log("Set task function:", typeof setTask === 'function' ? 'Available' : 'Not a function');
   }, [task, setTask]);
 
+  useEffect(() => {
+    fetchTaskDetail(id);
+  }, [id, fetchTaskDetail]);
+
 
   const handleDesignImageUpload = async (file) => {
     try {
@@ -271,13 +275,20 @@ const TaskDetail = () => {
       sketchForm.resetFields();
       setSketchFiles([]);
 
-      // Fetch updated data
+      // Refetch task detail first
       await fetchTaskDetail(id);
-      await getRecordSketch(task.serviceOrder.id);
-      
-      // Reset any other relevant states
-      setSketchImageUrls([]);
-      setDesignImageUrls([]);
+      console.log("Task detail refetched after sketch submission.");
+
+      // Explicitly refetch sketch records AFTER task detail is updated
+      try {
+        console.log(`Attempting to refetch sketches for order ${task.serviceOrder.id}...`);
+        // Ensure you are using the correct ID, task.serviceOrder.id should be available
+        await getRecordSketch(task.serviceOrder.id); 
+        console.log("Sketch records refetched successfully.");
+      } catch (sketchError) {
+        console.error("Failed to refetch sketches after update:", sketchError);
+        message.warning("Không thể làm mới danh sách bản phác thảo ngay lập tức.");
+      }
 
     } catch (error) {
       message.destroy();
@@ -326,7 +337,7 @@ const TaskDetail = () => {
       message.success("Cập nhật bản vẽ thiết kế thành công");
       setIsModalVisibleDesign(false);
       // Reload the page after successful update
-      window.location.reload();
+      fetchTaskDetail(id);
     } catch (error) {
       console.error("Update error:", error);
       // Xử lý các trường hợp lỗi cụ thể
@@ -524,7 +535,7 @@ const TaskDetail = () => {
     if (responseStatus === 'Update Successfully!') {
       // Không sử dụng setTask trực tiếp
       // Làm mới dữ liệu task sau khi cập nhật
-      await fetchTaskDetail(id);
+      fetchTaskDetail(id);
       message.success("Hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm");
     } else {
       message.error("Không thể cập nhật trạng thái service order");

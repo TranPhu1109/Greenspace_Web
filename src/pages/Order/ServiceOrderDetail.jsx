@@ -825,7 +825,7 @@ const ServiceOrderDetail = () => {
       key: "product",
       render: (_, record) => {
         const product = productDetailsMap[record.productId];
-        return (
+    return (
           <Space>
             <Image
               src={product?.image?.imageUrl || "/placeholder.png"}
@@ -996,13 +996,13 @@ const ServiceOrderDetail = () => {
             description={displayError.toString()}
             showIcon
             className="mb-4 w-full max-w-lg"
-          />
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/history-booking-services")}
-          >
+            />
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate("/history-booking-services")}
+            >
             Quay lại lịch sử
-          </Button>
+            </Button>
         </Content>
         <Footer />
       </Layout>
@@ -1024,13 +1024,13 @@ const ServiceOrderDetail = () => {
             description={`Không thể tìm thấy thông tin cho đơn hàng #${id}.`}
             showIcon
             className="mb-4 w-full max-w-lg"
-          />
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/history-booking-services")}
-          >
+            />
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate("/history-booking-services")}
+            >
             Quay lại lịch sử
-          </Button>
+            </Button>
         </Content>
         <Footer />
       </Layout>
@@ -1094,7 +1094,7 @@ const ServiceOrderDetail = () => {
               boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             }}
           />
-
+          
           <Card
             className="shadow-md mb-6"
             style={{
