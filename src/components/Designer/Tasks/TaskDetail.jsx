@@ -203,7 +203,7 @@ const TaskDetail = () => {
     let uploadedUrls = [];
     try {
       const values = await sketchForm.validateFields();
-      const currentOrderStatus = task?.serviceOrder?.status; // Get current order status
+      const currentOrderStatus = task?.serviceOrder?.status;
 
       setUploadingSketch(true); 
 
@@ -217,75 +217,67 @@ const TaskDetail = () => {
         }
         message.success("Tải ảnh lên thành công!");
       } else {
-        // If no new files, check if *any* existing images are present before assuming old ones
         const existingImages = [
           task.serviceOrder.image?.imageUrl,
           task.serviceOrder.image?.image2,
           task.serviceOrder.image?.image3
         ].filter(Boolean); 
         if(existingImages.length === 0 && sketchFiles.length === 0){
-            // If no existing images AND no new files, require upload
             throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
         }
-         // Use existing images if no new files were uploaded BUT existing images are present
         uploadedUrls = existingImages; 
       }
       
-      // Determine the status to send for record creation based on current order status
       let statusForRecordCreation;
       if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
         statusForRecordCreation = 1;
       } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
         statusForRecordCreation = 19;
       } else {
-        // Handle unexpected status - log a warning and default or throw error
         console.warn(`Unexpected initial status ${currentOrderStatus} for sketch submission. Defaulting status to 1.`);
-        statusForRecordCreation = 1; // Defaulting to 1 might be safer than failing
+        statusForRecordCreation = 1;
       }
-      console.log(`Using status ${statusForRecordCreation} for initial update (record creation).`);
 
-      // Step 2: Update service order with initial status (for record creation)
       const serviceOrderUpdateData = {
         serviceType: 1, 
         designPrice: values.designPrice,
-        description: task.serviceOrder.description, // Keep original description?
-        status: statusForRecordCreation, // Use the determined status (1 or 19)
+        description: task.serviceOrder.description,
+        status: statusForRecordCreation,
         report: values.report || "",
         image: {
-          imageUrl: uploadedUrls[0] || "", // Use null instead of empty string
+          imageUrl: uploadedUrls[0] || "",
           image2: uploadedUrls[1] || "",
           image3: uploadedUrls[2] || ""
         },
-        // Do NOT send serviceOrderDetails unless they are also being updated here
       };
-      console.log("Payload for updateServiceOrder:", serviceOrderUpdateData);
+
+      // Step 2: Update service order
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
-      console.log(`ServiceOrder updated with status ${statusForRecordCreation}.`);
 
-      // Step 3: Update Service Order Status to DeterminingDesignPrice (2)
-      console.log('Updating Service Order Status to 2 (DeterminingDesignPrice)...');
-      await updateStatus(task.serviceOrder.id, 2); // Call updateStatus to set final status
-      console.log('Service Order Status updated to 2.');
+      // Step 3: Update Service Order Status
+      await updateStatus(task.serviceOrder.id, 2);
 
-      // Step 4: Update task status to DoneConsulting (1)
-      console.log('Updating Designer Task Status to 1 (DoneConsulting)...');
+      // Step 4: Update task status
       await updateTaskStatus(task.id, {
-        serviceOrderId: task.serviceOrder.id, // Ensure correct ID is passed
+        serviceOrderId: task.serviceOrder.id,
         userId: user.id,
-        status: 1, // Task status: DoneConsulting
+        status: 1,
         note: "Hoàn thành phác thảo và báo giá dự kiến."
       });
-      console.log('Designer Task status updated to 1.');
 
       // --- Success handling ---
       message.success("Đã gửi phác thảo và giá dự kiến cho quản lý.");
       setIsModalVisible(false);
       sketchForm.resetFields();
-      setSketchFiles([]); 
-      // Don't setSketchImageUrls here, rely on fetchTaskDetail to show latest
+      setSketchFiles([]);
 
-      await fetchTaskDetail(id); 
-      console.log("Task detail refetched.");
+      // Fetch updated data
+      await fetchTaskDetail(id);
+      await getRecordSketch(task.serviceOrder.id);
+      
+      // Reset any other relevant states
+      setSketchImageUrls([]);
+      setDesignImageUrls([]);
 
     } catch (error) {
       message.destroy();

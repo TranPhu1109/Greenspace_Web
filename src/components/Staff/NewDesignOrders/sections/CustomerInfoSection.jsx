@@ -16,6 +16,17 @@ const CustomerInfoSection = ({ customer }) => {
     return <Card title="Thông tin khách hàng">Không có dữ liệu</Card>;
   }
 
+  // Format address properly - filter out undefined values
+  const formatAddress = (address) => {
+    if (!address) return "Chưa cung cấp";
+    
+    // Split by pipe character and filter out empty or undefined parts
+    const parts = address.split('|').filter(part => part && part !== "undefined" && part.trim() !== "");
+    
+    // Join with commas if we have valid parts, otherwise show default message
+    return parts.length > 0 ? parts.join(", ") : "Chưa cung cấp đầy đủ";
+  };
+
   return (
     <Card
       title="Thông tin khách hàng"
@@ -71,7 +82,7 @@ const CustomerInfoSection = ({ customer }) => {
             </>
           }
         >
-          {customer.address?.replace(/\|/g, ", ")}
+          {formatAddress(customer.address)}
         </Descriptions.Item>
       </Descriptions>
     </Card>
