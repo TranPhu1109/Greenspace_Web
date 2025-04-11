@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef} from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import useServiceOrderStore from "@/stores/useServiceOrderStore";
 import useProductStore from "@/stores/useProductStore";
@@ -48,17 +48,17 @@ import {
   EditOutlined,
   StopOutlined,
   UploadOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  DollarOutlined
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
 const { Content } = Layout;
 const { TextArea } = Input;
-
 const ServiceOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const {updateStatus, selectedOrder} = useDesignOrderStore();
+  const {updateStatus, selectedOrder, getDesignOrderById} = useDesignOrderStore();
   const {
     loading,
     error,
@@ -70,8 +70,11 @@ const ServiceOrderDetail = () => {
   const { getProductById, isLoading: productLoading } = useProductStore();
   const {
     sketchRecords,
+    designRecords,
     getRecordSketch,
+    getRecordDesign,
     confirmRecord,
+    confirmDesignRecord,
     isLoading: recordLoading,
     error: recordError
   } = useRecordStore();
@@ -97,9 +100,23 @@ const ServiceOrderDetail = () => {
   const [signatureUrl, setSignatureUrl] = useState(null);
   const [selectedSketchId, setSelectedSketchId] = useState(null);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
-    const [isRevisionModalVisible, setIsRevisionModalVisible] = useState(false);
+  const [isRevisionModalVisible, setIsRevisionModalVisible] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  
+  // New states for design records
+  const [selectedDesignId, setSelectedDesignId] = useState(null);
+  const [isConfirmDesignModalVisible, setIsConfirmDesignModalVisible] = useState(false);
+  const [isCancelWithFeeModalVisible, setIsCancelWithFeeModalVisible] = useState(false);
+  const [cancelDesignNote, setCancelDesignNote] = useState("");
+  const [loadingDesignRecords, setLoadingDesignRecords] = useState(false);
+  const [isRedesignModalVisible, setIsRedesignModalVisible] = useState(false);
+  const [redesignNote, setRedesignNote] = useState("");
+
+  const componentId = useRef("service-order");
+
+
 
   // Define statuses where ONLY phase 0 sketches are shown initially
   const showOnlyPhase0Statuses = [
@@ -124,7 +141,25 @@ const ServiceOrderDetail = () => {
     'CompleteOrder',            // 13
     'Warning',                  // 15
     "ReConsultingAndSketching", // 19
+    "ReDesign",                 // 20
     // Add other relevant statuses if needed
+  ];
+  
+  // Define statuses where design records should be shown
+  const showDesignRecordsStatuses = [
+    'AssignToDesigner',           // 4
+    'DeterminingMaterialPrice',   // 5 
+    'DoneDesign',                 // 6
+    'DoneDeterminingMaterialPrice', // 23
+    'PaymentSuccess',             // 7
+    'Processing',                 // 8
+    'PickedPackageAndDelivery',   // 9
+    'DeliveryFail',               // 10
+    'ReDelivery',                 // 11
+    'DeliveredSuccessfully',      // 12
+    'CompleteOrder',              // 13
+    'Warning',                    // 15
+    'ReDesign',                   // 20
   ];
   
   // Define statuses where contract should be visible
@@ -185,6 +220,22 @@ const ServiceOrderDetail = () => {
         } else {
           console.log(`Sketches not required for status: ${orderData.status}`);
         }
+        
+        // Fetch design records if the status requires it
+        if (showDesignRecordsStatuses.includes(orderData.status)) {
+          console.log(`Fetching design records for order ${id} with status ${orderData.status}`);
+          setLoadingDesignRecords(true);
+          try {
+            await getRecordDesign(id);
+            console.log("Design records fetched successfully");
+          } catch (designError) {
+            console.error("Error fetching design records:", designError);
+          } finally {
+            setLoadingDesignRecords(false);
+          }
+        } else {
+          console.log(`Design records not required for status: ${orderData.status}`);
+        }
 
       } catch (err) {
         console.error("Error fetching order details, products, or sketches:", err);
@@ -200,8 +251,8 @@ const ServiceOrderDetail = () => {
     if (id) {
       fetchOrderDetailAndSketches();
     }
-    // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
-  }, [id, getServiceOrderById, getProductById, getRecordSketch]); // Ensure all store actions are dependencies
+    // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch, getRecordDesign
+  }, [id, getServiceOrderById, getProductById, getRecordSketch, getRecordDesign]); // Ensure all store actions are dependencies
 
   // Add useEffect to update whenever order status changes
   useEffect(() => {
@@ -336,16 +387,16 @@ const ServiceOrderDetail = () => {
       'ReConsultingAndSketching': "Đang tư vấn & phác thảo", 
       21: "Chờ đặt cọc",
       'WaitDeposit': "Chờ đặt cọc",
-      3: "Đang thiết kế",
-      'DepositSuccessful': "Đang thiết kế",
+      3: "Đặt cọc thành công",
+      'DepositSuccessful': "Đặt cọc thành công",
       4: "Đang thiết kế",
       'AssignToDesigner': "Đang thiết kế",
       5: "Đang thiết kế", 
       'DeterminingMaterialPrice': "Đang thiết kế",
       20: "Đang thiết kế", // Hide ReDesign
       'ReDesign': "Đang thiết kế",
-      6: "Đang báo giá vật liệu",
-      'DoneDesign': "Đang báo giá vật liệu",
+      6: "Thiết kế hoàn tất",
+      'DoneDesign': "Thiết kế hoàn tất",
       23: "Chờ thanh toán chi phí còn lại",
       'DoneDeterminingMaterialPrice': "Chờ thanh toán chi phí còn lại",
       7: "Đang chuẩn bị hàng",
@@ -718,6 +769,36 @@ const ServiceOrderDetail = () => {
     return price.toLocaleString("vi-VN") + " VNĐ";
   };
 
+  console.log("order", order);
+  
+  const handleCompleteOrder = async () => {
+    try {
+      const response = await updateStatus(
+        order.id,
+        "CompleteOrder",
+        order.deliveryCode
+      );
+      
+      //console.log('Response data:', response);
+      
+      if (response === "Update Successfully!") {
+        message.success("Đã xác nhận hoàn thành đơn hàng");
+        
+        // Refresh both service order and design order data
+        const updatedOrder = await getServiceOrderById(id);
+        setOrder(updatedOrder);
+        
+        await getDesignOrderById(id, componentId.current);
+      } else {
+        message.error("Cập nhật trạng thái không thành công");
+      }
+    } catch (error) {
+      console.error("Error completing order:", error);
+      message.error("Không thể xác nhận hoàn thành đơn hàng");
+    }
+  };
+  //console.log("selectedOrder", selectedOrder);
+
   // Định nghĩa cột cho bảng sản phẩm
   const productColumns = [
     {
@@ -838,6 +919,44 @@ const ServiceOrderDetail = () => {
       setIsSubmitting(false);
     }
   };
+  
+  // --- Redesign Modal Handlers ---
+  const handleOpenRedesignModal = () => {
+    setRedesignNote(""); // Clear previous note
+    setIsRedesignModalVisible(true);
+  };
+
+  const handleCloseRedesignModal = () => {
+    setIsRedesignModalVisible(false);
+  };
+
+  const handleSubmitRedesign = async () => {
+    if (!redesignNote.trim()) {
+      message.warning("Vui lòng nhập lý do yêu cầu thiết kế lại.");
+      return;
+    }
+    setIsSubmitting(true);
+    const payload = {
+      serviceType: 1,
+      status: 20, // ReDesign
+      report: redesignNote // Add note to report field
+    };
+    try {
+      // Use updateServiceForCus from useServiceOrderStore
+      await updateServiceForCus(id, payload);
+      message.success("Đã gửi yêu cầu thiết kế lại.");
+      setIsRedesignModalVisible(false);
+      await getServiceOrderById(id); // Refetch to show updated status
+      // Also refresh design records if needed
+      if (showDesignRecordsStatuses.includes(20)) { // If ReDesign status should show design records
+        await getRecordDesign(id);
+      }
+    } catch (err) {
+      message.error("Gửi yêu cầu thiết kế lại thất bại: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // --- Cancel Order Handler ---
   const handleCancelOrder = async () => {
@@ -850,6 +969,179 @@ const ServiceOrderDetail = () => {
       await getServiceOrderById(id); // Refetch to show updated status
     } catch (err) {
       message.error("Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // New function to handle design record confirmation
+  const handleConfirmDesign = (recordId) => {
+    setSelectedDesignId(recordId);
+    setIsConfirmDesignModalVisible(true);
+  };
+  
+  // Function to confirm design selection
+  const handleDesignSelection = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      // First step: Confirm the design selection
+      await confirmDesignRecord(selectedDesignId);
+      message.success('Đã chọn bản thiết kế chi tiết thành công!');
+      setIsConfirmDesignModalVisible(false);
+      
+      // Second step: Update status to DoneDesign (status code 6)
+      try {
+        await updateStatus(id, 6);
+        message.success('Đã cập nhật trạng thái đơn hàng');
+        
+        // Third step: Refresh order data
+        const updatedOrder = await getServiceOrderById(id);
+        console.log('Updated order status after design selection:', updatedOrder?.status);
+        
+        // Update local order state
+        setOrder(updatedOrder);
+        
+        // Refresh design records
+        await getRecordDesign(id);
+        
+      } catch (statusError) {
+        console.error("Error updating status after design selection:", statusError);
+        message.error('Không thể cập nhật trạng thái đơn hàng: ' + statusError.message);
+      }
+    } catch (err) {
+      console.error("Error confirming design:", err);
+      message.error('Không thể chọn bản thiết kế: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Function to cancel design selection
+  const handleCancelDesignSelection = () => {
+    setSelectedDesignId(null);
+    setIsConfirmDesignModalVisible(false);
+  };
+  
+  // Function to open cancel with fee modal
+  const handleOpenCancelWithFeeModal = () => {
+    setCancelDesignNote("");
+    setIsCancelWithFeeModalVisible(true);
+  };
+  
+  // Function to handle order cancellation with 50% fee
+  const handleCancelWithFee = async () => {
+    if (!cancelDesignNote.trim()) {
+      message.warning("Vui lòng nhập lý do hủy đơn hàng.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      // Calculate 50% of the design price
+      const cancelFee = order?.designPrice ? order.designPrice * 0.5 : 0;
+      
+      // Handle payment for cancellation fee
+      try {
+        const walletStorage = localStorage.getItem("wallet-storage");
+        if (!walletStorage) {
+          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
+        }
+        const walletData = JSON.parse(walletStorage);
+        const walletId = walletData.state.walletId;
+        if (!walletId) {
+          throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
+        }
+
+        // Make payment for cancellation fee
+        const response = await api.post("/api/bill", {
+          walletId: walletId,
+          serviceOrderId: order.id,
+          amount: cancelFee,
+          description: `Thanh toán 50% phí thiết kế còn lại cho việc hủy đơn hàng #${order.id.slice(0, 8)}`,
+        });
+
+        if (response.data) {
+          // Update order status to cancelled
+          const payload = {
+            serviceType: 1,
+            status: 14, // OrderCancelled
+            report: `Hủy sau khi xem 3 bản thiết kế: ${cancelDesignNote}`
+          };
+          
+          await updateServiceForCus(id, payload);
+          message.success("Đã hủy đơn hàng và thanh toán phí hủy thành công.");
+          setIsCancelWithFeeModalVisible(false);
+          
+          // Refresh order data
+          const updatedOrder = await getServiceOrderById(id);
+          setOrder(updatedOrder);
+        }
+      } catch (paymentError) {
+        console.error("Payment error:", paymentError);
+        throw new Error("Thanh toán phí hủy thất bại: " + (paymentError.response?.data?.error || paymentError.message));
+      }
+    } catch (err) {
+      message.error("Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler for making final payment in DoneDesign status
+  const handleOpenPaymentModal = () => {
+    setIsPaymentModalVisible(true);
+  };
+  
+  const handleFinalPayment = async () => {
+    if (!order) {
+      message.error("Không tìm thấy thông tin đơn hàng. Vui lòng làm mới trang.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      // Calculate remaining payment amount (50% of design price + material price)
+      const remainingDesignFee = order.designPrice * 0.5; // 50% of design price
+      const materialPrice = order.materialPrice || 0;
+      const totalPayment = remainingDesignFee + materialPrice;
+      
+      // Handle payment for final payment
+      try {
+        const walletStorage = localStorage.getItem("wallet-storage");
+        if (!walletStorage) {
+          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
+        }
+        const walletData = JSON.parse(walletStorage);
+        const walletId = walletData.state.walletId;
+        if (!walletId) {
+          throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
+        }
+
+        // Make payment
+        const response = await api.post("/api/bill", {
+          walletId: walletId,
+          serviceOrderId: order.id,
+          amount: totalPayment,
+          description: `Thanh toán 50% phí thiết kế còn lại và giá vật liệu cho đơn hàng #${order.id.slice(0, 8)}`,
+        });
+
+        if (response.data) {
+          // Update order status to DoneDeterminingMaterialPrice (23)
+          await updateStatus(id, 7);
+          message.success("Thanh toán thành công! Đơn hàng của bạn đang được xử lý.");
+          setIsPaymentModalVisible(false);
+          
+          // Refresh order data
+          const updatedOrder = await getServiceOrderById(id);
+          setOrder(updatedOrder);
+        }
+      } catch (paymentError) {
+        console.error("Payment error:", paymentError);
+        throw new Error("Thanh toán thất bại: " + (paymentError.response?.data?.error || paymentError.message));
+      }
+    } catch (err) {
+      message.error("Thanh toán thất bại: " + (err.response?.data?.message || err.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -1089,9 +1381,11 @@ const ServiceOrderDetail = () => {
                     </Descriptions.Item>
                     <Descriptions.Item
                       label={
-                        finalMaterialPriceStatuses.includes(order?.status)
+                        order?.status === 'DoneDesign' || order?.status === 6
                           ? "Giá vật liệu"
-                          : "Giá vật liệu (dự kiến)"
+                          : (finalMaterialPriceStatuses.includes(order?.status)
+                              ? "Giá vật liệu"
+                              : "Giá vật liệu (dự kiến)")
                       }
                     >
                       {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
@@ -1103,17 +1397,71 @@ const ServiceOrderDetail = () => {
                       )}
                     </Descriptions.Item>
                     <Descriptions.Item label="Tổng chi phí">
-                      {order?.totalCost === undefined ? 'Đang tải...' :
-                        order.totalCost === 0 ? (
-                          <Tag color="gold">Chưa xác định tổng</Tag>
-                        ) : (
-                          <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPrice(order.totalCost)}</span>
-                        )}
+                      {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" || 
+                       order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder' ? (
+                        <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
+                          {formatPrice((order.designPrice || 0) + (order.materialPrice || 0))}
+                        </span>
+                      ) : (
+                        order?.totalCost === undefined ? 'Đang tải...' :
+                          order.totalCost === 0 ? (
+                            <Tag color="gold">Chưa xác định tổng</Tag>
+                          ) : (
+                            <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPrice(order.totalCost)}</span>
+                          )
+                      )}
                     </Descriptions.Item>
                     <Descriptions.Item label="Ngày tạo">
                       {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : 'Đang tải...'}
                     </Descriptions.Item>
+
+                    
+                    
+                    {/* Payment Reminder for DoneDesign status */}
+                    {(order?.status === 'DoneDesign') && (
+                      <Descriptions.Item label="">
+                        <div style={{ 
+                          backgroundColor: '#fffbe6', 
+                          border: '1px solid #ffe58f', 
+                          padding: '8px 12px', 
+                          borderRadius: '4px',
+                          marginTop: '8px',
+                          marginBottom: '10px'
+                        }}>
+                          <Text type="warning" style={{ fontSize: '14px' }}>
+                            Vui lòng thanh toán 50% phí thiết kế còn lại và giá vật liệu để tiếp tục.
+                          </Text>
+                        </div>
+                        <Button 
+                          type="primary" 
+                          icon={<DollarOutlined />} 
+                          onClick={handleOpenPaymentModal}
+                          style={{ width: '100%', marginTop: '8px' }}
+                        >
+                          Thanh toán ngay: {formatPrice((order.designPrice || 0) * 0.5 + (order.materialPrice || 0))}
+                        </Button>
+                      </Descriptions.Item>
+                    )}
                   </Descriptions>
+                  
+                  {order?.status === "DeliveredSuccessfully" && (
+                    <Button
+                    style={{marginTop:15}}
+                      type="primary"
+                      onClick={() => {
+                        Modal.confirm({
+                          title: "Xác nhận hoàn thành",
+                          content:
+                            "Bạn có chắc chắn muốn xác nhận hoàn thành đơn hàng này?",
+                          okText: "Xác nhận",
+                          cancelText: "Hủy",
+                          onOk: handleCompleteOrder,
+                        });
+                      }}
+                    >
+                      Xác nhận hoàn thành
+                    </Button>
+                  )}  
                 </Card>
               </Col>
             </Row>
@@ -1289,6 +1637,144 @@ const ServiceOrderDetail = () => {
               }
             })()}
             {/* ------------- End Conditional Image Display Section ------------- */}
+            
+            {/* ------------- Design Records Display Section ------------- */}
+            {showDesignRecordsStatuses.includes(order?.status) && (
+              <Card
+                title={
+                  <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <PictureOutlined /> Bản thiết kế chi tiết
+                  </span>
+                }
+                style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
+                loading={loadingDesignRecords}
+              >
+                {designRecords && designRecords.length > 0 ? (
+                  <>
+                    {[1, 2, 3].map(phase => {
+                      const phaseRecords = designRecords.filter(record => record.phase === phase);
+                      if (phaseRecords.length === 0) return null;
+
+                      const phaseTitle = `Bản thiết kế chi tiết lần ${phase}`;
+                      const isAnySelectedInPhase = phaseRecords.some(record => record.isSelected);
+                      
+                      // Determine if selection is allowed for this design record
+                      const isSelectionAllowed = 
+                        (order?.status === 'DoneDeterminingDesignPrice' || 
+                         order?.status === 'AssignToDesigner' || 
+                         order?.status === 'DeterminingMaterialPrice') && 
+                        !designRecords.some(r => r.isSelected);
+
+                      return (
+                        <div key={phase} style={{ marginBottom: '24px' }}>
+                          <Title level={5} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>
+                            {phaseTitle}
+                            {isAnySelectedInPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                          </Title>
+                          {phaseRecords.map(record => (
+                            <div key={record.id} style={{ marginBottom: '16px' }}>
+                              <Card
+                                hoverable
+                                bodyStyle={{ padding: '12px' }}
+                                style={{ border: record.isSelected ? '2px solid #52c41a' : '1px solid #f0f0f0', borderRadius: '8px' }}
+                              >
+                                <Image.PreviewGroup>
+                                  <Row gutter={[12, 12]}>
+                                    {record.image?.imageUrl && (
+                                      <Col xs={24} sm={12} md={8}>
+                                        <Image
+                                          src={record.image.imageUrl}
+                                          alt={`Bản thiết kế ${phase} - 1`}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                        />
+                                      </Col>
+                                    )}
+                                    {record.image?.image2 && (
+                                      <Col xs={24} sm={12} md={8}>
+                                        <Image
+                                          src={record.image.image2}
+                                          alt={`Bản thiết kế ${phase} - 2`}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                        />
+                                      </Col>
+                                    )}
+                                    {record.image?.image3 && (
+                                      <Col xs={24} sm={12} md={8}>
+                                        <Image
+                                          src={record.image.image3}
+                                          alt={`Bản thiết kế ${phase} - 3`}
+                                          style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                                        />
+                                      </Col>
+                                    )}
+                                    {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                      <Col span={24}>
+                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có ảnh trong bản ghi này" />
+                                      </Col>
+                                    )}
+                                  </Row>
+                                </Image.PreviewGroup>
+                              </Card>
+
+                              {isSelectionAllowed && (
+                                <Button
+                                  type="primary"
+                                  icon={<CheckCircleOutlined />}
+                                  style={{ marginTop: '10px', width: '100%' }}
+                                  loading={isSubmitting}
+                                  onClick={() => handleConfirmDesign(record.id)}
+                                >
+                                  Chọn bản thiết kế này
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Action buttons for design records */}
+                    {(order?.status === 'DoneDeterminingDesignPrice') && (
+                      <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+                        {/* Only show redesign button if less than 3 design phases */}
+                        {!designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
+                          <Button
+                            icon={<EditOutlined />}
+                            onClick={handleOpenRedesignModal}
+                            disabled={isSubmitting || loadingDesignRecords}
+                          >
+                            Yêu cầu thiết kế lại
+                          </Button>
+                        )}
+                        
+                        {/* Only show cancel with fee button if all 3 design phases are present */}
+                        {designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
+                          <Button
+                            danger
+                            icon={<StopOutlined />}
+                            onClick={handleOpenCancelWithFeeModal}
+                            disabled={isSubmitting || loadingDesignRecords}
+                          >
+                            Hủy đơn và thanh toán 50% còn lại
+                          </Button>
+                        )}
+                        
+                        {!designRecords.some(r => r.isSelected) && (
+                          <Text type="secondary" style={{ alignSelf: 'center' }}>
+                            {designRecords.some(r => r.phase === 3) 
+                              ? "Vui lòng chọn một bản thiết kế hoặc hủy đơn hàng (sẽ phải thanh toán 50% phí thiết kế còn lại)."
+                              : "Vui lòng chọn một bản thiết kế để tiếp tục."}
+                          </Text>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Empty description={loadingDesignRecords ? "Đang tải bản thiết kế..." : "Chưa có bản thiết kế chi tiết nào."} />
+                )}
+              </Card>
+            )}
+            {/* ------------- End Design Records Display Section ------------- */}
 
             {order?.description && (
               <Card
@@ -1525,15 +2011,7 @@ const ServiceOrderDetail = () => {
                     Xem hợp đồng
                   </Button>
                   
-                  {/* Debug info - will help identify state issues */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div style={{ padding: '8px', background: '#f9f9f9', marginTop: '8px', fontSize: '12px' }}>
-                      <div>showContractButton: {showContractButton ? 'true' : 'false'}</div>
-                      <div>contract: {contract ? `ID: ${contract.id}` : 'null'}</div>
-                      <div>order.status: {order?.status}</div>
-                      <div>selectedOrder.status: {selectedOrder?.status}</div>
-                    </div>
-                  )}
+                  
                   
                   {/* Ensure the signing button appears as soon as the status is updated */}
                   {(!contract?.modificationDate && (
@@ -1741,6 +2219,108 @@ const ServiceOrderDetail = () => {
           <p>Sau khi chọn, hệ thống sẽ tự động tạo hợp đồng và bạn sẽ cần thanh toán 50% phí thiết kế để tiếp tục.</p>
         </Modal>
 
+        {/* Add Confirmation Modal */}
+        <Modal
+          title="Xác nhận chọn bản thiết kế chi tiết"
+          open={isConfirmDesignModalVisible}
+          onOk={handleDesignSelection}
+          onCancel={handleCancelDesignSelection}
+          okText="Xác nhận"
+          cancelText="Hủy"
+          confirmLoading={isSubmitting}
+        >
+          <p>Bạn có chắc chắn muốn chọn bản thiết kế chi tiết này không?</p>
+          <p>Sau khi chọn, thiết kế này sẽ được sử dụng để xác định giá vật liệu và tiến hành các bước tiếp theo.</p>
+        </Modal>
+
+        {/* Cancel with Fee Modal */}
+        <Modal
+          title="Hủy đơn hàng và thanh toán 50% phí thiết kế còn lại"
+          open={isCancelWithFeeModalVisible}
+          onOk={handleCancelWithFee}
+          onCancel={() => setIsCancelWithFeeModalVisible(false)}
+          okText="Xác nhận hủy và thanh toán"
+          cancelText="Không hủy"
+          confirmLoading={isSubmitting}
+          okButtonProps={{ danger: true }}
+        >
+          <p>Bạn đã xem tất cả 3 bản thiết kế chi tiết nhưng không hài lòng với bất kỳ bản nào.</p>
+          <p style={{ color: '#cf1322', fontWeight: 'bold' }}>
+            Để hủy đơn hàng ở giai đoạn này, bạn cần thanh toán 50% phí thiết kế còn lại ({order?.designPrice ? (order.designPrice * 0.5).toLocaleString("vi-VN") + " VNĐ" : "..."}).
+          </p>
+          <p>Vui lòng cho chúng tôi biết lý do bạn hủy đơn hàng:</p>
+          <TextArea
+            rows={4}
+            value={cancelDesignNote}
+            onChange={(e) => setCancelDesignNote(e.target.value)}
+            placeholder="Ví dụ: Tôi đã xem tất cả các bản thiết kế nhưng không phù hợp với ý tưởng của tôi..."
+          />
+        </Modal>
+        
+        {/* Redesign Request Modal */}
+        <Modal
+          title="Yêu cầu thiết kế lại"
+          open={isRedesignModalVisible}
+          onCancel={handleCloseRedesignModal}
+          onOk={handleSubmitRedesign}
+          confirmLoading={isSubmitting}
+          okText="Gửi yêu cầu"
+          cancelText="Hủy bỏ"
+        >
+          <p>Vui lòng cho chúng tôi biết lý do bạn muốn thiết kế lại hoặc những điểm cần chỉnh sửa:</p>
+          <TextArea
+            rows={4}
+            value={redesignNote}
+            onChange={(e) => setRedesignNote(e.target.value)}
+            placeholder="Ví dụ: Tôi muốn thay đổi bố cục, điều chỉnh vị trí của các yếu tố, thay đổi kiểu dáng..."
+          />
+        </Modal>
+
+        {/* Payment Modal */}
+        <Modal
+          title="Thanh toán 50% phí thiết kế còn lại và giá vật liệu"
+          open={isPaymentModalVisible}
+          onOk={handleFinalPayment}
+          onCancel={() => setIsPaymentModalVisible(false)}
+          okText="Xác nhận thanh toán"
+          cancelText="Hủy bỏ"
+          confirmLoading={isSubmitting}
+        >
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="Phí thiết kế đã thanh toán (50%)">
+              <Text>{formatPrice((order?.designPrice || 0) * 0.5)}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Phí thiết kế còn lại (50%)">
+              <Text strong style={{ color: '#1890ff' }}>{formatPrice((order?.designPrice || 0) * 0.5)}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Giá vật liệu">
+              <Text strong style={{ color: '#1890ff' }}>{formatPrice(order?.materialPrice || 0)}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Tổng thanh toán">
+              <Text strong style={{ color: '#f5222d', fontSize: '16px' }}>
+                {formatPrice((order?.designPrice || 0) * 0.5 + (order?.materialPrice || 0))}
+              </Text>
+            </Descriptions.Item>
+          </Descriptions>
+          
+          <div style={{ 
+            backgroundColor: '#f6ffed', 
+            border: '1px solid #b7eb8f', 
+            padding: '12px 16px', 
+            borderRadius: '4px',
+            marginTop: '16px'
+          }}>
+            <p style={{ margin: 0 }}>
+              <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
+              Thanh toán này bao gồm 50% phí thiết kế còn lại và toàn bộ giá vật liệu
+            </p>
+            <p style={{ margin: '8px 0 0 0' }}>
+              <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
+              Sau khi thanh toán, đơn hàng của bạn sẽ được xử lý và chuyển sang giai đoạn sản xuất
+            </p>
+          </div>
+        </Modal>
+
       </Content>
       <Footer />
 
@@ -1762,6 +2342,110 @@ const ServiceOrderDetail = () => {
           placeholder="Ví dụ: Tôi muốn thay đổi màu sắc chủ đạo, thêm nhiều cây xanh hơn..."
         />
       </Modal>
+      
+      {/* Design Confirmation Modal */}
+      <Modal
+        title="Xác nhận chọn bản thiết kế chi tiết"
+        open={isConfirmDesignModalVisible}
+        onOk={handleDesignSelection}
+        onCancel={handleCancelDesignSelection}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        confirmLoading={isSubmitting}
+      >
+        <p>Bạn có chắc chắn muốn chọn bản thiết kế chi tiết này không?</p>
+        <p>Sau khi chọn, thiết kế này sẽ được sử dụng để xác định giá vật liệu và tiến hành các bước tiếp theo.</p>
+      </Modal>
+      
+      {/* Cancel with Fee Modal */}
+      <Modal
+        title="Hủy đơn hàng và thanh toán 50% phí thiết kế còn lại"
+        open={isCancelWithFeeModalVisible}
+        onOk={handleCancelWithFee}
+        onCancel={() => setIsCancelWithFeeModalVisible(false)}
+        okText="Xác nhận hủy và thanh toán"
+        cancelText="Không hủy"
+        confirmLoading={isSubmitting}
+        okButtonProps={{ danger: true }}
+      >
+        <p>Bạn đã xem tất cả 3 bản thiết kế chi tiết nhưng không hài lòng với bất kỳ bản nào.</p>
+        <p style={{ color: '#cf1322', fontWeight: 'bold' }}>
+          Để hủy đơn hàng ở giai đoạn này, bạn cần thanh toán 50% phí thiết kế còn lại ({order?.designPrice ? (order.designPrice * 0.5).toLocaleString("vi-VN") + " VNĐ" : "..."}).
+        </p>
+        <p>Vui lòng cho chúng tôi biết lý do bạn hủy đơn hàng:</p>
+        <TextArea
+          rows={4}
+          value={cancelDesignNote}
+          onChange={(e) => setCancelDesignNote(e.target.value)}
+          placeholder="Ví dụ: Tôi đã xem tất cả các bản thiết kế nhưng không phù hợp với ý tưởng của tôi..."
+        />
+      </Modal>
+      
+      {/* Redesign Request Modal */}
+      <Modal
+        title="Yêu cầu thiết kế lại"
+        open={isRedesignModalVisible}
+        onCancel={handleCloseRedesignModal}
+        onOk={handleSubmitRedesign}
+        confirmLoading={isSubmitting}
+        okText="Gửi yêu cầu"
+        cancelText="Hủy bỏ"
+      >
+        <p>Vui lòng cho chúng tôi biết lý do bạn muốn thiết kế lại hoặc những điểm cần chỉnh sửa:</p>
+        <TextArea
+          rows={4}
+          value={redesignNote}
+          onChange={(e) => setRedesignNote(e.target.value)}
+          placeholder="Ví dụ: Tôi muốn thay đổi bố cục, điều chỉnh vị trí của các yếu tố, thay đổi kiểu dáng..."
+        />
+      </Modal>
+
+      {/* Payment Modal */}
+      <Modal
+        title="Thanh toán 50% phí thiết kế còn lại và giá vật liệu"
+        open={isPaymentModalVisible}
+        onOk={handleFinalPayment}
+        onCancel={() => setIsPaymentModalVisible(false)}
+        okText="Xác nhận thanh toán"
+        cancelText="Hủy bỏ"
+        confirmLoading={isSubmitting}
+      >
+        <Descriptions bordered column={1}>
+          <Descriptions.Item label="Phí thiết kế đã thanh toán (50%)">
+            <Text>{formatPrice((order?.designPrice || 0) * 0.5)}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="Phí thiết kế còn lại (50%)">
+            <Text strong style={{ color: '#1890ff' }}>{formatPrice((order?.designPrice || 0) * 0.5)}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="Giá vật liệu">
+            <Text strong style={{ color: '#1890ff' }}>{formatPrice(order?.materialPrice || 0)}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="Tổng thanh toán">
+            <Text strong style={{ color: '#f5222d', fontSize: '16px' }}>
+              {formatPrice((order?.designPrice || 0) * 0.5 + (order?.materialPrice || 0))}
+            </Text>
+          </Descriptions.Item>
+        </Descriptions>
+        
+        <div style={{ 
+          backgroundColor: '#f6ffed', 
+          border: '1px solid #b7eb8f', 
+          padding: '12px 16px', 
+          borderRadius: '4px',
+          marginTop: '16px'
+        }}>
+          <p style={{ margin: 0 }}>
+            <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
+            Thanh toán này bao gồm 50% phí thiết kế còn lại và toàn bộ giá vật liệu
+          </p>
+          <p style={{ margin: '8px 0 0 0' }}>
+            <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
+            Sau khi thanh toán, đơn hàng của bạn sẽ được xử lý và chuyển sang giai đoạn sản xuất
+          </p>
+        </div>
+      </Modal>
+
+      
 
     </Layout>
   );

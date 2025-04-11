@@ -281,7 +281,7 @@ const DesignDetailPage = () => {
                       >
                         Mua thiết kế
                       </Button>
-                      <Button
+                      {/* <Button
                         type="default"
                         size="large"
                         block
@@ -289,7 +289,7 @@ const DesignDetailPage = () => {
                         onClick={handleCustomizeDesign}
                       >
                         Tùy chỉnh
-                      </Button>
+                      </Button> */}
                     </div>
 
                     <div className="product-details">

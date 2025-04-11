@@ -116,89 +116,12 @@ const CustomTemplateOrderDetail = () => {
     fetchContract();
   }, [selectedOrder?.status, selectedOrder?.id, getContractByServiceOrder]);
 
-  // Add function to handle contract generation
-  const handleGenerateContract = async () => {
-    try {
-      if (!selectedOrder) return;
-
-      Modal.confirm({
-        title: "Xác nhận tạo hợp đồng",
-        content: "Bạn có chắc chắn muốn tạo hợp đồng cho đơn hàng này?",
-        okText: "Xác nhận",
-        cancelText: "Hủy",
-        onOk: async () => {
-          try {
-            const contractData = {
-              userId: selectedOrder.userId,
-              serviceOrderId: selectedOrder.id,
-              userName: selectedOrder.userName,
-              email: selectedOrder.email,
-              phone: selectedOrder.cusPhone,
-              address: selectedOrder.address,
-              designPrice: selectedOrder.designPrice || 0,
-            };
-
-            const result = await generateContract(contractData);
-            message.success("Tạo hợp đồng thành công");
-
-            // Could navigate to contract view or download PDF if API returns such data
-            // For now just show success message
-          } catch (error) {
-            message.error(
-              "Không thể tạo hợp đồng: " +
-                (error.message || "Lỗi không xác định")
-            );
-          }
-        },
-      });
-    } catch (error) {
-      message.error(
-        "Không thể tạo hợp đồng: " + (error.message || "Lỗi không xác định")
-      );
-    }
-  };
-
-  // Add function to handle contract viewing
-  const handleViewContract = () => {
-    if (contract?.description) {
-      setIsContractModalVisible(true);
-    }
-  };
-
   // Add function to close contract modal
   const handleCloseContractModal = () => {
     setIsContractModalVisible(false);
   };
 
   // Add function to handle status update
-  const handleUpdateToConsulting = async () => {
-    try {
-      Modal.confirm({
-        title: "Cập nhật trạng thái",
-        content:
-          "Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng thành 'Tư vấn và phác thảo'?",
-        okText: "Xác nhận",
-        cancelText: "Hủy",
-        onOk: async () => {
-          try {
-            await updateStatus(selectedOrder.id, "ConsultingAndSketching");
-            message.success("Đã cập nhật trạng thái đơn hàng thành công");
-            // Refresh order details to see the updated status
-            await getDesignOrderById(id);
-          } catch (error) {
-            message.error(
-              "Không thể cập nhật trạng thái đơn hàng: " +
-                (error.message || "Lỗi không xác định")
-            );
-          }
-        },
-      });
-    } catch (error) {
-      message.error(
-        "Có lỗi xảy ra: " + (error.message || "Lỗi không xác định")
-      );
-    }
-  };
 
   const handleViewMaterials = async () => {
     try {

@@ -594,7 +594,7 @@ const NewDesignOrderDetail = () => {
                     </Card>
                 )}
 
-                {currentOrder.serviceOrderDetails && currentOrder.serviceOrderDetails.length > 0 && (
+                {/* {currentOrder.serviceOrderDetails && currentOrder.serviceOrderDetails.length > 0 && (
                     <Card
                         title={
                             <span style={{
@@ -646,7 +646,9 @@ const NewDesignOrderDetail = () => {
                             }}
                         />
                     </Card>
-                )}
+                )} */}
+
+                
 
                 {currentOrder.report && (
                     <Card
