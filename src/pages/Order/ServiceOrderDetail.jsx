@@ -1933,7 +1933,7 @@ const ServiceOrderDetail = () => {
                             });
                             openSignAndPayModal();
                           }}
-                          style={{ width: "100%", margin: "0 auto", justifyContent: "center" }}
+                          style={{ width: "30%", margin: "0 auto", justifyContent: "center" }}
                         >
                           Ký hợp đồng & Thanh toán cọc
                         </Button>
