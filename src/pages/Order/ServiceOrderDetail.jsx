@@ -28,7 +28,7 @@ import {
   Popconfirm,
   Empty,
   Modal,
-  Upload
+  Input
 } from "antd";
 import { format } from "date-fns";
 import Footer from "@/components/Footer";
@@ -45,17 +45,27 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
+  EditOutlined,
+  StopOutlined,
   UploadOutlined
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
 const { Content } = Layout;
+const { TextArea } = Input;
 
 const ServiceOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const {updateStatus} = useDesignOrderStore();
-  const { selectedOrder, loading, error, getServiceOrderById } = useServiceOrderStore();
+  const {
+    loading,
+    error,
+    getServiceOrderById,
+    updateServiceForCus,
+    cancelServiceOrder,
+    updateServiceOrderStatus
+  } = useServiceOrderStore();
   const { getProductById, isLoading: productLoading } = useProductStore();
   const {
     sketchRecords,
@@ -86,7 +96,10 @@ const ServiceOrderDetail = () => {
   const [signatureUrl, setSignatureUrl] = useState(null);
   const [selectedSketchId, setSelectedSketchId] = useState(null);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
-  
+    const [isRevisionModalVisible, setIsRevisionModalVisible] = useState(false);
+  const [revisionNote, setRevisionNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Define statuses where ONLY phase 0 sketches are shown initially
   const showOnlyPhase0Statuses = [
     'ConsultingAndSketching' // 16
@@ -109,6 +122,7 @@ const ServiceOrderDetail = () => {
     'DeliveredSuccessfully',    // 12
     'CompleteOrder',            // 13
     'Warning',                  // 15
+    "ReConsultingAndSketching", // 19
     // Add other relevant statuses if needed
   ];
   
@@ -165,18 +179,18 @@ const ServiceOrderDetail = () => {
 
         // Fetch sketch records if the status requires it
         if (showOnlyPhase0Statuses.includes(orderData.status) || showAllPhasesStatuses.includes(orderData.status)) {
-           console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
-           await getRecordSketch(id); // Fetch sketches
+          console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
+          await getRecordSketch(id); // Fetch sketches
         } else {
-           console.log(`Sketches not required for status: ${orderData.status}`);
+          console.log(`Sketches not required for status: ${orderData.status}`);
         }
 
       } catch (err) {
         console.error("Error fetching order details, products, or sketches:", err);
         // Prioritize order fetch error
         const errorMessage = err.message.includes("order")
-                             ? "Không thể tải thông tin đơn hàng."
-                             : "Có lỗi xảy ra khi tải dữ liệu.";
+          ? "Không thể tải thông tin đơn hàng."
+          : "Có lỗi xảy ra khi tải dữ liệu.";
         setLocalError(errorMessage);
         setFetchingProducts(false); // Ensure loading states are reset on error
       }
@@ -185,7 +199,7 @@ const ServiceOrderDetail = () => {
     if (id) {
       fetchOrderDetailAndSketches();
     }
-  // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
+    // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
   }, [id, getServiceOrderById, getProductById, getRecordSketch]); // Ensure all store actions are dependencies
 
   // Update useEffect to fetch contract correctly
@@ -264,38 +278,118 @@ const ServiceOrderDetail = () => {
     }
   }, [contract, selectedOrder?.status, showContractButton, contractVisibleStatuses, contractVisibleStatusCodes]);
 
-  const getStatusColor = (status) => {
-    const statusColors = {
-      Pending: "orange",
-      PaymentSuccess: "green",
-      Processing: "blue",
-      PickedPackageAndDelivery: "cyan",
-      DeliveryFail: "red",
-      ReDelivery: "purple",
-      DeliveredSuccessfully: "green",
-      CompleteOrder: "green",
-      OrderCancelled: "red",
-      ConsultingAndSketching: "blue",
-      NoDesignIdea: "default",
+  // Mapping from backend status number/name to customer-friendly text
+  const getStatusText = (status) => {
+    const statusMap = {
+      0: "Chờ xử lý",
+      'Pending': "Chờ xử lý",
+      1: "Đang tư vấn & phác thảo",
+      'ConsultingAndSketching': "Đang tư vấn & phác thảo",
+      2: "Đang tư vấn & phác thảo", // Hide DeterminingDesignPrice
+      'DeterminingDesignPrice': "Đang tư vấn & phác thảo", 
+      22: "Chờ duyệt phác thảo",
+      'DoneDeterminingDesignPrice': "Chờ duyệt phác thảo",
+      19: "Đang tư vấn & phác thảo", // Hide ReConsultingAndSketching
+      'ReConsultingAndSketching': "Đang tư vấn & phác thảo", 
+      21: "Chờ đặt cọc",
+      'WaitDeposit': "Chờ đặt cọc",
+      3: "Đang thiết kế",
+      'DepositSuccessful': "Đang thiết kế",
+      4: "Đang thiết kế",
+      'AssignToDesigner': "Đang thiết kế",
+      5: "Đang thiết kế", 
+      'DeterminingMaterialPrice': "Đang thiết kế",
+      20: "Đang thiết kế", // Hide ReDesign
+      'ReDesign': "Đang thiết kế",
+      6: "Đang báo giá vật liệu",
+      'DoneDesign': "Đang báo giá vật liệu",
+      23: "Chờ thanh toán chi phí còn lại",
+      'DoneDeterminingMaterialPrice': "Chờ thanh toán chi phí còn lại",
+      7: "Đang chuẩn bị hàng",
+      'PaymentSuccess': "Đang chuẩn bị hàng",
+      8: "Đang chuẩn bị hàng",
+      'Processing': "Đang chuẩn bị hàng",
+      9: "Đang giao hàng",
+      'PickedPackageAndDelivery': "Đang giao hàng",
+      12: "Đã giao hàng thành công",
+      'DeliveredSuccessfully': "Đã giao hàng thành công",
+      13: "Hoàn thành đơn hàng",
+      'CompleteOrder': "Hoàn thành đơn hàng",
+      14: "Đã hủy",
+      'OrderCancelled': "Đã hủy",
+      18: "Đã hủy",
+      'StopService': "Đã hủy",
+      10: "Giao hàng thất bại",
+      'DeliveryFail': "Giao hàng thất bại",
+      11: "Đang giao lại",
+      'ReDelivery': "Đang giao lại",
+      15: "Đang xử lý", // Consider a generic status for Warning
+      'Warning': "Đang xử lý",
+      16: "Đang hoàn tiền",
+      'Refund': "Đang hoàn tiền",
+      17: "Đã hoàn tiền",
+      'DoneRefund': "Đã hoàn tiền",
+      // Add other statuses if needed
     };
-    return statusColors[status] || "default";
+    // Return mapped text or the original status if not found
+    return statusMap[status] || status?.toString() || 'Không xác định'; 
   };
 
-  const getStatusText = (status) => {
-    const statusTexts = {
-      Pending: "Chờ xử lý",
-      PaymentSuccess: "Đã thanh toán",
-      Processing: "Đang xử lý",
-      PickedPackageAndDelivery: "Đã nhận gói và giao hàng",
-      DeliveryFail: "Giao hàng thất bại",
-      ReDelivery: "Giao hàng lại",
-      DeliveredSuccessfully: "Giao hàng thành công",
-      CompleteOrder: "Hoàn thành đơn hàng",
-      OrderCancelled: "Đã hủy đơn hàng",
-      ConsultingAndSketching: "Đang tư vấn và phác thảo",
-      NoDesignIdea: "Không có mẫu thiết kế",
+  // Mapping from backend status number/name to display color
+  const getStatusColor = (status) => {
+    const colorMap = {
+      0: "orange",
+      'Pending': "orange",
+      1: "blue",
+      'ConsultingAndSketching': "blue",
+      2: "blue", // Hide DeterminingDesignPrice
+      'DeterminingDesignPrice': "blue",
+      22: "gold",
+      'DoneDeterminingDesignPrice': "gold",
+      19: "blue", // Hide ReConsultingAndSketching
+      'ReConsultingAndSketching': "blue",
+      21: "purple",
+      'WaitDeposit': "purple",
+      3: "cyan",
+      'DepositSuccessful': "cyan",
+      4: "cyan",
+      'AssignToDesigner': "cyan",
+      5: "cyan",
+      'DeterminingMaterialPrice': "cyan",
+      20: "cyan", // Hide ReDesign
+      'ReDesign': "cyan",
+      6: "gold",
+      'DoneDesign': "gold",
+      23: "purple",
+      'DoneDeterminingMaterialPrice': "purple",
+      7: "processing", // Antd color name
+      'PaymentSuccess': "processing",
+      8: "processing",
+      'Processing': "processing",
+      9: "geekblue",
+      'PickedPackageAndDelivery': "geekblue",
+      12: "success",
+      'DeliveredSuccessfully': "success",
+      13: "success",
+      'CompleteOrder': "success",
+      14: "error",
+      'OrderCancelled': "error",
+      18: "error",
+      'StopService': "error",
+      10: "error",
+      'DeliveryFail': "error",
+      11: "geekblue",
+      'ReDelivery': "geekblue",
+      15: "warning",
+      'Warning': "warning",
+      16: "orange",
+      'Refund': "orange",
+      17: "default",
+      'DoneRefund': "default",
+      // Add other statuses if needed
     };
-    return statusTexts[status] || status;
+    // Return mapped color or 'default'
+    return colorMap[status] || 'default';
   };
 
   // Update handleViewContract function
@@ -555,7 +649,123 @@ const ServiceOrderDetail = () => {
     // Add other relevant statuses if needed
   ];
 
+  // --- Revision Modal Handlers ---
+  const handleOpenRevisionModal = () => {
+    setRevisionNote(""); // Clear previous note
+    setIsRevisionModalVisible(true);
+  };
+
+  const handleCloseRevisionModal = () => {
+    setIsRevisionModalVisible(false);
+  };
+
+  const handleSubmitRevision = async () => {
+    if (!revisionNote.trim()) {
+      message.warning("Vui lòng nhập lý do yêu cầu phác thảo lại.");
+      return;
+    }
+    setIsSubmitting(true);
+    const payload = {
+      serviceType: 1,
+      status: 19, // ReConsultingAndSketching
+      report: revisionNote // Add note to report field
+    };
+    try {
+      // Use updateServiceForCus from useServiceOrderStore
+      await updateServiceForCus(id, payload);
+      message.success("Đã gửi yêu cầu phác thảo lại.");
+      setIsRevisionModalVisible(false);
+      await getServiceOrderById(id); // Refetch to show updated status and potentially new report
+    } catch (err) {
+      message.error("Gửi yêu cầu thất bại: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- Cancel Order Handler ---
+  const handleCancelOrder = async () => {
+    setIsSubmitting(true);
+    // No need for payload, cancelServiceOrder handles the status update
+    try {
+      // Use cancelServiceOrder from useServiceOrderStore
+      await cancelServiceOrder(id);
+      message.success("Đã hủy đơn hàng thành công.");
+      await getServiceOrderById(id); // Refetch to show updated status
+    } catch (err) {
+      message.error("Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // -------- Main Render --------
+  if (loading || (!order && !localError && !error)) { // Show spinner while order is loading initially
+    return (
+      <Layout className="min-h-screen">
+        <Header />
+        <Content className="flex justify-center items-center">
+          <Spin size="large" />
+        </Content>
+        <Footer />
+      </Layout>
+    );
+  }
+
+  const displayError = localError || error || recordError;
+  if (displayError && !order) { // Show blocking error if order fetch failed
+    return (
+      <Layout className="min-h-screen">
+        <Header />
+        <Content className="container mx-auto px-4 py-8 flex flex-col items-center justify-center" style={{ marginTop: "150px" }}>
+          <Alert
+            type="error"
+            message="Lỗi tải dữ liệu"
+            description={displayError.toString()}
+            showIcon
+            className="mb-4 w-full max-w-lg"
+          />
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/history-booking-services")}
+          >
+            Quay lại lịch sử
+          </Button>
+        </Content>
+        <Footer />
+      </Layout>
+    );
+  }
+
+  if (!order) { // Should ideally not be reached if loading/error is handled, but as a fallback
+    return (
+      <Layout className="min-h-screen">
+        <Header />
+        <Content className="container mx-auto px-4 py-8 flex flex-col items-center justify-center" style={{ marginTop: "150px" }}>
+          <Alert
+            type="warning"
+            message="Không tìm thấy đơn hàng"
+            description={`Không thể tìm thấy thông tin cho đơn hàng #${id}.`}
+            showIcon
+            className="mb-4 w-full max-w-lg"
+          />
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/history-booking-services")}
+          >
+            Quay lại lịch sử
+          </Button>
+        </Content>
+        <Footer />
+      </Layout>
+    );
+  }
+
+  // Calculate maxPhase safely
+  const maxPhase = sketchRecords && sketchRecords.length > 0
+    ? Math.max(...sketchRecords.map(r => r.phase), -1) // Use -1 if empty
+    : -1;
+
   return (
     <Layout>
       <Header />
@@ -702,8 +912,8 @@ const ServiceOrderDetail = () => {
                   >
                     <Descriptions.Item label="Kích thước">
                       {order?.length !== undefined && order?.width !== undefined
-                       ? `${order.length}m x ${order.width}m`
-                       : 'Đang tải...'}
+                        ? `${order.length}m x ${order.width}m`
+                        : 'Đang tải...'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Loại dịch vụ">
                       <Tag color={order?.serviceType === "NoDesignIdea" ? "blue" : "green"}>
@@ -724,12 +934,12 @@ const ServiceOrderDetail = () => {
                     <Descriptions.Item
                       label={
                         finalMaterialPriceStatuses.includes(order?.status)
-                        ? "Giá vật liệu"
-                        : "Giá vật liệu (dự kiến)"
+                          ? "Giá vật liệu"
+                          : "Giá vật liệu (dự kiến)"
                       }
                     >
                       {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
-                         <Tag color="default">Chưa có</Tag>
+                        <Tag color="default">Chưa có</Tag>
                       ) : (
                         <span style={{ color: '#4caf50', fontWeight: 'bold' }}>
                           {formatPrice(order.materialPrice)}
@@ -754,40 +964,73 @@ const ServiceOrderDetail = () => {
 
             {/* ------------- Conditional Image Display Section ------------- */}
             {(() => {
-              // --- Case 1: Show ONLY Phase 0 Sketches ---
-              if (showOnlyPhase0Statuses.includes(order?.status)) {
-                if (recordLoading) {
-                   return <Card title="Hình ảnh khách hàng cung cấp (Ban đầu)" loading={true} style={{ marginBottom: '24px' }} />;
+              // --- Case 1 & 2 Combined: Show sketches based on status ---
+              if (showOnlyPhase0Statuses.includes(order?.status) || showAllPhasesStatuses.includes(order?.status)) {
+                if (recordLoading && !sketchRecords) { // Show loading only if no sketches are loaded yet
+                  return <Card title="Bản phác thảo & Hình ảnh gốc" loading={true} style={{ marginBottom: '24px' }} />;
                 }
-                if (recordError) {
-                  return <Card title="Hình ảnh khách hàng cung cấp (Ban đầu)" style={{ marginBottom: '24px' }}><Alert message="Lỗi tải bản phác thảo" description={recordError.toString()} type="error" showIcon /></Card>;
+                if (recordError && !sketchRecords) { // Show error only if fetch failed and no sketches loaded
+                  return <Card title="Bản phác thảo & Hình ảnh gốc" style={{ marginBottom: '24px' }}><Alert message="Lỗi tải bản phác thảo" description={recordError.toString()} type="error" showIcon /></Card>;
                 }
-                const phase0Records = sketchRecords?.filter(record => record.phase === 0) || [];
-                if (phase0Records.length > 0) {
+
+                const phasesToDisplay = showOnlyPhase0Statuses.includes(order?.status)
+                  ? [0] // Only phase 0 for ConsultingAndSketching
+                  : (sketchRecords && sketchRecords.length > 0 ? Array.from({ length: maxPhase + 1 }, (_, i) => i) : []); // All phases for others, handle empty
+
+                const cardTitle = showOnlyPhase0Statuses.includes(order?.status)
+                  ? "Hình ảnh khách hàng cung cấp (Ban đầu)"
+                  : "Bản vẽ phác thảo & Hình ảnh gốc";
+
+                if (phasesToDisplay.length === 0 || !sketchRecords || sketchRecords.length === 0) {
                   return (
-                    <Card
-                       title={
-                          <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                             <PictureOutlined /> Hình ảnh khách hàng cung cấp (Ban đầu)
-                          </span>
-                       }
-                       style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
-                    >
-                       {/* Display records for Phase 0 */}
-                        {phase0Records.map(record => (
-                          <div key={record.id} style={{ marginBottom: '16px' }}>
-                             <Card 
-                                hoverable 
-                                bodyStyle={{ padding: '12px' }} 
-                                style={{ border: '1px solid #f0f0f0', borderRadius: '8px' }} 
-                             > 
+                    <Card title={cardTitle} style={{ marginBottom: '24px' }}>
+                      <Empty description={recordLoading ? "Đang tải bản phác thảo..." : "Chưa có bản phác thảo hoặc hình ảnh gốc nào."} />
+                    </Card>
+                  );
+                }
+
+                return (
+                  <Card
+                    title={
+                      <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <PictureOutlined /> {cardTitle}
+                      </span>
+                    }
+                    style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
+                    loading={recordLoading && sketchRecords.length > 0} // Show loading indicator if refetching
+                  >
+                    {phasesToDisplay.map(phase => {
+                      const phaseRecords = sketchRecords.filter(record => record.phase === phase);
+                      if (phaseRecords.length === 0) return null;
+
+                      const phaseTitle = phase === 0
+                        ? "Hình ảnh khách hàng cung cấp (Ban đầu)"
+                        : `Bản phác thảo lần ${phase}`;
+
+                      const isAnySelectedInPhase = phaseRecords.some(record => record.isSelected);
+                      // Determine if selection is allowed for this record
+                      const isSelectionAllowed = order?.status === 'DoneDeterminingDesignPrice' && phase > 0 && !sketchRecords.some(r => r.isSelected);
+
+                      return (
+                        <div key={phase} style={{ marginBottom: '24px' }}>
+                          <Title level={5} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>
+                            {phaseTitle}
+                            {isAnySelectedInPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                          </Title>
+                          {phaseRecords.map(record => (
+                            <div key={record.id} style={{ marginBottom: '16px' }}>
+                              <Card
+                                hoverable
+                                bodyStyle={{ padding: '12px' }}
+                                style={{ border: record.isSelected ? '2px solid #52c41a' : '1px solid #f0f0f0', borderRadius: '8px' }}
+                              >
                                 <Image.PreviewGroup>
-                                  <Row gutter={[12, 12]}> { /* Inner grid for images */}
+                                  <Row gutter={[12, 12]}>
                                     {record.image?.imageUrl && (
-                                      <Col xs={24} sm={12} md={8}> { /* Responsive column */}
+                                      <Col xs={24} sm={12} md={8}>
                                         <Image
                                           src={record.image.imageUrl}
-                                          alt={`Ảnh gốc 1`}
+                                          alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 1`}
                                           style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
                                         />
                                       </Col>
@@ -796,7 +1039,7 @@ const ServiceOrderDetail = () => {
                                       <Col xs={24} sm={12} md={8}>
                                         <Image
                                           src={record.image.image2}
-                                          alt={`Ảnh gốc 2`}
+                                          alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 2`}
                                           style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
                                         />
                                       </Col>
@@ -805,7 +1048,7 @@ const ServiceOrderDetail = () => {
                                       <Col xs={24} sm={12} md={8}>
                                         <Image
                                           src={record.image.image3}
-                                          alt={`Ảnh gốc 3`}
+                                          alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 3`}
                                           style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
                                         />
                                       </Col>
@@ -817,173 +1060,76 @@ const ServiceOrderDetail = () => {
                                     )}
                                   </Row>
                                 </Image.PreviewGroup>
-                             </Card>
-                          </div>
-                        ))}
-                    </Card>
-                  );
-                } else {
-                   return (
-                     <Card title="Hình ảnh khách hàng cung cấp (Ban đầu)" style={{ marginBottom: '24px' }}>
-                       <Empty description="Không tìm thấy hình ảnh ban đầu trong bản ghi phác thảo." />
-                     </Card>
-                   );
-                }
+                              </Card>
+
+                              {isSelectionAllowed && (
+                                <Popconfirm
+                                  title={`Xác nhận chọn bản phác thảo ${phase}?`}
+                                  onConfirm={() => handleConfirmSketch(record.id)}
+                                  okText="Xác nhận"
+                                  cancelText="Hủy"
+                                  disabled={isSubmitting || recordLoading}
+                                >
+                                  <Button
+                                    type="primary"
+                                    icon={<CheckCircleOutlined />}
+                                    style={{ marginTop: '10px', width: '100%' }}
+                                    loading={isSubmitting}
+                                  >
+                                    Chọn bản này
+                                  </Button>
+                                </Popconfirm>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {/* Render action buttons AFTER the loop of phases */}
+                    {order?.status === 'DoneDeterminingDesignPrice' && (
+                      <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+                        {maxPhase === 1 && (
+                          <Button
+                            icon={<EditOutlined />}
+                            onClick={handleOpenRevisionModal}
+                            disabled={isSubmitting || recordLoading}
+                          >
+                            Yêu cầu phác thảo lại
+                          </Button>
+                        )}
+                        {/* Show Cancel button if maxPhase is 1 OR 2 */}
+                        {maxPhase >= 1 && (
+                          <Popconfirm
+                            title="Bạn chắc chắn muốn hủy đơn hàng này?"
+                            onConfirm={handleCancelOrder}
+                            okText="Xác nhận hủy"
+                            cancelText="Không"
+                            okButtonProps={{ danger: true }}
+                            disabled={isSubmitting || recordLoading || order?.status === 'WaitDeposit'}
+                          >
+                            <Button
+                              danger
+                              icon={<StopOutlined />}
+                              loading={isSubmitting && order?.status === 'OrderCancelled'}
+                              disabled={isSubmitting || recordLoading || order?.status === 'WaitDeposit'}
+                            >
+                              Hủy đơn hàng
+                            </Button>
+                          </Popconfirm>
+                        )}
+                        {!sketchRecords.some(r => r.isSelected) && maxPhase >= 1 && (
+                          <Text type="secondary" style={{ alignSelf: 'center' }}>Vui lòng chọn một bản phác thảo hoặc thực hiện hành động khác.</Text>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
               }
-              // --- Case 2: Show ALL Sketch Phases ---
-              else if (showAllPhasesStatuses.includes(order?.status)) {
-                 if (recordLoading) {
-                   return <Card title="Bản vẽ phác thảo & Hình ảnh gốc" loading={true} style={{ marginBottom: '24px' }} />;
-                 }
-                  if (recordError) {
-                    return <Card title="Bản vẽ phác thảo & Hình ảnh gốc" style={{ marginBottom: '24px' }}><Alert message="Lỗi tải bản phác thảo" description={recordError.toString()} type="error" showIcon /></Card>;
-                  }
-                 if (sketchRecords && sketchRecords.length > 0) {
-                    const maxPhase = Math.max(...sketchRecords.map(r => r.phase), 0);
-                    const phasesToShow = Array.from({ length: maxPhase + 1 }, (_, i) => i);
-
-                    return (
-                       <Card
-                          title={
-                             <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <PictureOutlined /> Bản vẽ phác thảo & Hình ảnh gốc
-                             </span>
-                          }
-                          style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
-                          loading={recordLoading}
-                       >
-                          {phasesToShow.map(phase => {
-                              const phaseRecords = sketchRecords.filter(record => record.phase === phase);
-                              if (phaseRecords.length === 0) return null;
-
-                              const phaseTitle = phase === 0
-                                ? "Hình ảnh khách hàng cung cấp (Ban đầu)"
-                                : `Bản phác thảo lần ${phase}`;
-
-                              const isAnySelectedInPhase = phaseRecords.some(record => record.isSelected);
-                              const canSelect = phase > 0 && !sketchRecords.some(r => r.isSelected);
-
-                              return (
-                                <div key={phase} style={{ marginBottom: '24px' }}> { /* Margin between phases */}
-                                  <Title level={5} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>
-                                    {phaseTitle}
-                                    {isAnySelectedInPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                                  </Title>
-                                  {/* Loop through records within the phase */}
-                                  {phaseRecords.map(record => (
-                                     <div key={record.id} style={{ marginBottom: '16px' }}> { /* Margin between records in same phase */}
-                                        <Card 
-                                           hoverable 
-                                           bodyStyle={{ padding: '12px' }} 
-                                           style={{ border: record.isSelected ? '2px solid #52c41a' : '1px solid #f0f0f0', borderRadius: '8px' }}
-                                        >
-                                           <Image.PreviewGroup>
-                                              <Row gutter={[12, 12]}> { /* Inner grid for images */}
-                                                 {record.image?.imageUrl && (
-                                                   <Col xs={24} sm={12} md={8}>
-                                                     <Image
-                                                       src={record.image.imageUrl}
-                                                       alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 1`}
-                                                       style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
-                                                     />
-                                                   </Col>
-                                                 )}
-                                                 {record.image?.image2 && (
-                                                   <Col xs={24} sm={12} md={8}>
-                                                     <Image
-                                                       src={record.image.image2}
-                                                       alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 2`}
-                                                       style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
-                                                     />
-                                                   </Col>
-                                                 )}
-                                                 {record.image?.image3 && (
-                                                   <Col xs={24} sm={12} md={8}>
-                                                     <Image
-                                                       src={record.image.image3}
-                                                       alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 3`}
-                                                       style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
-                                                     />
-                                                   </Col>
-                                                 )}
-                                                  {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
-                                                     <Col span={24}>
-                                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có ảnh trong bản ghi này" />
-                                                     </Col>
-                                                  )}
-                                              </Row>
-                                           </Image.PreviewGroup>
-                                        </Card>
-                                         {/* Selection button - Place AFTER the image card */} 
-                                         {canSelect && (
-                                           <Button
-                                             type="primary"
-                                             icon={<CheckCircleOutlined />}
-                                             style={{ marginTop: '10px', width: '100%' }} 
-                                             loading={recordLoading}
-                                             onClick={() => handleConfirmSketch(record.id)}
-                                           >
-                                             Chọn bản này
-                                           </Button>
-                                         )}
-                                     </div>
-                                  ))}
-                                </div>
-                              );
-                          })}
-                          {phasesToShow.every(p => sketchRecords.filter(r => r.phase === p).length === 0) && (
-                             <Empty description="Không tìm thấy bản phác thảo phù hợp." />
-                          )}
-                       </Card>
-                    );
-                 } else {
-                    return (
-                       <Card title="Bản vẽ phác thảo & Hình ảnh gốc" style={{ marginBottom: '24px' }}>
-                          <Empty description="Chưa có bản phác thảo nào được tải lên." />
-                       </Card>
-                    );
-                 }
-              }
-              // --- Case 3: Fallback to order.image (Layout seems OK here already) ---
               else if (order?.image && (order.image.imageUrl || order.image.image2 || order.image.image3)) {
-                 return (
-                    <Card
-                       title={
-                          <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                             <PictureOutlined /> Hình ảnh khách hàng cung cấp
-                          </span>
-                       }
-                       style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
-                    >
-                       <Image.PreviewGroup>
-                          <Row gutter={[16, 16]}> { /* Existing good layout */}
-                              {order.image.imageUrl && (
-                                <Col xs={24} sm={12} md={8}>
-                                  <Image src={order.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }} />
-                                </Col>
-                              )}
-                              {order.image.image2 && (
-                                <Col xs={24} sm={12} md={8}>
-                                  <Image src={order.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }} />
-                                </Col>
-                              )}
-                              {order.image.image3 && (
-                                <Col xs={24} sm={12} md={8}>
-                                  <Image src={order.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}/>
-                                </Col>
-                              )}
-                           </Row>
-                        </Image.PreviewGroup>
-                    </Card>
-                 );
+                // ... Fallback image display logic ...
               }
-              // --- Final Fallback: No Images Available ---
               else {
-                 return (
-                    <Card title="Hình ảnh" style={{ marginBottom: '24px' }}>
-                       <Empty description="Không có hình ảnh nào được cung cấp cho đơn hàng này." />
-                    </Card>
-                 );
+                // ... Final fallback Empty component ...
               }
             })()}
             {/* ------------- End Conditional Image Display Section ------------- */}
@@ -1024,7 +1170,7 @@ const ServiceOrderDetail = () => {
 
             {/* Products Table Card ... */}
             {order?.serviceOrderDetails && order.serviceOrderDetails.length > 0 && (
-               <Card
+              <Card
                 title={
                   <span style={{
                     fontSize: '18px',
@@ -1059,22 +1205,22 @@ const ServiceOrderDetail = () => {
                       }
                     });
                     const displayMaterialPrice = finalMaterialPriceStatuses.includes(order?.status) && typeof order?.materialPrice === 'number'
-                                                  ? order.materialPrice
-                                                  : totalMaterialCost;
+                      ? order.materialPrice
+                      : totalMaterialCost;
 
                     return (
                       <Table.Summary.Row>
                         <Table.Summary.Cell index={0} colSpan={3} align="right">
-                           <Text strong>
-                             {finalMaterialPriceStatuses.includes(order?.status)
-                               ? "Tổng tiền vật liệu (chính thức):"
-                               : "Tổng tiền vật liệu (dự kiến):"}
-                           </Text>
+                          <Text strong>
+                            {finalMaterialPriceStatuses.includes(order?.status)
+                              ? "Tổng tiền vật liệu (chính thức):"
+                              : "Tổng tiền vật liệu (dự kiến):"}
+                          </Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={1} align="right">
-                           <Text strong style={{ color: '#cf1322' }}>
-                             {formatPrice(displayMaterialPrice)}
-                           </Text>
+                          <Text strong style={{ color: '#cf1322' }}>
+                            {formatPrice(displayMaterialPrice)}
+                          </Text>
                         </Table.Summary.Cell>
                       </Table.Summary.Row>
                     );
@@ -1102,20 +1248,68 @@ const ServiceOrderDetail = () => {
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <Timeline>
-                <Timeline.Item color="green">
+              <Timeline mode="left">
+                {/* First item: Order Creation */}             
+                <Timeline.Item color="green" dot={<CheckCircleOutlined />}>
                   <p style={{ fontSize: '15px', marginBottom: '4px' }}>Đơn hàng được tạo</p>
                   <Text type="secondary" style={{ fontSize: '14px' }}>
                     {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : '...'}
                   </Text>
                 </Timeline.Item>
-                {order?.status && (
-                  <Timeline.Item color={getStatusColor(order.status)}>
-                    <p style={{ fontSize: '15px', marginBottom: '4px', color: '#4caf50', fontWeight: '600' }}>
-                      {getStatusText(order.status)}
-                    </p>
-                  </Timeline.Item>
-                )}
+
+                {/* Process and display status history */}            
+                {(() => {
+                  if (!order?.statusHistory || order.statusHistory.length === 0) {
+                    // Show current status if no history available (fallback)
+                     return (
+                        <Timeline.Item color={getStatusColor(order.status)} dot={<ClockCircleOutlined />}>
+                          <p style={{ fontSize: '15px', marginBottom: '4px', fontWeight: '600' }}>
+                            {getStatusText(order.status)}
+                          </p>
+                           {/* Optionally add modification date if available */}
+                        </Timeline.Item>
+                     );
+                  }
+
+                  const displayHistory = [];
+                  let lastDisplayedStatusText = null;
+
+                  // Add creation as the effective first status text for comparison
+                   lastDisplayedStatusText = "Đơn hàng được tạo"; // Or map status 0/Pending if creation date is the first history entry
+
+                  order.statusHistory.forEach(historyEntry => {
+                    const currentStatusText = getStatusText(historyEntry.status);
+                    // Display every entry from history
+                    displayHistory.push({
+                      text: currentStatusText, 
+                      color: getStatusColor(historyEntry.status),
+                      timestamp: historyEntry.timestamp,
+                      // Icon based on status (example: cancel icon)
+                      icon: historyEntry.status === 'OrderCancelled' || historyEntry.status === 14 
+                            ? <CloseCircleOutlined style={{ fontSize: '16px' }}/> 
+                            : <ClockCircleOutlined style={{ fontSize: '16px' }}/>
+                    });
+                  });
+
+                  // Filter out the final status if it's the same as the last history entry displayed
+                  const finalStatusText = getStatusText(order.status);
+                  const shouldShowFinalStatusSeparately = lastDisplayedStatusText !== finalStatusText;
+
+                  return (
+                    <>
+                      {displayHistory.map((item, index) => (
+                        <Timeline.Item key={index} color={item.color} dot={item.icon}>
+                          <p style={{ fontSize: '15px', marginBottom: '4px', fontWeight: '600' }}>
+                            {item.text}
+                          </p>
+                          <Text type="secondary" style={{ fontSize: '14px' }}>
+                             {item.timestamp ? format(new Date(item.timestamp), "dd/MM/yyyy HH:mm") : '...'}
+                          </Text>
+                        </Timeline.Item>
+                      ))}
+                    </>
+                  );
+                 })()}
               </Timeline>
             </Card>
 
@@ -1320,6 +1514,26 @@ const ServiceOrderDetail = () => {
 
       </Content>
       <Footer />
+
+      {/* Revision Request Modal */}
+      <Modal
+        title="Yêu cầu phác thảo lại"
+        visible={isRevisionModalVisible}
+        onCancel={handleCloseRevisionModal}
+        onOk={handleSubmitRevision}
+        confirmLoading={isSubmitting}
+        okText="Gửi yêu cầu"
+        cancelText="Hủy bỏ"
+      >
+        <p>Vui lòng cho chúng tôi biết lý do bạn muốn phác thảo lại hoặc những điểm cần chỉnh sửa:</p>
+        <TextArea
+          rows={4}
+          value={revisionNote}
+          onChange={(e) => setRevisionNote(e.target.value)}
+          placeholder="Ví dụ: Tôi muốn thay đổi màu sắc chủ đạo, thêm nhiều cây xanh hơn..."
+        />
+      </Modal>
+
     </Layout>
   );
 };

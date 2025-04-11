@@ -10,6 +10,7 @@ const useScheduleStore = create((set, get) => ({
   workTasks: [],
   isLoading: false,
   error: null,
+  isSyncing: false,
 
   // Lấy danh sách tất cả work tasks đang hoạt động
   getAllTasks: async () => {
@@ -255,6 +256,108 @@ const useScheduleStore = create((set, get) => ({
         isLoading: false 
       });
       return { error: error.message || "Không thể cập nhật task cho đơn hàng có trạng thái DepositSuccessful" };
+    }
+  },
+
+  // --- Sync Task status for ReConsulting Orders ---
+  syncTasksForReConsultingOrders: async () => {
+    // Prevent concurrent runs
+    if (get().isSyncing) {
+        console.log("Sync (ReConsulting) already in progress, skipping.");
+        return { message: "Sync already running." };
+    }
+    set({ isSyncing: true });
+    console.log("Starting sync for ReConsulting orders...");
+    let updatedTasksCount = 0;
+
+    try {
+      // Step 1: Fetch latest relevant orders
+      const [noIdeaResponse, usingIdeaResponse] = await Promise.all([
+          api.get("api/serviceorder/noidea").catch(e => { console.error("Failed fetch noIdeaOrders:", e); return { data: [] }; }),
+          api.get("api/serviceorder/usingidea").catch(e => { console.error("Failed fetch usingIdeaOrders:", e); return { data: [] }; })
+      ]);
+      const allOrders = [...(noIdeaResponse.data || []), ...(usingIdeaResponse.data || [])];
+
+      // Step 2: Filter orders with ReConsultingAndSketching status (19)
+      const reConsultingOrders = allOrders.filter(order => 
+          order.status === 19 || order.status === 'ReConsultingAndSketching'
+      );
+
+      if (reConsultingOrders.length === 0) {
+        console.log("No orders found with ReConsulting status.");
+        set({ isSyncing: false });
+        return { message: "Không có đơn hàng nào cần phác thảo lại." };
+      }
+      console.log(`Found ${reConsultingOrders.length} orders needing ReConsulting.`);
+
+      // Step 3: Get current tasks from state
+      const currentTasks = get().workTasks || [];
+      if (currentTasks.length === 0) {
+          console.log("No current tasks in state to sync.");
+          set({ isSyncing: false });
+          return { message: "Không có task nào trong hệ thống." };
+      }
+
+      // Step 4 & 5: Map through filtered orders, find tasks, and prepare updates
+      const updatePromises = reConsultingOrders.map(async (order) => {
+        const task = currentTasks.find(t => t.serviceOrderId === order.id);
+
+        // Step 6: Apply conditions
+        if (task && task.status !== 'ConsultingAndSket') { 
+          console.log(`   - Task ${task.id} for order ${order.id} (Task Status: ${task.status}) needs update to ConsultingAndSket.`);
+          // Step 7: Prepare payload
+          const payload = { 
+            serviceOrderId: task.serviceOrderId, 
+            userId: task.userId, 
+            status: 0, // Target status: ConsultingAndSket (Thường là 0 hoặc string tương ứng)
+            note: task.note || 'Yêu cầu phác thảo lại từ khách hàng.' 
+          };
+          // Step 8: Call API to update task
+          try {
+            const updateResponse = await api.put(`/api/worktask/${task.id}`, payload);
+            console.log(`   - Task ${task.id} updated successfully.`);
+            return updateResponse.data; // Return updated task data
+          } catch (err) {
+            console.error(`   - Failed to update task ${task.id}:`, err.response?.data || err.message);
+            return null; // Indicate failure for this task
+          }
+        } else if (task && task.status === 'ConsultingAndSket') {
+           console.log(`   - Task ${task.id} for order ${order.id} is already in ConsultingAndSket status.`);
+           return null; // Already correct, no update needed
+        } else {
+           console.log(`   - No task found or no update needed for order ${order.id}.`);
+           return null; // No task found or no update needed
+        }
+      });
+
+      // Step 10: Collect results and update state
+      const results = await Promise.all(updatePromises);
+      const successfulUpdates = results.filter(result => result !== null);
+      updatedTasksCount = successfulUpdates.length;
+
+      if (updatedTasksCount > 0) {
+        console.log(`Successfully updated ${updatedTasksCount} tasks to ConsultingAndSket.`);
+        // Update the main workTasks state with the results
+        set(state => {
+           const newTaskState = state.workTasks.map(task => {
+               const updatedVersion = successfulUpdates.find(ut => ut.id === task.id);
+               return updatedVersion || task;
+           });
+           console.log("Updated workTasks state in store after ReConsulting sync.");
+           return { workTasks: newTaskState };
+        });
+      } else {
+        console.log("No tasks were updated in this sync cycle.");
+      }
+      
+      return { message: `Đã đồng bộ xong. Cập nhật ${updatedTasksCount} task.` };
+
+    } catch (error) {
+      console.error("General error during syncTasksForReConsultingOrders:", error);
+      return { error: error.message || "Lỗi đồng bộ task phác thảo lại." };
+    } finally {
+      set({ isSyncing: false });
+      console.log("Finished sync for ReConsulting orders.");
     }
   }
 }));

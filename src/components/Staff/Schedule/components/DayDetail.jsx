@@ -14,6 +14,10 @@ import {
   Tabs,
   Tooltip,
   Modal,
+  Form,
+  Row,
+  Col,
+  Input,
 } from "antd";
 import AddTaskModal from "./AddTaskModal";
 import {
@@ -29,9 +33,11 @@ import {
 import dayjs from "dayjs";
 import useScheduleStore from "../../../../stores/useScheduleStore";
 import api from "../../../../api/api";
+import useServiceOrderStore from '../../../../stores/useServiceOrderStore';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
+const { TextArea } = Input;
 
 const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
   const { 
@@ -43,6 +49,7 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
     updateTask,
     updateTasksForDepositSuccessfulOrders 
   } = useScheduleStore();
+  const { updateServiceOrderStatus } = useServiceOrderStore();
   console.log("designers", designers);
   
   
@@ -303,12 +310,15 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                     </Space>
                     <Button 
                       type="primary" 
+                      disabled={isLoading}
                       onClick={() => {
+                        if (isLoading) return;
+                        console.log('Opening AddTaskModal (Available Designer) - Props passed:', { noIdeaOrders, usingIdeaOrders });
                         setSelectedDesigner(designer);
                         setIsAddTaskModalVisible(true);
                       }}
                     >
-                      Thêm task
+                      {isLoading ? 'Đang tải...' : 'Thêm task'}
                     </Button>
                   </div>
                 </Card>
@@ -349,12 +359,15 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                           <Tag color="blue">Đang xử lý {designer.taskCount} công việc</Tag>
                           <Button 
                             type="primary" 
+                            disabled={isLoading}
                             onClick={() => {
+                              if (isLoading) return;
+                              console.log('Opening AddTaskModal (Busy Designer) - Props passed:', { noIdeaOrders, usingIdeaOrders });
                               setSelectedDesigner(designer);
                               setIsAddTaskModalVisible(true);
                             }}
                           >
-                            Thêm task
+                            {isLoading ? 'Đang tải...' : 'Thêm task'}
                           </Button>
                         </div>
                       </div>
@@ -406,7 +419,7 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
         designers={[selectedDesigner].filter(Boolean)}
         noIdeaOrders={noIdeaOrders}
         usingIdeaOrders={usingIdeaOrders}
-        
+        isLoading={isLoading}
       />
     </Card>
   );

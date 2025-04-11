@@ -130,92 +130,103 @@ const NewDesignOrdersList = () => {
   };
 
   const getStatusText = (status) => {
-    // Nếu status là số (dạng string)
+    // Map ưu tiên cho status dạng số (từ API)
     const numericStatusMap = {
       "0": "Chờ xử lý",
       "1": "Đang tư vấn & phác thảo",
-      "2": "Đang xác định giá",
+      "2": "Đang xác định giá TK", // TK: Thiết Kế
       "3": "Đặt cọc thành công",
-      "4": "Đã giao cho nhà thiết kế",
-      "5": "Xác định giá vật liệu",
+      "4": "Đã giao cho NKT", // NKT: Nhà Thiết Kế
+      "5": "Đang xác định giá VL", // VL: Vật Liệu
       "6": "Hoàn thành thiết kế",
       "7": "Thanh toán thành công",
       "8": "Đang xử lý",
-      "9": "Đã lấy hàng & đang giao",
+      "9": "Đang giao hàng",
       "10": "Giao hàng thất bại",
       "11": "Giao lại",
       "12": "Đã giao hàng thành công",
       "13": "Hoàn thành đơn hàng",
-      "14": "Đơn hàng đã bị hủy",
-      "15": "Cảnh báo vượt 30%",
+      "14": "Đã hủy",
+      "15": "Cảnh báo (>30%)",
       "16": "Hoàn tiền",
       "17": "Đã hoàn tiền",
-      "18": "Hoàn thành",
+      "18": "Hoàn thành (Completed)", // Có vẻ trùng với 13?
+      "19": "Phác thảo lại",
+      "20": "Thiết kế lại",
+      "21": "Chờ đặt cọc",
+      "22": "Hoàn thành giá TK",
+      "23": "Hoàn thành giá VL",
+      "24": "Xác định lại giá TK",
+      "25": "Đổi sản phẩm",
+      // Thêm các mã khác nếu cần
     };
 
-    // Nếu status là chuỗi tiếng Anh
+    // Map dự phòng cho status dạng chữ (ít khả năng xảy ra hơn từ API này)
     const stringStatusMap = {
       "Pending": "Chờ xử lý",
       "ConsultingAndSketching": "Đang tư vấn & phác thảo",
-      "DeterminingDesignPrice": "Đang xác định giá",
+      "DeterminingDesignPrice": "Đang xác định giá TK",
       "DepositSuccessful": "Đặt cọc thành công",
-      "AssignToDesigner": "Đã giao cho nhà thiết kế",
-      "DeterminingMaterialPrice": "Xác định giá vật liệu",
+      "AssignToDesigner": "Đã giao cho NKT",
+      "DeterminingMaterialPrice": "Đang xác định giá VL",
       "DoneDesign": "Hoàn thành thiết kế",
       "PaymentSuccess": "Thanh toán thành công",
       "Processing": "Đang xử lý",
-      "PickedPackageAndDelivery": "Đã lấy hàng & đang giao",
+      "PickedPackageAndDelivery": "Đang giao hàng",
       "DeliveryFail": "Giao hàng thất bại",
       "ReDelivery": "Giao lại",
       "DeliveredSuccessfully": "Đã giao hàng thành công",
       "CompleteOrder": "Hoàn thành đơn hàng",
-      "OrderCancelled": "Đơn hàng đã bị hủy",
-      "Warning": "Cảnh báo vượt 30%",
+      "OrderCancelled": "Đã hủy",
+      "Warning": "Cảnh báo (>30%)",
       "Refund": "Hoàn tiền",
       "DoneRefund": "Đã hoàn tiền",
-      "Completed": "Hoàn thành",
-      "NoDesignIdea": "Không có mẫu thiết kế",
+      "Completed": "Hoàn thành (Completed)",
+      "ReConsultingAndSketching": "Phác thảo lại",
+      "ReDesign": "Thiết kế lại",
+      "WaitDeposit": "Chờ đặt cọc",
+      "DoneDeterminingDesignPrice": "Hoàn thành giá TK",
+      "DoneDeterminingMaterialPrice": "Hoàn thành giá VL",
+      "ReDeterminingDesignPrice": "Xác định lại giá TK",
+      "ExchangeProduct": "Đổi sản phẩm",
+      // ... thêm các key chữ khác nếu cần
     };
 
-    // Kiểm tra nếu status là số (dạng string)
-    if (numericStatusMap[status]) {
-      return numericStatusMap[status];
-    }
-    
-    // Kiểm tra nếu status là chuỗi tiếng Anh
-    if (stringStatusMap[status]) {
-      return stringStatusMap[status];
-    }
-    
-    // Trả về giá trị gốc nếu không tìm thấy trong cả hai map
-    return status || "Không xác định";
+    return numericStatusMap[status] || stringStatusMap[status] || status || "Không xác định";
   };
 
   const getStatusColor = (status) => {
     // Map màu cho status dạng số
     const numericColorMap = {
-      "0": "blue", // Pending
-      "1": "cyan", // ConsultingAndSketching
-      "2": "purple", // DeterminingDesignPrice
-      "3": "green", // DepositSuccessful
-      "4": "geekblue", // AssignToDesigner
-      "5": "magenta", // DeterminingMaterialPrice
-      "6": "volcano", // DoneDesign
-      "7": "green", // PaymentSuccess
-      "8": "blue", // Processing
-      "9": "cyan", // PickedPackageAndDelivery
-      "10": "red", // DeliveryFail
-      "11": "purple", // ReDelivery
-      "12": "green", // DeliveredSuccessfully
-      "13": "green", // CompleteOrder
-      "14": "red", // OrderCancelled
-      "15": "orange", // Warning
-      "16": "gold", // Refund
-      "17": "green", // DoneRefund
-      "18": "green", // Completed
+      "0": "blue",          // Chờ xử lý
+      "1": "cyan",          // Đang tư vấn & phác thảo
+      "2": "purple",        // Đang xác định giá TK
+      "3": "green",         // Đặt cọc thành công
+      "4": "geekblue",      // Đã giao cho NKT
+      "5": "magenta",       // Đang xác định giá VL
+      "6": "volcano",       // Hoàn thành thiết kế
+      "7": "green",         // Thanh toán thành công
+      "8": "blue",          // Đang xử lý
+      "9": "cyan",          // Đang giao hàng
+      "10": "red",           // Giao hàng thất bại
+      "11": "purple",        // Giao lại
+      "12": "green",         // Đã giao hàng thành công
+      "13": "success",       // Hoàn thành đơn hàng (dùng success)
+      "14": "error",         // Đã hủy (dùng error)
+      "15": "warning",       // Cảnh báo (>30%)
+      "16": "gold",          // Hoàn tiền
+      "17": "success",       // Đã hoàn tiền
+      "18": "success",       // Hoàn thành (Completed)
+      "19": "processing",    // Phác thảo lại (dùng processing)
+      "20": "processing",    // Thiết kế lại
+      "21": "orange",        // Chờ đặt cọc
+      "22": "success",       // Hoàn thành giá TK
+      "23": "success",       // Hoàn thành giá VL
+      "24": "warning",       // Xác định lại giá TK
+      "25": "processing",    // Đổi sản phẩm
     };
 
-    // Map màu cho status dạng chuỗi tiếng Anh
+    // Map màu dự phòng cho status dạng chữ
     const stringColorMap = {
       "Pending": "blue",
       "ConsultingAndSketching": "cyan",
@@ -230,27 +241,23 @@ const NewDesignOrdersList = () => {
       "DeliveryFail": "red",
       "ReDelivery": "purple",
       "DeliveredSuccessfully": "green",
-      "CompleteOrder": "green",
-      "OrderCancelled": "red",
-      "Warning": "orange",
+      "CompleteOrder": "success",
+      "OrderCancelled": "error",
+      "Warning": "warning",
       "Refund": "gold",
-      "DoneRefund": "green",
-      "Completed": "green",
-      "NoDesignIdea": "default",
+      "DoneRefund": "success",
+      "Completed": "success",
+      "ReConsultingAndSketching": "processing",
+      "ReDesign": "processing",
+      "WaitDeposit": "orange",
+      "DoneDeterminingDesignPrice": "success",
+      "DoneDeterminingMaterialPrice": "success",
+      "ReDeterminingMaterialPrice": "warning", // Assuming typo, should be ReDeterminingDesignPrice?
+      "ReDeterminingDesignPrice": "warning",
+      "ExchangeProduct": "processing",
     };
 
-    // Kiểm tra nếu status là số (dạng string)
-    if (numericColorMap[status]) {
-      return numericColorMap[status];
-    }
-    
-    // Kiểm tra nếu status là chuỗi tiếng Anh
-    if (stringColorMap[status]) {
-      return stringColorMap[status];
-    }
-    
-    // Trả về màu mặc định nếu không tìm thấy trong cả hai map
-    return "default";
+    return numericColorMap[status] || stringColorMap[status] || "default";
   };
 
   const columns = [
@@ -327,7 +334,7 @@ const NewDesignOrdersList = () => {
               }}
             />
           </Tooltip>
-          {(record.status === "0" || record.status === "Pending") && (
+          {(record.status === "0" || record.status === "Pending" || record.status === "ReConsultingAndSketching") && (
             <>
               <Tooltip title="Giao task cho designer">
                 <Button
@@ -358,7 +365,7 @@ const NewDesignOrdersList = () => {
 
   return (
     <div className="new-design-orders-list">
-      <Card title="Quản lý đơn thiết kế mới">
+      <Card title="Quản lý đơn thiết kế mới (Không có mẫu sẵn)">
         <div className="filters-section">
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} sm={8} md={6} lg={5} xl={4}>
@@ -367,27 +374,18 @@ const NewDesignOrdersList = () => {
                 style={{ width: "100%" }}
                 value={statusFilter}
                 onChange={(value) => setStatusFilter(value)}
+                allowClear // Allow clearing the filter
               >
                 <Option value="all">Tất cả trạng thái</Option>
                 <Option value="0">Chờ xử lý</Option>
                 <Option value="1">Đang tư vấn & phác thảo</Option>
-                <Option value="2">Đang xác định giá</Option>
-                <Option value="3">Đặt cọc thành công</Option>
-                <Option value="4">Đã giao cho nhà thiết kế</Option>
-                <Option value="5">Xác định giá vật liệu</Option>
-                <Option value="6">Hoàn thành thiết kế</Option>
-                <Option value="7">Thanh toán thành công</Option>
-                <Option value="8">Đang xử lý</Option>
-                <Option value="9">Đã lấy hàng & đang giao</Option>
-                <Option value="10">Giao hàng thất bại</Option>
-                <Option value="11">Giao lại</Option>
-                <Option value="12">Đã giao hàng thành công</Option>
-                <Option value="13">Hoàn thành đơn hàng</Option>
-                <Option value="14">Đơn hàng đã bị hủy</Option>
-                <Option value="15">Cảnh báo vượt 30%</Option>
-                <Option value="16">Hoàn tiền</Option>
-                <Option value="17">Đã hoàn tiền</Option>
-                <Option value="18">Hoàn thành</Option>
+                <Option value="19">Phác thảo lại</Option> 
+                <Option value="2">Đang xác định giá TK</Option>
+                <Option value="24">Xác định lại giá TK</Option>
+                <Option value="22">Hoàn thành giá TK</Option>
+                <Option value="21">Chờ đặt cọc</Option>
+                <Option value="14">Đã hủy</Option>
+                {/* Add other relevant statuses for filtering if needed */}
               </Select>
             </Col>
             <Col xs={24} sm={16} md={10} lg={8} xl={6}>
@@ -409,14 +407,8 @@ const NewDesignOrdersList = () => {
             </Col>
             <Col xs={24} sm={8} md={6} lg={4} xl={4}>
               <Space>
-                <Button
-                  type="primary"
-                  icon={<FilterOutlined />}
-                  onClick={applyFilters}
-                >
-                  Lọc
-                </Button>
-                <Button onClick={resetFilters}>Đặt lại</Button>
+                {/* <Button type="primary" icon={<FilterOutlined />} onClick={applyFilters}> Lọc </Button> - Filtering happens onChange now */}
+                <Button onClick={resetFilters}>Đặt lại bộ lọc</Button>
               </Space>
             </Col>
           </Row>
