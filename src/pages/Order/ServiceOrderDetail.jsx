@@ -1398,7 +1398,12 @@ const ServiceOrderDetail = () => {
                     </Descriptions.Item>
                     <Descriptions.Item label="Tổng chi phí">
                       {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" || 
-                       order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder' ? (
+                       order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder'
+                       || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
+                        || order?.status === "DeliveredSuccessfully"
+
+
+                       ? (
                         <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
                           {formatPrice((order.designPrice || 0) + (order.materialPrice || 0))}
                         </span>
