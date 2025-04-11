@@ -725,7 +725,7 @@ const ServiceOrderDetail = () => {
       key: 'product',
       render: (_, record) => {
         const product = productDetailsMap[record.productId];
-        return (
+    return (
           <Space>
             <Image
               src={product?.image?.imageUrl || '/placeholder.png'}
@@ -874,19 +874,19 @@ const ServiceOrderDetail = () => {
       <Layout className="min-h-screen">
         <Header />
         <Content className="container mx-auto px-4 py-8 flex flex-col items-center justify-center" style={{ marginTop: "150px" }}>
-          <Alert
-            type="error"
+            <Alert
+              type="error"
             message="Lỗi tải dữ liệu"
             description={displayError.toString()}
             showIcon
             className="mb-4 w-full max-w-lg"
-          />
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/history-booking-services")}
-          >
+            />
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate("/history-booking-services")}
+            >
             Quay lại lịch sử
-          </Button>
+            </Button>
         </Content>
         <Footer />
       </Layout>
@@ -898,19 +898,19 @@ const ServiceOrderDetail = () => {
       <Layout className="min-h-screen">
         <Header />
         <Content className="container mx-auto px-4 py-8 flex flex-col items-center justify-center" style={{ marginTop: "150px" }}>
-          <Alert
-            type="warning"
+            <Alert
+              type="warning"
             message="Không tìm thấy đơn hàng"
             description={`Không thể tìm thấy thông tin cho đơn hàng #${id}.`}
             showIcon
             className="mb-4 w-full max-w-lg"
-          />
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/history-booking-services")}
-          >
+            />
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate("/history-booking-services")}
+            >
             Quay lại lịch sử
-          </Button>
+            </Button>
         </Content>
         <Footer />
       </Layout>
@@ -958,7 +958,7 @@ const ServiceOrderDetail = () => {
                 ),
               },
             ]}
-            style={{
+            style={{ 
               marginBottom: '16px',
               padding: '12px 16px',
               backgroundColor: '#fff',
@@ -966,10 +966,10 @@ const ServiceOrderDetail = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}
           />
-
+          
           <Card
             className="shadow-md mb-6"
-            style={{
+            style={{ 
               marginBottom: '16px',
               borderRadius: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
@@ -1423,7 +1423,7 @@ const ServiceOrderDetail = () => {
                             {getStatusText(order.status)}
                           </p>
                            {/* Optionally add modification date if available */}
-                        </Timeline.Item>
+                </Timeline.Item>
                      );
                   }
 
