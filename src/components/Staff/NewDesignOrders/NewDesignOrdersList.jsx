@@ -334,7 +334,7 @@ const NewDesignOrdersList = () => {
               }}
             />
           </Tooltip>
-          {(record.status === "0" || record.status === "Pending" || record.status === "ReConsultingAndSketching") && (
+          {(record.status === "0" || record.status === "Pending" || record.status === "ReConsultingAndSketching" || record.status === "DepositSuccessful") && (
             <>
               <Tooltip title="Giao task cho designer">
                 <Button
