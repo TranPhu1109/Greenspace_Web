@@ -252,9 +252,9 @@ const TaskDetail = () => {
         status: statusForRecordCreation, // Use the determined status (1 or 19)
         report: values.report || "",
         image: {
-          imageUrl: uploadedUrls[0] || null, // Use null instead of empty string
-          image2: uploadedUrls[1] || null,
-          image3: uploadedUrls[2] || null
+          imageUrl: uploadedUrls[0] || "", // Use null instead of empty string
+          image2: uploadedUrls[1] || "",
+          image3: uploadedUrls[2] || ""
         },
         // Do NOT send serviceOrderDetails unless they are also being updated here
       };

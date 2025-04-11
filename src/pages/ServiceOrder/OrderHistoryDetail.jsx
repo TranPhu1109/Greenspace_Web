@@ -492,20 +492,6 @@ const OrderHistoryDetail = () => {
     },
   ];
 
-  const handlePreview = (file) => {
-    console.log('Preview file:', file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      console.log('File read result:', e.target.result.substring(0, 100) + '...');
-      setPreviewImage(e.target.result);
-      setIsPreviewModalVisible(true);
-    };
-    reader.onerror = (error) => {
-      console.error('Error reading file:', error);
-      message.error('Không thể đọc tệp hình ảnh. Vui lòng thử lại.');
-    };
-    reader.readAsDataURL(file);
-  };
 
   const openSignAndPayModal = () => {
     setIsSignAndPayModalVisible(true);

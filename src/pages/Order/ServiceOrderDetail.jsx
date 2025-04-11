@@ -47,7 +47,8 @@ import {
   CloseCircleOutlined,
   EditOutlined,
   StopOutlined,
-  UploadOutlined
+  UploadOutlined,
+  ReloadOutlined
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
@@ -57,7 +58,7 @@ const { TextArea } = Input;
 const ServiceOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const {updateStatus} = useDesignOrderStore();
+  const {updateStatus, selectedOrder} = useDesignOrderStore();
   const {
     loading,
     error,
@@ -202,6 +203,45 @@ const ServiceOrderDetail = () => {
     // Dependencies: id, getServiceOrderById, getProductById, getRecordSketch
   }, [id, getServiceOrderById, getProductById, getRecordSketch]); // Ensure all store actions are dependencies
 
+  // Add useEffect to update whenever order status changes
+  useEffect(() => {
+    // If we have an order and it's in WaitDeposit status, ensure contract UI is shown
+    if (order?.status === "WaitDeposit" || order?.status === 21) {
+      console.log("Order is in WaitDeposit status, ensuring contract button is shown");
+      setShowContractButton(true);
+      
+      // Try to fetch contract if it's not already loaded
+      if (!contract && order.id) {
+        console.log("Attempting to fetch contract for order in WaitDeposit status");
+        getContractByServiceOrder(order.id)
+          .then(data => {
+            console.log("Contract loaded for WaitDeposit order:", data?.id);
+          })
+          .catch(err => {
+            console.log("Contract not found for WaitDeposit order, attempting generation:", err);
+            // Attempt to generate contract
+            generateContract({
+              userId: order.userId,
+              serviceOrderId: order.id,
+              userName: order.userName,
+              email: order.email,
+              phone: order.cusPhone,
+              address: order.address,
+              designPrice: order.designPrice,
+            })
+            .then(() => {
+              console.log("Contract generated successfully after status detection");
+              message.success("Hợp đồng đã được tạo thành công!");
+              getContractByServiceOrder(order.id); // Fetch the newly created contract
+            })
+            .catch(genErr => {
+              console.error("Error generating contract after status detection:", genErr);
+            });
+          });
+      }
+    }
+  }, [order?.status, order?.id, contract, getContractByServiceOrder, generateContract]);
+
   // Update useEffect to fetch contract correctly
   useEffect(() => {
     const fetchContract = async () => {
@@ -210,11 +250,14 @@ const ServiceOrderDetail = () => {
         contractVisibleStatuses.includes(selectedOrder?.status) || 
         contractVisibleStatusCodes.includes(selectedOrder?.status);
       
+      console.log("Contract fetch check - Status:", selectedOrder?.status, "Should show:", shouldShowContract);
+      
       if (shouldShowContract) {
         console.log("Status requires contract visibility, checking for contract...");
         try {
           // First try to get existing contract
-          await getContractByServiceOrder(selectedOrder.id);
+          const contractData = await getContractByServiceOrder(selectedOrder.id);
+          console.log("Contract found:", contractData?.id);
           setShowContractButton(true);
         } catch (error) {
           console.error("Error fetching contract:", error);
@@ -394,25 +437,87 @@ const ServiceOrderDetail = () => {
 
   // Update handleViewContract function
   const handleViewContract = async () => {
-    if (contract?.description) {
-      setIsContractModalVisible(true);
-    } else {
+    try {
+      console.log("Attempting to view contract with ID:", contract?.id);
+      console.log("Order data:", { 
+        orderId: order?.id, 
+        selectedOrderId: selectedOrder?.id,
+        orderStatus: order?.status,
+        selectedOrderStatus: selectedOrder?.status 
+      });
+      
+      // If contract is already loaded, display it
+      if (contract?.description) {
+        console.log("Contract already loaded with description, showing modal");
+        setIsContractModalVisible(true);
+        return;
+      }
+      
+      // Use the ID from either order or selectedOrder, whichever is available
+      const orderIdToUse = id || order?.id || selectedOrder?.id;
+      
       // Try to fetch the contract if it's not already loaded
-      try {
-        if (selectedOrder?.id) {
-          const contractData = await getContractByServiceOrder(selectedOrder.id);
+      if (orderIdToUse) {
+        console.log("Fetching contract for order:", orderIdToUse);
+        try {
+          const contractData = await getContractByServiceOrder(orderIdToUse);
+          console.log("Contract fetched successfully:", contractData?.id);
+          
           if (contractData?.description) {
             setIsContractModalVisible(true);
           } else {
-            message.error("Không tìm thấy hợp đồng hoặc hợp đồng chưa được tạo");
+            console.error("Contract found but has no description");
+            message.error("Hợp đồng không có nội dung hoặc lỗi hiển thị");
           }
-        } else {
-          message.error("Không tìm thấy thông tin đơn hàng");
+        } catch (error) {
+          console.error("Error fetching contract:", error);
+          
+          // Get the current status from either source
+          const currentStatus = order?.status || selectedOrder?.status;
+          
+          // Try to generate a contract if in WaitDeposit status
+          if (currentStatus === "WaitDeposit" || currentStatus === 21) {
+            message.info("Đang tạo hợp đồng mới, vui lòng đợi...");
+            try {
+              // Use data from whichever order object is available
+              const orderData = order || selectedOrder;
+              
+              if (!orderData) {
+                throw new Error("Không tìm thấy dữ liệu đơn hàng để tạo hợp đồng");
+              }
+              
+              await generateContract({
+                userId: orderData.userId,
+                serviceOrderId: orderIdToUse,
+                userName: orderData.userName,
+                email: orderData.email,
+                phone: orderData.cusPhone,
+                address: orderData.address,
+                designPrice: orderData.designPrice,
+              });
+              
+              const newContract = await getContractByServiceOrder(orderIdToUse);
+              if (newContract?.description) {
+                setIsContractModalVisible(true);
+                message.success("Đã tạo hợp đồng thành công!");
+              } else {
+                message.error("Tạo hợp đồng thành công nhưng không có nội dung để hiển thị");
+              }
+            } catch (genError) {
+              console.error("Error generating contract:", genError);
+              message.error("Không thể tạo hợp đồng: " + genError.message);
+            }
+          } else {
+            message.error("Không tìm thấy hợp đồng và không thể tạo mới ở trạng thái hiện tại");
+          }
         }
-      } catch (error) {
-        console.error("Error loading contract:", error);
-        message.error("Không thể tải hợp đồng: " + error.message);
+      } else {
+        console.error("No order ID available:", { id, orderIds: [order?.id, selectedOrder?.id] });
+        message.error("Không tìm thấy thông tin đơn hàng");
       }
+    } catch (error) {
+      console.error("Unexpected error viewing contract:", error);
+      message.error("Có lỗi xảy ra: " + error.message);
     }
   };
 
@@ -445,11 +550,44 @@ const ServiceOrderDetail = () => {
         const updatedOrder = await getServiceOrderById(id);
         console.log('Updated order status:', updatedOrder?.status);
         
+        // Update local order state to reflect new status
+        setOrder(updatedOrder);
+        
+        // Explicitly attempt to get or generate contract
+        try {
+          console.log("Attempting to fetch contract after status update");
+          await getContractByServiceOrder(id);
+          setShowContractButton(true);
+        } catch (contractErr) {
+          console.log("Contract not found after status update, generating...", contractErr);
+          try {
+            // Generate contract directly
+            await generateContract({
+              userId: updatedOrder.userId,
+              serviceOrderId: updatedOrder.id,
+              userName: updatedOrder.userName,
+              email: updatedOrder.email,
+              phone: updatedOrder.cusPhone,
+              address: updatedOrder.address,
+              designPrice: updatedOrder.designPrice,
+            });
+            await getContractByServiceOrder(id);
+            setShowContractButton(true);
+            message.success("Hợp đồng đã được tạo thành công!");
+          } catch (genErr) {
+            console.error("Error generating contract after status update:", genErr);
+            message.error("Không thể tạo hợp đồng tự động, vui lòng thử lại sau.");
+          }
+        }
+        
         // Refresh sketch records
         await getRecordSketch(id);
         
-        // The message will serve as a visual cue that something is happening
-        message.info("Hợp đồng sẽ được tạo tự động, vui lòng chờ một lát...");
+        // Force UI update to reflect the new status and show contract button
+        // This helps avoid needing a page reload
+        setTimeout(() => {
+          setShowContractButton(true);
+        }, 500);
       } catch (statusError) {
         console.error("Error updating status:", statusError);
         message.error('Không thể cập nhật trạng thái đơn hàng: ' + statusError.message);
@@ -483,6 +621,19 @@ const ServiceOrderDetail = () => {
         return;
       }
 
+      // Get the order data from whatever source is available
+      const orderData = order || selectedOrder;
+      if (!orderData || !orderData.id) {
+        message.error("Không tìm thấy thông tin đơn hàng. Vui lòng làm mới trang và thử lại.");
+        return;
+      }
+
+      console.log("Processing payment for order:", {
+        orderId: orderData.id,
+        status: orderData.status,
+        designPrice: orderData.designPrice
+      });
+
       setUploading(true);
       setPaymentLoading(true);
       
@@ -510,13 +661,13 @@ const ServiceOrderDetail = () => {
           throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
         }
 
-        const amount = selectedOrder.designPrice * 0.5;
+        const amount = orderData.designPrice * 0.5;
 
         const response = await api.post("/api/bill", {
           walletId: walletId,
-          serviceOrderId: selectedOrder.id,
+          serviceOrderId: orderData.id,
           amount: amount,
-          description: `Thanh toán 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`,
+          description: `Thanh toán 50% phí thiết kế cho đơn hàng #${orderData.id.slice(0, 8)}`,
         });
 
         if (response.data) {
@@ -526,12 +677,13 @@ const ServiceOrderDetail = () => {
             message.success("Thanh toán và ký hợp đồng thành công");
             
             // Update order status to DepositSuccessful (status code 3)
-            await updateStatus(selectedOrder.id, 3); 
+            await updateStatus(orderData.id, 3); 
             message.success("Đã cập nhật trạng thái đơn hàng");
             
             // Refresh data
-            await getContractByServiceOrder(selectedOrder.id);
-            await getServiceOrderById(id); // Fetch latest order details
+            await getContractByServiceOrder(orderData.id);
+            const updatedOrderData = await getServiceOrderById(id);
+            setOrder(updatedOrderData); // Update local state with fresh data
             
             // Close modal
             closeSignAndPayModal();
@@ -549,16 +701,20 @@ const ServiceOrderDetail = () => {
     } finally {
       setUploading(false);
       setPaymentLoading(false);
-      // Only close the modal if there was no error
       // We can't access the error from the catch block here in finally,
       // so we won't try to automatically close the modal.
       // The modal is already closed on success in the try block
     }
   };
 
-  // Định dạng giá tiền
-  const formatPrice = (price) => {
-    if (typeof price !== 'number') return 'N/A';
+   // Định dạng giá tiền
+   const formatPrice = (price) => {
+    // Handle undefined, null, NaN or invalid values
+    if (price === undefined || price === null || isNaN(price) || typeof price !== 'number') {
+      return 'Chưa xác định';
+    }
+    
+    // Format the price with Vietnamese locale
     return price.toLocaleString("vi-VN") + " VNĐ";
   };
 
@@ -1314,7 +1470,10 @@ const ServiceOrderDetail = () => {
             </Card>
 
             {/* Add this after the timeline Card, before the closing Card tag */} 
-            {(showContractButton || contractVisibleStatuses.includes(order?.status) || contractVisibleStatusCodes.includes(order?.status)) && (
+            {(showContractButton || contractVisibleStatuses.includes(order?.status) || 
+              contractVisibleStatusCodes.includes(order?.status) || 
+              contractVisibleStatusCodes.includes(selectedOrder?.status) || 
+              contractVisibleStatuses.includes(selectedOrder?.status)) && (
               <Card
                 title={
                   <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1323,34 +1482,88 @@ const ServiceOrderDetail = () => {
                 }
                 style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginTop: '24px' }}
                 loading={contractLoading}
+                extra={
+                  <Button type="link" onClick={() => {
+                    console.log("Refreshing contract data");
+                    // Use whichever ID is available
+                    const idToUse = id || order?.id || selectedOrder?.id;
+                    console.log("Using order ID for refresh:", idToUse, {
+                      urlId: id,
+                      orderId: order?.id,
+                      selectedOrderId: selectedOrder?.id
+                    });
+                    
+                    if (idToUse) {
+                      getContractByServiceOrder(idToUse)
+                        .then(data => {
+                          console.log("Contract refreshed successfully:", data?.id);
+                          if (!data) {
+                            message.warning("Không tìm thấy hợp đồng");
+                          }
+                        })
+                        .catch(err => {
+                          console.error("Error refreshing contract:", err);
+                          message.error("Lỗi khi tải lại hợp đồng: " + err.message);
+                        });
+                    } else {
+                      console.error("No order ID available for refresh");
+                      message.error("Không tìm thấy ID đơn hàng để tải lại hợp đồng");
+                    }
+                  }}>
+                    <ReloadOutlined /> Làm mới
+                  </Button>
+                }
               >
                 <Space direction="vertical" size={16} style={{ width: '100%' }}>
                   <Button
                     type="primary"
                     icon={<FileTextOutlined />}
                     onClick={handleViewContract}
-                    disabled={!contract} // Disable if contract is not loaded yet
                     loading={contractLoading}
                     style={{ width: '100%' }}
                   >
                     Xem hợp đồng
                   </Button>
-                  <div style={{ padding: '8px 16px', backgroundColor: '#f5f5f5', borderRadius: '4px', margin: '8px 0' }}>
-                    <Text type="secondary">
-                      Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây
-                    </Text>
-                  </div>
-                  {!contract?.modificationDate && (selectedOrder?.status === "WaitDeposit" || selectedOrder?.status === 21) && (
-                    <Button
-                      type="primary"
-                      icon={<FileTextOutlined />}
-                      onClick={openSignAndPayModal}
-                      disabled={!contract} // Disable if contract is not loaded yet
-                      style={{ width: '100%' }}
-                    >
-                      Ký hợp đồng & Thanh toán cọc
-                    </Button>
+                  
+                  {/* Debug info - will help identify state issues */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div style={{ padding: '8px', background: '#f9f9f9', marginTop: '8px', fontSize: '12px' }}>
+                      <div>showContractButton: {showContractButton ? 'true' : 'false'}</div>
+                      <div>contract: {contract ? `ID: ${contract.id}` : 'null'}</div>
+                      <div>order.status: {order?.status}</div>
+                      <div>selectedOrder.status: {selectedOrder?.status}</div>
+                    </div>
                   )}
+                  
+                  {/* Ensure the signing button appears as soon as the status is updated */}
+                  {(!contract?.modificationDate && (
+                    showContractButton || 
+                    selectedOrder?.status === "WaitDeposit" || selectedOrder?.status === 21 ||
+                    order?.status === "WaitDeposit" || order?.status === 21)) && (
+                    <>
+                      <div style={{ padding: '8px 16px', backgroundColor: '#f5f5f9', borderRadius: '4px', margin: '8px 0' }}>
+                        <Text type="secondary">
+                          Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây
+                        </Text>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<FileTextOutlined />}
+                        onClick={() => {
+                          console.log("Order status check for signing:", {
+                            orderStatus: order?.status, 
+                            selectedOrderStatus: selectedOrder?.status,
+                            showContractButton
+                          });
+                          openSignAndPayModal();
+                        }}
+                        style={{ width: '100%' }}
+                      >
+                        Ký hợp đồng & Thanh toán cọc
+                      </Button>
+                    </>
+                  )}
+                  
                   {contract?.modificationDate && (
                      <Tag icon={<CheckCircleOutlined />} color="success">
                         Hợp đồng đã được ký vào {format(new Date(contract.modificationDate), "dd/MM/yyyy HH:mm")}
@@ -1366,7 +1579,7 @@ const ServiceOrderDetail = () => {
         {/* Contract Modal */} 
         <Modal
           title="Hợp đồng"
-          open={isContractModalVisible}
+          visible={isContractModalVisible}
           onCancel={handleCloseContractModal}
           width="80%"
           footer={null}
@@ -1399,7 +1612,7 @@ const ServiceOrderDetail = () => {
         {/* Sign and Pay Modal */} 
         <Modal
           title="Ký hợp đồng và thanh toán cọc"
-          open={isSignAndPayModalVisible}
+          visible={isSignAndPayModalVisible}
           onCancel={closeSignAndPayModal}
           footer={[
             <Button key="cancel" onClick={closeSignAndPayModal}>
@@ -1486,8 +1699,24 @@ const ServiceOrderDetail = () => {
           <div style={{ marginBottom: "10px" }}>
             <Text strong>Thông tin thanh toán:</Text>
             <Descriptions bordered column={1} size="small" style={{ marginTop: '10px' }}>
-              <Descriptions.Item label="Phí thiết kế">{formatPrice(selectedOrder?.designPrice)}</Descriptions.Item>
-              <Descriptions.Item label="Thanh toán đợt này (50%)"><Text strong style={{ color: '#cf1322' }}>{formatPrice(selectedOrder?.designPrice * 0.5)}</Text></Descriptions.Item>
+              <Descriptions.Item label="Phí thiết kế">
+                {(() => {
+                  // Get order data from either source
+                  const orderData = order || selectedOrder;
+                  return orderData?.designPrice ? formatPrice(orderData.designPrice) : "Đang tải...";
+                })()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Thanh toán đợt này (50%)">
+                <Text strong style={{ color: '#cf1322' }}>
+                  {(() => {
+                    // Get order data from either source
+                    const orderData = order || selectedOrder;
+                    const designPrice = orderData?.designPrice || 0;
+                    const depositAmount = designPrice * 0.5;
+                    return depositAmount > 0 ? formatPrice(depositAmount) : "Đang tải...";
+                  })()}
+                </Text>
+              </Descriptions.Item>
             </Descriptions>
           </div>
 
