@@ -308,6 +308,7 @@ const TaskDetail = () => {
   };
 
   const handleOkDesign = async () => {
+    const values = await sketchForm.validateFields();
     try {
       // Step 1: Update service order
       const serviceOrderUpdateData = {
@@ -315,16 +316,23 @@ const TaskDetail = () => {
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
         status: 4,
-        report: "",
+        report: values.report || "",
         image: {
           imageUrl: designImageUrls[0] || "",
           image2: designImageUrls[1] || "",
           image3: designImageUrls[2] || ""
         },
-        serviceOrderDetails: task.serviceOrder.serviceOrderDetails
+        // Include the serviceOrderDetails from tempServiceOrderDetails
+        serviceOrderDetails: tempServiceOrderDetails.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity
+        }))
       };
 
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+
+      // Step 3: Update Service Order Status
+      await updateStatus(task.serviceOrder.id, 5);
 
       // Step 2: Update task status
       await updateTaskStatus(task.id, {
@@ -336,11 +344,11 @@ const TaskDetail = () => {
 
       message.success("Cập nhật bản vẽ thiết kế thành công");
       setIsModalVisibleDesign(false);
-      // Reload the page after successful update
-      fetchTaskDetail(id);
+      
+      // Fetch updated data
+      await fetchTaskDetail(id);
     } catch (error) {
       console.error("Update error:", error);
-      // Xử lý các trường hợp lỗi cụ thể
       if (error.response?.data?.error?.includes("maximum number of edits")) {
         message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
       } else {

@@ -817,7 +817,7 @@ const OrderHistoryDetail = () => {
     );
   }
 
-  console.log(designRecords);
+  //console.log(designRecords);
   return (
     <Layout className="order-detail-layout">
       <Header />
