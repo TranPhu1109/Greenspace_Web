@@ -213,12 +213,12 @@ const ServiceOrderHistory = () => {
         return serviceTypeMap[type] || type;
       },
     },
-    {
-      title: "Tổng chi phí",
-      dataIndex: "totalCost",
-      key: "totalCost",
-      render: (cost) => `${cost.toLocaleString("vi-VN")} VNĐ`,
-    },
+    // {
+    //   title: "Tổng chi phí",
+    //   dataIndex: "totalCost",
+    //   key: "totalCost",
+    //   render: (cost) => `${cost.toLocaleString("vi-VN")} VNĐ`,
+    // },
     {
       title: "Trạng thái",
       dataIndex: "status",

@@ -1213,7 +1213,7 @@ const OrderService = () => {
                                       />
                                       <Input 
                                         value={detail.quantity} 
-                                        style={{ width: '50px', margin: '0', textAlign: 'center', borderLeft: 0, borderRight: 0 }} 
+                                        style={{ width: '90px', margin: '0', textAlign: 'center', borderLeft: 0, borderRight: 0 }} 
                                         onChange={(e) => {
                                           const value = parseInt(e.target.value);
                                           if (!isNaN(value)) {
@@ -1225,12 +1225,12 @@ const OrderService = () => {
                                         icon={<PlusOutlined />}
                                         onClick={() => handleQuantityChange(detail.productId, detail.quantity + 1)}
                                         disabled={detail.quantity >= product.stock}
-                                        style={{ borderRadius: '0 4px 4px 0' }}
+                                        style={{ borderRadius: '0 4px 4px 0', margin:'0 15' }}
                                       />
                                     </div>
                                     <div style={{ marginTop: '4px', fontSize: '12px', color: '#8c8c8c', textAlign: 'center' }}>
                                       Kho: {product.stock}
-                                    </div>
+                                    </div>  
                                   </Col>
                                   <Col span={4}>
                                     <span className="product-price">

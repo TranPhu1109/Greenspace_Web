@@ -146,7 +146,7 @@ const TaskDetail = () => {
   } = useDesignerTask();
   const { getProductById, fetchProducts, products } = useProductStore();
   const { user } = useAuthStore();
-  const { sketchRecords, getRecordSketch } = useRecordStore();
+  const { sketchRecords, designRecords, getRecordSketch, getRecordDesign } = useRecordStore();
   const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModalVisibleDesign, setIsModalVisibleDesign] = useState(false);
@@ -310,26 +310,74 @@ const TaskDetail = () => {
   const handleOkDesign = async () => {
     const values = await sketchForm.validateFields();
     try {
-      // Step 1: Update service order
+      // Check if we have images to upload or existing images
+      if (designImageUrls.length === 0 && 
+          !task.serviceOrder.image?.imageUrl && 
+          !task.serviceOrder.image?.image2 && 
+          !task.serviceOrder.image?.image3) {
+        message.error("Vui lòng tải lên ít nhất một ảnh thiết kế chi tiết.");
+        return;
+      }
+      
+      setUploadingDesign(true);
+      
+      // Use existing images if no new ones are uploaded
+      const uploadedUrls = designImageUrls.length > 0 ? designImageUrls : [
+        task.serviceOrder.image?.imageUrl,
+        task.serviceOrder.image?.image2,
+        task.serviceOrder.image?.image3
+      ].filter(Boolean);
+
+      // Determine the status to use based on current order status
+      let statusForRecordCreation;
+      const currentOrderStatus = task?.serviceOrder?.status;
+      
+      if (currentOrderStatus === 'AssignToDesigner' || currentOrderStatus === 4) {
+        statusForRecordCreation = 4; // AssignToDesigner
+      } else if (currentOrderStatus === 'ReDesign' || currentOrderStatus === 20) {
+        statusForRecordCreation = 20; // ReDesign
+      } else {
+        console.warn(`Unexpected initial status ${currentOrderStatus} for design submission. Defaulting status to 4.`);
+        statusForRecordCreation = 4; // Default to AssignToDesigner
+      }
+      console.log(`Using status ${statusForRecordCreation} for initial update (record creation).`);
+
+      // Step 1: Update service order with initial status (for record creation)
       const serviceOrderUpdateData = {
         serviceType: 1,
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
-        status: 4,
-        report: values.report || "",
+        status: statusForRecordCreation, // Use the determined status
+        report: "",
         image: {
-          imageUrl: designImageUrls[0] || "",
-          image2: designImageUrls[1] || "",
-          image3: designImageUrls[2] || ""
+          imageUrl: uploadedUrls[0] || "",
+          image2: uploadedUrls[1] || "",
+          image3: uploadedUrls[2] || ""
         },
-        // Include the serviceOrderDetails from tempServiceOrderDetails
-        serviceOrderDetails: tempServiceOrderDetails.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity
-        }))
+        serviceOrderDetails: task.serviceOrder.serviceOrderDetails
       };
 
+      console.log("Payload for updateServiceOrder:", serviceOrderUpdateData);
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+      console.log(`ServiceOrder updated with status ${statusForRecordCreation}.`);
+
+      // Step 2: Update Service Order Status to ReDeterminingDesignPrice
+      // await updateStatus(task.serviceOrder.id, 6); // Call updateStatus to set final status
+
+      // Step 3: Update task status 
+      // console.log('Updating Designer Task Status to 2 (DoneDesign)...');
+      // await updateTaskStatus(task.id, {
+      //   serviceOrderId: task.serviceOrder.id,
+      //   userId: user.id,
+      //   status: 2, // Task status: DoneDesign
+      //   note: "Đã cập nhật bản vẽ thiết kế chi tiết."
+      // });
+      // console.log('Designer Task status updated to 2.');
+
+      // Fetch design records after successful update
+      await getRecordDesign(task.serviceOrder.id);
+      
+      message.success("Cập nhập bản vẽ thành công");
 
       // Step 3: Update Service Order Status
       await updateStatus(task.serviceOrder.id, 5);
@@ -344,16 +392,20 @@ const TaskDetail = () => {
 
       message.success("Cập nhật bản vẽ thiết kế thành công");
       setIsModalVisibleDesign(false);
+      setDesignImageUrls([]);
       
-      // Fetch updated data
+      // Refetch task detail
       await fetchTaskDetail(id);
+      console.log("Task detail refetched after design submission.");
     } catch (error) {
       console.error("Update error:", error);
       if (error.response?.data?.error?.includes("maximum number of edits")) {
         message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
       } else {
-        message.error("Cập nhật bản vẽ thiết kế thất bại");
+        message.error("Cập nhật bản vẽ thiết kế chi tiết thất bại: " + (error.response?.data?.message || error.message || "Lỗi không xác định"));
       }
+    } finally {
+      setUploadingDesign(false);
     }
   };
 
@@ -532,23 +584,64 @@ const TaskDetail = () => {
 
   // Hàm hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm
   const handleCompleteDesign = async () => {
-    // Cập nhật trạng thái service order thành DeterminingMaterialPrice (5)
-    const responseStatus = await api.put(`/api/serviceorder/status/${task.serviceOrder.id}`, {
-      status: 5,
-      deliveryCode: ""
-    });
+    try {
+      console.log("Starting handleCompleteDesign function");
+      
+      // Step 1: Update service order status to DoneDesign (6)
+      console.log("Updating service order status to 6 (DoneDesign)");
+      const response = await api.put(`/api/serviceorder/status/${task.serviceOrder.id}`, {
+        status: 5, // DoneDesign
+        deliveryCode: ""
+      });
 
-    console.log("responseStatus", responseStatus);
+      // Log the full response object to understand its structure
+      console.log("Service order status update response:", response);
+      
+      // Check if the response has data property or is directly the success message
+      const responseStatus = response?.data || response;
+      console.log("Extracted response status:", responseStatus);
 
-    if (responseStatus === 'Update Successfully!') {
-      // Không sử dụng setTask trực tiếp
-      // Làm mới dữ liệu task sau khi cập nhật
-      fetchTaskDetail(id);
-      message.success("Hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm");
-    } else {
-      message.error("Không thể cập nhật trạng thái service order");
+      // Check various possible response formats
+      const isSuccess = 
+        responseStatus === 'Update Successfully!' || 
+        responseStatus === 'Update Successfully' || 
+        responseStatus?.includes?.('Success') ||
+        response?.status === 200;
+        
+      console.log("Is response successful:", isSuccess);
+
+      if (isSuccess) {
+        // Step 2: Update task status to 3
+        console.log("Updating task status to 3");
+        try {
+          const taskUpdateResponse = await updateTaskStatus(task.id, {
+            serviceOrderId: task.serviceOrder.id, 
+            userId: user.id,
+            status: 3, // Update to status 3 as requested
+            note: "Hoàn tất thiết kế chi tiết và sản phẩm đã được chọn"
+          });
+          
+          console.log("Task status update response:", taskUpdateResponse);
+          console.log("Task status updated successfully");
+          
+          // Refresh task data
+          fetchTaskDetail(id);
+          console.log("Task detail refresh initiated");
+          
+          message.success("Hoàn tất quá trình cập nhật bản vẽ và tùy chỉnh sản phẩm");
+        } catch (taskUpdateError) {
+          console.error("Error updating task status:", taskUpdateError);
+          message.error("Đã cập nhật trạng thái đơn hàng nhưng không thể cập nhật trạng thái công việc: " + 
+            (taskUpdateError.response?.data?.message || taskUpdateError.message));
+        }
+      } else {
+        console.error("Failed to update service order status. Response:", responseStatus);
+        message.error("Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.");
+      }
+    } catch (error) {
+      console.error("Error in handleCompleteDesign:", error);
+      message.error("Lỗi khi hoàn tất thiết kế: " + (error.response?.data?.message || error.message || "Lỗi không xác định"));
     }
-
   };
 
   useEffect(() => {
@@ -569,16 +662,33 @@ const TaskDetail = () => {
         if (status && status !== 'Pending' && status !== 'ConsultingAndSketching') {
           await getRecordSketch(taskData.serviceOrder.id);
         }
-        // --- End check for sketch records ---
+
+        // --- Check for design records (load only when status is AssignToDesigner or later) ---
+        const statusValue = typeof taskData?.serviceOrder?.status === 'string' ? taskData?.serviceOrder?.status : '';
+        const isAfterAssignToDesigner = statusValue === 'AssignToDesigner' || 
+                                       statusValue === 'DeterminingMaterialPrice' ||
+                                       statusValue === 'DoneDesign' ||
+                                       statusValue === 'PaymentSuccess' ||
+                                       statusValue === 'Processing' ||
+                                       statusValue === 'PickedPackageAndDelivery' ||
+                                       statusValue === 'DeliveryFail' ||
+                                       statusValue === 'ReDelivery' ||
+                                       statusValue === 'DeliveredSuccessfully' ||
+                                       statusValue === 'CompleteOrder';
+        
+        if (status && isAfterAssignToDesigner) {
+          await getRecordDesign(taskData.serviceOrder.id);
+        }
+        // --- End check for records ---
 
       } catch (error) {
          // !!! IMPORTANT: MUST HAVE ERROR LOGGING !!!
          console.error("TaskDetail useEffect - ERROR caught:", error);
-         message.error(`Lỗi khi tải chi tiết công việc: ${error.message}`);
+         //message.error(`Lỗi khi tải chi tiết công việc: ${error.message}`);
       }
     };
     loadTaskDetail();
-  }, [id, fetchTaskDetail, getRecordSketch]);
+  }, [id, fetchTaskDetail, getRecordSketch, getRecordDesign]);
 
   useEffect(() => {
     if (products.length > 0 && task?.serviceOrder?.serviceOrderDetails) {
@@ -766,6 +876,29 @@ const TaskDetail = () => {
       task.serviceOrder.image.image3);
 
   const showSketchRecords = sketchRecords && sketchRecords.length > 0;
+  const showDesignRecords = designRecords && designRecords.length > 0;
+  
+  // Check if service order status is AssignToDesigner or later to show design records
+  const shouldShowDesignRecords = () => {
+    if (!task || !task.serviceOrder) return false;
+    
+    const status = task.serviceOrder.status;
+    const statusesAfterAssignToDesigner = [
+      'AssignToDesigner',
+      'DeterminingMaterialPrice',
+      'DoneDesign',
+      'PaymentSuccess',
+      'Processing',
+      'PickedPackageAndDelivery',
+      'DeliveryFail',
+      'ReDelivery',
+      'DeliveredSuccessfully',
+      'CompleteOrder',
+      'ReDesign'
+    ];
+    
+    return statusesAfterAssignToDesigner.includes(status);
+  };
 
   return (
     <div className="p-6 max-w-10xl mx-auto">
@@ -791,7 +924,7 @@ const TaskDetail = () => {
           </Title>
 
         </div>
-        {task.serviceOrder.status === "AssignToDesigner" && (
+        {(task.serviceOrder.status === "AssignToDesigner" || task.serviceOrder.status === "ReDesign") && (
           <Button
             type="primary"
             icon={<CheckCircleOutlined />}
@@ -1055,7 +1188,84 @@ const TaskDetail = () => {
               )
             )}
 
-            {/* Description - ALWAYS shows after any image section */}
+            {/* Design Records Display - Place before description */}
+            {shouldShowDesignRecords() && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <Title level={5}><PictureOutlined /> Bản vẽ thiết kế chi tiết</Title>
+                {showDesignRecords ? (
+                  <div>
+                    {[1, 2, 3].map(phase => {
+                      const recordsInPhase = designRecords.filter(record => record.phase === phase);
+                      
+                      // Skip if no records in this phase
+                      if (recordsInPhase.length === 0) return null;
+
+                      const phaseTitle = `Bản thiết kế chi tiết lần ${phase}`;
+                      // Check if any record in this phase is selected
+                      const isPhaseSelected = recordsInPhase.some(record => record.isSelected);
+
+                      return (
+                        <div key={phase} style={{ marginBottom: '20px' }}>
+                          <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                            {phaseTitle}
+                            {isPhaseSelected && (
+                              <Tag color="success" icon={<CheckSquareOutlined />} style={{ marginLeft: 8 }}>
+                                Khách hàng đã chọn
+                              </Tag>
+                            )}
+                          </Title>
+                          {/* Wrap images in PreviewGroup for gallery view */}
+                          <Image.PreviewGroup items={recordsInPhase.flatMap(r => [r.image?.imageUrl, r.image?.image2, r.image?.image3].filter(Boolean))}>
+                            <Row gutter={[16, 16]}>
+                              {/* Iterate through records in this phase, then display its images horizontally */}
+                              {recordsInPhase.map((record, recordIndex) => (
+                                <React.Fragment key={`${record.id}-${recordIndex}`}>
+                                  {record.image?.imageUrl && (
+                                    <Col xs={24} sm={12} md={8}>
+                                      <Image
+                                        src={record.image.imageUrl}
+                                        alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.1`}
+                                        style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                      />
+                                    </Col>
+                                  )}
+                                  {record.image?.image2 && (
+                                    <Col xs={24} sm={12} md={8}>
+                                      <Image
+                                        src={record.image.image2}
+                                        alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.2`}
+                                        style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                      />
+                                    </Col>
+                                  )}
+                                  {record.image?.image3 && (
+                                    <Col xs={24} sm={12} md={8}>
+                                      <Image
+                                        src={record.image.image3}
+                                        alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.3`}
+                                        style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                      />
+                                    </Col>
+                                  )}
+                                  {/* If a record has no images, optionally show a placeholder */}
+                                  {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                    <Col span={24}><Text type="secondary">Không có ảnh cho bản ghi này.</Text></Col>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </Row>
+                          </Image.PreviewGroup>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <Empty description="Không có dữ liệu bản thiết kế chi tiết." />
+                )}
+              </div>
+            )}
+
+            {/* Description - now shows after design records */}
             {task.serviceOrder.description && (
                <div className="mt-4 pt-4 border-t border-gray-200">
                  <Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>
@@ -1075,7 +1285,9 @@ const TaskDetail = () => {
               )}
             {task.status === "Design" &&
               (task.serviceOrder.status === "AssignToDesigner" ||
-                task.serviceOrder.status === "ReDesign") && (
+                task.serviceOrder.status === "ReDesign") && 
+              // Check if phase 1 design record doesn't exist yet - only show button if no phase 1 record
+              (!designRecords || !designRecords.some(record => record.phase === 1) || task.serviceOrder.status === "ReDesign") && (
                 <Button
                   type="primary"
                   icon={<UploadOutlined />}
@@ -1128,11 +1340,6 @@ const TaskDetail = () => {
         )}
       </Card>
 
-     
-
-
-
-     
       {/* Modal cập nhật bản vẽ phác thảo */}
       <Modal
         title="Cập nhật bản vẽ phác thảo"
