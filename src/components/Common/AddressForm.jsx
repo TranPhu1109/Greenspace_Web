@@ -22,7 +22,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         const user = JSON.parse(userStr);
         if (user && user.address && user.address.trim() !== "") {
           setUserAddress(user.address);
-          
+
           // Parse địa chỉ từ chuỗi "đường|phường/xã|quận/huyện|tỉnh/thành phố"
           const addressParts = user.address.split('|');
           if (addressParts.length === 4) {
@@ -113,10 +113,10 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
   const handleUseDefaultAddress = (e) => {
     const checked = e.target.checked;
     setUseDefaultAddress(checked);
-    
+
     if (checked && parsedAddress) {
       console.log("User chose to use saved address:", parsedAddress);
-      
+
       // Gọi notifyAddressChange ngay lập tức với thông tin địa chỉ mặc định
       // Cần đảm bảo đủ thông tin cho việc tính phí vận chuyển
       const addressData = {
@@ -126,30 +126,30 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         ward: { label: parsedAddress.ward },
         streetAddress: parsedAddress.streetAddress
       };
-      
+
       console.log("Sending address data:", addressData);
       onAddressChange(addressData);
-      
+
       // Tìm province, district, ward dựa trên tên
       const foundProvince = provinces.find(p => p.label === parsedAddress.province);
-      
+
       if (foundProvince) {
         form.setFieldValue("provinces", foundProvince.value);
         form.setFieldValue("streetAddress", parsedAddress.streetAddress);
-        
+
         // Load districts theo province đã chọn và tiếp tục với district và ward
         const loadDistrictsAndWards = async () => {
           try {
             const districtData = await fetchDistricts(foundProvince.value);
             setDistricts(districtData);
-            
+
             const foundDistrict = districtData.find(d => d.label === parsedAddress.district);
             if (foundDistrict) {
               form.setFieldValue("district", foundDistrict.value);
-              
+
               const wardData = await fetchWards(foundDistrict.value);
               setWards(wardData);
-              
+
               const foundWard = wardData.find(w => w.label === parsedAddress.ward);
               if (foundWard) {
                 form.setFieldValue("ward", foundWard.value);
@@ -159,13 +159,13 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
             console.error("Lỗi khi tải dữ liệu địa chỉ:", error);
           }
         };
-        
+
         loadDistrictsAndWards();
       }
     } else if (!checked) {
       // Nếu bỏ chọn, reset form và thông báo không sử dụng địa chỉ mặc định
       console.log("User unchecked use default address - resetting form");
-      
+
       // Reset các trường địa chỉ về giá trị ban đầu
       form.setFieldsValue({
         provinces: undefined,
@@ -173,11 +173,11 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         ward: undefined,
         streetAddress: ""
       });
-      
+
       // Reset danh sách districts và wards
       setDistricts([]);
       setWards([]);
-      
+
       // Thông báo thay đổi với useDefaultAddress = false
       onAddressChange({
         useDefaultAddress: false,
@@ -193,26 +193,6 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
     <Form.Item noStyle shouldUpdate>
       {() => (
         <>
-          {userAddress && (
-            <Form.Item>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Alert
-                  message="Thông tin địa chỉ đã lưu"
-                  description={parsedAddress ? `${parsedAddress.streetAddress}, ${parsedAddress.ward}, ${parsedAddress.district}, ${parsedAddress.province}` : userAddress}
-                  type="info"
-                  showIcon
-                />
-                
-                <Checkbox 
-                  onChange={handleUseDefaultAddress}
-                  checked={useDefaultAddress}
-                >
-                  Sử dụng địa chỉ đã lưu
-                </Checkbox>
-              </Space>
-            </Form.Item>
-          )}
-
           {(!useDefaultAddress || !userAddress) && (
             <>
               <Form.Item
@@ -291,6 +271,26 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
                 />
               </Form.Item>
             </>
+          )}
+
+          {userAddress && (
+            <Form.Item>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Alert
+                  message="Thông tin địa chỉ đã lưu"
+                  description={parsedAddress ? `${parsedAddress.streetAddress}, ${parsedAddress.ward}, ${parsedAddress.district}, ${parsedAddress.province}` : userAddress}
+                  type="info"
+                  showIcon
+                />
+
+                <Checkbox
+                  onChange={handleUseDefaultAddress}
+                  checked={useDefaultAddress}
+                >
+                  Sử dụng địa chỉ đã lưu
+                </Checkbox>
+              </Space>
+            </Form.Item>
           )}
         </>
       )}

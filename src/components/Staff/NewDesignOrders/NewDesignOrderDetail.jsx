@@ -46,6 +46,7 @@ import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useProductStore from "@/stores/useProductStore";
 import useContractStore from "@/stores/useContractStore";
 import useShippingStore from "@/stores/useShippingStore";
+import useUserStore from "@/stores/useUserStore";
 
 const { TextArea } = Input;
 const { Step } = Steps;
@@ -71,17 +72,19 @@ const NewDesignOrderDetail = () => {
     getContractByServiceOrder,
     contract,
   } = useContractStore();
+  const { fetchDesigner, designers } = useUserStore();
   const { createShippingOrder, trackOrder } = useShippingStore();
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
   const [isMaterialsModalVisible, setIsMaterialsModalVisible] = useState(false);
   const [materialsLoading, setMaterialsLoading] = useState(false);
   const [materials, setMaterials] = useState([]);
+  const [assignedDesigner, setAssignedDesigner] = useState(null);
 
   const { getBasePath } = useRoleBasedPath();
   const trackingInterval = useRef(null);
 
   const handleBack = () => {
-    navigate(`${getBasePath()}/design-orders/custom-template-orders`);
+    navigate(`${getBasePath()}/design-orders/new-design-orders`);
   };
 
   useEffect(() => {
@@ -94,7 +97,25 @@ const NewDesignOrderDetail = () => {
       }
     };
     fetchOrderDetail();
+    fetchDesigner();
   }, [id]);
+
+  // Tìm và cập nhật thông tin designer từ userId trong workTasks
+  useEffect(() => {
+    if (selectedOrder?.workTasks && selectedOrder.workTasks.length > 0 && designers && designers.length > 0) {
+      const designerTask = selectedOrder.workTasks[0];
+      const designerId = designerTask.userId;
+      const matchedDesigner = designers.find(designer => designer.id === designerId);
+      
+      if (matchedDesigner) {
+        setAssignedDesigner(matchedDesigner);
+        console.log("Tìm thấy designer:", matchedDesigner.name);
+      } else {
+        console.log("Không tìm thấy designer với ID:", designerId);
+        setAssignedDesigner(null);
+      }
+    }
+  }, [selectedOrder, designers]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -629,14 +650,22 @@ const NewDesignOrderDetail = () => {
               <Descriptions.Item label="Mã đơn hàng">
                 #{selectedOrder.id}
               </Descriptions.Item>
+              <Descriptions.Item label="Mã vận đơn">
+                #{selectedOrder.deliveryCode}
+              </Descriptions.Item>
               {/* <Descriptions.Item label="Ngày đặt hàng">
                 {dayjs(order.orderDate).format("DD/MM/YYYY")}
               </Descriptions.Item> */}
-              <Descriptions.Item label="Designer">
-                {selectedOrder.designer}
-              </Descriptions.Item>
-              <Descriptions.Item label="Mẫu thiết kế">
-                {selectedOrder.templateName}
+              <Descriptions.Item label="Người thiết kế">
+                {assignedDesigner ? (
+                  <Tooltip title={`${assignedDesigner.email} - ${assignedDesigner.phone}`}>
+                    <Tag color="blue" icon={<UserOutlined />}>
+                      {assignedDesigner.name}
+                    </Tag>
+                  </Tooltip>
+                ) : (
+                  <Tag color="default">Chưa gán designer</Tag>
+                )}
               </Descriptions.Item>
               {/* <Descriptions.Item label="Diện tích mẫu">
                 {selectedOrder.area} m²
@@ -976,6 +1005,39 @@ const NewDesignOrderDetail = () => {
                 <Tag color={getStatusColor(selectedOrder.status)}>
                   {getStatusDisplay(selectedOrder.status)}
                 </Tag>
+              </Descriptions.Item>
+              
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <UserOutlined
+                      style={{
+                        color: "#4caf50",
+                        fontSize: "18px",
+                        backgroundColor: "#f0f7f0",
+                        padding: "10px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    />
+
+                    <span style={{ color: "#666", fontSize: "15px" }}>
+                      Người thiết kế
+                    </span>
+                  </Space>
+                }
+              >
+                {assignedDesigner ? (
+                  <Tooltip title={`${assignedDesigner.email} - ${assignedDesigner.phone}`}>
+                    <Tag color="blue" icon={<UserOutlined />}>
+                      {assignedDesigner.name}
+                    </Tag>
+                  </Tooltip>
+                ) : (
+                  <Tag color="default">Chưa gán designer</Tag>
+                )}
               </Descriptions.Item>
               {/* <Descriptions.Item
                 // label="Diện tích yêu cầu"
