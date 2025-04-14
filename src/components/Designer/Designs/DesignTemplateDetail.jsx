@@ -14,11 +14,13 @@ import {
   Spin,
   message,
   Divider,
+  Modal,
 } from "antd";
 import {
   ArrowLeftOutlined,
   DownloadOutlined,
   CalendarOutlined,
+  FileOutlined,
 } from "@ant-design/icons";
 import useDesignIdeaStore from "../../../stores/useDesignIdeaStore";
 import useProductStore from "../../../stores/useProductStore";
@@ -33,6 +35,8 @@ const DesignTemplateDetail = () => {
   const componentId = useRef(`detail-${id}-${Date.now()}`).current;
   const { designIdeaById, isLoading, error, fetchDesignIdeaById } = useDesignIdeaStore();
   const { products, fetchProducts } = useProductStore();
+  const [pdfModalVisible, setPdfModalVisible] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -88,6 +92,14 @@ const DesignTemplateDetail = () => {
     } else {
       message.warning("File thiết kế không khả dụng");
     }
+  };
+
+  const handleOpenPdfModal = () => {
+    setPdfModalVisible(true);
+  };
+
+  const handleOpenVideoModal = () => {
+    setVideoModalVisible(true);
   };
 
   return (
@@ -213,14 +225,55 @@ const DesignTemplateDetail = () => {
                 {designIdeaById?.designImage2URL && (
                   <Col span={12}>
                     <div className="mb-2">
-                      <Text strong>Bản vẼ 2</Text>
+                      <Text strong>Hướng dẫn lắp đặt (PDF)</Text>
                     </div>
-                    <Image
-                      src={designIdeaById.designImage2URL}
-                      alt="Thiết kế 2"
-                      className="w-full rounded-lg object-cover"
-                      style={{ height: "200px" }}
-                    />
+                    <div 
+                      className="w-full rounded-lg overflow-hidden cursor-pointer"
+                      style={{ height: "200px", position: "relative" }}
+                      onClick={handleOpenPdfModal}
+                    >
+                      <embed
+                        src={designIdeaById.designImage2URL}
+                        type="application/pdf"
+                        width="100%"
+                        height="100%"
+                        className="rounded-lg"
+                      />
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity duration-300"
+                      >
+                        <Button type="primary" icon={<FileOutlined />}>
+                          Phóng to
+                        </Button>
+                      </div>
+                    </div>
+                  </Col>
+                )}
+                
+                {designIdeaById?.designImage3URL && (
+                  <Col span={12}>
+                    <div className="mb-2">
+                      <Text strong>Video hướng dẫn lắp đặt</Text>
+                    </div>
+                    <div 
+                      className="w-full rounded-lg overflow-hidden cursor-pointer"
+                      style={{ height: "200px", position: "relative" }}
+                      onClick={handleOpenVideoModal}
+                    >
+                      <video
+                        src={designIdeaById.designImage3URL}
+                        controls
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                      />
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity duration-300"
+                      >
+                        <Button type="primary" icon={<FileOutlined />}>
+                          Phóng to
+                        </Button>
+                      </div>
+                    </div>
                   </Col>
                 )}
               </Row>
@@ -362,25 +415,25 @@ const DesignTemplateDetail = () => {
                     {formatDate(designIdeaById?.creationDate)}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Cập nhật lần cuối">
-                  <Space>
-                    <CalendarOutlined />
+                {designIdeaById?.modificationDate && (
+                  <Descriptions.Item label="Cập nhật lần cuối">
+                    <Space>
+                      <CalendarOutlined />
                     {formatDate(designIdeaById?.modificationDate)}
                   </Space>
                 </Descriptions.Item>
+                )}
                 {/* <Descriptions.Item label="Mô tả">
                   {designIdeaById?.description || 'Không có mô tả'}
                 </Descriptions.Item> */}
                 <Descriptions.Item label="File thiết kế">
-                  <a
-                    href={designIdeaById?.designImage3URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Button 
+                    type="text" 
+                    icon={<DownloadOutlined />} 
+                    onClick={handleOpenPdfModal}
                   >
-                    <Button type="text" icon={<DownloadOutlined />}>
-                      Tải file thiết kế
-                    </Button>
-                  </a>
+                    Xem file thiết kế
+                  </Button>
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -448,6 +501,41 @@ const DesignTemplateDetail = () => {
           </Col>
         </Row>
       </Card>
+
+      <Modal
+        title="Xem hướng dẫn lắp đặt (PDF)"
+        open={pdfModalVisible}
+        onCancel={() => setPdfModalVisible(false)}
+        width="80%"
+        footer={null}
+        style={{ top: 20 }}
+        bodyStyle={{ height: '80vh', padding: 0 }}
+      >
+        <embed
+          src={designIdeaById?.designImage2URL}
+          type="application/pdf"
+          width="100%"
+          height="100%"
+          style={{ border: 'none' }}
+        />
+      </Modal>
+      
+      <Modal
+        title="Xem video hướng dẫn lắp đặt"
+        open={videoModalVisible}
+        onCancel={() => setVideoModalVisible(false)}
+        width="80%"
+        footer={null}
+        style={{ top: 20 }}
+        bodyStyle={{ height: '80vh', padding: 0 }}
+      >
+        <video
+          src={designIdeaById?.designImage3URL}
+          controls
+          autoPlay
+          style={{ width: '100%', height: '100%', maxHeight: '80vh' }}
+        />
+      </Modal>
     </div>
   );
 };

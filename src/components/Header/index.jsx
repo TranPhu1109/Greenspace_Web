@@ -46,7 +46,7 @@ const Header = () => {
       try {
         await signalRService.startConnection();
 
-        signalRService.on("messagereceived", (messageType, messageData) => {
+        signalRService.on("messageReceived", (messageType, messageData) => {
           console.log(`Customer Header SignalR received - Type: ${messageType}, Data: ${messageData}`);
 
           const newNotification = {
@@ -69,7 +69,7 @@ const Header = () => {
     connectSignalR();
 
     return () => {
-      signalRService.off("messagereceived");
+      signalRService.off("messageReceived");
       signalRService.stopConnection();
     };
   }, [user]);

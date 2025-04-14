@@ -36,7 +36,7 @@ const AdminLayout = () => {
       try {
         await signalRService.startConnection();
 
-        signalRService.on("messagereceived", (messageType, messageData) => {
+        signalRService.on("messageReceived", (messageType, messageData) => {
           console.log(`SignalR messageReceived - Type: ${messageType}, Data: ${messageData}`);
 
           setNotifications((prevNotifications) => {
@@ -74,7 +74,7 @@ const AdminLayout = () => {
     connectSignalR();
 
     return () => {
-      signalRService.off("messagereceived");
+      signalRService.off("messageReceived");
       signalRService.stopConnection();
     };
   }, []);
@@ -113,7 +113,8 @@ const AdminLayout = () => {
     console.log("Notification clicked:", notification);
 
     if (notification.relatedId && notification.messageType) {
-      const orderId = notification.relatedId;
+      // Extract only the ID part before any dash
+      const orderId = notification.relatedId.split(" -")[0].trim();
       const messageType = notification.messageType;
       let detailPath = "";
 
@@ -142,11 +143,6 @@ const AdminLayout = () => {
               break;
           }
           break;
-
-        // Add cases for other message types if needed
-        // case 'SomeOtherMessageType':
-        //   detailPath = `/some/other/path/${notification.relatedId}`;
-        //   break;
 
         default:
           console.warn(`Unhandled messageType '${messageType}' for notification navigation.`);

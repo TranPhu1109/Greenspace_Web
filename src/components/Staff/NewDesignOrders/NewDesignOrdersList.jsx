@@ -55,7 +55,7 @@ const NewDesignOrdersList = () => {
       const relevantUpdateTypes = [
           "UpdateOrderService", // From previous context
           "OrderCancelled",     // Example: If cancellation affects this list
-          "NewOrderForStaff", // Example: If a new order appears directly here
+          "CreateOrderService", // When a new order is created
         ];
 
       if (relevantUpdateTypes.includes(messageType)) {
