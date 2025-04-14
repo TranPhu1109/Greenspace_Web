@@ -11,6 +11,8 @@ import {
   FileImageOutlined
 } from '@ant-design/icons';
 import logo from '../../assets/logo.png';
+import "./AdminSidebar.scss";
+
 
 const { Sider } = Layout;
 const { SubMenu } = Menu;
@@ -19,11 +21,20 @@ const AccountantSidebar = ({ collapsed }) => {
   const location = useLocation();
   
   return (
-    <Sider trigger={null} collapsible collapsed={collapsed} width={250} theme="light">
-      <div className="logo-container">
-        <img src={logo} alt="Logo" className="logo" />
-        {/* {!collapsed && <span className="logo-text">GreenSpace</span>} */}
+    <div>
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={collapsed}
+        width={250}
+        theme="light"
+        className="admin-sider"
+      >
+        <div className="logo-container">
+          <img src={logo} alt="Logo" className="logo" />
+          {/* {!collapsed && <span className="logo-text">GreenSpace</span>} */}
         </div>
+        <div className="menu-container">
       <Menu
         theme="light"
         mode="inline"
@@ -83,7 +94,9 @@ const AccountantSidebar = ({ collapsed }) => {
           <Link to="/accountant/settings">Cài đặt</Link>
         </Menu.Item> */}
       </Menu>
+      </div>
     </Sider>
+    </div>
   );
 };
 

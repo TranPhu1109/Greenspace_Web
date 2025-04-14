@@ -197,12 +197,9 @@ const DesignDetails = ({
             <Descriptions.Item label="">
               <Card 
                 style={{
-                  backgroundColor: '#f9f9f9',
+                  // backgroundColor: '#f9f9f9',
                   border: '1px solid #d9d9d9',
                   borderRadius: '8px',
-                  // marginTop: '8px',
-                  // marginBottom: '10px',
-                  // padding: '16px',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                   backgroundColor: '#fffbe6',
                 }}

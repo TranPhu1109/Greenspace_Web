@@ -171,9 +171,12 @@ const TaskDetail = () => {
 
   useEffect(() => {
     fetchTaskDetail(id);
+  }, [id, fetchTaskDetail]);
+
+  useEffect(() => {
     getRecordSketch(task.serviceOrder.id);
     getRecordDesign(task.serviceOrder.id);
-  }, [id, fetchTaskDetail]);
+  }, []);
 
   // Thêm useEffect để theo dõi phase cao nhất trong designRecords
   useEffect(() => {

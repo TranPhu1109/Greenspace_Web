@@ -7,6 +7,7 @@ const useWalletStore = create(persist((set, get) => ({
   walletId: null,
   walletName: null,
   transactions: [],
+  bills: [],
   loading: false,
   transactionsLoading: false,
   error: null,
@@ -94,11 +95,12 @@ const useWalletStore = create(persist((set, get) => ({
         throw new Error('Không nhận được dữ liệu từ server');
       }
 
-      // Update state with wallet data
+      // Update state with wallet data and bills
       set({ 
         balance: response.data.amount ?? 0,
         walletId: response.data.id,
         walletName: response.data.name,
+        bills: response.data.bills || [],
         loading: false,
         error: null
       });
@@ -113,6 +115,7 @@ const useWalletStore = create(persist((set, get) => ({
         balance: 0,
         walletId: null,
         walletName: null,
+        bills: [],
         error: error.response?.data?.message || error.message || 'Không thể lấy số dư' 
       });
 
@@ -179,6 +182,10 @@ const useWalletStore = create(persist((set, get) => ({
       };
 
       const response = await axios.post('/api/bill', billData);
+      
+      // Cập nhật lại thông tin bills sau khi tạo bill mới
+      await get().fetchBalance();
+      
       set({ loading: false });
       return response.data;
     } catch (error) {
@@ -197,6 +204,7 @@ const useWalletStore = create(persist((set, get) => ({
       walletId: null,
       walletName: null,
       transactions: [],
+      bills: [],
       loading: false,
       transactionsLoading: false,
       error: null,

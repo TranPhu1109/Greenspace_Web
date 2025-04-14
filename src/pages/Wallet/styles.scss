@@ -13,10 +13,12 @@
   .wallet-content {
     padding: 40px 0;
     margin-top: 160px;
+    background-color: #f0f2f5;
+    min-height: calc(100vh - 64px - 64px); /* 100vh - header - footer */
 
     .wallet-card {
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
       .ant-card-body {
         padding: 24px;
@@ -300,6 +302,24 @@
         }
       }
     }
+
+    .history-tabs {
+      margin-top: 16px;
+      
+      .ant-tabs-nav {
+        margin-bottom: 16px;
+      }
+    }
+
+    .transaction-history,
+    .payment-history {
+      .ant-table-wrapper {
+        .ant-table {
+          border-radius: 8px;
+          overflow: hidden;
+        }
+      }
+    }
   }
 
   .qr-code-container {
@@ -368,78 +388,16 @@
 @media (max-width: 768px) {
   .wallet-layout {
     .wallet-content {
-      margin-top: 150px;
-      padding: 20px 0;
+      padding: 16px;
 
       .wallet-card {
-        .wallet-tabs {
-          .ant-tabs-nav {
-            .ant-tabs-nav-wrap {
-              .ant-tabs-nav-list {
-                .ant-tabs-tab {
-                  margin: 0 16px 0 0;
-                  
-                  .tab-label {
-                    font-size: 13px;
-                    
-                    .anticon {
-                      font-size: 15px;
+        .ant-card-body {
+          padding: 16px 12px;
                     }
                   }
-                }
-              }
-            }
-          }
-        }
-
-        .wallet-balance {
-          .balance-amount {
-            font-size: 1.5rem;
-          }
-        }
-
-        .amount-button {
-          height: 40px;
-          font-size: 1rem;
-        }
-
-        .payment-method {
-          height: 40px;
-          font-size: 0.9rem;
-        }
-
-        .ant-tabs-nav {
+      
           .ant-tabs-tab {
-            padding: 8px 16px;
-            font-size: 1rem;
-          }
-        }
-
-        .transaction-history {
-          .history-header {
-            flex-direction: column;
-            gap: 16px;
-            align-items: flex-start;
-          }
-
-          .history-table {
-            .ant-table {
-              font-size: 0.9rem;
-            }
-          }
-        }
-
-        .payment-info {
-          .qr-section {
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-
-            .qr-instruction {
-              width: 100%;
-            }
-          }
-        }
+        padding: 8px 12px;
       }
     }
   }

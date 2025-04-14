@@ -279,8 +279,8 @@ console.log("Generated contract:", localContractData);
   const handleSignAndPay = async () => {
     if (!signatureFile) {
       message.error("Vui lòng tải lên chữ ký của bạn.");
-      return;
-    }
+        return;
+      }
 
     // Make sure we have a contract to sign
     const contractToSign = localContractData || (contracts.length > 0 ? contracts[0] : null);
@@ -291,7 +291,7 @@ console.log("Generated contract:", localContractData);
       return;
     }
 
-    setUploading(true);
+      setUploading(true);
     setSigningAndPaying(true);
 
     try {
@@ -508,7 +508,7 @@ console.log("Generated contract:", localContractData);
               </Button>
             </>
           )}
-
+          
           {/* Show Sign Contract button only in WaitDeposit status AND if no signed contract */}
           {isWaitDepositStatus && !signedContract && (
             <Button
@@ -525,7 +525,7 @@ console.log("Generated contract:", localContractData);
           {!isWaitDepositStatus && !signedContract &&
             (contractVisibleStatuses.includes(selectedOrder?.status) || contractVisibleStatusCodes.includes(selectedOrder?.status)) && (
               <Alert message="Hợp đồng chưa được ký. Vui lòng kiểm tra lại quy trình." type="warning" showIcon />
-            )}
+          )}
         </Space>
       </Card>
 
@@ -649,45 +649,45 @@ console.log("Generated contract:", localContractData);
                   title="Contract PDF Preview"
                 />
               ) : localContractData?.description ? (
-                <iframe
+          <iframe
                   src={localContractData.description}
                   style={{ width: "100%", height: "40vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
                   title="Contract PDF Preview"
-                />
-              ) : (
+          />
+        ) : (
                 <div style={{ height: "40vh", display: 'flex', alignItems: 'center', justifyContent: 'center', border: "1px solid #d9d9d9", marginBottom: 15 }}>
                   <Text type="secondary">Không tìm thấy hợp đồng. Vui lòng thử tạo lại.</Text>
-                </div>
-              )}
+          </div>
+        )}
 
               <Divider>Chữ ký của bạn</Divider>
               <div style={{ textAlign: "center", marginBottom: 20 }}>
                 <div style={{ marginBottom: 10, minHeight: '100px', border: '1px dashed #d9d9d9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', position: 'relative' }}>
-                  {previewImage ? (
+            {previewImage ? (
                     <>
-                      <Image
-                        src={previewImage}
-                        alt="Chữ ký xem trước"
+                <Image
+                  src={previewImage}
+                  alt="Chữ ký xem trước"
                         style={{ maxHeight: "100px", objectFit: "contain" }}
-                        preview={false}
-                      />
-                      <Button
-                        type="link"
-                        danger
-                        icon={<CloseCircleOutlined />}
+                  preview={false}
+                />
+                <Button 
+                  type="link" 
+                  danger 
+                  icon={<CloseCircleOutlined />} 
                         onClick={() => { setPreviewImage(null); setSignatureFile(null); document.getElementById('signature-upload-input').value = null; }} // Reset file input too
                         style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(255,255,255,0.7)', borderRadius: '50%' }}
-                      />
+                />
                     </>
-                  ) : (
-                    <Button
-                      type="dashed"
-                      icon={<UploadOutlined />}
+            ) : (
+              <Button
+                type="dashed"
+                icon={<UploadOutlined />}
                       onClick={() => document.getElementById('signature-upload-input').click()}
                     >
                       Tải lên chữ ký (ảnh)
-                    </Button>
-                  )}
+              </Button>
+            )}
                   <input
                     id="signature-upload-input"
                     type="file"
@@ -695,8 +695,8 @@ console.log("Generated contract:", localContractData);
                     style={{ display: 'none' }}
                     onChange={handleSignatureUpload}
                   />
-                </div>
-              </div>
+          </div>
+        </div>
 
               <Alert
                 type="warning"
@@ -750,12 +750,12 @@ console.log("Generated contract:", localContractData);
               ) : (
                 <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: "1px solid #d9d9d9", marginBottom: 15 }}>
                   <Text type="secondary">Không thể tải hợp đồng đã ký.</Text>
-                </div>
+            </div>
               )}
               <div style={{ textAlign: 'right', marginTop: 'auto', paddingTop: 15, borderTop: '1px solid #f0f0f0' }}>
                 <Button onClick={handleCloseModal} type="primary">Đóng</Button>
-              </div>
-            </div>
+          </div>
+        </div>
           )}
         </Spin>
       </Modal>

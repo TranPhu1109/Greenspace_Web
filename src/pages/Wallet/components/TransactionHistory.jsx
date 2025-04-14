@@ -22,6 +22,9 @@ const TransactionHistory = () => {
     return <div className="text-red-500">{transactionsError}</div>;
   }
 
+  // Lọc chỉ lấy những giao dịch có type là Deposit
+  const depositTransactions = transactions.filter(transaction => transaction.type === 'Deposit');
+
   const columns = [
     {
       title: 'Ngày giao dịch',
@@ -32,52 +35,15 @@ const TransactionHistory = () => {
       defaultSortOrder: 'descend'
     },
     {
-      title: 'Loại giao dịch',
-      dataIndex: 'type',
-      key: 'type',
-      filters: [
-        { text: 'Nạp tiền', value: 'Deposit' },
-        { text: 'Thanh toán', value: 'Payment' },
-        { text: 'Hoàn tiền', value: 'Refund' }
-      ],
-      onFilter: (value, record) => record.type === value,
-      render: (type) => {
-        let color = 'blue';
-        let text = type;
-
-        switch (type) {
-          case 'Deposit':
-            color = 'green';
-            text = 'Nạp tiền';
-            break;
-          case 'Payment':
-            color = 'blue';
-            text = 'Thanh toán';
-            break;
-          case 'Refund':
-            color = 'orange';
-            text = 'Hoàn tiền';
-            break;
-          default:
-            color = 'default';
-        }
-
-        return <Tag color={color}>{text}</Tag>;
-      },
-    },
-    {
       title: 'Số tiền',
       dataIndex: 'amount',
       key: 'amount',
       sorter: (a, b) => a.amount - b.amount,
-      render: (amount, record) => {
-        const isPositive = record.type === 'Deposit' || record.type === 'Refund';
-        return (
-          <span className={isPositive ? 'text-green-500' : 'text-blue-500'}>
-            {isPositive ? '+' : '-'}{Math.abs(amount).toLocaleString('vi-VN')}đ
-          </span>
-        );
-      },
+      render: (amount) => (
+        <span className="text-green-500">
+          +{Math.abs(amount).toLocaleString('vi-VN')}đ
+        </span>
+      ),
     },
     {
       title: 'Nguồn',
@@ -89,7 +55,7 @@ const TransactionHistory = () => {
       ],
       onFilter: (value, record) => record.source === value,
       render: (source) => (
-        <Tag color="purple">{source}</Tag>
+        <Tag color="purple">{source || 'Không xác định'}</Tag>
       ),
     },
     {
@@ -98,7 +64,7 @@ const TransactionHistory = () => {
       key: 'transactionNo',
       render: (transactionNo, record) => (
         <span className="font-mono">
-          {transactionNo}
+          {transactionNo || 'N/A'}
           {record.txnRef && (
             <span className="text-gray-500 text-xs block">
               Mã tham chiếu: {record.txnRef}
@@ -112,16 +78,17 @@ const TransactionHistory = () => {
   return (
     <div className="transaction-history">
       <Table
-        dataSource={transactions}
+        dataSource={depositTransactions}
         columns={columns}
-        rowKey={(record) => `${record.transactionNo}-${record.txnRef}`}
+        rowKey={(record) => `${record.transactionNo || Math.random()}-${record.txnRef || Math.random()}`}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
           pageSizeOptions: ['10', '20', '50'],
-          showTotal: (total) => `Tổng số ${total} giao dịch`,
+          showTotal: (total) => `Tổng số ${total} giao dịch nạp tiền`,
         }}
         className="w-full"
+        locale={{ emptyText: 'Không có lịch sử nạp tiền' }}
       />
     </div>
   );

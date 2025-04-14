@@ -15,10 +15,14 @@ import {
   Divider,
   Modal,
   Checkbox,
+  Breadcrumb,
 } from "antd";
 import {
   EnvironmentOutlined,
+  HomeOutlined,
   MessageOutlined,
+  ShoppingCartOutlined,
+  TruckOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
@@ -34,19 +38,20 @@ const { Title, Text } = Typography;
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { 
-    cartItems, 
-    loading, 
-    createOrderProducts, 
-    createBill, 
-    buyNow 
+  const {
+    cartItems,
+    loading,
+    createOrderProducts,
+    createBill,
+    buyNow,
+    removeMultipleFromCart
   } = useCartStore();
-  const { 
-    shippingFee, 
-    calculateShippingFee, 
-    resetShippingFee 
+  const {
+    shippingFee,
+    calculateShippingFee,
+    resetShippingFee
   } = useShippingStore();
-  const { 
+  const {
     updateUserAddress
   } = useAuthStore();
   const [products, setProducts] = useState([]);
@@ -79,8 +84,10 @@ const Checkout = () => {
   }, [form]);
 
   useEffect(() => {
-    // Kiểm tra và thiết lập sản phẩm từ mua ngay hoặc giỏ hàng
-    if (state?.isBuyNow && state?.products) {
+    // Kiểm tra và thiết lập sản phẩm từ location state
+    if (state?.selectedProducts && state.selectedProducts.length > 0) {
+      setProducts(state.selectedProducts);
+    } else if (state?.isBuyNow && state?.products) {
       setProducts(state.products);
     } else {
       setProducts(cartItems);
@@ -90,7 +97,7 @@ const Checkout = () => {
   const handleAddressChange = async (newAddressData) => {
     console.log("Address data changed:", newAddressData);
     setAddressData(newAddressData);
-    
+
     // Nếu đang reset về trạng thái ban đầu (bỏ tích sử dụng địa chỉ mặc định)
     if (newAddressData.useDefaultAddress === false && newAddressData.province === null) {
       console.log("Resetting shipping fee to default");
@@ -98,7 +105,7 @@ const Checkout = () => {
       resetShippingFee();
       return;
     }
-    
+
     // Nếu đang sử dụng địa chỉ mặc định thì lấy dữ liệu từ thông tin parsedAddress
     if (newAddressData.useDefaultAddress) {
       console.log("Using default address for shipping fee calculation");
@@ -110,7 +117,7 @@ const Checkout = () => {
           toDistrictName: newAddressData.district.label,
           toWardName: newAddressData.ward.label,
         });
-        
+
         console.log("Default address shipping fee:", fee);
         if (fee) {
           message.success("Đã cập nhật phí vận chuyển");
@@ -123,7 +130,7 @@ const Checkout = () => {
       }
       return;
     }
-    
+
     // Trường hợp nhập địa chỉ mới
     if (newAddressData.province && newAddressData.district && newAddressData.ward) {
       setCalculatingFee(true);
@@ -162,10 +169,10 @@ const Checkout = () => {
         message.error('Vui lòng chọn địa chỉ giao hàng');
         return;
       }
-      
+
       // Nếu không phải địa chỉ mặc định, kiểm tra các thông tin đia chỉ có đầy đủ không
-      if (!addressData.useDefaultAddress && 
-          (!addressData.province || !addressData.district || !addressData.ward || !values.streetAddress)) {
+      if (!addressData.useDefaultAddress &&
+        (!addressData.province || !addressData.district || !addressData.ward || !values.streetAddress)) {
         message.error('Vui lòng nhập đầy đủ thông tin địa chỉ giao hàng');
         return;
       }
@@ -176,7 +183,7 @@ const Checkout = () => {
       const userObj = JSON.parse(localStorage.getItem('user'));
 
       // Tạo chuỗi địa chỉ theo định dạng "đường|phường/xã|quận/huyện|tỉnh/thành phố"
-      const address = addressData.useDefaultAddress 
+      const address = addressData.useDefaultAddress
         ? userObj.address
         : `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
 
@@ -203,12 +210,19 @@ const Checkout = () => {
           quantity: products[0].quantity
         });
       } else {
-        // Sử dụng API createOrderProducts cho mua từ giỏ hàng
+        // Chuẩn bị danh sách sản phẩm để gửi đi
+        const productsList = products.map(product => ({
+          productId: product.id,
+          quantity: product.quantity
+        }));
+
+        // Sử dụng API createOrderProducts cho mua từ giỏ hàng với cấu trúc mới
         orderResponse = await createOrderProducts({
           userId: userId,
           address: address,
           phone: values.phone,
-          shipPrice: shippingFee
+          shipPrice: shippingFee,
+          products: productsList
         });
       }
 
@@ -222,9 +236,16 @@ const Checkout = () => {
             amount: calculateTotal() + shippingFee,
             description: 'Thanh toán đơn hàng'
           });
-          
+
           if (billResponse.status === 200) {
             message.success('Đặt hàng và thanh toán thành công!');
+
+            // Xóa sản phẩm đã đặt khỏi giỏ hàng
+            if (!state?.isBuyNow) {
+              const productIds = products.map(product => product.id);
+              await removeMultipleFromCart(productIds);
+            }
+
             resetShippingFee();
             setProducts([]);
             navigate('/orderhistory', {
@@ -247,6 +268,27 @@ const Checkout = () => {
       <Content>
         <div className="checkout-content" style={{ margin: '200px 0 20px' }}>
           <div className="container">
+            <Breadcrumb style={{
+              margin: '20px 0 10px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+              position: 'sticky',
+              top: '80px',
+              zIndex: 100,
+              maxWidth: '1200px',
+            }}>
+              <Breadcrumb.Item onClick={() => navigate('/Home')} className="breadcrumb-link">
+                <HomeOutlined /> Trang chủ
+              </Breadcrumb.Item>
+              <Breadcrumb.Item onClick={() => navigate('/cart')} className="breadcrumb-link">
+                <ShoppingCartOutlined /> Giỏ hàng
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>
+                <TruckOutlined /> Thanh toán
+              </Breadcrumb.Item>
+            </Breadcrumb>
             <Row gutter={24}>
               <Col xs={24} lg={16}>
                 <Card className="checkout-card">
@@ -288,7 +330,7 @@ const Checkout = () => {
                     {/* Hiển thị tùy chọn lưu địa chỉ chỉ khi người dùng chưa có địa chỉ */}
                     {!userHasAddress && !addressData?.useDefaultAddress && (
                       <Form.Item name="saveAddress">
-                        <Checkbox 
+                        <Checkbox
                           onChange={(e) => setSaveAddress(e.target.checked)}
                           checked={saveAddress}
                         >

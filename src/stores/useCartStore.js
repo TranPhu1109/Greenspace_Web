@@ -283,21 +283,21 @@ const useCartStore = create((set, get) => ({
     }
   },
 
-  // Create order
+  // Create order từ giỏ hàng (new version supporting specific products)
   createOrderProducts: async (orderData) => {
+    set({ loading: true, error: null });
     try {
-      set({ loading: true });
-      const response = await axios.post('/api/orderproducts', orderData);
-      if (response.status === 200) {
-        return response;
+      // Kiểm tra xem có sản phẩm nào trong request không
+      if (!orderData.products || orderData.products.length === 0) {
+        throw new Error('Không có sản phẩm nào được chọn để thanh toán');
       }
-      throw new Error('Tạo đơn hàng thất bại');
-    } catch (error) {
-      // message.error(error.response.data.error);
-      set({ error: error.message });
-      throw error;
-    } finally {
+
+      const response = await axios.post('/api/orderproducts', orderData);
       set({ loading: false });
+      return response;
+    } catch (error) {
+      set({ loading: false, error: error.message });
+      throw error;
     }
   },
 
@@ -346,6 +346,39 @@ const useCartStore = create((set, get) => ({
       localStorage.removeItem(LOCAL_CART_KEY);
     }
     set({ cartItems: [] });
+  },
+
+  // Xóa nhiều sản phẩm khỏi giỏ hàng cùng lúc
+  removeMultipleFromCart: async (productIds) => {
+    try {
+      set({ loading: true });
+      const user = JSON.parse(localStorage.getItem('user'));
+      
+      // Nếu chưa đăng nhập, xóa khỏi giỏ hàng local
+      if (!user) {
+        const localCart = get().getLocalCart();
+        const newCart = localCart.filter(item => !productIds.includes(item.id));
+        
+        get().saveLocalCart(newCart);
+        set({ cartItems: newCart });
+        
+        set({ loading: false });
+        return;
+      }
+      
+      // Nếu đã đăng nhập, gọi API để xóa từng sản phẩm
+      for (const productId of productIds) {
+        await axios.put(`/api/carts/remove-item/`, { productId });
+      }
+      
+      // Refresh cart items after all removals
+      await get().fetchCartItems();
+    } catch (error) {
+      console.error('Lỗi khi xóa sản phẩm khỏi giỏ hàng:', error);
+      set({ error: error.message });
+    } finally {
+      set({ loading: false });
+    }
   },
 }));
 
