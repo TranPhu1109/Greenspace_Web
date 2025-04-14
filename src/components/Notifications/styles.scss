@@ -1,0 +1,108 @@
+.notification-dropdown {
+  .ant-dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
+    width: 300px; // Adjust width as needed
+    padding: 0;
+  }
+
+  .ant-dropdown-menu-item {
+    padding: 10px 15px;
+    line-height: 1.5;
+    border-bottom: 1px solid #f0f0f0; // Separator line
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: #f8f8f8;
+    }
+
+    &.ant-dropdown-menu-item-disabled {
+      color: rgba(0, 0, 0, 0.45);
+      cursor: default;
+      background-color: transparent;
+    }
+  }
+}
+
+.notification-item {
+  display: flex;
+  flex-direction: column;
+
+  &.unread {
+    // Style for unread notifications (e.g., bold text)
+    .notification-title,
+    .notification-content {
+      font-weight: 600;
+    }
+  }
+
+  .notification-title {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+    // white-space: nowrap;
+    // overflow: hidden;
+    // text-overflow: ellipsis;
+  }
+
+  .notification-content {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+    // white-space: nowrap;
+    // overflow: hidden;
+    // text-overflow: ellipsis;
+  }
+
+  .notification-time {
+    font-size: 10px;
+    color: #999;
+    align-self: flex-end;
+  }
+}
+
+.view-all {
+  font-size: 13px;
+  color: #1890ff; // Ant Design primary color
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Style for the trigger (bell icon + badge)
+.notification-trigger {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%; // Match header height if needed
+  padding: 0 12px; // Adjust padding as needed
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.025); // Slight background on hover
+  }
+
+  .header-icon {
+    font-size: 18px; // Adjust icon size
+    color: inherit; // Inherit color from header
+  }
+
+  // Adjust badge position if necessary
+  .notification-badge {
+    // Example: slightly offset the badge
+    // transform: translate(5px, -5px);
+    .ant-badge-count {
+        // Customize badge appearance (e.g., smaller font)
+        // font-size: 9px;
+        // padding: 0 4px;
+        // height: 16px;
+        // line-height: 16px;
+        // min-width: 16px;
+    }
+  }
+} 
