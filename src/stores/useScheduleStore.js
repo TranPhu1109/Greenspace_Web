@@ -165,6 +165,29 @@ const useScheduleStore = create((set, get) => ({
     }
   },
 
+  // Xóa task
+  deleteTask: async (taskId) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Gọi API để xóa task
+      const response = await api.delete(`/api/worktask/${taskId}`);
+      
+      // Cập nhật state để loại bỏ task đã xóa
+      set(state => ({
+        workTasks: state.workTasks.filter(task => task.id !== taskId),
+        isLoading: false
+      }));
+      
+      return response.data;
+    } catch (error) {
+      set({
+        error: error.message || 'Không thể xóa công việc',
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
   // Thêm hàm để cập nhật trạng thái task cho đơn hàng có trạng thái DepositSuccessful
   updateTasksForDepositSuccessfulOrders: async () => {
     // Prevent concurrent runs if another sync is happening (optional but good practice)

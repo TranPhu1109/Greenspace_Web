@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Tag, Space, Button, Input, Select, Tooltip, Badge, Typography, Dropdown, Menu, message } from 'antd';
-import { SearchOutlined, CalendarOutlined, UserOutlined, FilterOutlined, SortAscendingOutlined, SortDescendingOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Space, Button, Input, Select, Tooltip, Badge, Typography, Dropdown, Modal, message } from 'antd';
+import { SearchOutlined, CalendarOutlined, UserOutlined, FilterOutlined, SortAscendingOutlined, SortDescendingOutlined, EyeOutlined, DeleteOutlined, ExclamationCircleOutlined, MoreOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import TaskDetailDrawer from './TaskDetailDrawer';
+import useScheduleStore from '@/stores/useScheduleStore';
+import useDesignOrderStore from '@/stores/useDesignOrderStore';
 import './styles/DesignerTasksList.scss';
 
 const { Text } = Typography;
 const { Option } = Select;
+const { confirm } = Modal;
 
 const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) => {
   const [searchText, setSearchText] = useState('');
@@ -16,13 +19,18 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [sortField, setSortField] = useState('creationDate');
   const [sortDirection, setSortDirection] = useState('descend');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Get functions from stores
+  const { deleteTask } = useScheduleStore();
+  const { updateStatus } = useDesignOrderStore();
 
   // Status options for filter
   const statusOptions = [
-    { value: 0, label: 'Tư vấn & phác thảo', color: 'blue' },
-    { value: 1, label: 'Đã phác thảo', color: 'cyan' },
-    { value: 2, label: 'Thiết kế', color: 'purple' },
-    { value: 3, label: 'Đã thiết kế', color: 'green' },
+    // { value: 0, label: 'Tư vấn & phác thảo', color: 'blue' },
+    // { value: 1, label: 'Đã phác thảo', color: 'cyan' },
+    // { value: 2, label: 'Thiết kế', color: 'purple' },
+    // { value: 3, label: 'Đã thiết kế', color: 'green' },
     { value: 'ConsultingAndSket', label: 'Tư vấn & phác thảo', color: 'blue' },
     { value: 'DoneConsulting', label: 'Đã phác thảo', color: 'cyan' },
     { value: 'Design', label: 'Thiết kế', color: 'purple' },
@@ -50,10 +58,11 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
     
     // Apply search filter
     if (searchText) {
+      const searchLower = searchText.toLowerCase();
       result = result.filter(task => 
-        task.id.toLowerCase().includes(searchText.toLowerCase()) || 
-        (task.serviceOrder && task.serviceOrder.id.toLowerCase().includes(searchText.toLowerCase())) ||
-        (task.note && task.note.toLowerCase().includes(searchText.toLowerCase()))
+        task.id.toLowerCase().includes(searchLower) || 
+        (task.serviceOrderId && task.serviceOrderId.toLowerCase().includes(searchLower)) ||
+        (task.note && task.note.toLowerCase().includes(searchLower))
       );
     }
     
@@ -125,7 +134,68 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
     if (!dateString) return 'N/A';
     return moment(dateString).format('DD/MM/YYYY HH:mm');
   };
+
+  // Handle task deletion
+  const handleDeleteTask = (taskId, serviceOrderId) => {
+    if (deleteLoading) return;
+
+    confirm({
+      title: 'Xác nhận xóa task',
+      icon: <ExclamationCircleOutlined />,
+      content: 'Bạn có chắc chắn muốn xóa task này? Hành động này không thể hoàn tác.',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          setDeleteLoading(true);
+          
+          // 1. Delete the task
+          await deleteTask(taskId);
+          message.success('Đã xóa task thành công!');
+          
+          // 2. If the task has an associated order, reset the order status to Pending
+          if (serviceOrderId) {
+            try {
+              // Update order status to Pending (0)
+              await updateStatus(serviceOrderId, "Pending");
+              message.success('Đã cập nhật trạng thái đơn hàng về Chờ xử lý!');
+            } catch (orderError) {
+              message.warning('Xóa task thành công nhưng không thể cập nhật trạng thái đơn hàng: ' + 
+                (orderError.message || 'Lỗi không xác định'));
+              console.error('Error updating order status:', orderError);
+            }
+          }
+          
+          // 3. Refresh task list
+          onRefresh();
+        } catch (error) {
+          message.error('Không thể xóa task: ' + (error.message || 'Lỗi không xác định'));
+        } finally {
+          setDeleteLoading(false);
+        }
+      },
+    });
+  };
   
+  // Action menu for each row
+  const getActionMenuItems = (record) => [
+    {
+      key: 'view',
+      icon: <EyeOutlined />,
+      label: 'Chi tiết',
+      onClick: () => handleViewTask(record)
+    },
+    {
+      key: 'delete',
+      icon: <DeleteOutlined />,
+      label: 'Xóa',
+      danger: true,
+      disabled: deleteLoading,
+      onClick: () => handleDeleteTask(record.id, record.serviceOrderId)
+    }
+  ];
+
   // Table columns
   const columns = [
     {
@@ -140,7 +210,7 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
       dataIndex: 'serviceOrderId',
       key: 'serviceOrderId',
       render: (serviceOrderId, record) => 
-        record.serviceOrder ? (
+        serviceOrderId ? (
           <Text copyable>{serviceOrderId.substring(0, 8)}</Text>
         ) : (
           <Text type="secondary">Không có đơn</Text>
@@ -232,7 +302,7 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
       ),
       dataIndex: 'modificationDate',
       key: 'modificationDate',
-      render: (date) => formatDate(date),
+      render: (date) => date ? formatDate(date) : <Text type="secondary">Chưa cập nhật</Text>,
       width: 180,
     },
     {
@@ -245,15 +315,21 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 100,
+      width: 90,
       render: (_, record) => (
-        <Button 
-          type="link" 
-          icon={<EyeOutlined />} 
-          onClick={() => handleViewTask(record)}
+        <Dropdown
+          menu={{ items: getActionMenuItems(record) }}
+          placement="bottomRight"
+          trigger={['hover']}
+          arrow={{ pointAtCenter: true }}
         >
-          Chi tiết
-        </Button>
+          <Button 
+            type="text" 
+            icon={<MoreOutlined />}
+            className="action-button"
+            style={{ fontSize: '18px' }}
+          />
+        </Dropdown>
       ),
     },
   ];
@@ -263,12 +339,12 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
       <div className="filter-toolbar">
         <Space wrap>
           <Input 
-            placeholder="Tìm kiếm theo mã hoặc ghi chú..." 
+            placeholder="Tìm kiếm theo mã task hoặc mã đơn hàng..." 
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             allowClear
             prefix={<SearchOutlined />}
-            style={{ width: 250 }}
+            style={{ width: 280 }}
           />
           
           <Select
