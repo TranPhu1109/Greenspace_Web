@@ -228,6 +228,31 @@ const useAuthStore = create(
         }
       },
 
+      // Hàm cập nhật mật khẩu
+      updatePassword: async (password) => {
+        try {
+          set({ loading: true, error: null });
+          const user = useAuthStore.getState().user;
+          
+          if (!user || !user.id) {
+            throw new Error("Không tìm thấy thông tin người dùng");
+          }
+          
+          // Gọi API cập nhật mật khẩu
+          const response = await axios.put(`/api/users/${user.id}`, { password });
+          
+          set({ loading: false });
+          return response.data;
+        } catch (err) {
+          console.error('Update password error:', err);
+          set({ 
+            error: err.response?.data?.message || err.message, 
+            loading: false
+          });
+          throw err;
+        }
+      },
+
       // Regular registration with email/password
       register: async (userData) => {
         set({ loading: true, error: null });

@@ -23,7 +23,7 @@ const PaymentHistory = () => {
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
-
+  console.log(bills);
   // Format service order ID for display
   const formatServiceOrderId = (id) => {
     if (!id) return 'Không có mã đơn';
@@ -35,11 +35,19 @@ const PaymentHistory = () => {
       title: 'Mã đơn hàng',
       dataIndex: 'serviceOrderId',
       key: 'serviceOrderId',
-      render: (id) => (
-        <Text copyable={id ? { text: id } : false} strong>
-          {formatServiceOrderId(id)}
-        </Text>
-      ),
+      render: (serviceOrderId, record) => {
+        // Ưu tiên hiển thị serviceOrderId (đơn dịch vụ), nếu không có thì hiển thị orderId (đơn sản phẩm)
+        const idToShow = serviceOrderId || record.orderId;
+        const idType = serviceOrderId ? 'Dịch vụ' : 'Sản phẩm';
+        
+        return idToShow ? (
+          <Text copyable={{ text: idToShow }} strong>
+            #{idToShow.slice(0, 8)}... ({idType})
+          </Text>
+        ) : (
+          <Text type="secondary">Không có mã đơn hàng</Text>
+        );
+      },
     },
     {
       title: 'Mô tả',

@@ -243,6 +243,37 @@
           }
         }
         
+        .password-change-steps {
+          margin-bottom: 30px;
+
+          .ant-steps-item-icon {
+            background-color: #f1f1f1;
+            border-color: #e0e0e0;
+          }
+          
+          .ant-steps-item-active .ant-steps-item-icon {
+            background-color: #4caf50;
+            border-color: #4caf50;
+          }
+          
+          .ant-steps-item-finish .ant-steps-item-icon {
+            background-color: #fff;
+            border-color: #4caf50;
+          }
+
+          .ant-steps-item-finish .ant-steps-item-icon > .ant-steps-icon {
+            color: #4caf50;
+          }
+          
+          .ant-steps-item-finish .ant-steps-item-tail::after {
+            background-color: #4caf50;
+          }
+        }
+        
+        .step-content {
+          min-height: 250px;
+        }
+        
         .settings-form {
           .ant-form-item-label > label {
             font-weight: 500;

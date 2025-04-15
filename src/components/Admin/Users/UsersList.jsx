@@ -11,14 +11,10 @@ import {
   Tooltip,
 } from "antd";
 import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import useUserStore from "../../../stores/useUserStore";
 import CreateUserModal from "./components/CreateUserModal";
-import { render } from "sass";
 
 // Add delete handler in UsersList component
 const UsersList = () => {

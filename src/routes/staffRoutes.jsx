@@ -94,12 +94,14 @@ export const staffRoutes = {
     },
     {
       path: "schedule",
-      element: <ScheduleList />,
-    },
-    {
-      path: "schedule-new",
+      // element: <ScheduleList />,
       element: <DesignerScheduleManager />,
+
     },
+    // {
+    //   path: "schedule-new",
+    //   element: <DesignerScheduleManager />,
+    // },
     {
       path: "products",
       children: [

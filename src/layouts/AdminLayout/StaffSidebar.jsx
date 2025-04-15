@@ -99,9 +99,9 @@ const StaffSidebar = ({ collapsed }) => {
               <Link to="/staff/products">Sản phẩm</Link>
             </Menu.Item>
 
-            <Menu.Item key="/staff/schedule-new" icon={<CalendarOutlined />}>
+            {/* <Menu.Item key="/staff/schedule-new" icon={<CalendarOutlined />}>
               <Link to="/staff/schedule-new">Lịch làm việc mới</Link>
-            </Menu.Item>
+            </Menu.Item> */}
 
             <Menu.Item key="/staff/schedule" icon={<CalendarOutlined />}>
               <Link to="/staff/schedule">Lịch làm việc</Link>

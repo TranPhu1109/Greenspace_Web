@@ -306,7 +306,7 @@ const useCartStore = create((set, get) => ({
     try {
       set({ loading: true });
       const response = await axios.post('/api/orderproducts/buy-now', orderData);
-      if (response.status === 200) {
+      if (response.status === 201) {
         return response;
       }
       throw new Error('Đặt hàng thất bại');

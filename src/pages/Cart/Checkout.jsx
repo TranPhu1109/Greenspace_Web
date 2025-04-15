@@ -225,14 +225,13 @@ const Checkout = () => {
           products: productsList
         });
       }
-
-      if (orderResponse.status === 200) {
+      console.log(orderResponse);
+      if (orderResponse.status === 201) {
         try {
           // Create bill using store
           const billResponse = await createBill({
             walletId: walletId,
-            orderId: orderResponse.data.id,
-            serviceOrderId: null,
+            orderId: orderResponse.data?.data?.id,
             amount: calculateTotal() + shippingFee,
             description: 'Thanh toán đơn hàng'
           });
