@@ -3,7 +3,7 @@ import { Form, Input, Select, message, Checkbox, Alert, Space } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { fetchProvinces, fetchDistricts, fetchWards } from '@/services/ghnService';
 
-const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
+const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initialAddress = null }) => {
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
@@ -13,9 +13,12 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
   const [useDefaultAddress, setUseDefaultAddress] = useState(false);
   const [userAddress, setUserAddress] = useState(null);
   const [parsedAddress, setParsedAddress] = useState(null);
+  const [initialAddressProcessed, setInitialAddressProcessed] = useState(false);
 
   // Lấy thông tin địa chỉ từ user trong localStorage nếu có
   useEffect(() => {
+    if (!useExistingAddress) return; // Skip if useExistingAddress is false
+    
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -38,7 +41,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         console.error("Lỗi khi đọc thông tin người dùng:", error);
       }
     }
-  }, []);
+  }, [useExistingAddress]);
 
   useEffect(() => {
     const getProvinces = async () => {
@@ -46,6 +49,11 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
       try {
         const data = await fetchProvinces();
         setProvinces(data);
+        
+        // After provinces are loaded, attempt to process initialAddress
+        if (initialAddress && !initialAddressProcessed) {
+          initializeFromAddress(initialAddress, data);
+        }
       } catch (error) {
         message.error("Không thể tải danh sách tỉnh thành");
       } finally {
@@ -53,7 +61,78 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
       }
     };
     getProvinces();
-  }, []);
+  }, [initialAddress, initialAddressProcessed]);
+
+  // Update initialAddressProcessed state when initialAddress changes
+  useEffect(() => {
+    if (initialAddress) {
+      setInitialAddressProcessed(false);
+    }
+  }, [initialAddress]);
+
+  // Function to initialize address fields from an existing address string
+  const initializeFromAddress = async (address, availableProvinces) => {
+    try {
+      if (!address || typeof address !== 'string') return;
+      
+      const parts = address.split('|');
+      if (parts.length !== 4) return;
+      
+      const [street, wardName, districtName, provinceName] = parts;
+      
+      // Set street address immediately
+      form.setFieldValue("streetAddress", street);
+      
+      // Find matching province
+      const foundProvince = availableProvinces.find(p => 
+        p.label.toLowerCase() === provinceName.toLowerCase());
+        
+      if (foundProvince) {
+        // Set province selection
+        form.setFieldValue("provinces", foundProvince.value);
+        
+        // Fetch districts for this province
+        const districtData = await fetchDistricts(foundProvince.value);
+        setDistricts(districtData);
+        
+        // Find matching district
+        const foundDistrict = districtData.find(d => 
+          d.label.toLowerCase() === districtName.toLowerCase());
+          
+        if (foundDistrict) {
+          // Set district selection
+          form.setFieldValue("district", foundDistrict.value);
+          
+          // Fetch wards for this district
+          const wardData = await fetchWards(foundDistrict.value);
+          setWards(wardData);
+          
+          // Find matching ward
+          const foundWard = wardData.find(w => 
+            w.label.toLowerCase() === wardName.toLowerCase());
+            
+          if (foundWard) {
+            // Set ward selection
+            form.setFieldValue("ward", foundWard.value);
+            
+            // Mark address as processed
+            setInitialAddressProcessed(true);
+            
+            // Notify of address changes
+            onAddressChange({
+              province: foundProvince,
+              district: foundDistrict,
+              ward: foundWard,
+              streetAddress: street,
+              useDefaultAddress: false
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error initializing address fields:", error);
+    }
+  };
 
   const handleProvinceChange = async (provinceId) => {
     setDistricts([]);
@@ -193,7 +272,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
     <Form.Item noStyle shouldUpdate>
       {() => (
         <>
-          {(!useDefaultAddress || !userAddress) && (
+          {(!useDefaultAddress || !userAddress || !useExistingAddress) && (
             <>
               <Form.Item
                 name="provinces"
@@ -273,7 +352,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
             </>
           )}
 
-          {userAddress && (
+          {userAddress && useExistingAddress && (
             <Form.Item>
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Alert

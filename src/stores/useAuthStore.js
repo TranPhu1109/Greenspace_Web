@@ -156,9 +156,45 @@ const useAuthStore = create(
         }
       },
 
-      updateUser: (userData) => set((state) => ({
-        user: { ...state.user, ...userData },
-      })),
+      updateUser: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+          const currentUser = useAuthStore.getState().user;
+          
+          if (!currentUser || !currentUser.id) {
+            throw new Error("Không tìm thấy thông tin người dùng");
+          }
+          
+          // Ensure we include all fields in the request, using current values if not being updated
+          const requestData = {
+            name: userData.name !== undefined ? userData.name : currentUser.name,
+            phone: userData.phone !== undefined ? userData.phone : currentUser.phone,
+            address: userData.address !== undefined ? userData.address : currentUser.address,
+            avatarUrl: userData.avatarUrl !== undefined ? userData.avatarUrl : currentUser.avatarUrl,
+          };
+          
+          // Make API call to update user
+          const response = await axios.put(`/api/users/${currentUser.id}`, requestData);
+          
+          // Update user information in store and localStorage
+          const updatedUser = { ...currentUser, ...requestData };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          
+          set({ 
+            user: updatedUser,
+            loading: false 
+          });
+          
+          return updatedUser;
+        } catch (err) {
+          console.error('Update user error:', err);
+          set({ 
+            error: err.message, 
+            loading: false
+          });
+          throw err;
+        }
+      },
 
       // Hàm cập nhật địa chỉ người dùng
       updateUserAddress: async (address) => {

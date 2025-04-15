@@ -99,6 +99,13 @@ function TopHeader({
         </div>
         <div className="auth-links">
           {renderAuthButtons()}
+          <Link to="/cart" className="cart-link" onClick={handleCartClick}>
+            <Badge count={getCartItemsCount} showZero>
+              <Button type="text" icon={<ShoppingCartOutlined />}>
+                Giỏ hàng
+              </Button>
+            </Badge>
+          </Link>
           {user && (
             <Notifications
               count={notificationCount}
@@ -107,13 +114,6 @@ function TopHeader({
               onViewAllClick={onViewAllClick}
             />
           )}
-          <Link to="/cart" className="cart-link" onClick={handleCartClick}>
-            <Badge count={getCartItemsCount} showZero>
-              <Button type="text" icon={<ShoppingCartOutlined />}>
-                Giỏ hàng
-              </Button>
-            </Badge>
-          </Link>
         </div>
       </div>
     </div>

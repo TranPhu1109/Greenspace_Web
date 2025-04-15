@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layout, Menu, Dropdown, Avatar, Badge } from "antd";
+import { Layout, Menu, Dropdown, Avatar, Badge, message } from "antd";
 import {
   UserOutlined,
   LogoutOutlined,
@@ -20,6 +20,9 @@ import useAuthStore from "@/stores/useAuthStore";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Header, Content } = Layout;
+
+// List of roles allowed to access the admin layout
+const ALLOWED_ROLES = ["admin", "accountant", "staff", "designer", "manager"];
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -82,8 +85,15 @@ const AdminLayout = () => {
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user"));
     if (userData) {
-      setRole(userData.roleName.toLowerCase());
+      const userRole = userData.roleName.toLowerCase();
+      setRole(userRole);
       setUsername(userData.name);
+      
+      // Check if the user's role is allowed to access admin layout
+      if (!ALLOWED_ROLES.includes(userRole)) {
+        // message.error('Bạn không có quyền truy cập trang này');
+        navigate('/');
+      }
     } else {
       navigate("/login");
     }
@@ -93,9 +103,14 @@ const AdminLayout = () => {
     const savedRole = localStorage.getItem("selectedRole");
     const location = window.location.pathname;
     if (savedRole && location === `/${savedRole}`) {
-      setRole(savedRole);
-      navigate(`/${savedRole}/dashboard`);
-    } else if (savedRole) {
+      // Verify the role is allowed before setting it
+      if (ALLOWED_ROLES.includes(savedRole)) {
+        setRole(savedRole);
+        navigate(`/${savedRole}/dashboard`);
+      } else {
+        navigate('/');
+      }
+    } else if (savedRole && ALLOWED_ROLES.includes(savedRole)) {
       setRole(savedRole);
     }
   }, []);
@@ -184,7 +199,9 @@ const AdminLayout = () => {
       case "manager":
         return <ManagerSidebar collapsed={collapsed} />;
       default:
-        return <AdminSidebar collapsed={collapsed} />;
+        // Redirect to home if role is not allowed
+        navigate('/');
+        return null;
     }
   };
 
@@ -210,6 +227,11 @@ const AdminLayout = () => {
       </Menu.Item>
     </Menu>
   );
+
+  // If user has an unauthorized role, don't render the admin layout
+  if (!ALLOWED_ROLES.includes(role)) {
+    return null;
+  }
 
   return (
     <Layout className="admin-layout">
