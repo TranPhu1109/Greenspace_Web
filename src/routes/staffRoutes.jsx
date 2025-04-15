@@ -18,6 +18,7 @@ import BlogManagement from "@/components/Staff/Blog/BlogManagement";
 import NewBlog from "@/components/Staff/Blog/NewBlog";
 import EditBlog from "@/components/Staff/Blog/EditBlog";
 import BlogDetail from "@/components/Staff/Blog/BlogDetail";
+import DesignerScheduleManager from "@/components/Staff/DesignerSchedule/DesignerScheduleManager";
 
 export const staffRoutes = {
   path: "/staff",
@@ -93,8 +94,14 @@ export const staffRoutes = {
     },
     {
       path: "schedule",
-      element: <ScheduleList />,
+      // element: <ScheduleList />,
+      element: <DesignerScheduleManager />,
+
     },
+    // {
+    //   path: "schedule-new",
+    //   element: <DesignerScheduleManager />,
+    // },
     {
       path: "products",
       children: [

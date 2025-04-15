@@ -1,0 +1,53 @@
+.designer-tasks-list {
+  .filter-toolbar {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .tasks-list-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+  }
+
+  .ant-table-wrapper {
+    .ant-table-cell {
+      .active-sort {
+        color: #1890ff;
+      }
+    }
+  }
+
+  .ant-select-multiple {
+    .ant-select-selection-item {
+      padding: 0;
+      margin-right: 4px;
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .designer-tasks-list {
+    .filter-toolbar {
+      flex-direction: column;
+      
+      .ant-input-affix-wrapper,
+      .ant-select {
+        width: 100% !important;
+      }
+    }
+    
+    .ant-table {
+      overflow-x: auto;
+      
+      .ant-table-content {
+        overflow-x: auto;
+      }
+    }
+  }
+} 

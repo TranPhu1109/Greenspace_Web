@@ -197,6 +197,25 @@ const useServiceOrderStore = create((set) => ({
     }
   },
 
+  updateTaskOrder: async (taskId, taskData) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.put(`/api/worktask/${taskId}`, taskData);
+
+      if (!response.data) {
+        throw new Error('Không thể cập nhật trạng thái công việc');
+      }
+      
+      
+    } catch (error) {
+      console.error('Error in updateTaskOrderStatus:', error);
+      set({ 
+        error: error.message || 'Không thể cập nhật trạng thái công việc',
+        loading: false
+      });
+      throw error;
+    }
+  },
   // Lấy chi tiết đơn thiết kế theo id
   getServiceOrderById: async (id) => {
     set({ loading: true, error: null });

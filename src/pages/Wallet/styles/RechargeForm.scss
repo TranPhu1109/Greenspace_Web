@@ -96,6 +96,7 @@
       border-radius: 8px;
       background-color: #52c41a;
       border-color: #52c41a;
+      width: 100%;
       
       &:hover {
         background-color: #73d13d;
@@ -158,6 +159,17 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         margin: 24px 0;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        // QR Code
+        svg {
+          width: 100%;
+          height: auto;
+          max-width: 240px;
+          margin: 0 auto;
+        }
 
         // Nút và ghi chú
         .qr-actions {
@@ -178,6 +190,9 @@
           .qr-note {
             font-size: 13px;
             color: #8c8c8c;
+            display: block;
+            text-align: center;
+            width: 100%;
           }
         }
       }
@@ -205,6 +220,10 @@
           align-items: center;
           gap: 16px;
           margin-bottom: 16px;
+          padding: 16px;
+          background-color: #f6ffed;
+          border-radius: 8px;
+          text-align: center;
 
           .instruction-icon {
             font-size: 24px;
@@ -247,6 +266,18 @@
     .qr-code-wrapper {
       padding: 16px;
       margin: 16px 0;
+      width: 100%;
+      max-width: 280px;
+      
+      svg {
+        max-width: 200px;
+      }
+    }
+    
+    .payment-instructions {
+      .instruction-item {
+        padding: 12px;
+      }
     }
   }
 } 

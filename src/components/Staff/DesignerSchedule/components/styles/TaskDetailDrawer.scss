@@ -1,0 +1,60 @@
+.task-detail-drawer {
+  .ant-drawer-body {
+    padding: 16px;
+  }
+  
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    
+    .ant-typography {
+      margin-bottom: 0;
+    }
+  }
+  
+  .task-description,
+  .order-description {
+    margin-bottom: 24px;
+    
+    .ant-descriptions-item-label {
+      width: 120px;
+      font-weight: 500;
+    }
+  }
+  
+  .drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 0;
+  }
+  
+  .edit-form {
+    padding: 8px 0;
+    
+    .ant-form-item:last-child {
+      margin-bottom: 0;
+      
+      .ant-space {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .task-detail-drawer {
+    .ant-drawer-content-wrapper {
+      width: 100% !important;
+    }
+    
+    .task-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+} 

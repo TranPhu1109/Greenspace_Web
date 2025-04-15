@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Layout, Menu, Dropdown, Avatar, Badge } from "antd";
+import { Layout, Menu, Dropdown, Avatar, Badge, message } from "antd";
 import {
-  BellOutlined,
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -14,51 +13,177 @@ import AccountantSidebar from "./AccountantSidebar";
 import StaffSidebar from "./StaffSidebar";
 import DesignerSidebar from "./DesignerSidebar";
 import ManagerSidebar from "./ManagerSidebar";
+import Notifications from "@/components/Notifications";
+import signalRService from "@/services/signalRService";
 import "./AdminLayout.scss";
 import useAuthStore from "@/stores/useAuthStore";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 
 const { Header, Content } = Layout;
 
+// List of roles allowed to access the admin layout
+const ALLOWED_ROLES = ["admin", "accountant", "staff", "designer", "manager"];
+
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [role, setRole] = useState("");
   const [username, setUsername] = useState("");
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
   const userData = JSON.parse(localStorage.getItem("user"));
   const { getAccountPath } = useRoleBasedPath();
-  // console.log(userData);
 
   useEffect(() => {
-    // Get user data from localStorage
+    const connectSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+
+        signalRService.on("messageReceived", (messageType, messageData) => {
+          console.log(`SignalR messageReceived - Type: ${messageType}, Data: ${messageData}`);
+
+          setNotifications((prevNotifications) => {
+            const isDuplicate = prevNotifications.some(notif => notif.relatedId === messageData);
+
+            if (isDuplicate) {
+              // Don't add duplicate, return previous state
+              return prevNotifications;
+            } else {
+              // Not a duplicate, create new notification and update count
+              const newNotification = {
+                id: Date.now(), // Use timestamp as unique key for React list rendering
+                relatedId: messageData, // Store the actual ID for navigation/logic
+                messageType: messageType, // Store the original message type
+                title: messageType === 'UpdateOrderService' ? "Cập nhật đơn hàng" : "Thông báo",
+                message: `Cập nhật cho ID: ${messageData}`,
+                timestamp: new Date().toLocaleTimeString(),
+                read: false,
+              };
+
+              // Increment count since it's a new notification
+              setNotificationCount(prevCount => prevCount + 1);
+
+              // Return new state with the notification added and list trimmed
+              return [newNotification, ...prevNotifications.slice(0, 9)];
+            }
+          });
+        });
+
+      } catch (err) {
+        console.error("SignalR connection failed: ", err);
+      }
+    };
+
+    connectSignalR();
+
+    return () => {
+      signalRService.off("messageReceived");
+      signalRService.stopConnection();
+    };
+  }, []);
+
+  useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user"));
     if (userData) {
-      setRole(userData.roleName.toLowerCase());
+      const userRole = userData.roleName.toLowerCase();
+      setRole(userRole);
       setUsername(userData.name);
+      
+      // Check if the user's role is allowed to access admin layout
+      if (!ALLOWED_ROLES.includes(userRole)) {
+        // message.error('Bạn không có quyền truy cập trang này');
+        navigate('/');
+      }
     } else {
-      // Redirect to login if no user data
       navigate("/login");
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const savedRole = localStorage.getItem("selectedRole");
+    const location = window.location.pathname;
+    if (savedRole && location === `/${savedRole}`) {
+      // Verify the role is allowed before setting it
+      if (ALLOWED_ROLES.includes(savedRole)) {
+        setRole(savedRole);
+        navigate(`/${savedRole}/dashboard`);
+      } else {
+        navigate('/');
+      }
+    } else if (savedRole && ALLOWED_ROLES.includes(savedRole)) {
+      setRole(savedRole);
+    }
+  }, []);
 
   const handleLogout = () => {
     useAuthStore.getState().logout();
     navigate("/login");
   };
 
-  useEffect(() => {
-    const savedRole = localStorage.getItem("selectedRole");
-    const location = window.location.pathname;
-    if (savedRole && location === `/${savedRole}`) {
-      setRole(savedRole);
-      navigate(`/${savedRole}/dashboard`);
-    } else if (savedRole) {
-      setRole(savedRole);
-    }
-  }, []);
-
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
+  };
+
+  const handleNotificationClick = (notification) => {
+    console.log("Notification clicked:", notification);
+
+    if (notification.relatedId && notification.messageType) {
+      // Extract only the ID part before any dash
+      const orderId = notification.relatedId.split(" -")[0].trim();
+      const messageType = notification.messageType;
+      let detailPath = "";
+
+      // Determine the path based on messageType and role
+      switch (messageType) {
+        case 'UpdateOrderService':
+          switch (role) {
+            case 'staff':
+              detailPath = `/staff/design-orders/new-design-orders/${orderId}`;
+              break;
+            case 'designer':
+              detailPath = `/designer/tasks/${orderId}`; // Adjust as needed
+              break;
+            case 'manager':
+              detailPath = `/manager/new-design-orders/${orderId}`;
+              break;
+            case 'accountant':
+              detailPath = `/accountant/service-orders/${orderId}`;
+              break;
+            case 'admin':
+              detailPath = `/${role}/orders/${orderId}`; // Adjust as needed
+              break;
+
+            default:
+              console.warn(`Unhandled role '${role}' for UpdateOrderService notification.`);
+              break;
+          }
+          break;
+
+        default:
+          console.warn(`Unhandled messageType '${messageType}' for notification navigation.`);
+          break;
+      }
+
+      if (detailPath) {
+        console.log(`Navigating to: ${detailPath}`);
+        navigate(detailPath);
+
+        // Mark notification as read locally
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+        );
+        // Optional: Decrease count logic if needed
+      } else {
+        console.log("No navigation path determined for this notification.");
+      }
+    } else {
+      console.log("Notification missing relatedId or messageType, cannot navigate.");
+    }
+  };
+
+  const handleViewAllClick = () => {
+    console.log("View all notifications clicked");
+    setNotificationCount(0);
   };
 
   const renderSidebar = () => {
@@ -74,7 +199,9 @@ const AdminLayout = () => {
       case "manager":
         return <ManagerSidebar collapsed={collapsed} />;
       default:
-        return <AdminSidebar collapsed={collapsed} />;
+        // Redirect to home if role is not allowed
+        navigate('/');
+        return null;
     }
   };
 
@@ -101,30 +228,10 @@ const AdminLayout = () => {
     </Menu>
   );
 
-  const notificationMenu = (
-    <Menu>
-      <Menu.Item key="notification1">
-        <div className="notification-item">
-          <div className="notification-title">Đơn hàng mới</div>
-          <div className="notification-time">5 phút trước</div>
-          <div className="notification-content">Có đơn hàng mới cần xử lý</div>
-        </div>
-      </Menu.Item>
-      <Menu.Item key="notification2">
-        <div className="notification-item">
-          <div className="notification-title">Yêu cầu thiết kế</div>
-          <div className="notification-time">30 phút trước</div>
-          <div className="notification-content">
-            Khách hàng gửi yêu cầu thiết kế mới
-          </div>
-        </div>
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="viewAll">
-        <div className="view-all">Xem tất cả</div>
-      </Menu.Item>
-    </Menu>
-  );
+  // If user has an unauthorized role, don't render the admin layout
+  if (!ALLOWED_ROLES.includes(role)) {
+    return null;
+  }
 
   return (
     <Layout className="admin-layout">
@@ -137,15 +244,12 @@ const AdminLayout = () => {
             </div>
           </div>
           <div className="header-right">
-            <Dropdown
-              overlay={notificationMenu}
-              trigger={["click"]}
-              placement="bottomRight"
-            >
-              <Badge count={2} className="notification-badge">
-                <BellOutlined className="header-icon" />
-              </Badge>
-            </Dropdown>
+            <Notifications
+              count={notificationCount}
+              notifications={notifications}
+              onNotificationClick={handleNotificationClick}
+              onViewAllClick={handleViewAllClick}
+            />
             <Dropdown
               overlay={userMenu}
               trigger={["click"]}

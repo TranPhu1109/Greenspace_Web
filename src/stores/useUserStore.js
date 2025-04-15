@@ -1,9 +1,10 @@
-import { create } from 'zustand';
-import axios from '../api/api';
+import { create } from "zustand";
+import axios from "../api/api";
 
 // Add delete function to the store
 const useUserStore = create((set) => ({
   users: [],
+  designers: [],
   bannedUsers: [],
   isLoading: false,
   error: null,
@@ -11,24 +12,42 @@ const useUserStore = create((set) => ({
   fetchUsers: async () => {
     try {
       set({ isLoading: true });
-      const response = await axios.get('/api/users');
-      set({ 
+      const response = await axios.get("/api/users");
+      set({
         users: response.data,
-        isLoading: false 
+        isLoading: false,
       });
     } catch (error) {
-      set({ 
+      set({
         error: error.message,
-        isLoading: false 
+        isLoading: false,
+      });
+    }
+  },
+
+  fetchDesigner: async () => {
+    try {
+      set({ isLoading: true, designers: [] });
+      const response = await axios.get("/api/users/designer");
+      set({
+        users: response.data,
+        isLoading: false,
+        designers: response.data,
+      });
+    } catch (error) {
+      set({
+        error: error.message,
+        isLoading: false,
+        designers: [],
       });
     }
   },
 
   createUser: async (userData) => {
     try {
-      const response = await axios.post('/api/users', userData);
+      const response = await axios.post("/api/users", userData);
       set((state) => ({
-        users: [...state.users, response.data]
+        users: [...state.users, response.data],
       }));
       return response.data;
     } catch (error) {
@@ -40,7 +59,7 @@ const useUserStore = create((set) => ({
     try {
       await axios.delete(`/api/users/${id}`);
       set((state) => ({
-        users: state.users.filter(user => user.id !== id)
+        users: state.users.filter((user) => user.id !== id),
       }));
     } catch (error) {
       throw error;
@@ -50,15 +69,15 @@ const useUserStore = create((set) => ({
   fetchBannedUsers: async () => {
     try {
       set({ isLoading: true });
-      const response = await axios.get('/api/users/banned');
-      set({ 
+      const response = await axios.get("/api/users/banned");
+      set({
         bannedUsers: response.data,
-        isLoading: false 
+        isLoading: false,
       });
     } catch (error) {
-      set({ 
+      set({
         error: error.message,
-        isLoading: false 
+        isLoading: false,
       });
       throw error;
     }
@@ -68,12 +87,12 @@ const useUserStore = create((set) => ({
     try {
       await axios.put(`/api/users/unban${userId}`);
       set((state) => ({
-        bannedUsers: state.bannedUsers.filter(user => user.id !== userId)
+        bannedUsers: state.bannedUsers.filter((user) => user.id !== userId),
       }));
     } catch (error) {
       throw error;
     }
-  }
+  },
 }));
 
 export default useUserStore;

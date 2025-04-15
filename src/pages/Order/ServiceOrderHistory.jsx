@@ -125,10 +125,10 @@ const ServiceOrderHistory = () => {
     const statusColors = {
       Pending: "orange",
       ConsultingAndSketching: "blue",
-      DeterminingDesignPrice: "purple",
+      DeterminingDesignPrice: "blue",
       DepositSuccessful: "cyan",
       AssignToDesigner: "geekblue",
-      DeterminingMaterialPrice: "magenta",
+      DeterminingMaterialPrice: "geekblue",
       DoneDesign: "volcano",
       PaymentSuccess: "green",
       Processing: "blue",
@@ -143,6 +143,14 @@ const ServiceOrderHistory = () => {
       DoneRefund: "green",
       Completed: "green",
       NoDesignIdea: "default",
+      StopService: "default", // Added missing status
+      ReConsultingAndSketching: "default", // Added missing status
+      ReDesign: "default", // Added missing status
+      WaitDeposit: "default", // Added missing status
+      DoneDeterminingDesignPrice: "default", // Added missing status
+      DoneDeterminingMaterialPrice: "default", // Added missing status
+      ReDeterminingDesignPrice: "default", // Added missing status
+      ExchangeProdcut: "default", // Added missing status
     };
     return statusColors[status] || "default";
   };
@@ -151,10 +159,10 @@ const ServiceOrderHistory = () => {
     const statusTexts = {
       Pending: "Chờ xử lý",
       ConsultingAndSketching: "Đang tư vấn & phác thảo",
-      DeterminingDesignPrice: "Đang xác định giá",
+      DeterminingDesignPrice: "Đang tư vấn & phác thảo",
       DepositSuccessful: "Đặt cọc thành công",
-      AssignToDesigner: "Đã giao cho nhà thiết kế",
-      DeterminingMaterialPrice: "Xác định giá vật liệu",
+      AssignToDesigner: "Đang trong quá trình thiết kế",
+      DeterminingMaterialPrice: "Đang trong quá trình thiết kế",
       DoneDesign: "Hoàn thành thiết kế",
       PaymentSuccess: "Thanh toán thành công",
       Processing: "Đang xử lý",
@@ -169,6 +177,14 @@ const ServiceOrderHistory = () => {
       DoneRefund: "Đã hoàn tiền",
       Completed: "Hoàn thành",
       NoDesignIdea: "Không có mẫu thiết kế",
+      StopService: "Dừng dịch vụ", // Added missing status
+      ReConsultingAndSketching: "Phác thảo lại", // Added missing status
+      ReDesign: "Thiết kế lại", // Added missing status
+      WaitDeposit: "Chờ đặt cọc", // Added missing status
+      DoneDeterminingDesignPrice: "Đã hoàn thành xác định giá", // Added missing status
+      DoneDeterminingMaterialPrice: "Đã hoàn thành xác định giá vật liệu", // Added missing status
+      ReDeterminingDesignPrice: "Xác định lại giá thiết kế", // Added missing status
+      ExchangeProdcut: "Đổi sản phẩm", // Added missing status
     };
     return statusTexts[status] || status;
   };

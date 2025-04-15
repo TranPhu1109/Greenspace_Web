@@ -1,0 +1,96 @@
+.designer-calendar-view {
+  .calendar-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .calendar-header {
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .calendar-tasks {
+    max-height: 80px;
+    overflow-y: auto;
+    margin-top: 4px;
+    
+    &::-webkit-scrollbar {
+      width: 2px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.1);
+      border-radius: 2px;
+    }
+  }
+
+  .designer-tasks {
+    margin-bottom: 6px;
+  }
+
+  .designer-name {
+    margin-bottom: 2px;
+  }
+
+  .calendar-task-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+    cursor: pointer;
+    padding: 1px 0;
+    transition: all 0.3s;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  .task-tag {
+    margin-left: 4px;
+    font-size: 11px;
+    padding: 0 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+  }
+
+  .more-tasks {
+    font-size: 11px;
+    padding-left: 4px;
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .designer-calendar-view {
+    .calendar-header {
+      .ant-row {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .ant-col {
+        width: 100%;
+        text-align: center;
+      }
+      
+      .ant-btn-group {
+        display: flex;
+        width: 100%;
+        
+        .ant-btn {
+          flex: 1;
+        }
+      }
+    }
+  }
+} 

@@ -76,24 +76,24 @@ const Calendar = ({ designers = [], onAddNew }) => {
 
         // Run sync functions sequentially or in parallel if independent
         // Using sequential await for clearer logging and dependency
-        console.log("Calendar: Running Deposit Successful sync...");
-        const depositResult = await updateTasksForDepositSuccessfulOrders();
-        if (depositResult.error) {
-          console.error("Lỗi khi đồng bộ task (Deposit Successful):", depositResult.error);
-        } else if (depositResult.message && !depositResult.message.includes("Không có")) {
-          console.log("Kết quả đồng bộ (Deposit):", depositResult.message);
-        }
+        // console.log("Calendar: Running Deposit Successful sync...");
+        // const depositResult = await updateTasksForDepositSuccessfulOrders();
+        // if (depositResult.error) {
+        //   console.error("Lỗi khi đồng bộ task (Deposit Successful):", depositResult.error);
+        // } else if (depositResult.message && !depositResult.message.includes("Không có")) {
+        //   console.log("Kết quả đồng bộ (Deposit):", depositResult.message);
+        // }
 
-        console.log("Calendar: Running Re-Consulting sync...");
-        const reConsultingResult = await syncTasksForReConsultingOrders(); 
-        if (reConsultingResult.error) {
-          console.error("Lỗi khi đồng bộ task (Re-Consulting):", reConsultingResult.error);
-        } else if (reConsultingResult.message && !reConsultingResult.message.includes("Không có")) {
-          console.log("Kết quả đồng bộ (Re-Consulting):", reConsultingResult.message);
-        }
+        // console.log("Calendar: Running Re-Consulting sync...");
+        // const reConsultingResult = await syncTasksForReConsultingOrders(); 
+        // if (reConsultingResult.error) {
+        //   console.error("Lỗi khi đồng bộ task (Re-Consulting):", reConsultingResult.error);
+        // } else if (reConsultingResult.message && !reConsultingResult.message.includes("Không có")) {
+        //   console.log("Kết quả đồng bộ (Re-Consulting):", reConsultingResult.message);
+        // }
 
-        // Fetch all tasks AFTER sync functions might have updated them
-        console.log("Calendar: Fetching all tasks after sync...");
+        // // Fetch all tasks AFTER sync functions might have updated them
+        // console.log("Calendar: Fetching all tasks after sync...");
         await getAllTasks();
         console.log("Calendar: Initialization and sync complete.");
 

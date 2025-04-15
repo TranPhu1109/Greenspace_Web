@@ -19,14 +19,15 @@ import {
 } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import useManagerStore from "../../../stores/managerStore";
 import useUserStore from "@/stores/useUserStore";
 import CreateUserModal from "./components/CreateUserModal";
 
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const EmployeeList = () => {
-  const { users, fetchUsers, isLoading, error } = useUserStore();
+  const { users, fetchUsers, fetchBannedUsers, isLoading, error } = useUserStore();
+  const [bannedUsers, setBannedUsers] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [roleFilter, setRoleFilter] = useState(null);
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
@@ -34,28 +35,78 @@ const EmployeeList = () => {
   const [exportFilters, setExportFilters] = useState({
     status: undefined,
     dateRange: undefined,
-    // role: undefined,
+    role: undefined,
   });
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    const fetchData = async () => {
+      try {
+        await fetchUsers();
+        const banned = await fetchBannedUsers();
+        setBannedUsers(banned || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setBannedUsers([]);
+      }
+    };
+    fetchData();
+  }, [fetchUsers, fetchBannedUsers]);
+
+  const isUserBanned = (userId) => {
+    return bannedUsers?.some(user => user.id === userId) || false;
+  };
 
   const columns = [
     {
       title: "Nhân viên",
       dataIndex: "name",
       key: "name",
-      render: (text, record) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <img
-            src={record.avatar}
-            alt={text}
-            style={{ width: 32, height: 32, borderRadius: "50%" }}
-          />
-          <span>{text}</span>
-        </div>
-      ),
+      render: (text, record) => {
+        const stringToColor = (str) => {
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const color = '#' + ('00000' + (hash & 0xFFFFFF).toString(16)).slice(-6);
+          return color;
+        };
+
+        const avatarColor = stringToColor(record.email);
+
+        return (
+          <Space>
+            {record.avatarUrl ? (
+              <img
+                src={record.avatarUrl}
+                alt={text}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  marginRight: 8
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  backgroundColor: avatarColor,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 8
+                }}
+              >
+                {record.email.charAt(0).toUpperCase()}
+              </div>
+            )}
+            {text}
+          </Space>
+        );
+      },
     },
     {
       title: "Email",
@@ -84,9 +135,7 @@ const EmployeeList = () => {
           Designer: "Thiết kế viên",
           Manager: "Quản lý",
         };
-        // Handle case-sensitivity by converting roleName to proper case
-        const role =
-          roleName?.charAt(0).toUpperCase() + roleName?.slice(1).toLowerCase();
+        const role = roleName?.charAt(0).toUpperCase() + roleName?.slice(1).toLowerCase();
         return role ? (
           <Tag color={roleColors[role] || "default"}>
             {roleNames[role] || role}
@@ -98,24 +147,26 @@ const EmployeeList = () => {
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "id",
       key: "status",
-      render: (status) => (
-        <Tag color={status === "active" ? "green" : "red"}>
-          {status === "active" ? "Đang làm việc" : "Đã nghỉ việc"}
-        </Tag>
-      ),
+      render: (id) => {
+        const isBanned = isUserBanned(id);
+        return (
+          <Tag color={isBanned ? "red" : "green"}>
+            {isBanned ? "Đã nghỉ việc" : "Đang làm việc"}
+          </Tag>
+        );
+      },
     },
   ];
 
   const expandedRowRender = (record) => {
+    const isBanned = isUserBanned(record.id);
     return (
       <Descriptions title="Thông tin chi tiết" bordered column={2}>
         <Descriptions.Item label="Họ và tên">{record.name}</Descriptions.Item>
         <Descriptions.Item label="Email">{record.email}</Descriptions.Item>
-        <Descriptions.Item label="Số điện thoại">
-          {record.phone}
-        </Descriptions.Item>
+        <Descriptions.Item label="Số điện thoại">{record.phone}</Descriptions.Item>
         <Descriptions.Item label="Vai trò">
           {record.roleName === "Staff" && "Nhân viên bán hàng"}
           {record.roleName === "Accountant" && "Kế toán"}
@@ -124,12 +175,11 @@ const EmployeeList = () => {
           {!record.roleName && "Không xác định"}
         </Descriptions.Item>
         <Descriptions.Item label="Địa chỉ" span={2}>
-          {record.address}
+          {record.address ? record.address.replace(/\|/g, ', ') : "Chưa cập nhật"}
         </Descriptions.Item>
-        {/* <Descriptions.Item label="Ngày vào làm">{record.joinDate}</Descriptions.Item> */}
         <Descriptions.Item label="Trạng thái">
-          <Tag color={record.status === "active" ? "green" : "red"}>
-            {record.status === "active" ? "Đang làm việc" : "Đã nghỉ việc"}
+          <Tag color={isBanned ? "red" : "green"}>
+            {isBanned ? "Đã nghỉ việc" : "Đang làm việc"}
           </Tag>
         </Descriptions.Item>
       </Descriptions>
@@ -148,25 +198,8 @@ const EmployeeList = () => {
     }
   };
 
-  const filteredEmployees =
-    users?.filter((employee) => {
-      const matchSearch = searchText
-        ? employee.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-          employee.email?.toLowerCase().includes(searchText.toLowerCase())
-        : true;
-
-      const matchRole = roleFilter ? employee.roleName === roleFilter : true;
-
-      return (
-        matchSearch &&
-        matchRole &&
-        employee.roleName !== "Customer" &&
-        employee.roleName !== "Admin"
-      );
-    }) || [];
-
   const handleExport = () => {
-    let filteredData = [...users].filter(
+    let filteredData = [...(users || [])].filter(
       (user) => user.roleName !== "Customer" && user.roleName !== "Admin"
     );
 
@@ -179,18 +212,29 @@ const EmployeeList = () => {
 
     // Apply status filter
     if (exportFilters.status) {
-      filteredData = filteredData.filter(
-        (user) => user.status === exportFilters.status
-      );
+      filteredData = filteredData.filter(user => {
+        const isBanned = isUserBanned(user.id);
+        return exportFilters.status === 'active' ? !isBanned : isBanned;
+      });
+    }
+
+    // Apply date range filter
+    if (exportFilters.dateRange) {
+      const [startDate, endDate] = exportFilters.dateRange;
+      filteredData = filteredData.filter(user => {
+        const employeeDate = new Date(user.joinDate);
+        return employeeDate >= startDate && employeeDate <= endDate;
+      });
     }
 
     // Prepare data for export
-    const exportData = filteredData.map((user) => ({
-      "Họ và tên": user.name,
-      Email: user.email,
-      "Số điện thoại": user.phone,
-      "Vai trò":
-        user.roleName === "Staff"
+    const exportData = filteredData.map(user => {
+      const isBanned = isUserBanned(user.id);
+      return {
+        "Họ và tên": user.name,
+        Email: user.email,
+        "Số điện thoại": user.phone,
+        "Vai trò": user.roleName === "Staff"
           ? "Nhân viên bán hàng"
           : user.roleName === "Accountant"
           ? "Kế toán"
@@ -199,9 +243,10 @@ const EmployeeList = () => {
           : user.roleName === "Manager"
           ? "Quản lý"
           : user.roleName,
-      "Trạng thái": user.status === "active" ? "Đang làm việc" : "Đã nghỉ việc",
-      "Địa chỉ": user.address || "Chưa cập nhật",
-    }));
+        "Trạng thái": isBanned ? "Đã nghỉ việc" : "Đang làm việc",
+        "Địa chỉ": user.address ? user.address.replace(/\|/g, ', ') : "Chưa cập nhật",
+      };
+    });
 
     // Create workbook
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -222,30 +267,60 @@ const EmployeeList = () => {
     setIsExportModalVisible(false);
   };
 
-  const renderContent = () => {
-    if (isLoading) {
+  const filteredEmployees = (users || [])
+    .filter((employee) => {
+      const matchSearch = searchText
+        ? employee.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+          employee.email?.toLowerCase().includes(searchText.toLowerCase())
+        : true;
+
+      const matchRole = roleFilter ? employee.roleName === roleFilter : true;
+
       return (
+        matchSearch &&
+        matchRole &&
+        employee.roleName !== "Customer" &&
+        employee.roleName !== "Admin"
+      );
+    })
+    .map(employee => ({ ...employee, key: employee.id }));
+
+  if (isLoading) {
+    return (
+      <Card title="Danh sách nhân viên">
         <div style={{ textAlign: "center", padding: "50px" }}>
           <Spin size="large" />
         </div>
-      );
-    }
+      </Card>
+    );
+  }
 
-    if (error && (!users || users.length === 0)) {
+  if (error) {
+    console.error('Error fetching users:', error);
+    if (!users || users.length === 0) {
       return (
-        <div style={{ textAlign: "center", color: "red" }}>
-          Không thể tải dữ liệu nhân viên. Vui lòng thử lại sau.
-        </div>
+        <Card title="Danh sách nhân viên">
+          <div style={{ textAlign: "center", color: "red" }}>
+            Không thể tải dữ liệu nhân viên
+          </div>
+        </Card>
       );
     }
+  }
 
-    return (
-      <>
+  return (
+    <Card
+      title="Danh sách nhân viên"
+      bodyStyle={{
+        padding: "24px",
+        overflow: "auto",
+      }}
+    >
+      <div style={{ minWidth: "800px" }}>
         <div style={{ marginBottom: 16 }}>
           <Space wrap>
-            <Input
+            <Input.Search
               placeholder="Tìm kiếm nhân viên"
-              prefix={<SearchOutlined />}
               style={{ width: 300 }}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
@@ -268,7 +343,11 @@ const EmployeeList = () => {
             >
               Xuất Excel
             </Button>
-            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsCreateModalVisible(true)}>
+            <Button 
+              type="primary" 
+              icon={<UserAddOutlined />} 
+              onClick={() => setIsCreateModalVisible(true)}
+            >
               Thêm nhân viên
             </Button>
           </Space>
@@ -287,25 +366,6 @@ const EmployeeList = () => {
           }}
           rowKey="id"
         />
-      </>
-    );
-  };
-
-  return (
-    <Card
-      title="Danh sách nhân viên"
-      bodyStyle={{
-        padding: "24px",
-        overflow: "auto",
-        
-      }}
-    >
-      <div
-        style={{
-          minWidth: "800px", // Minimum width to prevent table from becoming too narrow
-        }}
-      >
-        {renderContent()}
       </div>
       <Modal
         title="Xuất danh sách nhân viên"
@@ -343,6 +403,15 @@ const EmployeeList = () => {
               <Option value="active">Đang làm việc</Option>
               <Option value="inactive">Đã nghỉ việc</Option>
             </Select>
+          </div>
+          <div>
+            <div style={{ marginBottom: 8 }}>Khoảng thời gian:</div>
+            <RangePicker
+              style={{ width: "100%" }}
+              onChange={(dates) =>
+                setExportFilters((prev) => ({ ...prev, dateRange: dates }))
+              }
+            />
           </div>
         </Space>
       </Modal>

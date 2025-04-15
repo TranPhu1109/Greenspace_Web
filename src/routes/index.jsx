@@ -22,6 +22,7 @@ import CartPage from "@/pages/Cart";
 import AboutPage from "@/pages/About";
 import VNPayCallback from "@/pages/Wallet/components/VNPayCallback";
 import DesignDetailPage from "@/pages/Designs/Detail";
+import ProfilePage from "@/pages/Profile";
 import OrderHistoryDetail from "@/pages/ServiceOrder/OrderHistoryDetail";
 import DesignOrderHistory from "@/pages/ServiceOrder/DesignOrderHistory";
 import OrderService from "@/pages/ServiceOrder/OrderService";
@@ -32,6 +33,7 @@ import ServiceOrderDetail from "@/pages/Order/ServiceOrderDetail";
 import OrderServiceCustomize from "@/pages/ServiceOrder/OrderServiceCustomize";
 import StandardOrderDetail from "@/pages/ServiceOrder/StandardOrderDetail";
 import BookDesign from "@/pages/ServiceOrder/BookingServicesDesign/BookDesign";
+import RouteGuard from "@/components/RouteGuard";
 // import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 
 const router = createBrowserRouter([
@@ -72,7 +74,11 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
   },
   {
-    element: <AdminLayout />,
+    element: (
+      <RouteGuard allowedRoles={["admin", "accountant", "staff", "designer", "manager"]}>
+        <AdminLayout />
+      </RouteGuard>
+    ),
     errorElement: <ErrorPage />,
     children: [
       adminRoutes,
@@ -238,6 +244,15 @@ const router = createBrowserRouter([
   {
     path: "/userwallets/response",
     element: <VNPayCallback />,
+  },
+  {
+    path: "/profile",
+    element: (
+      <>
+        <ScrollToTop />
+        <ProfilePage />
+      </>
+    ),
   },
   {
     path: "*",

@@ -3,7 +3,7 @@ import { Form, Input, Select, message, Checkbox, Alert, Space } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { fetchProvinces, fetchDistricts, fetchWards } from '@/services/ghnService';
 
-const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
+const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initialAddress = null }) => {
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
@@ -13,16 +13,19 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
   const [useDefaultAddress, setUseDefaultAddress] = useState(false);
   const [userAddress, setUserAddress] = useState(null);
   const [parsedAddress, setParsedAddress] = useState(null);
+  const [initialAddressProcessed, setInitialAddressProcessed] = useState(false);
 
   // Lấy thông tin địa chỉ từ user trong localStorage nếu có
   useEffect(() => {
+    if (!useExistingAddress) return; // Skip if useExistingAddress is false
+    
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         if (user && user.address && user.address.trim() !== "") {
           setUserAddress(user.address);
-          
+
           // Parse địa chỉ từ chuỗi "đường|phường/xã|quận/huyện|tỉnh/thành phố"
           const addressParts = user.address.split('|');
           if (addressParts.length === 4) {
@@ -38,7 +41,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         console.error("Lỗi khi đọc thông tin người dùng:", error);
       }
     }
-  }, []);
+  }, [useExistingAddress]);
 
   useEffect(() => {
     const getProvinces = async () => {
@@ -46,6 +49,11 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
       try {
         const data = await fetchProvinces();
         setProvinces(data);
+        
+        // After provinces are loaded, attempt to process initialAddress
+        if (initialAddress && !initialAddressProcessed) {
+          initializeFromAddress(initialAddress, data);
+        }
       } catch (error) {
         message.error("Không thể tải danh sách tỉnh thành");
       } finally {
@@ -53,7 +61,78 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
       }
     };
     getProvinces();
-  }, []);
+  }, [initialAddress, initialAddressProcessed]);
+
+  // Update initialAddressProcessed state when initialAddress changes
+  useEffect(() => {
+    if (initialAddress) {
+      setInitialAddressProcessed(false);
+    }
+  }, [initialAddress]);
+
+  // Function to initialize address fields from an existing address string
+  const initializeFromAddress = async (address, availableProvinces) => {
+    try {
+      if (!address || typeof address !== 'string') return;
+      
+      const parts = address.split('|');
+      if (parts.length !== 4) return;
+      
+      const [street, wardName, districtName, provinceName] = parts;
+      
+      // Set street address immediately
+      form.setFieldValue("streetAddress", street);
+      
+      // Find matching province
+      const foundProvince = availableProvinces.find(p => 
+        p.label.toLowerCase() === provinceName.toLowerCase());
+        
+      if (foundProvince) {
+        // Set province selection
+        form.setFieldValue("provinces", foundProvince.value);
+        
+        // Fetch districts for this province
+        const districtData = await fetchDistricts(foundProvince.value);
+        setDistricts(districtData);
+        
+        // Find matching district
+        const foundDistrict = districtData.find(d => 
+          d.label.toLowerCase() === districtName.toLowerCase());
+          
+        if (foundDistrict) {
+          // Set district selection
+          form.setFieldValue("district", foundDistrict.value);
+          
+          // Fetch wards for this district
+          const wardData = await fetchWards(foundDistrict.value);
+          setWards(wardData);
+          
+          // Find matching ward
+          const foundWard = wardData.find(w => 
+            w.label.toLowerCase() === wardName.toLowerCase());
+            
+          if (foundWard) {
+            // Set ward selection
+            form.setFieldValue("ward", foundWard.value);
+            
+            // Mark address as processed
+            setInitialAddressProcessed(true);
+            
+            // Notify of address changes
+            onAddressChange({
+              province: foundProvince,
+              district: foundDistrict,
+              ward: foundWard,
+              streetAddress: street,
+              useDefaultAddress: false
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error initializing address fields:", error);
+    }
+  };
 
   const handleProvinceChange = async (provinceId) => {
     setDistricts([]);
@@ -113,10 +192,10 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
   const handleUseDefaultAddress = (e) => {
     const checked = e.target.checked;
     setUseDefaultAddress(checked);
-    
+
     if (checked && parsedAddress) {
       console.log("User chose to use saved address:", parsedAddress);
-      
+
       // Gọi notifyAddressChange ngay lập tức với thông tin địa chỉ mặc định
       // Cần đảm bảo đủ thông tin cho việc tính phí vận chuyển
       const addressData = {
@@ -126,30 +205,30 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         ward: { label: parsedAddress.ward },
         streetAddress: parsedAddress.streetAddress
       };
-      
+
       console.log("Sending address data:", addressData);
       onAddressChange(addressData);
-      
+
       // Tìm province, district, ward dựa trên tên
       const foundProvince = provinces.find(p => p.label === parsedAddress.province);
-      
+
       if (foundProvince) {
         form.setFieldValue("provinces", foundProvince.value);
         form.setFieldValue("streetAddress", parsedAddress.streetAddress);
-        
+
         // Load districts theo province đã chọn và tiếp tục với district và ward
         const loadDistrictsAndWards = async () => {
           try {
             const districtData = await fetchDistricts(foundProvince.value);
             setDistricts(districtData);
-            
+
             const foundDistrict = districtData.find(d => d.label === parsedAddress.district);
             if (foundDistrict) {
               form.setFieldValue("district", foundDistrict.value);
-              
+
               const wardData = await fetchWards(foundDistrict.value);
               setWards(wardData);
-              
+
               const foundWard = wardData.find(w => w.label === parsedAddress.ward);
               if (foundWard) {
                 form.setFieldValue("ward", foundWard.value);
@@ -159,13 +238,13 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
             console.error("Lỗi khi tải dữ liệu địa chỉ:", error);
           }
         };
-        
+
         loadDistrictsAndWards();
       }
     } else if (!checked) {
       // Nếu bỏ chọn, reset form và thông báo không sử dụng địa chỉ mặc định
       console.log("User unchecked use default address - resetting form");
-      
+
       // Reset các trường địa chỉ về giá trị ban đầu
       form.setFieldsValue({
         provinces: undefined,
@@ -173,11 +252,11 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
         ward: undefined,
         streetAddress: ""
       });
-      
+
       // Reset danh sách districts và wards
       setDistricts([]);
       setWards([]);
-      
+
       // Thông báo thay đổi với useDefaultAddress = false
       onAddressChange({
         useDefaultAddress: false,
@@ -193,27 +272,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
     <Form.Item noStyle shouldUpdate>
       {() => (
         <>
-          {userAddress && (
-            <Form.Item>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Alert
-                  message="Thông tin địa chỉ đã lưu"
-                  description={parsedAddress ? `${parsedAddress.streetAddress}, ${parsedAddress.ward}, ${parsedAddress.district}, ${parsedAddress.province}` : userAddress}
-                  type="info"
-                  showIcon
-                />
-                
-                <Checkbox 
-                  onChange={handleUseDefaultAddress}
-                  checked={useDefaultAddress}
-                >
-                  Sử dụng địa chỉ đã lưu
-                </Checkbox>
-              </Space>
-            </Form.Item>
-          )}
-
-          {(!useDefaultAddress || !userAddress) && (
+          {(!useDefaultAddress || !userAddress || !useExistingAddress) && (
             <>
               <Form.Item
                 name="provinces"
@@ -291,6 +350,26 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = false }) => {
                 />
               </Form.Item>
             </>
+          )}
+
+          {userAddress && useExistingAddress && (
+            <Form.Item>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Alert
+                  message="Thông tin địa chỉ đã lưu"
+                  description={parsedAddress ? `${parsedAddress.streetAddress}, ${parsedAddress.ward}, ${parsedAddress.district}, ${parsedAddress.province}` : userAddress}
+                  type="info"
+                  showIcon
+                />
+
+                <Checkbox
+                  onChange={handleUseDefaultAddress}
+                  checked={useDefaultAddress}
+                >
+                  Sử dụng địa chỉ đã lưu
+                </Checkbox>
+              </Space>
+            </Form.Item>
           )}
         </>
       )}
