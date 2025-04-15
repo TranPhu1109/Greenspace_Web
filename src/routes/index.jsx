@@ -115,7 +115,7 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <BookDesign />
-      </> 
+      </>
     ),
   },
   {
@@ -155,22 +155,22 @@ const router = createBrowserRouter([
     ),
   },
   {
-      path: "/history-booking-services",
-      element: (
-        <>
-          <ScrollToTop />
-          <ServiceOrderHistory />
-        </>
-      ),
+    path: "/history-booking-services",
+    element: (
+      <>
+        <ScrollToTop />
+        <ServiceOrderHistory />
+      </>
+    ),
   },
   {
-      path: "/service-order/:id",
-      element: (
-        <>
-          <ScrollToTop />
-          <ServiceOrderDetail />
-        </>
-      ),
+    path: "/service-order/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <ServiceOrderDetail />
+      </>
+    ),
   },
   {
     path: "/service-order-customize/:id",
@@ -180,7 +180,7 @@ const router = createBrowserRouter([
         <OrderServiceCustomize />
       </>
     ),
-},
+  },
   {
     path: "/products",
     element: (
@@ -212,7 +212,7 @@ const router = createBrowserRouter([
     path: "/cart/checkout",
     element: (
       <>
-        <ScrollToTop /> 
+        <ScrollToTop />
         <Checkout />
       </>
     ),
@@ -246,3 +246,4 @@ const router = createBrowserRouter([
 ]);
 
 export default router;
+  
