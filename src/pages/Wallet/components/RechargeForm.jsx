@@ -221,9 +221,9 @@ const RechargeForm = () => {
                     </Space>
                   </div>
                   <div className="payment-instructions">
-                    <div className="instruction-item">
+                    <div className="instruction-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <SafetyCertificateOutlined className="instruction-icon" />
-                      <div className="instruction-text">
+                      <div className="instruction-text" >
                         <Text strong>Thanh toán an toàn qua VNPay</Text>
                         <Text type="secondary">
                           Hỗ trợ tất cả ngân hàng nội địa

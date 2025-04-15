@@ -1,0 +1,103 @@
+.add-designer-task-modal {
+  .ant-modal-content {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .designer-task-form {
+    .form-item {
+      margin-bottom: 16px;
+    }
+    
+    .select-item {
+      width: 100%;
+    }
+    
+    .text-area {
+      border-radius: 6px;
+    }
+    
+    .form-divider {
+      margin: 16px 0;
+    }
+  }
+
+  .submit-button {
+    background-color: #1890ff;
+    &:hover {
+      background-color: #40a9ff;
+    }
+  }
+  
+  .designer-option {
+    align-items: center;
+  }
+  
+  // Improved styles for order options
+  .order-option-detail {
+    width: 100%;
+    
+    .order-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      
+      .order-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .customer-name {
+          max-width: 200px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+      }
+      
+      .order-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .order-date {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+
+  // Status classes for different order states
+  .status-pending {
+    color: #faad14;
+  }
+  .status-consulting {
+    color: #1890ff;
+  }
+  .status-determining-price {
+    color: #722ed1;
+  }
+  .status-deposit {
+    color: #52c41a;
+  }
+  .status-assigned {
+    color: #eb2f96;
+  }
+  .status-done {
+    color: #52c41a;
+  }
+} 
+
+// Responsive styles for select dropdown
+.ant-select-dropdown {
+  .order-option-detail {
+    padding: 8px 0;
+    
+    .order-info {
+      .order-main {
+        margin-bottom: 4px;
+      }
+    }
+  }
+} 

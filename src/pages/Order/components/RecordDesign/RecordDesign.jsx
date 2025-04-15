@@ -367,6 +367,10 @@ const RecordDesign = ({
         style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
         loading={loadingDesignRecords}
       >
+        {console.log('Debug: designRecords =', designRecords)}
+        {console.log('Debug: Has phase 3 records =', designRecords.some(r => r.phase === 3))}
+        {console.log('Debug: Has selected records =', designRecords.some(r => r.isSelected))}
+        {console.log('Debug: Order status =', order?.status)}
         {[1, 2, 3].map(phase => {
           const phaseRecords = designRecords.filter(record => record.phase === phase);
           if (phaseRecords.length === 0) return null;

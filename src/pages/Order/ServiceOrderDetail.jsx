@@ -204,19 +204,19 @@ const ServiceOrderDetail = () => {
         }
 
         // Always fetch sketch records to show at least phase 0 (original images)
-        console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
-        await getRecordSketch(id); // Fetch sketches
+          console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
+          await getRecordSketch(id); // Fetch sketches
         
         // Always fetch design records - let the component decide whether to show them
         console.log(`Fetching design records for order ${id}`);
-        setLoadingDesignRecords(true);
-        try {
-          await getRecordDesign(id);
-          console.log("Design records fetched successfully");
-        } catch (designError) {
-          console.error("Error fetching design records:", designError);
-        } finally {
-          setLoadingDesignRecords(false);
+          setLoadingDesignRecords(true);
+          try {
+            await getRecordDesign(id);
+            console.log("Design records fetched successfully");
+          } catch (designError) {
+            console.error("Error fetching design records:", designError);
+          } finally {
+            setLoadingDesignRecords(false);
         }
 
       } catch (err) {
@@ -444,7 +444,7 @@ const ServiceOrderDetail = () => {
       
       console.log("Refresh completed for order:", orderId);
       return refreshedOrder;
-    } catch (error) {
+      } catch (error) {
       console.error("Error in refreshAllData:", error);
       message.error("Không thể cập nhật dữ liệu: " + error.message);
       return null;
@@ -849,21 +849,21 @@ const ServiceOrderDetail = () => {
             )}
 
             {/* Design Records Component - component tự quyết định khi nào nên hiển thị */}
-            <RecordDesign 
-              order={order}
-              designRecords={designRecords}
-              loadingDesignRecords={loadingDesignRecords}
-              isSubmitting={isSubmitting}
-              confirmDesignRecord={confirmDesignRecord}
-              updateStatus={updateStatus}
-              getServiceOrderById={getServiceOrderById}
-              getRecordDesign={getRecordDesign}
-              updateServiceForCus={updateServiceForCus}
-              api={api}
-              formatPrice={formatPrice}
+              <RecordDesign 
+                order={order}
+                designRecords={designRecords}
+                loadingDesignRecords={loadingDesignRecords}
+                isSubmitting={isSubmitting}
+                confirmDesignRecord={confirmDesignRecord}
+                updateStatus={updateStatus}
+                getServiceOrderById={getServiceOrderById}
+                getRecordDesign={getRecordDesign}
+                updateServiceForCus={updateServiceForCus}
+                api={api}
+                formatPrice={formatPrice}
               sketchRecords={sketchRecords}
               updateTaskOrder={updateTaskOrder}
-            />
+              />
 
             {/* Description Section */}
             {order?.description && (

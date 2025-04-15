@@ -171,9 +171,12 @@ const TaskDetail = () => {
 
   useEffect(() => {
     fetchTaskDetail(id);
+  }, [id, fetchTaskDetail]);
+
+  useEffect(() => {
     getRecordSketch(task.serviceOrder.id);
     getRecordDesign(task.serviceOrder.id);
-  }, [id, fetchTaskDetail]);
+  }, []);
 
   // Thêm useEffect để theo dõi phase cao nhất trong designRecords
   useEffect(() => {
@@ -217,6 +220,13 @@ const TaskDetail = () => {
   };
 
   const handleOkSketch = async () => {
+    // Add check for task and task.serviceOrder
+    if (!task || !task.serviceOrder) {
+      message.error("Dữ liệu công việc chưa được tải xong. Vui lòng thử lại.");
+      console.error("handleOkSketch called with null task or task.serviceOrder:", task);
+      return;
+    }
+
     let uploadedUrls = [];
     try {
       const values = await sketchForm.validateFields();

@@ -4,10 +4,19 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Badge } from 'antd';
 import { PhoneOutlined, ShoppingCartOutlined, LoginOutlined, UserAddOutlined } from '@ant-design/icons';
 import UserMenu from './UserMenu';
+import Notifications from '@/components/Notifications';
 import './styles/TopHeader.scss';
 import useCartStore from '@/stores/useCartStore';
 
-function TopHeader({ user, scrolled, cartItems }) {
+function TopHeader({
+  user,
+  scrolled,
+  cartItems,
+  notificationCount,
+  notifications,
+  onNotificationClick,
+  onViewAllClick,
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const { getLocalCart } = useCartStore();
@@ -97,6 +106,14 @@ function TopHeader({ user, scrolled, cartItems }) {
               </Button>
             </Badge>
           </Link>
+          {user && (
+            <Notifications
+              count={notificationCount}
+              notifications={notifications}
+              onNotificationClick={onNotificationClick}
+              onViewAllClick={onViewAllClick}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -106,19 +123,22 @@ function TopHeader({ user, scrolled, cartItems }) {
 TopHeader.propTypes = {
   user: PropTypes.shape({
     name: PropTypes.string,
-    avatar: PropTypes.string,
   }),
   scrolled: PropTypes.bool.isRequired,
-  // cartItems: PropTypes.arrayOf(
-  //   PropTypes.shape({
-  //     // id: PropTypes.string,
-  //   })
-  // ).isRequired,
+  cartItems: PropTypes.array,
+  notificationCount: PropTypes.number,
+  notifications: PropTypes.arrayOf(PropTypes.object),
+  onNotificationClick: PropTypes.func,
+  onViewAllClick: PropTypes.func,
 };
 
 TopHeader.defaultProps = {
   user: null,
   cartItems: [],
+  notificationCount: 0,
+  notifications: [],
+  onNotificationClick: () => {},
+  onViewAllClick: () => {},
 };
 
 export default React.memo(TopHeader);

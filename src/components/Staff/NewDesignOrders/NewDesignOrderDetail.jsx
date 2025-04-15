@@ -47,6 +47,7 @@ import useProductStore from "@/stores/useProductStore";
 import useContractStore from "@/stores/useContractStore";
 import useShippingStore from "@/stores/useShippingStore";
 import useUserStore from "@/stores/useUserStore";
+import signalRService from "@/services/signalRService";
 
 const { TextArea } = Input;
 const { Step } = Steps;
@@ -99,6 +100,51 @@ const NewDesignOrderDetail = () => {
     fetchOrderDetail();
     fetchDesigner();
   }, [id]);
+
+  // Add useEffect for SignalR
+  useEffect(() => {
+    const handleOrderUpdate = (messageType, messageData) => {
+      // Log all messages received for debugging
+      console.log(`SignalR received in NewDesignOrderDetail - Type: ${messageType}, Data: ${messageData}, Current Order ID: ${id}`);
+
+      // Define relevant message types that should trigger a refresh for this specific order
+      const relevantUpdateTypes = [
+        "UpdateOrderService",
+        "OrderCancelled",
+        "DesignerTaskAssigned", // Example: If designer assignment updates status
+        "PaymentSuccess",
+        "StatusUpdated", // A generic status update message if available
+        "ContractGenerated",
+        "ShippingUpdate", // If shipping updates affect this view
+        // Add other relevant types as needed
+      ];
+
+      // Check if the message type is relevant AND the message data matches the current order ID
+      if (relevantUpdateTypes.includes(messageType) && messageData === id) {
+        console.log(`Relevant SignalR message received for order ${id} (${messageType}), refreshing details.`);
+        getDesignOrderById(id); // Refresh the order details
+      }
+    };
+
+    try {
+      signalRService.startConnection().then(() => { // Ensure connection is attempted
+        console.log(`SignalR connection ready for NewDesignOrderDetail listener (Order ID: ${id}).`);
+        signalRService.on("messagereceived", handleOrderUpdate);
+      }).catch(err => {
+          console.error(`SignalR connection failed in NewDesignOrderDetail (Order ID: ${id}):`, err);
+      });
+    } catch (err) {
+         console.error(`Error initiating SignalR connection for NewDesignOrderDetail (Order ID: ${id}):`, err);
+    }
+
+    // Cleanup function
+    return () => {
+      console.log(`Removing SignalR listener from NewDesignOrderDetail (Order ID: ${id}).`);
+      signalRService.off("messagereceived", handleOrderUpdate);
+      // Consider stopping connection only if no other components need it.
+      // signalRService.stopConnection();
+    };
+  }, [id, getDesignOrderById]); // Add dependencies: id and getDesignOrderById
 
   // Tìm và cập nhật thông tin designer từ userId trong workTasks
   useEffect(() => {

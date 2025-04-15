@@ -10,6 +10,7 @@ import {
   message,
   Breadcrumb,
   notification,
+  Checkbox
 } from "antd";
 import {
   DeleteOutlined,
@@ -17,7 +18,7 @@ import {
   ShoppingCartOutlined,
   ShoppingOutlined,
 } from "@ant-design/icons";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useCartStore from "@/stores/useCartStore";
@@ -44,13 +45,23 @@ const CartPage = () => {
   const { balance, fetchBalance } = useWalletStore();
   const { products, fetchProducts } = useProductStore();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
-  
+
   // State tạm thời lưu số lượng hiển thị trước khi gửi API
   const [localCartItems, setLocalCartItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   // Khởi tạo localCartItems khi cartItems thay đổi
   useEffect(() => {
     setLocalCartItems(cartItems);
+    // Mặc định chọn tất cả các sản phẩm
+    if (cartItems && cartItems.length > 0) {
+      setSelectedItems(cartItems.map(item => item.id));
+      setSelectAll(true);
+    } else {
+      setSelectedItems([]);
+      setSelectAll(false);
+    }
   }, [cartItems]);
 
   // Kiểm tra nếu người dùng quay lại từ trang đăng nhập/đăng ký
@@ -67,14 +78,14 @@ const CartPage = () => {
     fetchBalance();
     fetchCartItems();
     fetchProducts();
-    
+
     // Lắng nghe sự kiện cập nhật giỏ hàng local
     const handleLocalCartUpdate = () => {
       fetchCartItems();
     };
-    
+
     window.addEventListener('localCartUpdated', handleLocalCartUpdate);
-    
+
     return () => {
       window.removeEventListener('localCartUpdated', handleLocalCartUpdate);
     };
@@ -94,7 +105,7 @@ const CartPage = () => {
       // Đợi một chút để các event handlers xử lý
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     await continueCheckoutProcess();
   };
 
@@ -120,62 +131,99 @@ const CartPage = () => {
     if (quantity === null || quantity === undefined) {
       return; // Không làm gì khi giá trị là null/undefined (người dùng đang xóa số)
     }
-    
+
     // Lưu giá trị đang nhập vào state (bất kể là giá trị gì)
-    setLocalCartItems(prevItems => 
-      prevItems.map(item => 
+    setLocalCartItems(prevItems =>
+      prevItems.map(item =>
         item.id === productId ? { ...item, quantity, inputValue: String(quantity) } : item
       )
     );
-    
+
     // Đảm bảo quantity là số nguyên
     quantity = Math.floor(Number(quantity));
-    
+
     // Đảm bảo số lượng ít nhất là 1
     if (quantity < 1) {
       quantity = 1;
     }
-    
+
     // Tìm thông tin sản phẩm trong danh sách products
     const product = products.find(product => product.id === productId);
-    
+
     if (product && quantity > product.stock) {
       notification.warning({
         message: "Số lượng vượt quá tồn kho",
         description: `Số lượng tối đa có thể thêm vào giỏ hàng là ${product.stock}. Vui lòng nhập lại số lượng phù hợp.`,
         duration: 3,
       });
-      
+
       // KHÔNG cập nhật lại localCartItems ở đây để giữ giá trị đang nhập
       // Chỉ gọi API khi người dùng blur
       return;
     }
-    
+
     // Debounce gọi API để tránh nhiều request liên tiếp
     debouncedUpdateQuantity(productId, quantity);
   };
 
+  const handleSelectAll = e => {
+    const checked = e.target.checked;
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedItems(localCartItems.map(item => item.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleSelectItem = (e, itemId) => {
+    const checked = e.target.checked;
+    let newSelectedItems = [...selectedItems];
+
+    if (checked) {
+      newSelectedItems.push(itemId);
+    } else {
+      newSelectedItems = newSelectedItems.filter(id => id !== itemId);
+    }
+
+    setSelectedItems(newSelectedItems);
+    setSelectAll(newSelectedItems.length === localCartItems.length);
+  };
+
   const calculateTotal = () => {
     return localCartItems.reduce((total, item) => {
-      const price = item?.price || 0;
-      const quantity = item?.quantity || 0;
-      return total + price * quantity;
+      // Chỉ tính tổng tiền cho các sản phẩm được chọn
+      if (selectedItems.includes(item.id)) {
+        const price = item?.price || 0;
+        const quantity = item?.quantity || 0;
+        return total + price * quantity;
+      }
+      return total;
     }, 0);
   };
 
   const handleCheckout = async () => {
+    // Kiểm tra xem có sản phẩm nào được chọn không
+    if (selectedItems.length === 0) {
+      message.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
+      return;
+    }
+
     // Kiểm tra user đã đăng nhập chưa
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) {
       setIsLoginModalVisible(true);
       return;
     }
-    
+
     await continueCheckoutProcess();
   };
 
   // Tách logic kiểm tra cart và chuyển đến trang thanh toán
   const continueCheckoutProcess = async () => {
+    // Lọc danh sách sản phẩm chỉ bao gồm những sản phẩm được chọn
+    const selectedProducts = localCartItems.filter(item => selectedItems.includes(item.id));
+
     // Kiểm tra mọi sản phẩm trong cart để tìm những cái vượt quá stock
     // Chú ý: phải kiểm tra dựa trên giá trị hiện tại trong input, không phải chỉ localCartItems
     const activeInputValues = {};
@@ -184,22 +232,22 @@ const CartPage = () => {
       const rowElement = input.closest('tr');
       if (rowElement) {
         const rowKey = rowElement.getAttribute('data-row-key');
-        if (rowKey) {
+        if (rowKey && selectedItems.includes(rowKey)) {
           activeInputValues[rowKey] = input.value ? parseFloat(input.value) : 0;
         }
       }
     });
-    
+
     // Thu thập tất cả các sản phẩm có số lượng vượt quá stock
     const invalidItems = [];
-    
-    for (let item of localCartItems) {
+
+    for (let item of selectedProducts) {
       const product = products.find(product => product.id === item.id);
       if (!product) continue;
-      
+
       // Sử dụng giá trị từ DOM nếu có, nếu không dùng giá trị từ state
       const currentQuantity = activeInputValues[item.id] || item.quantity;
-      
+
       if (currentQuantity > product.stock) {
         invalidItems.push({
           name: item.name,
@@ -209,12 +257,12 @@ const CartPage = () => {
         });
       }
     }
-    
+
     // Nếu có sản phẩm không hợp lệ, hiển thị thông báo và không cho phép thanh toán
     if (invalidItems.length > 0) {
       // Tự động điều chỉnh số lượng của các sản phẩm không hợp lệ
       const newLocalItems = [...localCartItems];
-      
+
       invalidItems.forEach(item => {
         // Cập nhật số lượng trong state local
         const index = newLocalItems.findIndex(i => i.id === item.id);
@@ -224,24 +272,24 @@ const CartPage = () => {
             quantity: item.max
           };
         }
-        
+
         // Cập nhật giá trị trong DOM
         const input = document.querySelector(`tr[data-row-key="${item.id}"] .ant-input-number-input`);
         if (input) {
           input.value = item.max;
         }
-        
+
         // Gọi API để cập nhật số lượng
         debouncedUpdateQuantity(item.id, item.max);
       });
-      
+
       // Cập nhật state
       setLocalCartItems(newLocalItems);
-      
+
       // Hiển thị thông báo
       notification.error({
         message: "Số lượng sản phẩm vượt quá tồn kho",
-        description: 
+        description:
           <div>
             <p>Các sản phẩm sau có số lượng vượt quá tồn kho:</p>
             <ul>
@@ -257,7 +305,7 @@ const CartPage = () => {
       });
       return;
     }
-    
+
     const total = calculateTotal();
     if (total > balance) {
       notification.error({
@@ -268,8 +316,12 @@ const CartPage = () => {
       return;
     }
 
-    // Chuyển hướng đến trang thanh toán
-    navigate("/cart/checkout");
+    // Chuyển hướng đến trang thanh toán và truyền thông tin sản phẩm được chọn
+    navigate("/cart/checkout", {
+      state: {
+        selectedProducts: selectedProducts
+      }
+    });
   };
 
   const handleRemoveFromCart = async (productId) => {
@@ -289,13 +341,24 @@ const CartPage = () => {
 
   const columns = [
     {
+      title: <Checkbox onChange={handleSelectAll} checked={selectAll} />,
+      key: 'selection',
+      width: 50,
+      render: (_, record) => (
+        <Checkbox
+          checked={selectedItems.includes(record.id)}
+          onChange={e => handleSelectItem(e, record.id)}
+        />
+      ),
+    },
+    {
       title: "Sản phẩm",
       dataIndex: "name",
       key: "name",
       render: (text, record) => {
         const product = products.find(p => p.id === record.id);
         const stockDisplay = product ? product.stock : "Đang cập nhật";
-        
+
         return (
           <Space direction="vertical" size="small" style={{ display: 'flex' }}>
             <Space>
@@ -341,26 +404,26 @@ const CartPage = () => {
         const maxStock = product ? product.stock : 99;
         const localItem = localCartItems.find(item => item.id === record.id);
         const quantity = localItem ? localItem.quantity : record.quantity;
-        
+
         // Xử lý sự kiện khi người dùng blur khỏi input
         const handleBlur = () => {
           // Tìm thông tin sản phẩm trong danh sách products
           const product = products.find(p => p.id === record.id);
           if (!product) return;
-          
+
           const currentValue = parseFloat(document.querySelector(`tr[data-row-key="${record.id}"] .ant-input-number-input`)?.value || 0);
-          
+
           // Nếu giá trị hiện tại vượt quá stock
           if (currentValue > product.stock) {
             // Cập nhật về giá trị tối đa là stock
-            setLocalCartItems(prevItems => 
-              prevItems.map(item => 
+            setLocalCartItems(prevItems =>
+              prevItems.map(item =>
                 item.id === record.id ? { ...item, quantity: product.stock } : item
               )
             );
             // Gọi API cập nhật
             debouncedUpdateQuantity(record.id, product.stock);
-            
+
             // Hiển thị thông báo
             notification.warning({
               message: "Số lượng đã được điều chỉnh",
@@ -369,7 +432,7 @@ const CartPage = () => {
             });
           }
         };
-        
+
         return (
           <InputNumber
             min={1}
@@ -378,7 +441,7 @@ const CartPage = () => {
             onChange={(value) => handleQuantityChange(record.id, value)}
             onBlur={handleBlur}
             onPressEnter={handleBlur}
-            style={{ 
+            style={{
               width: '80px',
               borderColor: quantity > maxStock ? '#ff4d4f' : undefined,
               backgroundColor: quantity > maxStock ? '#fff1f0' : undefined
@@ -419,7 +482,13 @@ const CartPage = () => {
         <Content>
           <div className="cart-content">
             <div className="container">
-              <Breadcrumb style={{ margin: "16px 0" }}>
+              <Breadcrumb style={{
+                margin: '20px 0 10px',
+                padding: '12px 16px',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              }}>
                 <Breadcrumb.Item href="/Home">
                   <HomeOutlined /> Trang chủ
                 </Breadcrumb.Item>
@@ -449,7 +518,13 @@ const CartPage = () => {
       <Content>
         <div className="cart-content">
           <div className="container">
-            <Breadcrumb style={{ margin: "20px 0 10px" }}>
+            <Breadcrumb style={{
+                margin: '20px 0 10px',
+                padding: '12px 16px',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              }}>
               <Breadcrumb.Item href="/Home">
                 <HomeOutlined /> Trang chủ
               </Breadcrumb.Item>
@@ -469,6 +544,9 @@ const CartPage = () => {
             </div>
 
             <div className="cart-summary">
+              <div className="cart-selection-info">
+                <Text>Đã chọn {selectedItems.length} / {localCartItems.length} sản phẩm</Text>
+              </div>
               <div className="wallet-balance">
                 <Text strong>Số dư ví: </Text>
                 <Text type="success">{balance.toLocaleString("vi-VN")}đ</Text>
@@ -482,7 +560,7 @@ const CartPage = () => {
                   size="large"
                   onClick={handleCheckout}
                   loading={loading}
-                  disabled={!localCartItems.length}
+                  disabled={!selectedItems.length}
                 >
                   Thanh toán
                 </Button>

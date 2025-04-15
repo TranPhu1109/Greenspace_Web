@@ -29,6 +29,7 @@ import dayjs from "dayjs";
 import "./NewDesignOrdersList.scss";
 import { Tooltip } from "antd";
 import { Popover } from "antd";
+import signalRService from "@/services/signalRService";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -45,6 +46,39 @@ const NewDesignOrdersList = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    const handleOrderUpdate = (messageType, messageData) => {
+       // Log all messages received for debugging
+      console.log(`SignalR received in NewDesignOrdersList - Type: ${messageType}, Data: ${messageData}`);
+
+      const relevantUpdateTypes = [
+          "UpdateOrderService", // From previous context
+          "OrderCancelled",     // Example: If cancellation affects this list
+          "CreateOrderService", // When a new order is created
+        ];
+
+      if (relevantUpdateTypes.includes(messageType)) {
+        console.log(`Relevant SignalR message received (${messageType}), refreshing order list.`);
+        fetchOrders(); // Refetch the data
+      }
+    };
+
+    try {
+      signalRService.startConnection().then(() => { // Ensure connection is attempted
+         console.log("SignalR connection ready for NewDesignOrdersList listener.");
+         signalRService.on("messageReceived", handleOrderUpdate);
+      }).catch(err => {
+          console.error("SignalR connection failed in NewDesignOrdersList:", err);
+      });
+    } catch (err) {
+         console.error("Error initiating SignalR connection for NewDesignOrdersList:", err);
+    }
+    return () => {
+      console.log("Removing SignalR listener from NewDesignOrdersList.");
+      signalRService.off("messageReceived", handleOrderUpdate);
+    };
+  }, []); // Empty dependency array ensures this runs once on mount
 
   const fetchOrders = async () => {
     try {
