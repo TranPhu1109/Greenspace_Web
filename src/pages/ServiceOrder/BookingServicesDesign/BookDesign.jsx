@@ -51,7 +51,16 @@ const BookDesign = () => {
     fetchCategories();
   }, [fetchProducts, fetchCategories]);
 
+  // Set default addressData with user's information when component mounts
+  useEffect(() => {
+    if (user && user.address) {
+      // User has a default address, addressData will be populated by AddressForm component
+      console.log("User has default address:", user.address);
+    }
+  }, [user]);
+
   const handleAddressChange = (newAddressData) => {
+    console.log("Address data changed:", newAddressData);
     setAddressData(newAddressData);
   };
 
@@ -137,6 +146,17 @@ const BookDesign = () => {
         message.error("Vui lòng đăng nhập để tiếp tục");
         return;
       }
+      
+      // Get phone from address data or user profile
+      let phone = '';
+      if (addressData.phone) {
+        phone = addressData.phone;
+      } else if (user.phone) {
+        phone = user.phone;
+      } else {
+        message.error('Không tìm thấy số điện thoại. Vui lòng chọn địa chỉ khác.');
+        return;
+      }
 
       setLoading(true);
 
@@ -145,7 +165,17 @@ const BookDesign = () => {
         imageFiles.map((file) => file.originFileObj)
       );
 
-      const address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      let address;
+      if (addressData.useDefaultAddress) {
+        // Use default address from user object
+        address = user.address;
+      } else if (addressData.streetAddress) {
+        // If address data contains street address
+        address = `${addressData.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      } else {
+        // Fallback to form values
+        address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      }
 
       // Định dạng lại serviceOrderDetails nếu có sản phẩm được chọn
       const serviceOrderDetails = showProductSelection 
@@ -159,7 +189,7 @@ const BookDesign = () => {
       const requestData = {
         userId: user.id,
         address: address,
-        cusPhone: values.phone,
+        cusPhone: phone,
         length: values.length,
         width: values.width,
         description: values.description,
@@ -358,28 +388,15 @@ const BookDesign = () => {
               )}
 
               <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>4. Thông tin liên hệ & Địa chỉ</Title>
-              {/* Thông tin khách hàng */}
-              <Form.Item
-                name="phone"
-                label={
-                  <Space>
-                    Số điện thoại
-                    <Tooltip title="Chúng tôi sẽ liên hệ với bạn qua số điện thoại này để tư vấn.">
-                      <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)' }} />
-                    </Tooltip>
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập số điện thoại" },
-                  {
-                    pattern: /^(0[3|5|7|8|9])+([0-9]{8})$/,
-                    message: "Số điện thoại không hợp lệ",
-                  },
-                ]}
-              >
-                <Input placeholder="Nhập số điện thoại" maxLength={10} />
-              </Form.Item>
-
+              
+              <Alert
+                message="Thông tin liên hệ"
+                description="Chọn địa chỉ từ danh sách hoặc thêm địa chỉ mới. Số điện thoại sẽ được lấy từ thông tin địa chỉ đã chọn."
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+              
               <AddressForm form={form} onAddressChange={handleAddressChange} />
 
               <Form.Item style={{ marginTop: '24px' }}>
