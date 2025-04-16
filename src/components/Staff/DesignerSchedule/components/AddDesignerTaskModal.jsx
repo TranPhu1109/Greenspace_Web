@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Select, Input, Button, message, Spin, Space, Typography, Divider, Tag } from 'antd';
+import { Modal, Form, Select, Input, Button, message, Spin, Space, Typography, Divider, Tag, DatePicker, TimePicker, Row, Col, ConfigProvider } from 'antd';
 import { UserOutlined, ShoppingOutlined } from '@ant-design/icons';
+import viVN from 'antd/es/locale/vi_VN';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import useScheduleStore from '@/stores/useScheduleStore';
 import './styles/AddDesignerTaskModal.scss';
 
@@ -15,7 +18,7 @@ const AddDesignerTaskModal = ({ visible, onClose, designers, selectedDesignerId 
   const [submitting, setSubmitting] = useState(false);
 
   // Get the addTask function from the schedule store
-  const { addTask, fetchNoIdeaOrders, fetchUsingIdeaOrders } = useScheduleStore();
+  const { addTaskDesign, fetchNoIdeaOrders, fetchUsingIdeaOrders } = useScheduleStore();
 
   // Fetch service orders when the modal opens
   useEffect(() => {
@@ -61,11 +64,13 @@ const AddDesignerTaskModal = ({ visible, onClose, designers, selectedDesignerId 
       const taskData = {
         serviceOrderId: values.serviceOrderId,
         userId: values.userId,
+        dateAppointment: values.dateAppointment?.format('YYYY-MM-DD'),
+        timeAppointment: values.timeAppointment?.format('HH:mm:ss'),
         note: values.note || 'Công việc mới được giao'
       };
 
       // Call API to add task
-      await addTask(taskData);
+      await addTaskDesign(taskData);
 
       message.success('Đã giao việc thành công!');
       handleCancel(true); // close and refresh
@@ -193,91 +198,133 @@ const AddDesignerTaskModal = ({ visible, onClose, designers, selectedDesignerId 
       maskClosable={false}
       className="add-designer-task-modal"
     >
-      <Spin spinning={submitting}>
-        <Form
-          form={form}
-          layout="vertical"
-          requiredMark="optional"
-          className="designer-task-form"
-        >
-          <Form.Item
-            name="userId"
-            label="Designer"
-            rules={[{ required: true, message: 'Vui lòng chọn designer' }]}
-            className="form-item"
+      <ConfigProvider locale={viVN}>
+        <Spin spinning={submitting}>
+          <Form
+            form={form}
+            layout="vertical"
+            requiredMark="optional"
+            className="designer-task-form"
           >
-            <Select
-              placeholder="Chọn designer..."
-              showSearch
-              optionFilterProp="children"
-              loading={submitting}
-              disabled={submitting}
-              className="select-item"
-              allowClear
+            <Form.Item
+              name="userId"
+              label="Designer"
+              rules={[{ required: true, message: 'Vui lòng chọn designer' }]}
+              className="form-item"
             >
-              {Array.isArray(designers) && designers.map(designer => (
-                <Option key={designer.id} value={designer.id}>
-                  <Space className="designer-option">
-                    <UserOutlined />
-                    {designer.name}
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Select
+                placeholder="Chọn designer..."
+                showSearch
+                optionFilterProp="children"
+                loading={submitting}
+                disabled={submitting}
+                className="select-item"
+                allowClear
+              >
+                {Array.isArray(designers) && designers.map(designer => (
+                  <Option key={designer.id} value={designer.id}>
+                    <Space className="designer-option">
+                      <UserOutlined />
+                      {designer.name}
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            name="serviceOrderId"
-            label="Đơn hàng"
-            rules={[{ required: true, message: 'Vui lòng chọn đơn hàng' }]}
-            className="form-item"
-          >
-            <Select
-              placeholder="Chọn đơn hàng..."
-              showSearch
-              optionFilterProp="label"
-              loading={loadingOrders || submitting}
-              disabled={loadingOrders || submitting}
-              notFoundContent={loadingOrders ? <Spin size="small" /> : 'Không tìm thấy đơn hàng'}
-              className="select-item"
-              allowClear
-              filterOption={(input, option) => {
-                // Tìm kiếm theo mã đơn hàng, tên khách hàng
-                const label = option.label || '';
-                return label.toLowerCase().includes(input.toLowerCase());
-              }}
-              optionLabelProp="label"
+            <Form.Item
+              name="serviceOrderId"
+              label="Đơn hàng"
+              rules={[{ required: true, message: 'Vui lòng chọn đơn hàng' }]}
+              className="form-item"
             >
-              {serviceOrders.map(order => (
-                <Option
-                  key={order.id}
-                  value={order.id}
-                  label={`${order.id.substring(0, 8)} - ${order.user?.name || order.userName || 'Khách hàng'}`}
+              <Select
+                placeholder="Chọn đơn hàng..."
+                showSearch
+                optionFilterProp="label"
+                loading={loadingOrders || submitting}
+                disabled={loadingOrders || submitting}
+                notFoundContent={loadingOrders ? <Spin size="small" /> : 'Không tìm thấy đơn hàng'}
+                className="select-item"
+                allowClear
+                filterOption={(input, option) => {
+                  // Tìm kiếm theo mã đơn hàng, tên khách hàng
+                  const label = option.label || '';
+                  return label.toLowerCase().includes(input.toLowerCase());
+                }}
+                optionLabelProp="label"
+              >
+                {serviceOrders.map(order => (
+                  <Option
+                    key={order.id}
+                    value={order.id}
+                    label={`${order.id.substring(0, 8)} - ${order.user?.name || order.userName || 'Khách hàng'}`}
+                  >
+                    {customOrderRender(order)}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Divider className="form-divider" />
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="dateAppointment"
+                  label="Ngày hẹn làm việc với khách hàng"
+                  className="form-item"
+                  rules={[{ required: true, message: 'Vui lòng chọn ngày hẹn làm việc' }]}
+                  style={{ marginBottom: 0, width: '100%' }}
                 >
-                  {customOrderRender(order)}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+                  <DatePicker
+                    format="DD/MM/YYYY"
+                    style={{ width: '100%' }}
+                    disabledDate={(current) => {
+                      const today = dayjs().startOf('day');
+                      const maxDate = dayjs().add(30, 'day').endOf('day');
+                      const day = current.day();
+                      return current < today || current > maxDate 
+                    }}
+                    
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="timeAppointment"
+                  label="Giờ hẹn làm việc với khách hàng"
+                  className="form-item"
+                  rules={[{ required: true, message: 'Vui lòng chọn giờ hẹn làm việc' }]}
+                  style={{ marginBottom: 0, width: '100%' }}
+                >
+                  <TimePicker
+                    format="HH:mm"
+                    showSecond={false}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Divider className="form-divider" />
 
-          <Divider className="form-divider" />
 
-          <Form.Item
-            name="note"
-            label="Ghi chú"
-            className="form-item"
-          >
-            <TextArea
-              rows={4}
-              placeholder="Nhập ghi chú cho task này..."
-              disabled={submitting}
-              className="text-area"
-              allowClear
-            />
-          </Form.Item>
-        </Form>
-      </Spin>
-    </Modal>
+            <Form.Item
+              name="note"
+              label="Ghi chú"
+              className="form-item"
+            >
+              <TextArea
+                rows={4}
+                placeholder="Nhập ghi chú cho task này..."
+                disabled={submitting}
+                className="text-area"
+                allowClear
+              />
+            </Form.Item>
+          </Form>
+        </Spin>
+      </ConfigProvider>
+    </Modal >
   );
 };
 

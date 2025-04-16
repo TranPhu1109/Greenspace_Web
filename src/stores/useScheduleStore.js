@@ -107,16 +107,23 @@ const useScheduleStore = create((set, get) => ({
   // Lấy danh sách tasks theo ngày
 
   // Thêm task mới cho designer
-  addTask: async (taskData) => {
+  addTaskDesign: async (taskData) => {
     set({ isLoading: true, error: null });
     try {
       // Gọi API để thêm task mới
-      const response = await api.post('/api/worktask', {
+      const response = await api.post('/api/worktask/design', {
         serviceOrderId: taskData.serviceOrderId,
         userId: taskData.userId,
+        dateAppointment: taskData.dateAppointment,
+        timeAppointment: taskData.timeAppointment,
         note: taskData.note || ''
       });
       const newTask = response.data;
+
+      await api.put(`/api/serviceorder/status/${taskData.serviceOrderId}`, {
+        status: 1,
+        deliveryCode: "" // Preserve or set default
+      });
       
       // Cập nhật state với task mới
       set(state => ({

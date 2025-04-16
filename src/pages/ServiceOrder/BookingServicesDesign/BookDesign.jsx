@@ -224,7 +224,7 @@ const BookDesign = () => {
               onFinish={handleFinish}
               initialValues={{}}
             >
-              <Title level={4} style={{ marginBottom: '16px', color: '#555' }}>1. Thông tin kích thước khu vực</Title>
+              <Title level={4} style={{ marginBottom: '16px', color: '#555' }}>1. Thông tin kích thước không gian</Title>
               <Row gutter={24}>
                 <Col xs={24} md={12}>
                   <Form.Item
