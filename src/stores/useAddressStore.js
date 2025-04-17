@@ -52,6 +52,26 @@ const useAddressStore = create((set) => ({
     }
   },
   
+  // Delete an address
+  deleteAddress: async (addressId) => {
+    set({ loading: true, error: null });
+    try {
+      await api.delete(`/api/address/${addressId}`);
+      set((state) => ({ 
+        addresses: state.addresses.filter(address => address.id !== addressId),
+        loading: false 
+      }));
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      set({ 
+        error: error.response?.data?.message || error.message, 
+        loading: false 
+      });
+      return { success: false, error: error.response?.data || error.message };
+    }
+  },
+  
   // Clear addresses (for logout)
   clearAddresses: () => set({ addresses: [] }),
 }));
