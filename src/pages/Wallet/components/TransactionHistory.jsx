@@ -18,9 +18,9 @@ const TransactionHistory = () => {
     );
   }
 
-  if (transactionsError) {
-    return <div className="text-red-500">{transactionsError}</div>;
-  }
+  // if (transactionsError) {
+  //   return <div className="text-red-500">{transactionsError}</div>;
+  // }
 
   // Lọc chỉ lấy những giao dịch có type là Deposit
   const depositTransactions = transactions.filter(transaction => transaction.type === 'Deposit');

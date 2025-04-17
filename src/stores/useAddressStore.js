@@ -38,17 +38,17 @@ const useAddressStore = create((set) => ({
     try {
       const response = await api.post('/api/address', addressData);
       set((state) => ({ 
-        addresses: [...state.addresses, response.data],
+        addresses: Array.isArray(state.addresses) ? [...state.addresses, response.data] : [response.data],
         loading: false 
       }));
-      return response.data;
+      return { success: true, data: response.data, status: response.status };
     } catch (error) {
       console.error("Error creating address:", error);
       set({ 
         error: error.response?.data?.message || error.message, 
         loading: false 
       });
-      throw error;
+      return { success: false, error: error.response?.data || error.message };
     }
   },
   

@@ -58,11 +58,8 @@ const Checkout = () => {
   const { state } = useLocation();
   const [form] = Form.useForm();
   const [calculatingFee, setCalculatingFee] = useState(false);
-  const [saveAddress, setSaveAddress] = useState(false);
-  const [userHasAddress, setUserHasAddress] = useState(false);
   const [userPhone, setUserPhone] = useState('');
   const [addressData, setAddressData] = useState(null);
-  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     // Check if user has address and get phone
@@ -77,12 +74,12 @@ const Checkout = () => {
           } else {
             setUserHasAddress(false);
           }
-          
+
           // Set user phone if available
           if (user.phone) {
             setUserPhone(user.phone);
           }
-          
+
           // Set user name if available
           if (user.name || user.fullName) {
             setUserName(user.name || user.fullName);
@@ -186,7 +183,7 @@ const Checkout = () => {
 
       // Get phone number from address data or user profile
       let phone = '';
-      
+
       // Priority order for phone:
       // 1. Phone from selected address
       // 2. Default user phone from profile
@@ -198,10 +195,20 @@ const Checkout = () => {
         message.error('Không tìm thấy số điện thoại. Vui lòng chọn địa chỉ khác.');
         return;
       }
-      
+
+      // Get user name from address data or user profile
+      let userName = '';
+      if (addressData.name) {
+        userName = addressData.name;
+      } else if (addressData.fullAddressData?.recipientInfo?.name) {
+        userName = addressData.fullAddressData.recipientInfo.name;
+      } else {
+        userName = userObj.name || '';
+      }
+
       // Create address string in format "street|ward|district|province"
       let address;
-      
+
       if (addressData.useDefaultAddress) {
         // Use default address from user object
         address = userObj.address;
@@ -213,8 +220,8 @@ const Checkout = () => {
         address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
       }
 
-      // If user chooses to save address to account
-      if (saveAddress && !addressData.useDefaultAddress && !userHasAddress) {
+      // If user chooses to save address to account from AddressForm
+      if (addressData.saveAsDefault || addressData.fullAddressData?.shippingInfo?.saveAsDefault) {
         try {
           await updateUserAddress(address);
           message.success('Đã lưu địa chỉ vào tài khoản');
@@ -229,6 +236,7 @@ const Checkout = () => {
         // Use buy-now API for immediate purchase
         orderResponse = await buyNow({
           userId: userId,
+          userName: userName,
           address: address,
           phone: phone,
           shipPrice: shippingFee,
@@ -245,6 +253,7 @@ const Checkout = () => {
         // Use createOrderProducts API for cart purchase with new structure
         orderResponse = await createOrderProducts({
           userId: userId,
+          userName: userName,
           address: address,
           phone: phone,
           shipPrice: shippingFee,
@@ -330,18 +339,6 @@ const Checkout = () => {
                   >
                     <AddressForm form={form} onAddressChange={handleAddressChange} />
 
-                    {/* Display save address option only when user doesn't have an address */}
-                    {!userHasAddress && !addressData?.useDefaultAddress && (
-                      <Form.Item name="saveAddress">
-                        <Checkbox
-                          onChange={(e) => setSaveAddress(e.target.checked)}
-                          checked={saveAddress}
-                        >
-                          Lưu địa chỉ này cho lần sau
-                        </Checkbox>
-                      </Form.Item>
-                    )}
-
                     {/* <Form.Item name="note" label="Ghi chú">
                       <Input.TextArea
                         prefix={
@@ -353,15 +350,24 @@ const Checkout = () => {
                     </Form.Item> */}
 
                     <Form.Item>
+                      {!addressData || addressData.isFormOnly ? (
+                        <div style={{ color: '#ff4d4f', textAlign: 'center', marginTop: '8px' }}>
+                          <EnvironmentOutlined /> Vui lòng chọn địa chỉ giao hàng hoặc thêm địa chỉ mới
+                        </div>
+                      ) : null}
                       <Button
                         type="primary"
                         htmlType="submit"
                         loading={loading}
                         size="large"
                         block
+                        style={{ marginTop: '10px' }}
+                        disabled={!addressData || addressData.isFormOnly}
+                        title={!addressData || addressData.isFormOnly ? "Vui lòng chọn hoặc lưu địa chỉ giao hàng" : "Đặt hàng ngay"}
                       >
                         Đặt hàng
                       </Button>
+
                     </Form.Item>
                   </Form>
                 </Card>

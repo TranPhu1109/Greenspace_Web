@@ -146,6 +146,16 @@ const BookDesign = () => {
         message.error("Vui lòng đăng nhập để tiếp tục");
         return;
       }
+
+      // Get user name from address data or user profile
+      let userName = '';
+      if (addressData.name) {
+        userName = addressData.name;
+      } else if (addressData.fullAddressData?.recipientInfo?.name) {
+        userName = addressData.fullAddressData.recipientInfo.name;
+      } else {
+        userName = userObj.name || '';
+      }
       
       // Get phone from address data or user profile
       let phone = '';
@@ -353,9 +363,9 @@ const BookDesign = () => {
                 <EditorComponent />
               </Form.Item>
 
-              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Lựa chọn vật liệu (Tùy chọn)</Title>
+              {/* <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Lựa chọn vật liệu (Tùy chọn)</Title> */}
               {/* Thông báo và Checkbox chọn sản phẩm */}
-              <Alert
+              {/* <Alert
                 message="Gợi ý: Bạn có thể chọn thêm các vật liệu có sẵn trên website để tiết kiệm thời gian và chi phí cho quá trình thiết kế sau này."
                 type="info"
                 showIcon
@@ -365,10 +375,10 @@ const BookDesign = () => {
                 <Checkbox onChange={(e) => setShowProductSelection(e.target.checked)}>
                   Chọn thêm vật liệu có sẵn
                 </Checkbox>
-              </Form.Item>
+              </Form.Item> */}
 
               {/* Phần chọn sản phẩm (hiển thị có điều kiện) */}
-              {showProductSelection && (
+              {/* {showProductSelection && (
                 productLoading ? (
                   <div style={{ textAlign: 'center', padding: '20px' }}>
                     <Spin />
@@ -385,9 +395,9 @@ const BookDesign = () => {
                     }}
                   />
                 )
-              )}
+              )} */}
 
-              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>4. Thông tin liên hệ & Địa chỉ</Title>
+              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Thông tin liên hệ & Địa chỉ</Title>
               
               <Alert
                 message="Thông tin liên hệ"
