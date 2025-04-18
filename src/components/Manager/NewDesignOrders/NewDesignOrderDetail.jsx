@@ -22,6 +22,8 @@ import {
     Timeline,
     message,
     Popconfirm,
+    Modal,
+    Input,
 } from "antd";
 import { format } from "date-fns";
 import {
@@ -42,7 +44,7 @@ import {
     CloseCircleOutlined,
 } from "@ant-design/icons";
 
-const { Title, Text } = Typography;
+const { Title, Text, TextArea } = Typography;
 
 const NewDesignOrderDetail = () => {
     const { id } = useParams();
@@ -59,6 +61,8 @@ const NewDesignOrderDetail = () => {
     const [localError, setLocalError] = useState(null);
     const [productDetailsMap, setProductDetailsMap] = useState({});
     const [fetchingProducts, setFetchingProducts] = useState(false);
+    const [reportManagerModalVisible, setReportManagerModalVisible] = useState(false);
+    const [reportManagerText, setReportManagerText] = useState('');
 
     useEffect(() => {
         const fetchOrderDetailAndRelatedData = async () => {
@@ -86,7 +90,7 @@ const NewDesignOrderDetail = () => {
                     // Fetch sketch records for most statuses (EXCEPT Pending/Consulting)
                     if (currentStatus !== 'Pending' && currentStatus !== 0 && currentStatus !== 'ConsultingAndSketching' && currentStatus !== 1) {
                         console.log('[Effect] Status is past initial phase, fetching sketch records...');
-                        getRecordSketch(id); 
+                        getRecordSketch(id);
                     } else {
                         console.log('[Effect] Status is Pending or Consulting, skipping sketch record fetch.');
                     }
@@ -182,12 +186,32 @@ const NewDesignOrderDetail = () => {
     };
 
     const handleRejectPrice = () => {
-        handleStatusUpdate(
-            selectedOrder?.id,
-            24,
-            'Đã yêu cầu xác định lại giá thiết kế.',
-            'Lỗi yêu cầu sửa giá'
-        );
+        setReportManagerText('');
+        setReportManagerModalVisible(true);
+    };
+
+    const handleRejectPriceSubmit = () => {
+        if (!reportManagerText.trim()) {
+            message.error('Vui lòng nhập lý do yêu cầu sửa giá');
+            return;
+        }
+        
+        // Call the store's updateReport method to update status and report
+        try {
+            useDesignOrderStore.getState().updateReport(
+                selectedOrder?.id,
+                24,
+                reportManagerText,
+                ""
+            );
+            message.success('Đã gửi yêu cầu sửa giá thành công.');
+            // Refresh order data
+            getServiceOrderById(selectedOrder?.id);
+        } catch (err) {
+            message.error(`Lỗi yêu cầu sửa giá: ${err.message}`);
+        }
+        
+        setReportManagerModalVisible(false);
     };
 
     const getStatusColor = (status) => {
@@ -246,7 +270,7 @@ const NewDesignOrderDetail = () => {
         console.warn(`Render: Data not ready or mismatch. URL ID: ${id}, selectedOrder ID: ${selectedOrder?.id}. Showing loading/wait state.`);
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-                <Spin size="large" tip={`Đang tải dữ liệu cho đơn hàng ${id ? id.substring(0,8) : ''}...`} />
+                <Spin size="large" tip={`Đang tải dữ liệu cho đơn hàng ${id ? id.substring(0, 8) : ''}...`} />
             </div>
         );
     }
@@ -488,7 +512,7 @@ const NewDesignOrderDetail = () => {
                     >
                         {[0, 1, 2].map(phase => {
                             const recordsInPhase = (currentOrder.status === 'ConsultingAndSketching' ? sketchRecords : designRecords)
-                                                .filter(record => record.phase === phase);
+                                .filter(record => record.phase === phase);
                             if (recordsInPhase.length === 0) return null;
 
                             const phaseTitle = phase === 0
@@ -506,9 +530,9 @@ const NewDesignOrderDetail = () => {
                                         {recordsInPhase.map(record => (
                                             <Col xs={24} sm={8} key={record.id}>
                                                 <Card hoverable style={record.isSelected ? { border: '2px solid #52c41a' } : {}} bodyStyle={{ padding: 0 }}>
-                                                    <Image src={record.image?.imageUrl || '/placeholder.png'} alt={`Ảnh ${phaseTitle} 1`} style={{ width: '100%', height: '200px', objectFit: 'cover' }}/>
-                                                    {record.image?.image2 && <Image src={record.image.image2} alt={`Ảnh ${phaseTitle} 2`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }}/>}
-                                                    {record.image?.image3 && <Image src={record.image.image3} alt={`Ảnh ${phaseTitle} 3`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }}/>}
+                                                    <Image src={record.image?.imageUrl || '/placeholder.png'} alt={`Ảnh ${phaseTitle} 1`} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                                                    {record.image?.image2 && <Image src={record.image.image2} alt={`Ảnh ${phaseTitle} 2`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }} />}
+                                                    {record.image?.image3 && <Image src={record.image.image3} alt={`Ảnh ${phaseTitle} 3`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }} />}
                                                 </Card>
                                             </Col>
                                         ))}
@@ -517,8 +541,8 @@ const NewDesignOrderDetail = () => {
                             );
                         })}
                         {(currentOrder.status === 'ConsultingAndSketching' && sketchRecords.length === 0 && !recordLoading) ||
-                         (currentOrder.status === 'DoneDesign' && designRecords.length === 0 && !recordLoading) ? (
-                             <Empty description={`Chưa có ${currentOrder.status === 'ConsultingAndSketching' ? 'bản phác thảo' : 'bản thiết kế'} nào được tải lên.`} />
+                            (currentOrder.status === 'DoneDesign' && designRecords.length === 0 && !recordLoading) ? (
+                            <Empty description={`Chưa có ${currentOrder.status === 'ConsultingAndSketching' ? 'bản phác thảo' : 'bản thiết kế'} nào được tải lên.`} />
                         ) : null}
                     </Card>
                 ) : (
@@ -648,7 +672,7 @@ const NewDesignOrderDetail = () => {
                     </Card>
                 )} */}
 
-                
+
 
                 {currentOrder.report && (
                     <Card
@@ -749,6 +773,25 @@ const NewDesignOrderDetail = () => {
                 )}
 
             </Card>
+
+            {/* Modal for price rejection reason */}
+            <Modal
+                title="Yêu cầu sửa giá thiết kế"
+                open={reportManagerModalVisible}
+                onOk={handleRejectPriceSubmit}
+                onCancel={() => setReportManagerModalVisible(false)}
+                okText="Gửi yêu cầu"
+                cancelText="Hủy"
+            >
+                <p>Vui lòng nhập lý do yêu cầu sửa giá:</p>
+                <Input.TextArea
+                    rows={4}
+                    value={reportManagerText}
+                    onChange={(e) => setReportManagerText(e.target.value)}
+                    placeholder="Nhập lý do cụ thể tại sao cần sửa giá thiết kế..."
+                />
+            </Modal>
+
         </div>
     );
 };

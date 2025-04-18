@@ -147,6 +147,25 @@ const useDesignOrderStore = create((set, get) => ({
     }
   },
 
+  updateReport: async (orderId, newStatus, newReportManger, newReportAccoutant) => {
+    try {
+      set({ isLoading: true, error: null });
+      const response = await axios.put(`/api/serviceorder/status/${orderId}`, {
+        status: newStatus,
+        // deliveryCode: "",
+        reportManger: newReportManger,
+        reportAccoutant: newReportAccoutant
+      });
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
   createDesignOrder: async (orderData) => {
     console.log('orderData', orderData);
     
