@@ -10,6 +10,7 @@ import PromotionsList from "@/components/Manager/Promotions/PromotionsList";
 import TransactionsList from "@/components/Manager/Transactions/TransactionsList";
 import NewDesignOrdersList from "@/components/Manager/NewDesignOrders/NewDesignOrdersList";
 import NewDesignOrderDetail from "@/components/Manager/NewDesignOrders/NewDesignOrderDetail";
+import WebManage from "@/components/Manager/WebManage/WebManage";
 
 export const managerRoutes = {
   path: "/manager",
@@ -80,6 +81,10 @@ export const managerRoutes = {
           element: <NewDesignOrderDetail />,
         },
       ],
+    },
+    {
+      path: "webmanage",
+      element: <WebManage />,
     },
   ],
 };

@@ -120,6 +120,17 @@ const TaskList = () => {
       key: "note",
     },
     {
+      title: "Lịch hẹn gặp khách hàng",
+      dataIndex: ["dateAppointment", "timeAppointment"],
+      key: "appointment",
+      render: (_, record) => {
+        if (!record.dateAppointment && !record.timeAppointment) return "Không có";
+        const date = record.dateAppointment;
+        const time = record.timeAppointment;
+        return dayjs(`${date} ${time}`).format("DD/MM/YYYY HH:mm");
+      },
+    },
+    {
       title: "Trạng thái đơn hàng",
       key: "orderStatus",
       render: (_, record) => {

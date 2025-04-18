@@ -13,7 +13,7 @@ const fetchProvinces = async () => {
     const data = await response.json();
     if (data.code === 200) {
       return data.data
-        .filter(province => province.ProvinceName.toLowerCase() !== 'test')
+        .filter(province => province.ProvinceName.toLowerCase() === 'hồ chí minh')
         .map(province => ({
           value: province.ProvinceID,
           label: province.ProvinceName

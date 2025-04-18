@@ -7,6 +7,7 @@ import WalletBalance from "./components/WalletBalance";
 import RechargeForm from "./components/RechargeForm";
 import TransactionHistory from "./components/TransactionHistory";
 import PaymentHistory from "./components/PaymentHistory";
+import RefundHistory from "./components/RefundHistory";
 import "./styles.scss";
 
 const { Content } = Layout;
@@ -61,6 +62,16 @@ const WalletPage = () => {
                       </span>
                     ),
                     children: <PaymentHistory />,
+                  },
+                  {
+                    key: 'refund-history',
+                    label: (
+                      <span className="tab-label">
+                        <HistoryOutlined />
+                        <span>Lịch sử hoàn tiền</span>
+                      </span>
+                    ),
+                    children: <RefundHistory />,
                   },
                   // {
                   //   key: 'all-history',

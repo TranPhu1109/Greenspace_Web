@@ -152,14 +152,14 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
           
           // 1. Delete the task
           await deleteTask(taskId);
-          message.success('Đã xóa task thành công!');
+          // message.success('Đã xóa task thành công!');
           
           // 2. If the task has an associated order, reset the order status to Pending
           if (serviceOrderId) {
             try {
               // Update order status to Pending (0)
               await updateStatus(serviceOrderId, "Pending");
-              message.success('Đã cập nhật trạng thái đơn hàng về Chờ xử lý!');
+              message.success('Đã xóa task và cập nhật trạng thái đơn hàng về Chờ xử lý!');
             } catch (orderError) {
               message.warning('Xóa task thành công nhưng không thể cập nhật trạng thái đơn hàng: ' + 
                 (orderError.message || 'Lỗi không xác định'));
@@ -191,7 +191,7 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
       icon: <DeleteOutlined />,
       label: 'Xóa',
       danger: true,
-      disabled: deleteLoading,
+      disabled: deleteLoading || record.status !== 'ConsultingAndSket' || moment().diff(moment(record.creationDate), 'minutes') > 15,
       onClick: () => handleDeleteTask(record.id, record.serviceOrderId)
     }
   ];

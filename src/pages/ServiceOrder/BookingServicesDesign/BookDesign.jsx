@@ -51,7 +51,16 @@ const BookDesign = () => {
     fetchCategories();
   }, [fetchProducts, fetchCategories]);
 
+  // Set default addressData with user's information when component mounts
+  useEffect(() => {
+    if (user && user.address) {
+      // User has a default address, addressData will be populated by AddressForm component
+      console.log("User has default address:", user.address);
+    }
+  }, [user]);
+
   const handleAddressChange = (newAddressData) => {
+    console.log("Address data changed:", newAddressData);
     setAddressData(newAddressData);
   };
 
@@ -138,6 +147,27 @@ const BookDesign = () => {
         return;
       }
 
+      // Get user name from address data or user profile
+      let userName = '';
+      if (addressData.name) {
+        userName = addressData.name;
+      } else if (addressData.fullAddressData?.recipientInfo?.name) {
+        userName = addressData.fullAddressData.recipientInfo.name;
+      } else {
+        userName = userObj.name || '';
+      }
+      
+      // Get phone from address data or user profile
+      let phone = '';
+      if (addressData.phone) {
+        phone = addressData.phone;
+      } else if (user.phone) {
+        phone = user.phone;
+      } else {
+        message.error('Không tìm thấy số điện thoại. Vui lòng chọn địa chỉ khác.');
+        return;
+      }
+
       setLoading(true);
 
       // Upload ảnh lên Cloudinary
@@ -145,7 +175,17 @@ const BookDesign = () => {
         imageFiles.map((file) => file.originFileObj)
       );
 
-      const address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      let address;
+      if (addressData.useDefaultAddress) {
+        // Use default address from user object
+        address = user.address;
+      } else if (addressData.streetAddress) {
+        // If address data contains street address
+        address = `${addressData.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      } else {
+        // Fallback to form values
+        address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      }
 
       // Định dạng lại serviceOrderDetails nếu có sản phẩm được chọn
       const serviceOrderDetails = showProductSelection 
@@ -158,8 +198,9 @@ const BookDesign = () => {
       // Tạo object request
       const requestData = {
         userId: user.id,
+        userName: userName,
         address: address,
-        cusPhone: values.phone,
+        cusPhone: phone,
         length: values.length,
         width: values.width,
         description: values.description,
@@ -224,7 +265,7 @@ const BookDesign = () => {
               onFinish={handleFinish}
               initialValues={{}}
             >
-              <Title level={4} style={{ marginBottom: '16px', color: '#555' }}>1. Thông tin kích thước khu vực</Title>
+              <Title level={4} style={{ marginBottom: '16px', color: '#555' }}>1. Thông tin kích thước không gian</Title>
               <Row gutter={24}>
                 <Col xs={24} md={12}>
                   <Form.Item
@@ -323,9 +364,9 @@ const BookDesign = () => {
                 <EditorComponent />
               </Form.Item>
 
-              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Lựa chọn vật liệu (Tùy chọn)</Title>
+              {/* <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Lựa chọn vật liệu (Tùy chọn)</Title> */}
               {/* Thông báo và Checkbox chọn sản phẩm */}
-              <Alert
+              {/* <Alert
                 message="Gợi ý: Bạn có thể chọn thêm các vật liệu có sẵn trên website để tiết kiệm thời gian và chi phí cho quá trình thiết kế sau này."
                 type="info"
                 showIcon
@@ -335,10 +376,10 @@ const BookDesign = () => {
                 <Checkbox onChange={(e) => setShowProductSelection(e.target.checked)}>
                   Chọn thêm vật liệu có sẵn
                 </Checkbox>
-              </Form.Item>
+              </Form.Item> */}
 
               {/* Phần chọn sản phẩm (hiển thị có điều kiện) */}
-              {showProductSelection && (
+              {/* {showProductSelection && (
                 productLoading ? (
                   <div style={{ textAlign: 'center', padding: '20px' }}>
                     <Spin />
@@ -355,31 +396,18 @@ const BookDesign = () => {
                     }}
                   />
                 )
-              )}
+              )} */}
 
-              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>4. Thông tin liên hệ & Địa chỉ</Title>
-              {/* Thông tin khách hàng */}
-              <Form.Item
-                name="phone"
-                label={
-                  <Space>
-                    Số điện thoại
-                    <Tooltip title="Chúng tôi sẽ liên hệ với bạn qua số điện thoại này để tư vấn.">
-                      <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)' }} />
-                    </Tooltip>
-                  </Space>
-                }
-                rules={[
-                  { required: true, message: "Vui lòng nhập số điện thoại" },
-                  {
-                    pattern: /^(0[3|5|7|8|9])+([0-9]{8})$/,
-                    message: "Số điện thoại không hợp lệ",
-                  },
-                ]}
-              >
-                <Input placeholder="Nhập số điện thoại" maxLength={10} />
-              </Form.Item>
-
+              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Thông tin liên hệ & Địa chỉ</Title>
+              
+              <Alert
+                message="Thông tin liên hệ"
+                description="Chọn địa chỉ từ danh sách hoặc thêm địa chỉ mới. Số điện thoại sẽ được lấy từ thông tin địa chỉ đã chọn."
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+              
               <AddressForm form={form} onAddressChange={handleAddressChange} />
 
               <Form.Item style={{ marginTop: '24px' }}>

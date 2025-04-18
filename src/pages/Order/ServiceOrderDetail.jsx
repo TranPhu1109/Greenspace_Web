@@ -129,26 +129,45 @@ const ServiceOrderDetail = () => {
   const componentId = useRef("service-order");
 
   useEffect(() => {
-    // Định nghĩa hàm refreshOrderData ở cấp cao nhất của window để các component con có thể gọi
+    // Define refreshOrderData at the highest level of window so child components can call it
     window.refreshOrderData = async (orderId) => {
       try {
-        console.log("refreshOrderData called for order:", orderId);
-        await refreshAllData(orderId);
+        console.log("refreshOrderData called for order:", orderId || id);
+        // Use the passed orderId or fall back to the component's id
+        const orderIdToRefresh = orderId || id;
+        
+        // Show loading indicator
+        message.loading({ content: "Đang tải lại dữ liệu...", key: "refreshData" });
+        
+        // Call the comprehensive refresh function
+        const refreshedOrder = await refreshAllData(orderIdToRefresh);
+        
+        // Update UI and show success message
+        if (refreshedOrder) {
+          message.success({ 
+            content: "Dữ liệu đã được cập nhật", 
+            key: "refreshData", 
+            duration: 1 
+          });
+        }
       } catch (error) {
         console.error("Error in global refreshOrderData:", error);
-        message.error("Không thể tải lại dữ liệu: " + error.message);
+        message.error({ 
+          content: "Không thể tải lại dữ liệu: " + error.message, 
+          key: "refreshData" 
+        });
       }
     };
     
-    // Định nghĩa hàm softUpdateOrderData để cập nhật dữ liệu mà không làm refresh toàn component
+    // Define softUpdateOrderData to update data without refreshing the whole component
     window.softUpdateOrderData = (updatedOrder) => {
       try {
         console.log("softUpdateOrderData called with:", updatedOrder);
         
-        // Chỉ cập nhật các state cần thiết mà không gọi API lại
+        // Only update necessary states without calling API again
         if (updatedOrder) {
           setOrder(updatedOrder);
-          // Đồng thời cập nhật selectedOrder trong store để các component khác đồng bộ
+          // Also update selectedOrder in the store to keep other components in sync
           useServiceOrderStore.getState().selectedOrder = updatedOrder;
         }
       } catch (error) {
@@ -157,12 +176,14 @@ const ServiceOrderDetail = () => {
       }
     };
 
-    // Cleanup function để xóa hàm khỏi window khi component unmount
+    // Cleanup function to remove the function from window when component unmounts
     return () => {
       delete window.refreshOrderData;
       delete window.softUpdateOrderData;
     };
-  }, []);  // Empty dependency array means this runs once on mount
+  // We can't include refreshAllData in dependencies because it's defined after this hook
+  // This is okay because refreshAllData doesn't depend on any state that changes during component lifecycle
+  }, [id]);  // Only depend on id which is stable
 
   useEffect(() => {
     getServiceOrderById(id);

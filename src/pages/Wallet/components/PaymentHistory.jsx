@@ -6,11 +6,12 @@ import dayjs from 'dayjs';
 const { Text } = Typography;
 
 const PaymentHistory = () => {
-  const { bills, loading, error, fetchBalance } = useWalletStore();
+  const { bills, transactions, loading, error, fetchBalance, fetchTransactions } = useWalletStore();
 
   useEffect(() => {
     fetchBalance();
-  }, [fetchBalance]);
+    fetchTransactions();
+  }, [fetchBalance, fetchTransactions]);
 
   if (loading) {
     return (
@@ -20,9 +21,9 @@ const PaymentHistory = () => {
     );
   }
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
+  // if (error) {
+  //   return <div className="text-red-500">{error}</div>;
+  // }
   console.log(bills);
   // Format service order ID for display
   const formatServiceOrderId = (id) => {

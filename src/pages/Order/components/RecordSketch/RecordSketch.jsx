@@ -162,7 +162,15 @@ const RecordSketch = ({
       setIsRevisionModalVisible(false);
       
       // 4. Refresh the order data to reflect the changes
-      await getServiceOrderById(order.id);
+      const updatedOrder = await getServiceOrderById(order.id);
+      
+      // 5. Refresh sketch records
+      await getRecordSketch(order.id);
+      
+      // 6. Call window.refreshOrderData if available (to trigger parent refresh)
+      if (window.refreshOrderData) {
+        window.refreshOrderData(order.id);
+      }
       
     } catch (error) {
       console.error("Error requesting revision:", error);
@@ -185,7 +193,17 @@ const RecordSketch = ({
         status: "OrderCancelled" 
       });
       Modal.success({ content: "Đã hủy đơn hàng thành công." });
-      await getServiceOrderById(order.id); // Refetch to show updated status
+      
+      // Refresh all data
+      const updatedOrder = await getServiceOrderById(order.id); 
+      
+      // Refresh sketch records as well
+      await getRecordSketch(order.id);
+      
+      // Call global refresh function if available
+      if (window.refreshOrderData) {
+        window.refreshOrderData(order.id);
+      }
     } catch (err) {
       Modal.error({ content: "Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message) });
     } finally {
@@ -351,7 +369,7 @@ const RecordSketch = ({
         {/* Action buttons for sketch selection - only show when in DoneDeterminingDesignPrice status */}
         {(order?.status === 'DoneDeterminingDesignPrice' || order?.status === 22) && (
           <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-            {maxPhase === 1 && (
+            {maxPhase === 1 || maxPhase === 2 && (
               <Button
                 icon={<EditOutlined />}
                 onClick={handleOpenRevisionModal}
