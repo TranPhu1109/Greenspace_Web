@@ -376,7 +376,7 @@ const ServiceOrderHistory = () => {
               dataSource={serviceOrders}
               columns={columns}
               rowKey="id"
-              pagination={{ pageSize: 10 }}
+              // pagination={{ pageSize: 10 }}
               className="shadow-md"
               onRow={(record) => ({
                 onClick: () => navigate(`/service-order/${record.id}`),

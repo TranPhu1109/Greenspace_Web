@@ -19,6 +19,7 @@ import NewBlog from "@/components/Staff/Blog/NewBlog";
 import EditBlog from "@/components/Staff/Blog/EditBlog";
 import BlogDetail from "@/components/Staff/Blog/BlogDetail";
 import DesignerScheduleManager from "@/components/Staff/DesignerSchedule/DesignerScheduleManager";
+import ComplaintsList from "@/components/Staff/Complaints/ComplaintsList";
 
 export const staffRoutes = {
   path: "/staff",
@@ -39,6 +40,10 @@ export const staffRoutes = {
           element: <OrderDetail />,
         },
       ],
+    },
+    {
+      path: "complaints",
+      element: <ComplaintsList />,
     },
     {
       path: "design-orders",

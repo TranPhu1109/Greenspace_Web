@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Input, Checkbox, Button, Form, message, Typography, Card } from 'antd';
+import { Input, Checkbox, Button, Form, message, Typography, Card, Progress } from 'antd';
 import { GoogleOutlined, LockOutlined, MailOutlined, UserOutlined, ArrowLeftOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './Auth.scss';
@@ -15,7 +15,7 @@ const Register = () => {
   const location = useLocation();
   const { register } = useAuthStore();
   const [loading, setLoading] = useState(false);
-
+  const [passwordStrength, setPasswordStrength] = useState(0);
   // Lấy returnUrl và actionType từ state (nếu có)
   const returnUrl = location.state?.returnUrl || "/home";
   const actionType = location.state?.actionType;
@@ -47,11 +47,32 @@ const Register = () => {
         } 
       });
     } catch (error) {
-      console.error('Register failed:', error);
-      if (error.response?.data?.error?.includes('EMAIL_EXISTS')) {
-        message.error('Email này đã được sử dụng. Vui lòng dùng email khác.');
+      const errorMessage = error.response?.data?.error || '';
+      
+      if (errorMessage.includes('EMAIL_EXISTS') || errorMessage === 'Error: RegisterUserCommand_email is duplicate!') {
+        // Hiển thị lỗi trực tiếp trên trường email
+        form.setFields([
+          {
+            name: 'email',
+            errors: ['Email này đã được sử dụng. Vui lòng dùng email khác.']
+          }
+        ]);
+      } else if (errorMessage === 'Error: RegisterUserCommand_phone is duplicate!') {
+        // Hiển thị lỗi trực tiếp trên trường phone
+        form.setFields([
+          {
+            name: 'phone',
+            errors: ['Số điện thoại này đã được sử dụng. Vui lòng dùng số điện thoại khác.']
+          }
+        ]);
       } else {
-        message.error('Đăng ký thất bại: ' + (error.response?.data?.message || error.message));
+        message.error('Đăng ký thất bại: ' + (
+          error.response?.data?.error === 'Error: RegisterUserCommand_email is duplicate!'
+            ? 'Số điện thoại này đã được sử dụng. Vui lòng dùng số điện thoại khác.'
+            : error.response?.data?.error === 'Error: RegisterUserCommand_phone is duplicate!'
+              ? 'Email này đã được sử dụng. Vui lòng dùng email khác.'
+              : error.response?.data?.error || error.message
+        ));
       }
     } finally {
       setLoading(false);
@@ -136,12 +157,13 @@ const Register = () => {
                   label="Số điện thoại"
                   rules={[
                     { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                    { pattern: /^[0-9]{10}$/, message: 'Số điện thoại không hợp lệ!' }
+                    { pattern: /^(0|\+84)(\s|\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\d)(\s|\.)?(\d{3})(\s|\.)?(\d{3})$/, 
+                      message: 'Số điện thoại không hợp lệ! Vui lòng nhập đúng định dạng số điện thoại Việt Nam' }
                   ]}
                 >
                   <Input 
                     prefix={<PhoneOutlined className="site-form-item-icon" />} 
-                    placeholder="Nhập số điện thoại" 
+                    placeholder="Ví dụ: 0912345678 hoặc +84912345678" 
                     size="large"
                     className="auth-input"
                   />
@@ -150,15 +172,60 @@ const Register = () => {
                 <Form.Item
                   name="password"
                   label="Mật khẩu"
-                  rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập mật khẩu!' },
+                    { min: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự!' },
+                    { 
+                      pattern: /^(?=.*[!@#$%^&*(),.?":{}|<>])/,
+                      message: 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt!'
+                    }
+                  ]}
                 >
                   <Input.Password 
                     prefix={<LockOutlined className="site-form-item-icon" />} 
                     placeholder="Nhập mật khẩu" 
                     size="large"
                     className="auth-input"
+                    onChange={(e) => {
+                      const password = e.target.value;
+                      const hasMinLength = password.length >= 8;
+                      const hasSpecialChar = /^(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password);
+                      const hasNumber = /\d/.test(password);
+                      const hasUpperCase = /[A-Z]/.test(password);
+                      const hasLowerCase = /[a-z]/.test(password);
+                      
+                      const strength = [
+                        hasMinLength,
+                        hasSpecialChar,
+                        hasNumber,
+                        hasUpperCase,
+                        hasLowerCase
+                      ].filter(Boolean).length;
+                      
+                      setPasswordStrength(strength);
+                    }}
                   />
                 </Form.Item>
+                {passwordStrength > 0 && (
+                  <div style={{ marginTop: -20, marginBottom: 20 }}>
+                    <Progress 
+                      percent={passwordStrength * 20} 
+                      size="small"
+                      status={passwordStrength < 3 ? "exception" : passwordStrength < 5 ? "normal" : "success"}
+                      format={() => {
+                        if (passwordStrength === 0) return "Rất yếu";
+                        if (passwordStrength === 1) return "Yếu";
+                        if (passwordStrength === 2) return "Trung bình";
+                        if (passwordStrength === 3) return "Khá";
+                        if (passwordStrength === 4) return "Mạnh";
+                        return "Rất mạnh";
+                      }}
+                    />
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: 4 }}>
+                      Mật khẩu cần có: ít nhất 8 ký tự, 1 ký tự đặc biệt, 1 số, 1 chữ hoa và 1 chữ thường
+                    </div>
+                  </div>
+                )}
                 
                 <Form.Item
                   name="confirmPassword"

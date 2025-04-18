@@ -163,28 +163,40 @@ const OrderHistoryTab = () => {
       title: "Mã đơn hàng",
       dataIndex: "id",
       key: "id",
-      width: 120,
+      width: 140, // Adjusted width
       render: (id) => <Text strong>#{id.slice(0, 8)}...</Text>,
     },
     {
       title: "Ngày đặt",
       dataIndex: "creationDate",
       key: "creationDate",
-      width: 100,
+      width: 160, // Adjusted width
       render: (date) => format(new Date(date), "dd/MM/yyyy HH:mm"),
+    },
+    {
+      title: "Tên người nhận",
+      dataIndex: "userName",
+      key: "userName",
+      width: 180, // Adjusted width
+      render: (userName, record) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text strong>{userName || "--"}</Text>
+          <Text type="secondary">{record.phone || "--"}</Text>
+        </div>
+      ),
     },
     {
       title: "Địa chỉ",
       dataIndex: "address",
       key: "address",
-      width: 200,
+      width: 260, // Adjusted width
       render: (address) => address.replace(/\|/g, ', '),
     },
     {
       title: "Mã vận đơn",
       dataIndex: "deliveryCode",
       key: "deliveryCode",
-      width: 100,
+      width: 120, // Adjusted width
       render: (deliveryCode) => <Text strong>{deliveryCode || "--"}</Text>,
     },
     {
@@ -200,7 +212,7 @@ const OrderHistoryTab = () => {
       title: "Tổng tiền",
       dataIndex: "totalAmount",
       key: "totalAmount",
-      width: 100,
+      width: 120,
       render: (amount) => (
         <Text type="success" strong>
           {amount.toLocaleString()}đ
@@ -226,7 +238,7 @@ const OrderHistoryTab = () => {
         const hasExistingComplaint = hasComplaint(record.id);
 
         return (
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space direction="vertical">
             {record.status === 0 || record.status === "0" ? (
               <Button
                 danger

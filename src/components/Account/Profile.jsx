@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Space, Descriptions, message, Upload, Row, Col, Divider, Modal, Popover } from 'antd';
-import { EditOutlined, UserOutlined, PhoneOutlined, EnvironmentOutlined, MailOutlined, IdcardOutlined, EyeOutlined, UploadOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Space, Descriptions, message, Upload, Row, Col, Divider, Modal, Popover, Typography, List, Badge } from 'antd';
+import { EditOutlined, UserOutlined, PhoneOutlined, EnvironmentOutlined, MailOutlined, IdcardOutlined, EyeOutlined, UploadOutlined, LoadingOutlined, StarOutlined, DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import useAuthStore from '../../stores/useAuthStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import AddressForm from '@/components/Common/AddressForm';
 import { useCloudinaryStorage } from '@/hooks/useCloudinaryStorage';
+import useAddressStore from '../../stores/useAddressStore';
+import AddAddressModal from '@/components/Common/AddAddressModal';
+
+const { Text, Title } = Typography;
+const { confirm } = Modal;
 
 const Profile = () => {
   const [form] = Form.useForm();
@@ -18,6 +23,16 @@ const Profile = () => {
   const [imageFile, setImageFile] = useState(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const { uploadImages, progress } = useCloudinaryStorage();
+  const { addresses, loading: loadingAddresses, fetchUserAddresses, deleteAddress } = useAddressStore();
+  const [deletingAddressId, setDeletingAddressId] = useState(null);
+  const [addAddressModalVisible, setAddAddressModalVisible] = useState(false);
+  
+  // Fetch user addresses when profile loads
+  useEffect(() => {
+    if (user && user.id) {
+      fetchUserAddresses(user.id);
+    }
+  }, [user, fetchUserAddresses]);
   
   // Parse address when entering edit mode
   useEffect(() => {
@@ -28,30 +43,60 @@ const Profile = () => {
     }
   }, [isEditing, user, form]);
   
+  // Handle address change from AddressForm
+  const handleAddressChange = (data) => {
+    console.log("Address data changed:", data);
+    setAddressData(data);
+  };
+
+  // Track changes to addressData
+  useEffect(() => {
+    if (addressData) {
+      console.log("Address data updated in state:", addressData);
+      // Make sure form values are up-to-date
+      if (addressData.streetAddress) {
+        form.setFieldValue("streetAddress", addressData.streetAddress);
+      }
+    }
+  }, [addressData, form]);
+
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
       // Format address string as "street|ward|district|province"
       let formattedAddress = user?.address || '';
       
-      if (addressData && !addressData.useDefaultAddress) {
+      if (addressData) {
         // Only update if we have complete address data from the form
         if (addressData.ward?.label && addressData.district?.label && addressData.province?.label) {
           formattedAddress = [
-            values.streetAddress || '',
+            addressData.streetAddress || '',
             addressData.ward.label,
             addressData.district.label,
             addressData.province.label
           ].join('|');
+        } else if (addressData.fullAddressData?.addressInfo) {
+          // Alternative data structure from AddressForm
+          const info = addressData.fullAddressData.addressInfo;
+          formattedAddress = [
+            info.streetAddress || '',
+            info.ward || '',
+            info.district || '',
+            info.province || ''
+          ].join('|');
+        } else if (addressData.fullAddressString) {
+          // Direct string format
+          formattedAddress = addressData.fullAddressString;
         }
       }
+      
+      console.log("Updating address to:", formattedAddress);
       
       // Update user information using the updateUser function from useAuthStore
       await updateUser({
         name: values.name,
         phone: values.phone,
         address: formattedAddress
-        // No need to include avatarUrl since updateUser will keep it
       });
       
       message.success('Cập nhật thông tin thành công');
@@ -62,11 +107,6 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Handle address change from AddressForm
-  const handleAddressChange = (data) => {
-    setAddressData(data);
   };
 
   // Get first letter of name or use fallback
@@ -164,6 +204,49 @@ const Profile = () => {
       console.error('Avatar upload error:', error);
     } finally {
       setUploadLoading(false);
+    }
+  };
+
+  // Handle address deletion
+  const showDeleteConfirm = (addressId, addressName) => {
+    confirm({
+      title: 'Xác nhận xóa địa chỉ',
+      icon: <ExclamationCircleOutlined />,
+      content: `Bạn có chắc chắn muốn xóa địa chỉ "${addressName || 'Không tên'}" này không?`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          setDeletingAddressId(addressId);
+          const result = await deleteAddress(addressId);
+          if (result.success) {
+            message.success('Đã xóa địa chỉ thành công');
+          } else {
+            message.error('Không thể xóa địa chỉ: ' + (result.error || 'Lỗi không xác định'));
+          }
+        } catch (error) {
+          console.error('Lỗi xóa địa chỉ:', error);
+          message.error('Đã xảy ra lỗi khi xóa địa chỉ');
+        } finally {
+          setDeletingAddressId(null);
+        }
+      },
+    });
+  };
+
+  // Handle opening the add address modal
+  const handleAddAddress = () => {
+    setAddAddressModalVisible(true);
+  };
+
+  // Handle address added successfully
+  const handleAddressAdded = (newAddress) => {
+    message.success('Đã thêm địa chỉ mới thành công');
+    
+    // Refresh the address list
+    if (user && user.id) {
+      fetchUserAddresses(user.id);
     }
   };
 
@@ -273,8 +356,8 @@ const Profile = () => {
               <AddressForm 
                 form={form} 
                 onAddressChange={handleAddressChange}
-                useExistingAddress={false} // Disable showing saved address section
-                initialAddress={user?.address} // Pass existing address for initialization
+                useExistingAddress={false}
+                initialAddress={user?.address}
               />
 
               <Divider style={{ margin: '12px 0 20px' }} />
@@ -289,18 +372,119 @@ const Profile = () => {
                   </Button>
                 </Space>
               </Form.Item>
+
             </Form>
+
+            
           ) : (
-            <div className="profile-info">
-              <Descriptions bordered column={{ xs: 1, sm: 1, md: 1 }} size="large" className="profile-descriptions">
-                <Descriptions.Item label={<><UserOutlined /> Họ và tên</>}>{user?.name || '(Chưa cập nhật)'}</Descriptions.Item>
-                <Descriptions.Item label={<><MailOutlined /> Email</>}>{user?.email || '(Chưa cập nhật)'}</Descriptions.Item>
-                <Descriptions.Item label={<><PhoneOutlined /> Số điện thoại</>}>{user?.phone || '(Chưa cập nhật)'}</Descriptions.Item>
-                <Descriptions.Item label={<><EnvironmentOutlined /> Địa chỉ</>}>
-                  {formatAddressForDisplay(user?.address)}
-                </Descriptions.Item>
-              </Descriptions>
-            </div>
+            <>
+              <div className="profile-info">
+                <Descriptions bordered column={{ xs: 1, sm: 1, md: 1 }} size="large" className="profile-descriptions">
+                  <Descriptions.Item label={<><UserOutlined /> Họ và tên</>}>{user?.name || '(Chưa cập nhật)'}</Descriptions.Item>
+                  <Descriptions.Item label={<><MailOutlined /> Email</>}>{user?.email || '(Chưa cập nhật)'}</Descriptions.Item>
+                  <Descriptions.Item label={<><PhoneOutlined /> Số điện thoại</>}>{user?.phone || '(Chưa cập nhật)'}</Descriptions.Item>
+                  <Descriptions.Item label={<><EnvironmentOutlined /> Địa chỉ mặc định</>}>
+                    {formatAddressForDisplay(user?.address)}
+                  </Descriptions.Item>
+                </Descriptions>
+              </div>
+
+              {/* Address Options Section */}
+              <Divider orientation="left">
+                <Space>
+                  <Text>Địa chỉ giao hàng</Text>
+                  {/* <Badge 
+                    count={addresses?.length || 0} 
+                    style={{ backgroundColor: '#52c41a' }}
+                    showZero
+                  /> */}
+                </Space>
+              </Divider>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                  onClick={handleAddAddress}
+                >
+                  Thêm địa chỉ mới
+                </Button>
+              </div>
+
+              {loadingAddresses ? (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <LoadingOutlined style={{ fontSize: 24 }} />
+                  <div style={{ marginTop: 8 }}>Đang tải địa chỉ...</div>
+                </div>
+              ) : addresses && addresses.length > 0 ? (
+                <List
+                  grid={{ gutter: 16, column: 1 }}
+                  dataSource={addresses}
+                  renderItem={address => {
+                    const addressParts = address.userAddress ? address.userAddress.split('|') : [];
+                    const isDefault = user?.address === address.userAddress;
+                    
+                    return (
+                      <List.Item>
+                        <Card 
+                          size="small" 
+                          bordered
+                          style={{
+                            borderColor: isDefault ? '#52c41a' : undefined,
+                            backgroundColor: isDefault ? 'rgba(82, 196, 26, 0.1)' : undefined
+                          }}
+                          
+                        >
+                          <Space direction="vertical" size={1} style={{ width: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Space align="center">
+                                <Text strong>{address.name || 'Không có tên'}</Text>
+                                {isDefault && (
+                                  <Badge 
+                                    count={<StarOutlined style={{ color: '#52c41a' }} />} 
+                                    style={{ backgroundColor: 'transparent' }} 
+                                  />
+                                )}
+                                {isDefault && <Text type="success">(Mặc định)</Text>}
+                              </Space>
+                              <Button 
+                                type="text" 
+                                danger
+                                icon={<DeleteOutlined />} 
+                                loading={deletingAddressId === address.id}
+                                onClick={() => showDeleteConfirm(address.id, address.name)}
+                                disabled={isDefault} // Không cho xóa địa chỉ mặc định
+                              >
+                                Xóa
+                              </Button>
+                            </div>
+                            
+                            <Text type="secondary">
+                              <PhoneOutlined style={{ marginRight: 8 }} />
+                              {address.phone || 'Không có số điện thoại'}
+                            </Text>
+                            
+                            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <EnvironmentOutlined style={{ marginRight: 8, marginTop: 4 }} />
+                              <Text>{addressParts.length === 4 
+                                ? `${addressParts[0]}, ${addressParts[1]}, ${addressParts[2]}, ${addressParts[3]}`
+                                : address.userAddress?.replace(/\|/g, ', ') || 'Địa chỉ không hợp lệ'
+                              }</Text>
+                            </div>
+                            
+                          </Space>
+                          
+                        </Card>
+                      </List.Item>
+                    );
+                  }}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <Text type="secondary">Bạn chưa có địa chỉ giao hàng nào</Text>
+                </div>
+              )}
+            </>
           )}
         </Col>
       </Row>
@@ -363,6 +547,13 @@ const Profile = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Add Address Modal */}
+      <AddAddressModal 
+        visible={addAddressModalVisible}
+        onClose={() => setAddAddressModalVisible(false)}
+        onAddressAdded={handleAddressAdded}
+      />
     </Card>
   );
 };

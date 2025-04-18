@@ -58,30 +58,38 @@ const Checkout = () => {
   const { state } = useLocation();
   const [form] = Form.useForm();
   const [calculatingFee, setCalculatingFee] = useState(false);
-  const [saveAddress, setSaveAddress] = useState(false);
-  const [userHasAddress, setUserHasAddress] = useState(false);
   const [userPhone, setUserPhone] = useState('');
+  const [addressData, setAddressData] = useState(null);
 
   useEffect(() => {
-    // Kiểm tra user có địa chỉ hay chưa và lấy phone
+    // Check if user has address and get phone
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        if (user && user.address && user.address.trim() !== "") {
-          setUserHasAddress(true);
-        } else {
-          setUserHasAddress(false);
-        }
-        if (user && user.phone) {
-          setUserPhone(user.phone);
-          form.setFieldsValue({ phone: user.phone });
+        if (user) {
+          // Set user has address flag
+          if (user.address && user.address.trim() !== "") {
+            setUserHasAddress(true);
+          } else {
+            setUserHasAddress(false);
+          }
+
+          // Set user phone if available
+          if (user.phone) {
+            setUserPhone(user.phone);
+          }
+
+          // Set user name if available
+          if (user.name || user.fullName) {
+            setUserName(user.name || user.fullName);
+          }
         }
       } catch (error) {
-        console.error("Lỗi khi đọc thông tin người dùng:", error);
+        console.error("Error reading user information:", error);
       }
     }
-  }, [form]);
+  }, []);
 
   useEffect(() => {
     // Kiểm tra và thiết lập sản phẩm từ location state
@@ -98,20 +106,20 @@ const Checkout = () => {
     console.log("Address data changed:", newAddressData);
     setAddressData(newAddressData);
 
-    // Nếu đang reset về trạng thái ban đầu (bỏ tích sử dụng địa chỉ mặc định)
+    // If resetting to default state (unchecking default address)
     if (newAddressData.useDefaultAddress === false && newAddressData.province === null) {
       console.log("Resetting shipping fee to default");
-      // Reset phí vận chuyển về 0 hoặc giá trị mặc định
+      // Reset shipping fee to 0 or default value
       resetShippingFee();
       return;
     }
 
-    // Nếu đang sử dụng địa chỉ mặc định thì lấy dữ liệu từ thông tin parsedAddress
+    // If using default address, get data from parsedAddress
     if (newAddressData.useDefaultAddress) {
       console.log("Using default address for shipping fee calculation");
       setCalculatingFee(true);
       try {
-        // Cần trích xuất tỉnh/thành phố, quận/huyện, phường/xã từ địa chỉ mặc định
+        // Extract province/city, district, ward from default address
         const fee = await calculateShippingFee({
           toProvinceName: newAddressData.province.label,
           toDistrictName: newAddressData.district.label,
@@ -131,7 +139,7 @@ const Checkout = () => {
       return;
     }
 
-    // Trường hợp nhập địa chỉ mới
+    // Case of entering a new address or selecting a saved address
     if (newAddressData.province && newAddressData.district && newAddressData.ward) {
       setCalculatingFee(true);
       try {
@@ -160,20 +168,11 @@ const Checkout = () => {
     }, 0);
   };
 
-  const [addressData, setAddressData] = useState(null);
-
   const handleFinish = async (values) => {
     try {
-      // Kiểm tra lại logic để đảm bảo địa chỉ mặc định được xử lý đúng
+      // Check if we have address data
       if (!addressData) {
         message.error('Vui lòng chọn địa chỉ giao hàng');
-        return;
-      }
-
-      // Nếu không phải địa chỉ mặc định, kiểm tra các thông tin đia chỉ có đầy đủ không
-      if (!addressData.useDefaultAddress &&
-        (!addressData.province || !addressData.district || !addressData.ward || !values.streetAddress)) {
-        message.error('Vui lòng nhập đầy đủ thông tin địa chỉ giao hàng');
         return;
       }
 
@@ -182,13 +181,47 @@ const Checkout = () => {
       const walletId = walletStorage.state.walletId;
       const userObj = JSON.parse(localStorage.getItem('user'));
 
-      // Tạo chuỗi địa chỉ theo định dạng "đường|phường/xã|quận/huyện|tỉnh/thành phố"
-      const address = addressData.useDefaultAddress
-        ? userObj.address
-        : `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      // Get phone number from address data or user profile
+      let phone = '';
 
-      // Nếu người dùng chọn lưu địa chỉ vào tài khoản
-      if (saveAddress && !addressData.useDefaultAddress && !userHasAddress) {
+      // Priority order for phone:
+      // 1. Phone from selected address
+      // 2. Default user phone from profile
+      if (addressData.phone) {
+        phone = addressData.phone;
+      } else if (userPhone) {
+        phone = userPhone;
+      } else {
+        message.error('Không tìm thấy số điện thoại. Vui lòng chọn địa chỉ khác.');
+        return;
+      }
+
+      // Get user name from address data or user profile
+      let userName = '';
+      if (addressData.name) {
+        userName = addressData.name;
+      } else if (addressData.fullAddressData?.recipientInfo?.name) {
+        userName = addressData.fullAddressData.recipientInfo.name;
+      } else {
+        userName = userObj.name || '';
+      }
+
+      // Create address string in format "street|ward|district|province"
+      let address;
+
+      if (addressData.useDefaultAddress) {
+        // Use default address from user object
+        address = userObj.address;
+      } else if (addressData.streetAddress) {
+        // If address data contains detailed address info (from AddressForm)
+        address = `${addressData.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      } else {
+        // Fallback to form values
+        address = `${values.streetAddress}|${addressData.ward.label}|${addressData.district.label}|${addressData.province.label}`;
+      }
+
+      // If user chooses to save address to account from AddressForm
+      if (addressData.saveAsDefault || addressData.fullAddressData?.shippingInfo?.saveAsDefault) {
         try {
           await updateUserAddress(address);
           message.success('Đã lưu địa chỉ vào tài khoản');
@@ -200,27 +233,29 @@ const Checkout = () => {
 
       let orderResponse;
       if (state?.isBuyNow) {
-        // Sử dụng API buy-now cho mua ngay
+        // Use buy-now API for immediate purchase
         orderResponse = await buyNow({
           userId: userId,
+          userName: userName,
           address: address,
-          phone: values.phone,
+          phone: phone,
           shipPrice: shippingFee,
           productId: products[0].id,
           quantity: products[0].quantity
         });
       } else {
-        // Chuẩn bị danh sách sản phẩm để gửi đi
+        // Prepare product list to send
         const productsList = products.map(product => ({
           productId: product.id,
           quantity: product.quantity
         }));
 
-        // Sử dụng API createOrderProducts cho mua từ giỏ hàng với cấu trúc mới
+        // Use createOrderProducts API for cart purchase with new structure
         orderResponse = await createOrderProducts({
           userId: userId,
+          userName: userName,
           address: address,
-          phone: values.phone,
+          phone: phone,
           shipPrice: shippingFee,
           products: productsList
         });
@@ -302,41 +337,7 @@ const Checkout = () => {
                     className="checkout-form"
                     initialValues={{}}
                   >
-                    <Form.Item
-                      name="phone"
-                      label="Số điện thoại"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Vui lòng nhập số điện thoại",
-                        },
-                        {
-                          pattern: /^(0[3|5|7|8|9])+([0-9]{8})$/,
-                          message: "Số điện thoại không hợp lệ",
-                        },
-                      ]}
-                    >
-                      <Input
-                        type="tel"
-                        placeholder="Nhập số điện thoại"
-                        maxLength={10}
-                        defaultValue={userPhone}
-                        allowClear
-                      />
-                    </Form.Item>
                     <AddressForm form={form} onAddressChange={handleAddressChange} />
-
-                    {/* Hiển thị tùy chọn lưu địa chỉ chỉ khi người dùng chưa có địa chỉ */}
-                    {!userHasAddress && !addressData?.useDefaultAddress && (
-                      <Form.Item name="saveAddress">
-                        <Checkbox
-                          onChange={(e) => setSaveAddress(e.target.checked)}
-                          checked={saveAddress}
-                        >
-                          Lưu địa chỉ này cho lần sau
-                        </Checkbox>
-                      </Form.Item>
-                    )}
 
                     {/* <Form.Item name="note" label="Ghi chú">
                       <Input.TextArea
@@ -349,15 +350,24 @@ const Checkout = () => {
                     </Form.Item> */}
 
                     <Form.Item>
+                      {!addressData || addressData.isFormOnly ? (
+                        <div style={{ color: '#ff4d4f', textAlign: 'center', marginTop: '8px' }}>
+                          <EnvironmentOutlined /> Vui lòng chọn địa chỉ giao hàng hoặc thêm địa chỉ mới
+                        </div>
+                      ) : null}
                       <Button
                         type="primary"
                         htmlType="submit"
                         loading={loading}
                         size="large"
                         block
+                        style={{ marginTop: '10px' }}
+                        disabled={!addressData || addressData.isFormOnly}
+                        title={!addressData || addressData.isFormOnly ? "Vui lòng chọn hoặc lưu địa chỉ giao hàng" : "Đặt hàng ngay"}
                       >
                         Đặt hàng
                       </Button>
+
                     </Form.Item>
                   </Form>
                 </Card>

@@ -91,14 +91,18 @@ const StaffSidebar = ({ collapsed }) => {
               </Menu.Item>
             </SubMenu>
 
-            <Menu.Item key="/staff/orders" icon={<ShoppingCartOutlined />}>
-              <Link to="/staff/orders">Đơn hàng</Link>
-            </Menu.Item>
+            <SubMenu key="orders" icon={<ShoppingCartOutlined />} title="Quản lý đơn hàng">
+              <Menu.Item key="/staff/orders" >
+                <Link to="/staff/orders">Tất cả đơn hàng</Link>
+              </Menu.Item>
+              <Menu.Item key="/staff/complaints">
+                <Link to="/staff/complaints">Khiếu nại đơn hàng</Link>
+              </Menu.Item>
+            </SubMenu>
 
             <Menu.Item key="/staff/products" icon={<AppstoreOutlined />}>
               <Link to="/staff/products">Sản phẩm</Link>
             </Menu.Item>
-
             {/* <Menu.Item key="/staff/schedule-new" icon={<CalendarOutlined />}>
               <Link to="/staff/schedule-new">Lịch làm việc mới</Link>
             </Menu.Item> */}
