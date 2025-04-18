@@ -100,6 +100,10 @@ const ManagerSidebar = ({ collapsed }) => {
               </Menu.Item>
             </SubMenu>
 
+            <Menu.Item key="/manager/webmanage" icon={<SettingOutlined />}>
+              <Link to="/manager/webmanage">Quản lý logo & banner website</Link>
+            </Menu.Item>
+
             {/* <Menu.Item key="/manager/analytics" icon={<BarChartOutlined />}>
               <Link to="/manager/analytics">Phân tích</Link>
             </Menu.Item>

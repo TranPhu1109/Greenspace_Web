@@ -198,6 +198,7 @@ const BookDesign = () => {
       // Tạo object request
       const requestData = {
         userId: user.id,
+        userName: userName,
         address: address,
         cusPhone: phone,
         length: values.length,

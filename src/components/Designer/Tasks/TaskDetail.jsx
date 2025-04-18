@@ -170,13 +170,28 @@ const TaskDetail = () => {
   }, [task, setTask]);
 
   useEffect(() => {
-    fetchTaskDetail(id);
+    const loadTaskDetail = async () => {
+      if (!id) return;
+      
+      try {
+        console.log("Fetching task detail for id:", id);
+        await fetchTaskDetail(id);
+        console.log("Task detail fetched successfully");
+      } catch (error) {
+        console.error("Error fetching task detail:", error);
+        message.error("Không thể tải thông tin chi tiết công việc");
+      }
+    };
+    
+    loadTaskDetail();
   }, [id, fetchTaskDetail]);
 
   useEffect(() => {
-    getRecordSketch(task.serviceOrder.id);
-    getRecordDesign(task.serviceOrder.id);
-  }, []);
+    if (task && task.serviceOrder && task.serviceOrder.id) {
+      getRecordSketch(task.serviceOrder.id);
+      getRecordDesign(task.serviceOrder.id);
+    }
+  }, [task, getRecordSketch, getRecordDesign]);
 
   // Thêm useEffect để theo dõi phase cao nhất trong designRecords
   useEffect(() => {
@@ -345,6 +360,13 @@ const TaskDetail = () => {
 
   const handleOkDesign = async () => {
     try {
+      // Check if task and task.serviceOrder exist
+      if (!task || !task.serviceOrder) {
+        message.error("Dữ liệu công việc chưa được tải xong. Vui lòng thử lại.");
+        console.error("handleOkDesign called with null task or task.serviceOrder:", task);
+        return;
+      }
+
       // Check if we have images to upload or existing images
       if (designImageUrls.length === 0 &&
         !task.serviceOrder.image?.imageUrl &&
@@ -803,7 +825,7 @@ const TaskDetail = () => {
     return (
       <div className="flex flex-col justify-center items-center h-screen">
         <Empty
-          description="Không tìm thấy thông tin công việc"
+          description="Không tìm thấy thông tin công việc hoặc đang tải dữ liệu..."
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
         <Button
