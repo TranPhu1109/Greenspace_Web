@@ -7,8 +7,10 @@ export const getStatusText = (status) => {
     'ConsultingAndSketching': "Đang tư vấn & phác thảo",
     2: "Đang tư vấn & phác thảo", // Hide DeterminingDesignPrice
     'DeterminingDesignPrice': "Đang tư vấn & phác thảo", 
-    22: "Chờ duyệt phác thảo",
-    'DoneDeterminingDesignPrice': "Chờ duyệt phác thảo",
+    22: "Hoàn thành tư vấn & phác thảo",
+    'DoneDeterminingDesignPrice': "Hoàn thành tư vấn & phác thảo", // Hide ReDeterminingDesignPrice
+    24: "Đang tư vấn & phác thảo",
+    'ReDeterminingDesignPrice': "Đang tư vấn & phác thảo",
     19: "Đang tư vấn & phác thảo", // Hide ReConsultingAndSketching
     'ReConsultingAndSketching': "Đang tư vấn & phác thảo", 
     21: "Chờ đặt cọc",
@@ -64,8 +66,10 @@ export const getStatusColor = (status) => {
     'ConsultingAndSketching': "blue",
     2: "blue", // Hide DeterminingDesignPrice
     'DeterminingDesignPrice': "blue",
-    22: "gold",
-    'DoneDeterminingDesignPrice': "gold",
+    22: "green",
+    'DoneDeterminingDesignPrice': "green",
+    24: "blue",
+    'ReDeterminingDesignPrice': "blue",
     19: "blue", // Hide ReConsultingAndSketching
     'ReConsultingAndSketching': "blue",
     21: "purple",
