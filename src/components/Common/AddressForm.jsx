@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Form, Input, Select, message, Checkbox, Alert, Space, Radio, Button, Spin, Card, Typography, Drawer, Badge, Empty, Modal } from 'antd';
 import { HomeOutlined, PlusOutlined, PhoneOutlined, UserOutlined, EnvironmentOutlined, SwapOutlined, StarOutlined } from '@ant-design/icons';
 import { fetchProvinces, fetchDistricts, fetchWards } from '@/services/ghnService';
@@ -35,6 +35,8 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
   const { addresses, loading: loadingAddresses, fetchUserAddresses } = useAddressStore();
   const { user, updateUserAddress } = useAuthStore();
 
+  const addressInitializedRef = useRef(false);
+
   // Fetch user's addresses from API
   useEffect(() => {
     if (useExistingAddress && user && user.id) {
@@ -52,10 +54,11 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
 
   // Get default address from user in localStorage
   useEffect(() => {
-    if (!useExistingAddress) return; // Skip if useExistingAddress is false
+    // Remove this early return to allow address loading in both modes
+    // if (!useExistingAddress) return; // Skip if useExistingAddress is false
 
     const userStr = localStorage.getItem('user');
-    if (userStr) {
+    if (userStr && !addressInitializedRef.current) {
       try {
         const userData = JSON.parse(userStr);
         if (userData) {
@@ -88,6 +91,16 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
                 isDefault: true,
                 fullAddress: userData.address
               });
+              
+              // If useExistingAddress is false, we still want to initialize the form with the default address
+              if (!useExistingAddress) {
+                // We'll initialize the form fields in the getProvinces effect after provinces are loaded
+                setInitialAddressProcessed(false);
+                if (provinces.length > 0) {
+                  addressInitializedRef.current = true;
+                  initializeFromAddress(userData.address, provinces);
+                }
+              }
             }
           }
         }
@@ -95,7 +108,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
         console.error("Error reading user information:", error);
       }
     }
-  }, [useExistingAddress]);
+  }, [useExistingAddress, provinces]);
 
   // Kiểm tra xem người dùng đã có địa chỉ mặc định hay chưa
   const hasDefaultAddress = () => {
@@ -283,7 +296,8 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
     const ward = wards.find((w) => w.value === form.getFieldValue("ward"));
     const streetAddress = form.getFieldValue("streetAddress");
 
-    if (province && district && ward && streetAddress) {
+    // Chỉ thông báo khi ĐỦ thông tin địa chỉ và streetAddress không rỗng
+    if (province && district && ward && streetAddress && streetAddress.trim() !== "") {
       // Lấy thông tin người nhận từ form hoặc từ user
       const name = form.getFieldValue("userName") || user?.name || '';
       const phone = form.getFieldValue("userPhone") || userPhone || user?.phone || '';
@@ -606,8 +620,8 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
             }
             onChange={(value) => {
               handleProvinceChange(value);
-              notifyAddressChange();
             }}
+            onBlur={() => notifyAddressChange()}
           />
         </Form.Item>
 
@@ -628,8 +642,8 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
             }
             onChange={(value) => {
               handleDistrictChange(value);
-              notifyAddressChange();
             }}
+            onBlur={() => notifyAddressChange()}
           />
         </Form.Item>
 
@@ -651,6 +665,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
             onChange={(value) => {
               notifyAddressChange();
             }}
+            onBlur={() => notifyAddressChange()}
           />
         </Form.Item>
 
@@ -1100,6 +1115,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
           onChange={(value) => {
             handleProvinceChange(value);
           }}
+          onBlur={() => notifyAddressChange()}
         />
       </Form.Item>
 
@@ -1121,6 +1137,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
           onChange={(value) => {
             handleDistrictChange(value);
           }}
+          onBlur={() => notifyAddressChange()}
         />
       </Form.Item>
 
@@ -1139,6 +1156,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
           filterOption={(input, option) =>
             option.label.toLowerCase().includes(input.toLowerCase())
           }
+          onBlur={() => notifyAddressChange()}
         />
       </Form.Item>
 
@@ -1150,6 +1168,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
         <Input
           prefix={<HomeOutlined className="site-form-item-icon" />}
           placeholder="Ví dụ: 123 Đường Lê Lợi"
+          onBlur={() => notifyAddressChange()}
         />
       </Form.Item>
 
@@ -1184,13 +1203,6 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
                   title={
                     <Space size="middle">
                       <Text strong>Chọn địa chỉ giao hàng</Text>
-                      {/* <Badge
-                        count={addresses?.length || 0}
-                        style={{ backgroundColor: '#52c41a' }}
-                        showZero
-                        overflowCount={MAX_ADDRESSES}
-                        title={`${addresses?.length || 0}/${MAX_ADDRESSES} địa chỉ`}
-                      /> */}
                     </Space>
                   }
                   placement="right"
@@ -1337,6 +1349,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
                         onChange={(value) => {
                           handleProvinceChange(value);
                         }}
+                        onBlur={() => notifyAddressChange()}
                       />
                     </Form.Item>
 
@@ -1358,6 +1371,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
                         onChange={(value) => {
                           handleDistrictChange(value);
                         }}
+                        onBlur={() => notifyAddressChange()}
                       />
                     </Form.Item>
 
@@ -1376,6 +1390,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
                         filterOption={(input, option) =>
                           option.label.toLowerCase().includes(input.toLowerCase())
                         }
+                        onBlur={() => notifyAddressChange()}
                       />
                     </Form.Item>
 
@@ -1387,6 +1402,7 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
                       <Input
                         prefix={<HomeOutlined className="site-form-item-icon" />}
                         placeholder="Ví dụ: 123 Đường Lê Lợi"
+                        onBlur={() => notifyAddressChange()}
                       />
                     </Form.Item>
 
@@ -1529,9 +1545,11 @@ const AddressForm = ({ form, onAddressChange, useExistingAddress = true, initial
               </div>
             )
           ) : (
-            // Always render manual input form when useExistingAddress is false
-            // Không hiển thị thông tin người dùng trong modal
-            renderAddressInputForm(false)
+            // Khi useExistingAddress=false, luôn hiển thị form nhập địa chỉ
+            <div>
+              {/* Form nhập địa chỉ trực tiếp */}
+              {renderAddressInputForm(false)}
+            </div>
           )}
         </>
       )}
