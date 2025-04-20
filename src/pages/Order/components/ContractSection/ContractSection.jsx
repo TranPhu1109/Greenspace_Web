@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typography, Form, Spin, Steps, Alert } from "antd";
+import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typography, Form, Spin, Steps, Alert, Collapse } from "antd";
 import { FileTextOutlined, ReloadOutlined, CheckCircleOutlined, UploadOutlined, CloseCircleOutlined, UserOutlined, MailOutlined, PhoneOutlined, DollarOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import AddressForm from "@/components/Common/AddressForm"; // Import AddressForm
@@ -124,7 +124,7 @@ const ContractSection = ({
     // Clear local address state
     setAddressInfo({});
     setUseSavedAddress(false);
-    
+
     // Reset address form fields
     form.setFieldsValue({
       provinces: undefined,
@@ -135,7 +135,7 @@ const ContractSection = ({
       userName: userInfo?.name || "",
       userPhone: userInfo?.phone || ""
     });
-    
+
     // Repopulate the user info fields only
     try {
       const userStr = localStorage.getItem('user');
@@ -162,20 +162,20 @@ const ContractSection = ({
     setSigningAndPaying(false);
     setPreviewImage(null);
     setSignatureFile(null);
-    
+
     // Don't reset localContractData to keep track of existing contracts
 
     // Reset form fields
-    form.resetFields(); 
-    
+    form.resetFields();
+
     // Re-populate with initial data
     form.setFieldsValue({
-        name: userInfo?.name,
-        email: userInfo?.email,
-        phone: userInfo?.phone,
-        designPrice: selectedOrder?.designPrice
+      name: userInfo?.name,
+      email: userInfo?.email,
+      phone: userInfo?.phone,
+      designPrice: selectedOrder?.designPrice
     });
-    
+
     // Reset address form fields
     resetAddressFormToDefault();
   };
@@ -185,10 +185,10 @@ const ContractSection = ({
     try {
       // First ensure we have up-to-date contract data
       await checkForExistingContracts(selectedOrder.id);
-      
+
       // Reset and prefill form for either step
       form.resetFields();
-      
+
       // Repopulate the user info fields only
       form.setFieldsValue({
         name: userInfo?.name,
@@ -196,11 +196,11 @@ const ContractSection = ({
         phone: userInfo?.phone,
         designPrice: selectedOrder?.designPrice
       });
-      
+
       // Reset address form fields to default (without resetting user info fields)
       setAddressInfo({});
       setUseSavedAddress(false);
-      
+
       // If we have existing contracts and none are signed, skip to step 1 (signing)
       if (contracts.length > 0 && !contracts.some(c => c.modificationDate)) {
         console.log("Opening modal directly at step 1 (signing) with existing contract");
@@ -214,7 +214,7 @@ const ContractSection = ({
         console.log("Opening modal at step 0 (info) to create new contract");
         setCurrentStep(0);
       }
-      
+
       setIsContractModalVisible(true);
     } catch (error) {
       console.error("Error preparing modal:", error);
@@ -225,13 +225,13 @@ const ContractSection = ({
   // Handler for AddressForm changes
   const handleAddressChange = (newAddress) => {
     console.log("Address changed in ContractSection:", newAddress);
-    
+
     // Ghi log đầy đủ thông tin để debug
     console.log("New address details:", JSON.stringify(newAddress, null, 2));
-    
+
     // Lưu trữ thông tin đầy đủ của địa chỉ
     setAddressInfo(newAddress);
-    
+
     // Khi sử dụng useExistingAddress=false (form điền trực tiếp),
     // đặt useSavedAddress=false để không dùng địa chỉ đã lưu
     setUseSavedAddress(false);
@@ -252,16 +252,16 @@ const ContractSection = ({
         // Chuyển đổi định dạng địa chỉ từ '|' sang ', '
         finalAddress = userInfo.address.replace(/\|/g, ', ');
         console.log("Using saved address:", finalAddress);
-      } 
+      }
       // Nếu có đầy đủ thông tin địa chỉ từ AddressForm
-      else if (addressInfo && addressInfo.streetAddress && 
-               addressInfo.province && addressInfo.province.label && 
-               addressInfo.district && addressInfo.district.label && 
-               addressInfo.ward && addressInfo.ward.label) {
+      else if (addressInfo && addressInfo.streetAddress &&
+        addressInfo.province && addressInfo.province.label &&
+        addressInfo.district && addressInfo.district.label &&
+        addressInfo.ward && addressInfo.ward.label) {
         // Construct address string from AddressForm
         finalAddress = `${addressInfo.streetAddress}, ${addressInfo.ward.label}, ${addressInfo.district.label}, ${addressInfo.province.label}`;
         console.log("Using form address:", finalAddress);
-      } 
+      }
       // Nếu dùng dữ liệu từ addressInfo.fullAddressData (định dạng khác)
       else if (addressInfo && addressInfo.fullAddressData) {
         const addrData = addressInfo.fullAddressData;
@@ -310,19 +310,19 @@ const ContractSection = ({
   const handleSignAndPay = async () => {
     if (!signatureFile) {
       message.error("Vui lòng tải lên chữ ký của bạn.");
-        return;
-      }
+      return;
+    }
 
     // Make sure we have a contract to sign
     const contractToSign = localContractData || (contracts.length > 0 ? contracts[0] : null);
     console.log("Contract to sign:", contractToSign);
-    
+
     if (!contractToSign || !contractToSign.id) {
       message.error("Không tìm thấy thông tin hợp đồng. Vui lòng thử tạo lại.");
       return;
     }
 
-      setUploading(true);
+    setUploading(true);
     setSigningAndPaying(true);
 
     try {
@@ -539,7 +539,7 @@ const ContractSection = ({
               </Button>
             </>
           )}
-          
+
           {/* Show Sign Contract button only in WaitDeposit status AND if no signed contract */}
           {isWaitDepositStatus && !signedContract && (
             <Button
@@ -556,7 +556,7 @@ const ContractSection = ({
           {!isWaitDepositStatus && !signedContract &&
             (contractVisibleStatuses.includes(selectedOrder?.status) || contractVisibleStatusCodes.includes(selectedOrder?.status)) && (
               <Alert message="Hợp đồng chưa được ký. Vui lòng kiểm tra lại quy trình." type="warning" showIcon />
-          )}
+            )}
         </Space>
       </Card>
 
@@ -605,7 +605,7 @@ const ContractSection = ({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <div style={{ flex: 1, marginRight: '10px' }}>
-                  <Title level={5} style={{ marginTop: 20 }}>Thông tin cá nhân</Title>
+                    <Title level={5} style={{ marginTop: 20 }}>Thông tin cá nhân</Title>
                     <Form.Item
                       name="name"
                       label="Họ và tên"
@@ -647,12 +647,12 @@ const ContractSection = ({
                     />
                   </div>
                   <div style={{ flex: 1, marginLeft: '10px' }}>
-                    
+
                     {/* Address Form Integration */}
                     <Title level={5} style={{ marginTop: 20 }}>Địa chỉ giao hàng</Title>
-                    <AddressForm 
-                      form={form} 
-                      onAddressChange={handleAddressChange} 
+                    <AddressForm
+                      form={form}
+                      onAddressChange={handleAddressChange}
                       useExistingAddress={false}
                       initialAddress={userInfo?.address || null}
                       showUserInfo={false}
@@ -672,7 +672,7 @@ const ContractSection = ({
 
           {/* Step 1: Contract Preview & Signature */}
           {currentStep === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <Title level={5}>Bước 2: Xem lại và Ký hợp đồng</Title>
               <Paragraph type="secondary">
                 Vui lòng xem kỹ nội dung hợp đồng dưới đây. Sau đó, tải lên chữ ký của bạn và xác nhận để hoàn tất việc đặt cọc.
@@ -682,49 +682,111 @@ const ContractSection = ({
               {contracts.length > 0 && contracts[0].description ? (
                 <iframe
                   src={contracts[0].description}
-                  style={{ width: "100%", height: "40vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
+                  style={{ width: "100%", height: "50vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
                   title="Contract PDF Preview"
                 />
               ) : localContractData?.description ? (
-          <iframe
+                <iframe
                   src={localContractData.description}
-                  style={{ width: "100%", height: "40vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
+                  style={{ width: "100%", height: "50vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
                   title="Contract PDF Preview"
-          />
-        ) : (
-                <div style={{ height: "40vh", display: 'flex', alignItems: 'center', justifyContent: 'center', border: "1px solid #d9d9d9", marginBottom: 15 }}>
+                />
+              ) : (
+                <div style={{ height: "50vh", display: 'flex', alignItems: 'center', justifyContent: 'center', border: "1px solid #d9d9d9", marginBottom: 15 }}>
                   <Text type="secondary">Không tìm thấy hợp đồng. Vui lòng thử tạo lại.</Text>
-          </div>
-        )}
+                </div>
+              )}
 
               <Divider>Chữ ký của bạn</Divider>
+              <Text strong type="secondary" style={{ display: 'block', marginBottom: 10, color: '#1890ff' }}>
+                📌 Vui lòng tải lên hình ảnh chữ ký của bạn (JPG, PNG) để xác nhận hợp đồng.
+              </Text>
+              <Collapse bordered={false} style={{ marginBottom: 24 }}>
+                <Collapse.Panel header="📘 Hướng dẫn tạo và tải lên chữ ký" key="1">
+                  <div style={{ padding: 8 }}>
+                    <Typography.Title level={5} style={{ marginTop: 0 }}>🔹 Chuẩn bị hình ảnh chữ ký</Typography.Title>
+                    <ul style={{ paddingLeft: 20 }}>
+                      <li><Text strong>Ký trên giấy và chụp ảnh:</Text> Dùng giấy trắng và bút mực đen. Chụp rõ nét, đủ sáng.</li>
+                      <li><Text strong>Quét (scan):</Text> Dùng máy scan chuyển chữ ký sang file ảnh.</li>
+                      <li><Text strong>Ứng dụng vẽ:</Text> Vẽ chữ ký trên điện thoại/máy tính bảng rồi xuất ra ảnh PNG/JPG.</li>
+                      <li><Text strong>Bảng vẽ điện tử:</Text> Tạo chữ ký số trực tiếp bằng bút vẽ.</li>
+                    </ul>
+
+                    <Typography.Title level={5} style={{ marginTop: 16 }}>🔹 Yêu cầu về hình ảnh chữ ký</Typography.Title>
+                    <ul style={{ paddingLeft: 20 }}>
+                      <li>Định dạng: <Text code>JPG</Text>, <Text code>PNG</Text>, <Text code>JPEG</Text>, <Text code>GIF</Text></li>
+                      <li>Kích thước file tối đa: <Text strong>5MB</Text></li>
+                      <li>Độ phân giải khuyến nghị: <Text strong>300 DPI+</Text></li>
+                      <li>Nền: <Text>trắng hoặc trong suốt (ưu tiên)</Text></li>
+                      <li>Màu sắc: <Text>đen hoặc xanh đậm</Text></li>
+                    </ul>
+
+                    <Typography.Title level={5} style={{ marginTop: 16 }}>🔹 Các bước tải lên chữ ký</Typography.Title>
+                    <ol style={{ paddingLeft: 20 }}>
+                      <li>Đọc kỹ hợp đồng bên trên.</li>
+                      <li>Nhấn nút <Text code>Tải lên chữ ký (ảnh)</Text>.</li>
+                      <li>Chọn file hình ảnh từ thiết bị.</li>
+                      <li>Xem trước chữ ký, nhấn X để đổi nếu cần.</li>
+                      <li>Nhấn <Text code>Xác nhận & Thanh toán cọc</Text> để hoàn tất.</li>
+                    </ol>
+
+                    <Typography.Title level={5} style={{ marginTop: 16 }}>🔹 Gặp sự cố?</Typography.Title>
+                    <ul style={{ paddingLeft: 20 }}>
+                      <li>Kiểm tra định dạng và kích thước ảnh.</li>
+                      <li>Thử trình duyệt khác hoặc tải lại trang.</li>
+                      <li>Kiểm tra kết nối internet.</li>
+                      <li>Thử lại với hình ảnh khác nếu ảnh bị mờ.</li>
+                    </ul>
+
+                    <Divider style={{ marginTop: 24, marginBottom: 12 }}>📞 Hỗ trợ</Divider>
+                    <Paragraph type="secondary">
+                      Nếu bạn cần thêm hỗ trợ về việc tải lên chữ ký, vui lòng liên hệ với đội ngũ hỗ trợ khách hàng của chúng tôi qua:
+                    </Paragraph>
+                    <ul style={{ paddingLeft: 20, marginBottom: 0 }}>
+                      <li>Email: <Text code>support@greenspace.vn</Text></li>
+                      <li>Hotline: <Text code>1900-xxxx-xxx</Text> (8:00 - 18:00, Thứ Hai - Thứ Bảy)</li>
+                    </ul>
+
+
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="Lưu ý pháp lý"
+                      description="Chữ ký điện tử của bạn có giá trị pháp lý như chữ ký tay. Không sử dụng chữ ký của người khác."
+                      style={{ marginTop: 16 }}
+                    />
+                  </div>
+                </Collapse.Panel>
+              </Collapse>
+
+
               <div style={{ textAlign: "center", marginBottom: 20 }}>
                 <div style={{ marginBottom: 10, minHeight: '100px', border: '1px dashed #d9d9d9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', position: 'relative' }}>
-            {previewImage ? (
+                  {previewImage ? (
                     <>
-                <Image
-                  src={previewImage}
-                  alt="Chữ ký xem trước"
+                      <Image
+                        src={previewImage}
+                        alt="Chữ ký xem trước"
                         style={{ maxHeight: "100px", objectFit: "contain" }}
-                  preview={false}
-                />
-                <Button 
-                  type="link" 
-                  danger 
-                  icon={<CloseCircleOutlined />} 
+                        preview={false}
+                      />
+                      <Button
+                        type="link"
+                        danger
+                        icon={<CloseCircleOutlined />}
                         onClick={() => { setPreviewImage(null); setSignatureFile(null); document.getElementById('signature-upload-input').value = null; }} // Reset file input too
                         style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(255,255,255,0.7)', borderRadius: '50%' }}
-                />
+                      />
                     </>
-            ) : (
-              <Button
-                type="dashed"
-                icon={<UploadOutlined />}
+                  ) : (
+                    <Button
+                      type="dashed"
+                      icon={<UploadOutlined />}
                       onClick={() => document.getElementById('signature-upload-input').click()}
                     >
                       Tải lên chữ ký (ảnh)
-              </Button>
-            )}
+                    </Button>
+                  )}
                   <input
                     id="signature-upload-input"
                     type="file"
@@ -732,8 +794,8 @@ const ContractSection = ({
                     style={{ display: 'none' }}
                     onChange={handleSignatureUpload}
                   />
-          </div>
-        </div>
+                </div>
+              </div>
 
               <Alert
                 type="warning"
@@ -747,11 +809,11 @@ const ContractSection = ({
                 <Button onClick={() => {
                   // Reset address form to default state
                   resetAddressFormToDefault();
-                  
+
                   // Move back to step 0
                   setCurrentStep(0);
                 }} style={{ marginRight: 8 }} disabled={signingAndPaying}>
-                    Quay lại
+                  Quay lại
                 </Button>
                 <Button
                   type="primary"
@@ -787,12 +849,12 @@ const ContractSection = ({
               ) : (
                 <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: "1px solid #d9d9d9", marginBottom: 15 }}>
                   <Text type="secondary">Không thể tải hợp đồng đã ký.</Text>
-            </div>
+                </div>
               )}
               <div style={{ textAlign: 'right', marginTop: 'auto', paddingTop: 15, borderTop: '1px solid #f0f0f0' }}>
                 <Button onClick={handleCloseModal} type="primary">Đóng</Button>
-          </div>
-        </div>
+              </div>
+            </div>
           )}
         </Spin>
       </Modal>
