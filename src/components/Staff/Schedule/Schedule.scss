@@ -1,0 +1,145 @@
+.schedule-container {
+  .events {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    
+    .event-text {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100px;
+      display: inline-block;
+    }
+  }
+  
+  .ant-badge-status {
+    width: 100%;
+    overflow: hidden;
+    font-size: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  
+  .schedule-details {
+    .schedule-card {
+      margin-bottom: 16px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .schedule-info {
+        h4 {
+          margin-bottom: 12px;
+          color: #1890ff;
+        }
+        
+        p {
+          margin-bottom: 8px;
+          
+          .anticon {
+            margin-right: 8px;
+            color: #666;
+          }
+        }
+        
+        .notes {
+          background-color: #f5f5f5;
+          padding: 8px;
+          border-radius: 4px;
+          margin-top: 8px;
+        }
+      }
+    }
+  }
+  
+  .ant-picker-calendar {
+    background: #fff;
+    border-radius: 8px;
+    
+    .ant-picker-calendar-date {
+      height: 100px;
+    }
+  }
+
+  .task-item {
+    padding: 8px 0;
+    
+    .task-date {
+      color: #8c8c8c;
+      font-size: 12px;
+      margin-bottom: 4px;
+      
+      .anticon {
+        margin-right: 4px;
+      }
+    }
+    
+    .task-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+
+      .anticon {
+        margin-right: 8px;
+      }
+    }
+
+    .task-info {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+  }
+
+  .ant-timeline {
+    padding: 16px;
+    
+    .ant-timeline-item {
+      padding-bottom: 20px;
+    }
+  }
+  
+  .month-title {
+    margin-left: 16px;
+    font-weight: 500;
+  }
+}
+
+.designers-grid {
+  .ant-card {
+    height: 100%;
+    transition: all 0.3s;
+    
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .schedule-container {
+    .ant-picker-calendar-date {
+      height: 80px;
+    }
+    
+    .event-text {
+      max-width: 60px;
+    }
+  }
+} 

@@ -1,0 +1,312 @@
+.calendar-layout {
+  .calendar-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    padding: 0;
+
+    .ant-picker-calendar {
+      .ant-picker-panel {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .ant-picker-cell {
+        padding: 4px;
+        
+        &.ant-picker-cell-in-view {
+          background: #fafafa;
+        }
+        
+        &.ant-picker-cell-selected {
+          background: #e6f7ff;
+        }
+      }
+
+      .date-cell-content {
+        min-height: 80px;
+        padding: 4px;
+        max-height: 120px;
+        overflow-y: auto;
+        
+        /* Tùy chỉnh thanh cuộn cho ô ngày - thanh mảnh và đơn giản hơn */
+        &::-webkit-scrollbar {
+          width: 2px;
+        }
+        
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.08);
+          border-radius: 2px;
+        }
+        
+        &::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(0, 0, 0, 0.15);
+        }
+      }
+
+      .designer-task-item {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        margin-bottom: 4px;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .designer-avatar {
+          margin-right: 8px;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .designer-info {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          .designer-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #262626;
+          }
+
+          .task-badge {
+            .ant-badge-count {
+              background: #1890ff;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .side-detail-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-y: auto;
+    height: 100%;
+    max-height: calc(116vh - 180px); /* Giới hạn chiều cao tối đa */
+    
+    /* Tùy chỉnh thanh cuộn */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+    
+    .day-header {
+      margin-bottom: 16px;
+      
+      h4 {
+        margin: 0;
+      }
+    }
+    
+    .available-designers-section,
+    .busy-designers-section {
+      margin-bottom: 16px;
+      
+      h5 {
+        margin-bottom: 12px;
+      }
+    }
+    
+    .designer-tasks-card {
+      margin-bottom: 12px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Tooltip styles
+.designer-tooltip {
+  padding: 8px;
+  max-width: 300px;
+
+  .designer-tooltip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+
+    strong {
+      font-size: 14px;
+      color: #262626;
+    }
+  }
+
+  .designer-tooltip-tasks {
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      
+      &:not(:last-child) {
+        border-bottom: 1px dashed #f0f0f0;
+      }
+
+      .task-order {
+        font-size: 12px;
+        color: #595959;
+      }
+
+      .ant-tag {
+        margin: 0;
+      }
+    }
+  }
+}
+
+// Status colors
+.ant-tag {
+  &.ant-tag-green {
+    background: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+  }
+
+  &.ant-tag-blue {
+    background: #e6f7ff;
+    border-color: #91d5ff;
+    color: #1890ff;
+  }
+
+  &.ant-tag-purple {
+    background: #f9f0ff;
+    border-color: #d3adf7;
+    color: #722ed1;
+  }
+}
+
+// Calendar header styles
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 8px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .ant-select {
+      min-width: 200px;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+// Day detail styles
+.day-detail {
+  height: 100%;
+  overflow-y: auto;
+  
+  /* Tùy chỉnh thanh cuộn cho phần chi tiết ngày - thanh mảnh và đơn giản hơn */
+  &::-webkit-scrollbar {
+    width: 2px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 2px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+
+    .ant-typography {
+      margin: 0;
+    }
+  }
+
+  .designers-section {
+    margin-bottom: 24px;
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+
+      .status-icon {
+        font-size: 16px;
+        
+        &.available {
+          color: #52c41a;
+        }
+        
+        &.busy {
+          color: #1890ff;
+        }
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .calendar-layout {
+    .calendar-container {
+      .ant-picker-calendar {
+        .ant-picker-cell {
+          padding: 4px;
+        }
+      }
+    }
+    
+    .side-detail-container {
+      margin-top: 16px;
+    }
+  }
+} 

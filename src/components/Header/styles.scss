@@ -1,0 +1,557 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #fff;
+
+  &.scrolled {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  // Top header - collapsible
+  &-top {
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    padding: 15px 0 5px 0;
+    height: 55px;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.2s ease-out;
+
+    &.collapsed {
+      height: 0;
+      padding: 0;
+      opacity: 0;
+      visibility: hidden;
+      margin: 0;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .phone-number {
+      display: flex;
+      align-items: center;
+      color: #333;
+      font-weight: bold;
+
+      .anticon {
+        margin-right: 6px;
+        font-size: 16px;
+      }
+
+      span {
+        font-size: 14px;
+      }
+    }
+
+    .auth-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .login-link {
+        color: #333;
+        font-size: 14px;
+        transition: color 0.3s;
+        padding: 4px 12px;
+        border-radius: 4px;
+        border: 1px solid #8bc349;
+        width: 69px;
+        text-align: center;
+        &:hover {
+          color: #8bc349;
+          border-color: #4caf50;
+        }
+      }
+
+      .register-link {
+        color: #fff;
+        background-color: #8bc349;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        width: 69px;
+        text-align: center;
+        border: 1px solid #8bc349;
+
+        &:hover {
+          background-color: #4caf50;
+          border-color: #4caf50;
+        }
+      }
+
+      .cart-link {
+        display: flex;
+        align-items: center;
+        color: #333;
+        font-size: 14px;
+        transition: color 0.3s;
+        margin-left: 8px;
+
+        .anticon {
+          margin-right: 4px;
+          font-size: 18px;
+        }
+
+        &:hover {
+          color: #7bb701;
+        }
+      }
+    }
+  }
+
+  // Main header - always visible
+  &-main {
+    background-color: #fff;
+    padding: 16px 0;
+    border-bottom: 1px solid #eee;
+    height: auto;
+    opacity: 1;
+    transition: all 0.3s ease;
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      height: 50px;
+      width: auto;
+    }
+
+    .search-container {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      max-width: 1200px;
+      flex: 1;
+
+      .ant-input {
+        border: none;
+        box-shadow: none;
+        padding: 8px 12px;
+        height: 40px;
+
+        &:focus {
+          outline: none;
+        }
+      }
+
+      .ant-select {
+        border: none;
+        min-width: 140px;
+
+        .ant-select-selector {
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          height: 40px !important;
+          padding: 0 12px !important;
+          display: flex;
+          align-items: center;
+          border-left: 1px solid #ddd !important;
+          border-right: 1px solid #ddd !important;
+        }
+      }
+    }
+    .search-button {
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      height: 40px;
+      padding: 0 20px;
+      transition: background-color 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background-color: #8bc349;
+      }
+    }
+  }
+
+  // Navigation menu - always visible
+  &-nav {
+    background-color: #fff;
+    margin-top: 10px;
+    border-bottom: 1px solid #eee;
+    height: 32px;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.3s ease;
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .menu-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      justify-content: space-between;
+
+      // Right section containing wallet and support links
+      .right-nav-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        @media (max-width: 768px) {
+          display: none;
+        }
+
+        .wallet-link {
+          display: flex;
+          align-items: center;
+          color: #333;
+          font-weight: 500;
+          transition: color 0.3s;
+
+          .anticon {
+            margin-right: 4px;
+            font-size: 16px;
+            color: #52c41a;
+          }
+
+          &:hover {
+            color: #8BC349;
+            .anticon {
+              color: #8BC349;
+            }
+          }
+        }
+
+        .support-link {
+          display: flex;
+          align-items: center;
+          color: #333;
+          font-weight: 500;
+          transition: color 0.3s;
+
+          .anticon {
+            margin-right: 4px;
+          }
+
+          &:hover {
+            color: #8BC349;
+          }
+        }
+      }
+
+      // Mobile menu button
+      .mobile-menu-button {
+        display: none;
+        @media (max-width: 768px) {
+          display: inline-flex;
+          align-items: center;
+          margin-right: 16px;
+          background: none;
+          border: none;
+          color: #333;
+
+          .anticon {
+            margin-right: 4px;
+          }
+        }
+      }
+
+      // Menu desktop
+      .nav-menu {
+        display: flex;
+
+        @media (max-width: 768px) {
+          display: none;
+        }
+
+        ul {
+          display: flex;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+
+        .nav-item {
+          .nav-link {
+            position: relative;
+            color: #333;
+            text-decoration: none;
+            padding: 8px 16px;
+            transition: color 0.3s ease;
+
+            &::after {
+              content: '';
+              position: absolute;
+              bottom: -2px;
+              left: 0;
+              width: 100%;
+              height: 2px;
+              background-color: #52c41a;
+              transform: scaleX(0);
+              transition: transform 0.3s ease;
+            }
+
+            &:hover {
+              color: #52c41a;
+
+              &::after {
+                transform: scaleX(1);
+              }
+            }
+          }
+
+          &.active {
+            .nav-link {
+              color: #52c41a;
+              font-weight: 500;
+              
+              &::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0;
+                width: 100%;
+                height: 2px;
+                background-color: #52c41a;
+                transform: scaleX(1);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ================================
+  // 4. RESPONSIVE
+  // ================================
+  @media (max-width: 768px) {
+    &-top {
+      .phone-number {
+        span {
+          font-size: 12px;
+        }
+      }
+
+      .auth-links {
+        gap: 8px;
+        .login-link,
+        .register-link,
+        .cart-link {
+          font-size: 12px;
+        }
+      }
+    }
+
+    &-main {
+      .search-container {
+        max-width: 100%;
+        .ant-select {
+          display: none;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 576px) {
+    &-main {
+      .logo {
+        height: 32px;
+      }
+    }
+  }
+
+  .right-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .auth-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .ant-btn {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+
+        &.ant-btn-link {
+          color: #333;
+          
+          &:hover {
+            color: #52c41a;
+            background: rgba(82, 196, 26, 0.1);
+          }
+        }
+
+        &.ant-btn-primary {
+          background: #52c41a;
+          border-color: #52c41a;
+
+          &:hover {
+            background: #49ad18;
+            border-color: #49ad18;
+            transform: translateY(-2px);
+          }
+        }
+      }
+    }
+
+    .user-profile-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid #e8e8e8;
+
+      &:hover {
+        background: #f5f5f5;
+        border-color: #d9d9d9;
+      }
+
+      .user-avatar {
+        background: #52c41a;
+      }
+
+      .user-name {
+        color: #333;
+        font-size: 14px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .cart-button {
+      .ant-btn {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #333;
+
+        &:hover {
+          color: #52c41a;
+        }
+
+        .anticon {
+          font-size: 18px;
+        }
+      }
+
+      .ant-badge-count {
+        background: #52c41a;
+      }
+    }
+  }
+
+  .ant-menu {
+    .ant-menu-item {
+      &[key="wallet"] {
+        .anticon-wallet {
+          font-size: 16px;
+          margin-right: 6px;
+          color: #52c41a;
+        }
+
+        &:hover {
+          .anticon-wallet {
+            color: #1890ff;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .header {
+    &.scrolled {
+      .header-top {
+        padding: 8px 0;
+      }
+    }
+
+    .right-section {
+      .auth-buttons {
+        .ant-btn {
+          padding: 4px 8px;
+
+          .anticon + span {
+            display: none;
+          }
+        }
+      }
+
+      .user-profile-trigger {
+        padding: 4px 8px;
+
+        .user-name {
+          display: none;
+        }
+      }
+
+      .cart-button {
+        .ant-btn {
+          span {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .header-nav {
+      .nav-menu {
+        .nav-item {
+          &.active {
+            background-color: rgba(82, 196, 26, 0.1);
+          }
+        }
+      }
+    }
+
+    .ant-drawer {
+      .ant-menu-item {
+        &[key="wallet"] {
+          .anticon-wallet {
+            font-size: 18px;
+            margin-right: 10px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Adjust margin-top for the hero section to account for fixed headers
+.hero-section {
+  margin-top: calc(132px); // Tổng chiều cao của header-main và header-nav
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    margin-top: calc(110px); // Điều chỉnh cho mobile
+  }
+}
