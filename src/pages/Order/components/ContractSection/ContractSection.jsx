@@ -131,7 +131,9 @@ const ContractSection = ({
       district: undefined,
       ward: undefined,
       streetAddress: "",
-      useDefaultAddress: false
+      // Thêm các trường khác nếu cần
+      userName: userInfo?.name || "",
+      userPhone: userInfo?.phone || ""
     });
     
     // Repopulate the user info fields only
@@ -223,8 +225,16 @@ const ContractSection = ({
   // Handler for AddressForm changes
   const handleAddressChange = (newAddress) => {
     console.log("Address changed in ContractSection:", newAddress);
+    
+    // Ghi log đầy đủ thông tin để debug
+    console.log("New address details:", JSON.stringify(newAddress, null, 2));
+    
+    // Lưu trữ thông tin đầy đủ của địa chỉ
     setAddressInfo(newAddress);
-    setUseSavedAddress(newAddress.useDefaultAddress);
+    
+    // Khi sử dụng useExistingAddress=false (form điền trực tiếp),
+    // đặt useSavedAddress=false để không dùng địa chỉ đã lưu
+    setUseSavedAddress(false);
   };
 
   // Step 1: Generate Contract
@@ -233,15 +243,37 @@ const ContractSection = ({
       await form.validateFields(); // Validate user info form
       const values = form.getFieldsValue();
 
+      console.log("Current addressInfo state:", addressInfo);
+      console.log("Current useSavedAddress state:", useSavedAddress);
+
       let finalAddress = "";
+      // Nếu dùng địa chỉ đã lưu và có địa chỉ trong userInfo
       if (useSavedAddress && userInfo.address) {
         // Chuyển đổi định dạng địa chỉ từ '|' sang ', '
         finalAddress = userInfo.address.replace(/\|/g, ', ');
-      } else if (addressInfo.province && addressInfo.district && addressInfo.ward && addressInfo.streetAddress) {
+        console.log("Using saved address:", finalAddress);
+      } 
+      // Nếu có đầy đủ thông tin địa chỉ từ AddressForm
+      else if (addressInfo && addressInfo.streetAddress && 
+               addressInfo.province && addressInfo.province.label && 
+               addressInfo.district && addressInfo.district.label && 
+               addressInfo.ward && addressInfo.ward.label) {
         // Construct address string from AddressForm
         finalAddress = `${addressInfo.streetAddress}, ${addressInfo.ward.label}, ${addressInfo.district.label}, ${addressInfo.province.label}`;
-      } else {
+        console.log("Using form address:", finalAddress);
+      } 
+      // Nếu dùng dữ liệu từ addressInfo.fullAddressData (định dạng khác)
+      else if (addressInfo && addressInfo.fullAddressData) {
+        const addrData = addressInfo.fullAddressData;
+        if (addrData.addressInfo) {
+          finalAddress = `${addrData.addressInfo.streetAddress}, ${addrData.addressInfo.ward}, ${addrData.addressInfo.district}, ${addrData.addressInfo.province}`;
+          console.log("Using fullAddressData:", finalAddress);
+        }
+      }
+      // Nếu không có địa chỉ hợp lệ
+      else {
         message.error("Vui lòng cung cấp đầy đủ thông tin địa chỉ.");
+        console.error("Invalid address data:", addressInfo);
         return;
       }
 
@@ -256,7 +288,7 @@ const ContractSection = ({
         designPrice: selectedOrder.designPrice, // Use the price from the order
       };
 
-      console.log("Generating contract with payload:", contractPayload);
+      console.log("Contract payload:", contractPayload);
       const generated = await generateContract(contractPayload);
 
       // Force refresh contracts list after generating new one
@@ -264,7 +296,6 @@ const ContractSection = ({
 
       // Set localContractData to the newly generated contract
       setLocalContractData(generated);
-console.log("Generated contract:", localContractData);
       message.success("Đã tạo hợp đồng thành công!");
       setCurrentStep(1); // Move to the signing step
     } catch (error) {
@@ -619,7 +650,13 @@ console.log("Generated contract:", localContractData);
                     
                     {/* Address Form Integration */}
                     <Title level={5} style={{ marginTop: 20 }}>Địa chỉ giao hàng</Title>
-                    <AddressForm form={form} onAddressChange={handleAddressChange} />
+                    <AddressForm 
+                      form={form} 
+                      onAddressChange={handleAddressChange} 
+                      useExistingAddress={false}
+                      initialAddress={userInfo?.address || null}
+                      showUserInfo={false}
+                    />
                   </div>
                 </div>
               </Form>
