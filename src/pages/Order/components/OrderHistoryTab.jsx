@@ -204,7 +204,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       title: "Mã vận đơn",
       dataIndex: "deliveryCode",
       key: "deliveryCode",
-      width: 120, // Adjusted width
+      width: 190, // Adjusted width
       render: (deliveryCode) => (
         deliveryCode
           ? <Text copyable strong type="success">{deliveryCode}</Text>

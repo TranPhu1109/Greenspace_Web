@@ -64,23 +64,32 @@ const OrderHistory = () => {
     // Log received message details
     const [type, data] = args.length >= 2 ? [args[0], args[1]] : [args[0]?.type || "unknown", args[0]?.data];
     console.log(`SignalR message in OrderHistory - Type: ${type}`, data);
-    console.log('args', args)
     
-    // Fetch all data every time we receive a SignalR message
-    // This ensures we never miss any updates
-    console.log("Fetching order history due to SignalR update");
-    fetchOrderHistory();
+    if (!user?.id) return;
     
-    if (user?.id) {
-      try {
-        console.log("Fetching complaints due to SignalR update");
-        const freshData = await fetchUserComplaints(user.id);
-        setComplaints(freshData);
-        console.log("Complaints updated successfully");
-      } catch (err) {
-        console.error("Error refreshing complaints after SignalR update:", err);
-      }
+    // Use a timeout to debounce multiple updates that might come in rapid succession
+    if (window.orderHistoryUpdateTimer) {
+      clearTimeout(window.orderHistoryUpdateTimer);
     }
+    
+    window.orderHistoryUpdateTimer = setTimeout(() => {
+      console.log("Refreshing data after SignalR update");
+      
+      // Always refresh order history to ensure we have latest data
+      fetchOrderHistory();
+      
+      // Also refresh complaints if user is logged in
+      if (user?.id) {
+        try {
+          console.log("Fetching complaints due to SignalR update");
+          fetchUserComplaints(user.id).then(freshData => {
+            setComplaints(freshData);
+          });
+        } catch (err) {
+          console.error("Error refreshing complaints after SignalR update:", err);
+        }
+      }
+    }, 200); // Shorter debounce time to ensure responsiveness
   };
 
   // Set up SignalR connection

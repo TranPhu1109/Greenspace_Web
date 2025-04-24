@@ -441,7 +441,9 @@ const ComplaintsList = () => {
                 setSelectedComplaint(record);
                 setIsDetailModalVisible(true);
               }}
-            />
+            >
+              Xem chi tiết
+            </Button>
           </Tooltip>
         </Space>
       ),
@@ -638,31 +640,80 @@ const ComplaintsList = () => {
           )}
         </Descriptions>
 
-        {selectedComplaint.image?.imageUrl && (
-          <Card title="Hình ảnh khiếu nại" style={{ marginBottom: 20 }}>
-            <Space size="large">
-              {selectedComplaint.image.imageUrl && (
-                <Image
-                  width={200}
-                  src={selectedComplaint.image.imageUrl}
-                  alt="Hình ảnh khiếu nại 1"
-                />
+        {(selectedComplaint.image?.imageUrl ||
+          selectedComplaint.image?.image2 ||
+          selectedComplaint.image?.image3) && (
+          <Card title="Video/Hình ảnh khiếu nại" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              {selectedComplaint.image?.imageUrl && (
+                <div
+                  style={{
+                    backgroundColor: '#fafafa',
+                    padding: 16,
+                    borderRadius: 8,
+                    border: '1px solid #f0f0f0',
+                    flex: '1 1 320px',
+                    maxWidth: 360,
+                  }}
+                >
+                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                    🎥 Video minh chứng:
+                  </Text>
+                  <video
+                    src={selectedComplaint.image.imageUrl}
+                    controls
+                    width={320}
+                    style={{ borderRadius: 6, maxHeight: 220 }}
+                  />
+                </div>
               )}
-              {selectedComplaint.image.image2 && (
-                <Image
-                  width={200}
-                  src={selectedComplaint.image.image2}
-                  alt="Hình ảnh khiếu nại 2"
-                />
+
+              {(selectedComplaint.image?.image2 ||
+                selectedComplaint.image?.image3) && (
+                <div
+                  style={{
+                    backgroundColor: '#fafafa',
+                    padding: 16,
+                    borderRadius: 8,
+                    border: '1px solid #f0f0f0',
+                    flex: '1 1 320px',
+                    maxWidth: 360,
+                  }}
+                >
+                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                    🖼️ Hình ảnh bổ sung:
+                  </Text>
+                  <Space size="middle" wrap>
+                    {selectedComplaint.image.image2 && (
+                      <Image
+                        src={selectedComplaint.image.image2}
+                        alt="Hình ảnh khiếu nại 2"
+                        width={100}
+                        height={100}
+                        style={{
+                          objectFit: 'cover',
+                          borderRadius: 6,
+                          border: '1px solid #f0f0f0',
+                        }}
+                      />
+                    )}
+                    {selectedComplaint.image.image3 && (
+                      <Image
+                        src={selectedComplaint.image.image3}
+                        alt="Hình ảnh khiếu nại 3"
+                        width={100}
+                        height={100}
+                        style={{
+                          objectFit: 'cover',
+                          borderRadius: 6,
+                          border: '1px solid #f0f0f0',
+                        }}
+                      />
+                    )}
+                  </Space>
+                </div>
               )}
-              {selectedComplaint.image.image3 && (
-                <Image
-                  width={200}
-                  src={selectedComplaint.image.image3}
-                  alt="Hình ảnh khiếu nại 3"
-                />
-              )}
-            </Space>
+            </div>
           </Card>
         )}
 

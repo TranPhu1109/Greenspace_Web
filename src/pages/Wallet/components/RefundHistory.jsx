@@ -35,8 +35,14 @@ const RefundHistory = () => {
       title: 'Nguồn gốc',
       dataIndex: 'source',
       key: 'source',
-      ellipsis: true,
-      render: (text) => <span title={text}>{text || 'Không có mô tả'}</span>
+      render: (text) => (
+        <div
+          style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}
+          title={text}
+        >
+          {text || 'Không có mô tả'}
+        </div>
+      )
     },
     {
       title: 'Mã giao dịch',

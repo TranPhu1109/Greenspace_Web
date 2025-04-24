@@ -312,36 +312,60 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
           <Descriptions.Item label="Địa chỉ" span={3}>
             {record.address.replace(/\|/g, ', ')}
           </Descriptions.Item>
-          <Descriptions.Item label="Hình ảnh" span={3}>
-            <Space>
+          <Descriptions.Item label="Hình ảnh/Video" span={3}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               {record.image?.imageUrl && (
-                <Image
-                  src={record.image.imageUrl}
-                  alt="Hình ảnh 1"
-                  width={100}
-                  height={100}
-                  style={{ objectFit: 'cover' }}
-                />
+                <div style={{
+                  backgroundColor: '#fafafa',
+                  padding: 16,
+                  borderRadius: 8,
+                  border: '1px solid #f0f0f0',
+                  flex: '1 1 320px',
+                  maxWidth: 360
+                }}>
+                  <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}> 🎥 Video minh chứng:</Typography.Text>
+                  <video
+                    src={record.image.imageUrl}
+                    controls
+                    width={320}
+                    style={{ borderRadius: 6, maxHeight: 220 }}
+                  />
+                </div>
               )}
-              {record.image?.image2 && (
-                <Image
-                  src={record.image.image2}
-                  alt="Hình ảnh 2"
-                  width={100}
-                  height={100}
-                  style={{ objectFit: 'cover' }}
-                />
+
+              {(record.image?.image2 || record.image?.image3) && (
+                <div style={{
+                  backgroundColor: '#fafafa',
+                  padding: 16,
+                  borderRadius: 8,
+                  border: '1px solid #f0f0f0',
+                  flex: '1 1 320px',
+                  maxWidth: 360
+                }}>
+                  <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>🖼️ Hình ảnh bổ sung:</Typography.Text>
+                  <Space size="middle" wrap>
+                    {record.image?.image2 && (
+                      <Image
+                        src={record.image.image2}
+                        alt="Hình ảnh 1"
+                        width={100}
+                        height={100}
+                        style={{ objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0' }}
+                      />
+                    )}
+                    {record.image?.image3 && (
+                      <Image
+                        src={record.image.image3}
+                        alt="Hình ảnh 2"
+                        width={100}
+                        height={100}
+                        style={{ objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0' }}
+                      />
+                    )}
+                  </Space>
+                </div>
               )}
-              {record.image?.image3 && (
-                <Image
-                  src={record.image.image3}
-                  alt="Hình ảnh 3"
-                  width={100}
-                  height={100}
-                  style={{ objectFit: 'cover' }}
-                />
-              )}
-            </Space>
+            </div>
           </Descriptions.Item>
         </Descriptions>
         <Table
@@ -422,34 +446,36 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
         />
 
         {/* Show confirmation button in expanded row as well */}
-        {canConfirmReceived(record) && (
-          <div style={{ marginTop: 16, textAlign: 'right' }}>
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              loading={confirmingComplaint === record.id}
-              onClick={() => handleConfirmRefund(record.id, record.complaintType)}
-            >
-              {record.complaintType === 'ProductReturn'
-                ? 'Xác nhận đã nhận được hàng đổi trả'
-                : 'Xác nhận đã nhận được tiền hoàn vào ví'}
-            </Button>
-          </div>
-        )}
-      </Card>
+        {
+          canConfirmReceived(record) && (
+            <div style={{ marginTop: 16, textAlign: 'right' }}>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={confirmingComplaint === record.id}
+                onClick={() => handleConfirmRefund(record.id, record.complaintType)}
+              >
+                {record.complaintType === 'ProductReturn'
+                  ? 'Xác nhận đã nhận được hàng đổi trả'
+                  : 'Xác nhận đã nhận được tiền hoàn vào ví'}
+              </Button>
+            </div>
+          )
+        }
+      </Card >
     );
   };
 
-  if (error) {
-    return (
-      <Alert
-        message="Lỗi"
-        description={error}
-        type="error"
-        showIcon
-      />
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <Alert
+  //       message="Lỗi"
+  //       description={error}
+  //       type="error"
+  //       showIcon
+  //     />
+  //   );
+  // }
 
   return (
     <App>
@@ -461,13 +487,6 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
               <Title level={4} style={{ margin: 0 }}>
                 Lịch sử khiếu nại
               </Title>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={refreshData}
-                loading={loading}
-              >
-                Làm mới dữ liệu
-              </Button>
             </Space>
           </Col>
           <Col span={24}>
