@@ -290,12 +290,12 @@ const ContractSection = ({
 
       console.log("Contract payload:", contractPayload);
       const generated = await generateContract(contractPayload);
-
       // Force refresh contracts list after generating new one
       await checkForExistingContracts(selectedOrder.id);
 
       // Set localContractData to the newly generated contract
       setLocalContractData(generated);
+      console.log("Generated contract:", localContractData);
       message.success("Đã tạo hợp đồng thành công!");
       setCurrentStep(1); // Move to the signing step
     } catch (error) {
@@ -317,7 +317,7 @@ const ContractSection = ({
     const contractToSign = localContractData || (contracts.length > 0 ? contracts[0] : null);
     console.log("Contract to sign:", contractToSign);
 
-    if (!contractToSign || !contractToSign.id) {
+    if (!contractToSign || !contractToSign.data.id) {
       message.error("Không tìm thấy thông tin hợp đồng. Vui lòng thử tạo lại.");
       return;
     }
@@ -340,10 +340,10 @@ const ContractSection = ({
         throw new Error("Tải lên chữ ký thất bại: " + uploadError.message);
       }
       setUploading(false);
-
+      console.log("Contract to sign:", contractToSign);
       // 2. Sign Contract API Call
       try {
-        await signContract(contractToSign.id, signatureImageUrl);
+        await signContract(contractToSign.data.id, signatureImageUrl);
         message.success("Đã ký hợp đồng thành công.");
       } catch (signError) {
         console.error("Sign contract error:", signError);
@@ -358,8 +358,8 @@ const ContractSection = ({
         const walletId = walletData.state?.walletId;
         if (!walletId) throw new Error("Không tìm thấy ID ví.");
 
-        const amount = selectedOrder.designPrice * 0.5;
-        const paymentDescription = `Thanh toán cọc 50% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`;
+        const amount = selectedOrder.designPrice * selectedOrder.depositPercentage / 100;
+        const paymentDescription = `Thanh toán ${selectedOrder.depositPercentage}% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`;
 
         console.log("Processing payment:", { walletId, serviceOrderId: selectedOrder.id, amount, description: paymentDescription });
 
@@ -414,6 +414,8 @@ const ContractSection = ({
             const taskPayload = {
               serviceOrderId: selectedOrder.id,
               userId: taskToUpdate.userId || selectedOrder.userId,
+              dateAppointment: selectedOrder.workTasks[0].dateAppointment,
+              timeAppointment: selectedOrder.workTasks[0].timeAppointment,
               status: 2, // Design status (move from WaitDeposit to Design)
               note: "Đã thanh toán cọc và ký hợp đồng"
             };
@@ -589,9 +591,10 @@ const ContractSection = ({
           {currentStep === 0 && (
             <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px' }}>
               <Title level={5}>Bước 1: Xác nhận thông tin cá nhân</Title>
-              <Paragraph type="secondary">
-                Vui lòng kiểm tra và cập nhật thông tin cá nhân của bạn dưới đây. Thông tin này sẽ được sử dụng để tạo hợp đồng.
-                Địa chỉ sẽ được dùng để giao hàng sau khi hoàn thành thiết kế.
+              <Paragraph type="secondary" style={{ fontSize: 14 }}>
+                📝 <Text strong>Vui lòng kiểm tra và cập nhật thông tin cá nhân</Text> của bạn bên dưới. Thông tin này sẽ được sử dụng để tạo hợp đồng.
+                <br />
+                📦 <Text strong>Địa chỉ</Text> bạn cung cấp sẽ được dùng để giao hàng sau khi thiết kế hoàn tất.
               </Paragraph>
               <Form
                 form={form}
@@ -640,7 +643,8 @@ const ContractSection = ({
                       />
                     </Form.Item>
                     <Alert
-                      message={`Bạn sẽ thanh toán 50% phí thiết kế (${formatPrice((selectedOrder?.designPrice || 0) * 0.5)}) để đặt cọc.`}
+                      // message={`Bạn sẽ thanh toán ${(selectedOrder.depositPercentage || 50)}% phí thiết kế (${formatPrice((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100)}) để đặt cọc.`}
+                      message={`Bạn sẽ thanh toán ${(selectedOrder.depositPercentage || 50)}% phí thiết kế (${formatPrice(Math.round((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100))}) để đặt cọc.`}
                       type="info"
                       showIcon
                       style={{ marginBottom: 16 }}
@@ -801,7 +805,7 @@ const ContractSection = ({
                 type="warning"
                 showIcon
                 message="Xác nhận ký và thanh toán"
-                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * 0.5)}.`}
+                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100)}.`}
                 style={{ marginBottom: 16 }}
               />
 

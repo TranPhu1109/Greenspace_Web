@@ -24,6 +24,26 @@ const useOrderHistoryStore = create((set) => ({
     }
   },
 
+  // Confirm delivery
+  confirmDelivery: async (orderId, deliveryCode) => {
+    set({ loading: true, error: null });
+    try {
+      await axios.put(`/api/orderproducts/status/${orderId}`, {
+        status: 10,
+        deliveryCode: deliveryCode
+      });
+      set({ loading: false, error: null });
+      return true;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi xác nhận giao hàng';
+      set({
+        error: errorMessage,
+        loading: false
+      });
+      return { success: false, error: errorMessage };
+    }
+  },
+
   // Cancel order
   cancelOrder: async (orderId) => {
     set({ loading: true, error: null });

@@ -200,8 +200,8 @@ const TaskDetail = () => {
 
   useEffect(() => {
     if (task && task.serviceOrder && task.serviceOrder.id) {
-    getRecordSketch(task.serviceOrder.id);
-    getRecordDesign(task.serviceOrder.id);
+      getRecordSketch(task.serviceOrder.id);
+      getRecordDesign(task.serviceOrder.id);
     }
   }, [task, getRecordSketch, getRecordDesign]);
 
@@ -300,32 +300,32 @@ const TaskDetail = () => {
       const isImagesOnly = adjustmentOption === 'imagesOnly';
 
       if (!isPriceOnly) {
-      // Step 1: Upload images
-      if (sketchFiles.length > 0) {
-        message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0);
-        uploadedUrls = await uploadImages(sketchFiles);
-        message.destroy();
-        if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
-          throw new Error("Lỗi trong quá trình tải ảnh lên.");
-        }
-        message.success("Tải ảnh lên thành công!");
+        // Step 1: Upload images
+        if (sketchFiles.length > 0) {
+          message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0);
+          uploadedUrls = await uploadImages(sketchFiles);
+          message.destroy();
+          if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
+            throw new Error("Lỗi trong quá trình tải ảnh lên.");
+          }
+          message.success("Tải ảnh lên thành công!");
         } else if (isRedeterminingModal && currentSketchImages.length > 0 && !isImagesOnly) {
           // Nếu đang trong modal Redetermining và không chọn cập nhật ảnh, giữ nguyên ảnh hiện tại
           uploadedUrls = currentSketchImages;
-      } else {
-        // If no new files, check if *any* existing images are present before assuming old ones
-        const existingImages = [
-          task.serviceOrder.image?.imageUrl,
-          task.serviceOrder.image?.image2,
-          task.serviceOrder.image?.image3
-        ].filter(Boolean);
+        } else {
+          // If no new files, check if *any* existing images are present before assuming old ones
+          const existingImages = [
+            task.serviceOrder.image?.imageUrl,
+            task.serviceOrder.image?.image2,
+            task.serviceOrder.image?.image3
+          ].filter(Boolean);
 
           if (existingImages.length === 0 && sketchFiles.length === 0 && !isPriceOnly) {
-          // If no existing images AND no new files, require upload
-          throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
-        }
-        // Use existing images if no new files were uploaded BUT existing images are present
-        uploadedUrls = existingImages;
+            // If no existing images AND no new files, require upload
+            throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
+          }
+          // Use existing images if no new files were uploaded BUT existing images are present
+          uploadedUrls = existingImages;
         }
       } else {
         // Nếu chỉ điều chỉnh giá, sử dụng ảnh hiện tại
@@ -349,7 +349,6 @@ const TaskDetail = () => {
         console.warn(`Unexpected initial status ${currentOrderStatus} for sketch submission. Defaulting status to 1.`);
         statusForRecordCreation = 1; // Defaulting to 1 might be safer than failing
       }
-      console.log(`Using status ${statusForRecordCreation} for initial update (record creation).`);
 
       // Step 2: Update service order with initial status (for record creation)
       const serviceOrderUpdateData = {
@@ -364,10 +363,8 @@ const TaskDetail = () => {
           image3: uploadedUrls[2] || ""
         },
       };
-
-      console.log("Payload for updateServiceOrder:", serviceOrderUpdateData);
+      
       await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
-      console.log(`ServiceOrder updated with status ${statusForRecordCreation}.`);
 
       // Step 3: Update Service Order Status to DeterminingDesignPrice (2)
       await updateStatus(task.serviceOrder.id, 2);
@@ -454,15 +451,13 @@ const TaskDetail = () => {
 
       // Xác định phase mới dựa trên maxPhaseInDesignRecords
       const newPhase = maxPhaseInDesignRecords + 1;
-      console.log(`Cập nhật thiết kế với phase mới: ${newPhase}`);
-      
+
       // Xác định trạng thái của service order
       const currentOrderStatus = task?.serviceOrder?.status;
-      console.log(`Trạng thái service order hiện tại: ${currentOrderStatus}`);
 
       // Determine the status to use based on current order status
       let statusForRecordCreation;
-      
+
       if (currentOrderStatus === 'DepositSuccessful' || currentOrderStatus === 3) {
         statusForRecordCreation = 4; // AssignToDesigner
       } else if (currentOrderStatus === 'ReDesign' || currentOrderStatus === 20) {
@@ -494,7 +489,7 @@ const TaskDetail = () => {
 
       // Refresh design records after successful update
       await getRecordDesign(task.serviceOrder.id);
-      
+
       // Cập nhật maxPhaseInDesignRecords với phase mới
       setMaxPhaseInDesignRecords(newPhase);
 
@@ -657,8 +652,8 @@ const TaskDetail = () => {
         return {
           productId: item.productId,
           quantity: item.quantity,
-          price: product?.price || 0,
-          totalPrice: (product?.price || 0) * item.quantity
+          // price: product?.price || 0,
+          // totalPrice: (product?.price || 0) * item.quantity
         };
       });
 
@@ -667,7 +662,11 @@ const TaskDetail = () => {
         serviceType: 1,
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
+        skecthReport: task.serviceOrder.skecthReport || "",
         status: 4, // AssignToDesigner
+        report: task.serviceOrder.report || "",
+        reportManger: task.serviceOrder.reportManger || "",
+        reportAccoutant: task.serviceOrder.reportAccoutant || "",
         // image: task.serviceOrder.image,
         serviceOrderDetails: updatedServiceOrderDetails // Sử dụng danh sách đã được cập nhật
       };
@@ -891,21 +890,46 @@ const TaskDetail = () => {
 
     const currentOrderStatus = task?.serviceOrder?.status;
 
-    // Determine the status to use based on current order status
-    let statusForUpdateReport;
+    // Map status names to their numeric values
+    const statusMap = {
+      'Pending': 0,
+      'ConsultingAndSketching': 1,
+      'DeterminingDesignPrice': 2,
+      'DepositSuccessful': 3,
+      'AssignToDesigner': 4,
+      'DeterminingMaterialPrice': 5,
+      'DoneDesign': 6,
+      'PaymentSuccess': 7,
+      'Processing': 8,
+      'PickedPackageAndDelivery': 9,
+      'DeliveryFail': 10,
+      'ReDelivery': 11,
+      'DeliveredSuccessfully': 12,
+      'CompleteOrder': 13,
+      'OrderCancelled': 14,
+      'Warning': 15,
+      'Refund': 16,
+      'DoneRefund': 17,
+      'StopService': 18,
+      'ReConsultingAndSketching': 19,
+      'ReDesign': 20,
+      'WaitDeposit': 21,
+      'DoneDeterminingDesignPrice': 22,
+      'DoneDeterminingMaterialPrice': 23,
+      'ReDeterminingDesignPrice': 24,
+      'ExchangeProdcut': 25,
+      'WaitForScheduling': 26,
+      'Installing': 27,
+      'DoneInstalling': 28,
+      'ReInstall': 29,
+      'CustomerConfirm': 30,
+      'Successfully': 31
+    };
 
-    if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
-      statusForUpdateReport = 1; // AssignToDesigner
-    } else if (currentOrderStatus === 'DeterminingDesignPrice' || currentOrderStatus === 2) {
-      statusForUpdateReport = 2; // Giữ nguyên trạng thái ReDesign
-    } else if (currentOrderStatus === 'ReDeterminingDesignPrice' || currentOrderStatus === 24) {
-      statusForUpdateReport = 24; // Giữ nguyên trạng thái ReDesign
-    } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
-      statusForUpdateReport = 19; // Giữ nguyên trạng thái ReDesign
-    } else {
-      console.warn(`Unexpected initial status ${currentOrderStatus} for report submission. Defaulting status to 1.`);
-      statusForUpdateReport = 1; // Default to AssignToDesigner
-    }
+    // If currentOrderStatus is a number, use it directly, otherwise look up the numeric value
+    const statusForUpdateReport = typeof currentOrderStatus === 'number'
+      ? currentOrderStatus
+      : statusMap[currentOrderStatus] || 0;
 
     try {
       // Prepare service order data
@@ -1239,10 +1263,10 @@ const TaskDetail = () => {
               </Descriptions.Item>
 
               <Descriptions.Item label={<><PhoneOutlined /> Số điện thoại</>} span={1}>
-                  <Space>
+                <Space>
                   {task.serviceOrder.cusPhone}
-                  </Space>
-                </Descriptions.Item>
+                </Space>
+              </Descriptions.Item>
 
               <Descriptions.Item label={<><MailOutlined /> Email</>} span={1}>
                 <Space>
@@ -1288,9 +1312,9 @@ const TaskDetail = () => {
               </Descriptions.Item>
 
               {/* {task.serviceOrder.materialPrice && ( */}
-                <Descriptions.Item label="Giá vật liệu" span={1}>
+              <Descriptions.Item label="Giá vật liệu" span={1}>
                 {task.serviceOrder.materialPrice === 0 ? "Chưa có" : `${task.serviceOrder.materialPrice.toLocaleString("vi-VN")} đ`}
-                </Descriptions.Item>
+              </Descriptions.Item>
               {/* )} */}
 
               <Descriptions.Item label="Tổng tiền" span={1}>
@@ -1449,7 +1473,7 @@ const TaskDetail = () => {
             {/* Report Section - Modified */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex justify-between items-center mb-3">
-                <Title level={5}><FileTextOutlined /> Ghi chú / Báo cáo Designer</Title>
+                <Title level={5}><FileTextOutlined /> Ghi chú / Báo cáo cho Manager</Title>
               </div>
 
               {/* Display existing report if available */}
@@ -1519,67 +1543,67 @@ const TaskDetail = () => {
                 {[1, 2, 3].map(phase => {
                   const recordsInPhase = sketchRecords.filter(record => record.phase === phase);
 
-                    if (recordsInPhase.length === 0) return null;
+                  if (recordsInPhase.length === 0) return null;
 
                   const phaseTitle = `Bản phác thảo lần ${phase}`;
-                    // Check if *any* record in this phase is selected (usually only one can be)
-                    const isPhaseSelected = recordsInPhase.some(record => record.isSelected);
+                  // Check if *any* record in this phase is selected (usually only one can be)
+                  const isPhaseSelected = recordsInPhase.some(record => record.isSelected);
 
-                    return (
-                      <div key={phase} style={{ marginBottom: '20px' }}>
-                        <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                          {phaseTitle}
+                  return (
+                    <div key={phase} style={{ marginBottom: '20px' }}>
+                      <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                        {phaseTitle}
                         {isPhaseSelected && (
-                            <Tag color="success" icon={<CheckSquareOutlined />} style={{ marginLeft: 8 }}>
-                              Khách hàng đã chọn
-                            </Tag>
-                          )}
-                        </Title>
-                        {/* Wrap images in PreviewGroup for gallery view */}
-                        <Image.PreviewGroup items={recordsInPhase.flatMap(r => [r.image?.imageUrl, r.image?.image2, r.image?.image3].filter(Boolean))}>
-                          <Row gutter={[16, 16]}>
-                            {/* Iterate through records (usually one per phase), then display its images horizontally */}
-                            {recordsInPhase.map((record, recordIndex) => (
-                              <React.Fragment key={`${record.id}-${recordIndex}`}>
-                                {record.image?.imageUrl && (
-                                  <Col xs={24} sm={12} md={8}> {/* Adjust column spans as needed */}
-                                    <Image
-                                      src={record.image.imageUrl}
-                                      alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.1`}
-                                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                  </Col>
-                                )}
-                                {record.image?.image2 && (
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Image
-                                      src={record.image.image2}
-                                      alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.2`}
-                                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                  </Col>
-                                )}
-                                {record.image?.image3 && (
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Image
-                                      src={record.image.image3}
-                                      alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.3`}
-                                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                  </Col>
-                                )}
-                                {/* If a record has no images, optionally show a placeholder */}
-                                {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
-                                  <Col span={24}><Text type="secondary">Không có ảnh cho bản ghi này.</Text></Col>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </Row>
-                        </Image.PreviewGroup>
-                      </div>
-                    );
-                  })}
-                </div>
+                          <Tag color="success" icon={<CheckSquareOutlined />} style={{ marginLeft: 8 }}>
+                            Khách hàng đã chọn
+                          </Tag>
+                        )}
+                      </Title>
+                      {/* Wrap images in PreviewGroup for gallery view */}
+                      <Image.PreviewGroup items={recordsInPhase.flatMap(r => [r.image?.imageUrl, r.image?.image2, r.image?.image3].filter(Boolean))}>
+                        <Row gutter={[16, 16]}>
+                          {/* Iterate through records (usually one per phase), then display its images horizontally */}
+                          {recordsInPhase.map((record, recordIndex) => (
+                            <React.Fragment key={`${record.id}-${recordIndex}`}>
+                              {record.image?.imageUrl && (
+                                <Col xs={24} sm={12} md={8}> {/* Adjust column spans as needed */}
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.1`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                  />
+                                </Col>
+                              )}
+                              {record.image?.image2 && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.2`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                  />
+                                </Col>
+                              )}
+                              {record.image?.image3 && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.3`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                  />
+                                </Col>
+                              )}
+                              {/* If a record has no images, optionally show a placeholder */}
+                              {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                <Col span={24}><Text type="secondary">Không có ảnh cho bản ghi này.</Text></Col>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </Row>
+                      </Image.PreviewGroup>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
             {/* Design Records Display */}
@@ -1679,7 +1703,8 @@ const TaskDetail = () => {
             {/* Design upload button */}
             {task.status === "Design" &&
               (task.serviceOrder.status === "DepositSuccessful" ||
-                task.serviceOrder.status === "ReDesign") &&
+                task.serviceOrder.status === "ReDesign" ||
+                task.serviceOrder.status === "AssignToDesigner") &&
               // Cập nhật điều kiện hiển thị nút dựa trên maxPhaseInDesignRecords
               (
                 // TH1: Chưa có bản thiết kế nào (maxPhase = 0)
@@ -1826,7 +1851,7 @@ const TaskDetail = () => {
           >
             <InputNumber
               style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
               parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
               placeholder="Nhập giá dự kiến (VNĐ)"
             />

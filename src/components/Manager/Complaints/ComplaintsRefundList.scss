@@ -1,0 +1,20 @@
+.complaints-refund-list-container {
+  .filter-row {
+    margin-bottom: 16px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .complaints-table-card {
+    margin-top: 16px;
+  }
+
+  .complaint-detail-modal {
+    .ant-descriptions-item-label {
+      width: 120px;
+      font-weight: 500;
+    }
+  }
+} 

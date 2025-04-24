@@ -30,10 +30,11 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { checkToxicContent } from "@/services/moderationService";
 import useAuthStore from "@/stores/useAuthStore";
-import ComplaintModal from '@/components/Order/ComplaintModal';
+import ComplaintModal from '@/pages/Order/components/ComplaintModal';
 import useComplaintStore from '../../stores/useComplaintStore';
 import OrderHistoryTab from "./components/OrderHistoryTab";
 import ComplaintHistoryTab from "./components/ComplaintHistoryTab";
+import signalRService from "../../services/signalRService";
 
 const { TextArea } = Input;
 
@@ -57,6 +58,51 @@ const OrderHistory = () => {
   const [selectedProductForComplaint, setSelectedProductForComplaint] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [activeTab, setActiveTab] = useState("1");
+
+  // SignalR message handler
+  const handleSignalRMessage = async (...args) => {
+    // Log received message details
+    const [type, data] = args.length >= 2 ? [args[0], args[1]] : [args[0]?.type || "unknown", args[0]?.data];
+    console.log(`SignalR message in OrderHistory - Type: ${type}`, data);
+    console.log('args', args)
+    
+    // Fetch all data every time we receive a SignalR message
+    // This ensures we never miss any updates
+    console.log("Fetching order history due to SignalR update");
+    fetchOrderHistory();
+    
+    if (user?.id) {
+      try {
+        console.log("Fetching complaints due to SignalR update");
+        const freshData = await fetchUserComplaints(user.id);
+        setComplaints(freshData);
+        console.log("Complaints updated successfully");
+      } catch (err) {
+        console.error("Error refreshing complaints after SignalR update:", err);
+      }
+    }
+  };
+
+  // Set up SignalR connection
+  React.useEffect(() => {
+    const initializeSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+        
+        // Only register for messageReceived - this will catch all events
+        signalRService.on("messageReceived", handleSignalRMessage);
+      } catch (err) {
+        console.error("Error connecting to SignalR:", err);
+      }
+    };
+    
+    initializeSignalR();
+    
+    // Cleanup
+    return () => {
+      signalRService.off("messageReceived", handleSignalRMessage);
+    };
+  }, [user, fetchUserComplaints, fetchOrderHistory]);
 
   React.useEffect(() => {
     fetchOrderHistory();
@@ -101,12 +147,12 @@ const OrderHistory = () => {
     {
       key: "1",
       label: "Lịch sử đơn hàng",
-      children: <OrderHistoryTab />,
+      children: <OrderHistoryTab complaints={complaints} />,
     },
     {
       key: "2",
       label: "Lịch sử khiếu nại",
-      children: <ComplaintHistoryTab />,
+      children: <ComplaintHistoryTab complaints={complaints} />,
     },
   ];
 

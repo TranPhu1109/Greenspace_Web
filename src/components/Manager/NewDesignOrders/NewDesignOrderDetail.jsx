@@ -545,7 +545,7 @@ const NewDesignOrderDetail = () => {
           </Descriptions.Item>
           <Descriptions.Item label="Số tiền cần cọc giá thiết kế">
             <Text strong style={{ fontSize: '1.1em', color: '#1890ff' }}>
-              {formatPrice(currentOrder.designPrice * currentOrder.depositPercentage)}
+              {formatPrice(currentOrder.designPrice * currentOrder.depositPercentage / 100)}
             </Text>
           </Descriptions.Item>
           {typeof currentOrder.materialPrice === 'number' && (
@@ -888,6 +888,8 @@ const NewDesignOrderDetail = () => {
                     <p>
                       Trước khi duyệt giá thiết kế, bạn cần đảm bảo các thông số <strong>tiền cọc</strong> và <strong>hoàn trả</strong> được thiết lập hợp lý.
                     </p>
+                    <p>Số tiền cọc phải nằm trong khoảng 30% đến 80% giá thiết kế</p>
+                    <p>Số tiền hoàn trả phải nằm trong khoảng 10% đến 50% giá thiết kế và không được lớn hơn số tiền cọc</p>
                     <Button
                       type="primary"
                       icon={<EditOutlined />}
@@ -976,10 +978,32 @@ const NewDesignOrderDetail = () => {
         cancelText="Hủy"
       >
         <Alert
-          message="Thiết lập tỷ lệ tiền cọc và hoàn trả"
-          description={getDepositSettingsWarning() || "Điều chỉnh tỷ lệ tiền cọc khách hàng cần đặt trước khi thiết kế và tỷ lệ hoàn trả nếu khách hàng hủy đơn."}
-          type={getDepositSettingsWarning() ? "warning" : "info"}
-          showIcon
+          message={
+            <Text strong style={{ fontSize: 16 }}>
+              ⚙️ Thiết lập tỷ lệ tiền cọc và hoàn trả
+            </Text>
+          }
+          description={getDepositSettingsWarning() || (
+            <div style={{ paddingTop: 4 }}>
+              <Typography.Paragraph style={{ marginBottom: 8 }}>
+                <Text>📌 Quản lý có thể điều chỉnh tỷ lệ tiền cọc và hoàn trả cho đơn hàng thiết kế. Vui lòng tuân thủ các giới hạn sau:</Text>
+              </Typography.Paragraph>
+              <ul style={{ paddingLeft: 20, margin: 0 }}>
+                <li>
+                  <Text strong>💰 Tỷ lệ tiền cọc:</Text>{' '}
+                  <Text type="secondary" style={{ color: '#1890ff' }}>30% - 80%</Text> giá thiết kế
+                </li>
+                <li>
+                  <Text strong>🔁 Tỷ lệ hoàn trả:</Text>{' '}
+                  <Text type="secondary" style={{ color: '#1890ff' }}>10% - 50%</Text> giá thiết kế
+                </li>
+                <li>
+                  <Text strong>⚠️ Lưu ý:</Text> Tiền hoàn trả <Text strong>không được vượt quá</Text> tiền cọc
+                </li>
+              </ul>
+            </div>
+          )}
+          type={getDepositSettingsWarning() ? "warning" : "warning"}
           style={{ marginBottom: '16px' }}
         />
 
@@ -1012,13 +1036,13 @@ const NewDesignOrderDetail = () => {
             extra={`Khách hàng sẽ phải đặt cọc ${(!depositPercentage || isNaN(depositPercentage)) ? '0' : Number(depositPercentage).toFixed(1)}% giá thiết kế (${formatPrice((currentOrder?.designPrice || 0) * (depositPercentage / 100 || 0))})`}
             rules={[
               { required: true, message: 'Vui lòng nhập tỷ lệ tiền cọc' },
-              { type: 'number', min: 10, max: 100, message: 'Tỷ lệ phải từ 10 đến 100%' }
+              { type: 'number', min: 30, max: 80, message: 'Tỷ lệ phải từ 30 đến 80%' }
             ]}
           >
             <Space style={{ width: '100%' }} direction="vertical">
               <Slider
-                min={10}
-                max={100}
+                min={30}
+                max={80}
                 step={1}
                 onChange={(value) => {
                   // Don't allow depositPercentage to be less than refundPercentage or below 10%
@@ -1033,12 +1057,12 @@ const NewDesignOrderDetail = () => {
                 }}
                 value={depositForm.getFieldValue('depositPercentage')}
                 marks={{
-                  10: '10%',
                   30: '30%',
+                  40: '40%',
                   50: '50%',
+                  60: '60%',
                   70: '70%',
-                  90: '90%',
-                  100: '100%'
+                  80: '80%'
                 }}
                 tooltip={{
                   formatter: (value) => {
@@ -1052,7 +1076,7 @@ const NewDesignOrderDetail = () => {
               <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
                 <Col span={24}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    {[10, 30, 50, 70, 100].map(percent => (
+                    {[30, 40, 50, 60, 70, 80].map(percent => (
                       <Button
                         key={percent}
                         type={depositPercentage === percent ? 'primary' : 'default'}
@@ -1117,7 +1141,7 @@ const NewDesignOrderDetail = () => {
             extra="Tỷ lệ tiền hoàn trả khi khách hàng hủy đơn sau khi đã đặt cọc, không được lớn hơn tỷ lệ tiền đặt cọc."
             rules={[
               { required: true, message: 'Vui lòng nhập tỷ lệ hoàn trả' },
-              { type: 'number', min: 0, max: 100, message: 'Tỷ lệ phải từ 0 đến 100%' },
+              { type: 'number', min: 10, max: 50, message: 'Tỷ lệ phải từ 10 đến 50%' },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('depositPercentage') >= value) {
@@ -1130,8 +1154,8 @@ const NewDesignOrderDetail = () => {
           >
             <Space style={{ width: '100%' }} direction="vertical">
               <Slider
-                min={0}
-                max={100}
+                min={10}
+                max={50}
                 step={1}
                 onChange={(value) => {
                   // Don't allow refundPercentage to be greater than depositPercentage
@@ -1146,11 +1170,11 @@ const NewDesignOrderDetail = () => {
                 }}
                 value={depositForm.getFieldValue('refundPercentage')}
                 marks={{
-                  0: '0%',
-                  25: '25%',
-                  50: '50%',
-                  75: '75%',
-                  100: '100%'
+                  10: '10%',
+                  20: '20%',
+                  30: '30%',
+                  40: '40%',
+                  50: '50%'
                 }}
                 tooltip={{
                   formatter: (value) => {
@@ -1164,7 +1188,7 @@ const NewDesignOrderDetail = () => {
               <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
                 <Col span={24}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    {[0, 20, 30, 40, 60, 80].map(percent => (
+                    {[10, 20, 30, 40, 50].map(percent => (
                       <Button
                         key={percent}
                         type={refundPercentage === percent ? 'primary' : 'default'}

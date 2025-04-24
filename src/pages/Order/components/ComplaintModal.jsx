@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Checkbox, Input, Upload, Button, message, Space, Divider, Progress, Card, Image, Radio, Row, Col, Typography, InputNumber } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import useComplaintStore from '../../stores/useComplaintStore';
-import useProductStore from '../../stores/useProductStore';
-import useAuthStore from '../../stores/useAuthStore';
+import useComplaintStore from '../../../stores/useComplaintStore';
+import useProductStore from '../../../stores/useProductStore';
+import useAuthStore from '../../../stores/useAuthStore';
 import { useCloudinaryStorage } from '@/hooks/useCloudinaryStorage';
 
 const { TextArea } = Input;
@@ -39,7 +39,8 @@ const ComplaintModal = ({
   visible, 
   onCancel, 
   type,
-  selectedProductForComplaint
+  selectedProductForComplaint,
+  onSuccess
 }) => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
@@ -47,36 +48,38 @@ const ComplaintModal = ({
   const [isUploading, setIsUploading] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [productDetails, setProductDetails] = useState({});
+  const [complaintType, setComplaintType] = useState(type || 'refund');
   const { createComplaint, loading } = useComplaintStore();
   const { getProductById } = useProductStore();
   const { user } = useAuthStore();
   const { uploadImages, progress, error } = useCloudinaryStorage();
 
   useEffect(() => {
-    const fetchProductDetails = async () => {
-      if (!selectedProductForComplaint?.orderDetails) return;
-
-      const details = {};
-      for (const item of selectedProductForComplaint.orderDetails) {
-        try {
-          const product = await getProductById(item.productId);
-          if (product) {
-            details[item.productId] = product;
-          }
-        } catch (error) {
-          console.error(`Error fetching product ${item.productId}:`, error);
-        }
-      }
-      setProductDetails(details);
-    };
-
     if (visible) {
       fetchProductDetails();
       setSelectedProducts([]);
       setSelectedReasons([]);
+      setComplaintType(type || 'refund');
       form.resetFields();
     }
-  }, [visible, selectedProductForComplaint, getProductById, form]);
+  }, [visible, selectedProductForComplaint, type, form]);
+
+  const fetchProductDetails = async () => {
+    if (!selectedProductForComplaint?.orderDetails) return;
+
+    const details = {};
+    for (const item of selectedProductForComplaint.orderDetails) {
+      try {
+        const product = await getProductById(item.productId);
+        if (product) {
+          details[item.productId] = product;
+        }
+      } catch (error) {
+        console.error(`Error fetching product ${item.productId}:`, error);
+      }
+    }
+    setProductDetails(details);
+  };
 
   const handleProductSelect = (product) => {
     setSelectedProducts(prev => {
@@ -145,13 +148,13 @@ const ComplaintModal = ({
       await createComplaint({
         userId: user?.id,
         orderId: selectedProductForComplaint.parentOrder.id,
-        complaintType: type === 'refund' ? 1 : 0, // 1 for refund, 0 for exchange
+        complaintType: values.complaintType === 'refund' ? 1 : 0, // 1 for refund, 0 for exchange
         reason: allReasons,
         image: images,
         complaintDetails: complaintDetails
       });
       
-      message.success(type === 'refund' 
+      message.success(values.complaintType === 'refund' 
         ? 'Yêu cầu hoàn tiền đã được gửi thành công' 
         : 'Yêu cầu đổi trả đã được gửi thành công'
       );
@@ -161,6 +164,7 @@ const ComplaintModal = ({
       setFileList([]);
       setSelectedReasons([]);
       setSelectedProducts([]);
+      if (onSuccess) onSuccess();
     } catch (error) {
       message.error('Có lỗi xảy ra khi gửi yêu cầu');
       console.error('Error submitting complaint:', error);
@@ -187,9 +191,16 @@ const ComplaintModal = ({
     setSelectedReasons(checkedValues);
   };
 
+  const handleComplaintTypeChange = (e) => {
+    const newType = e.target.value;
+    setComplaintType(newType);
+    setSelectedReasons([]);
+    form.setFieldsValue({ complaintType: newType });
+  };
+
   return (
     <Modal
-      title={type === 'refund' ? 'Yêu cầu hoàn tiền' : 'Yêu cầu đổi trả'}
+      title="Yêu cầu trả/đổi hàng"
       visible={visible}
       onCancel={onCancel}
       footer={null}
@@ -199,8 +210,22 @@ const ComplaintModal = ({
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
+        initialValues={{ complaintType: complaintType }}
       >
         <Row gutter={[24, 24]}>
+          <Col span={24}>
+            <Form.Item 
+              name="complaintType" 
+              label="Loại yêu cầu" 
+              rules={[{ required: true, message: 'Vui lòng chọn loại yêu cầu' }]}
+            >
+              <Radio.Group onChange={handleComplaintTypeChange} value={complaintType}>
+                <Radio.Button value="refund">Trả hàng & Hoàn tiền</Radio.Button>
+                <Radio.Button value="exchange">Đổi hàng</Radio.Button>
+              </Radio.Group>
+            </Form.Item>
+          </Col>
+          
           <Col span={24}>
             <Title level={5}>Chọn sản phẩm cần khiếu nại</Title>
             <Space direction="vertical" style={{ width: '100%' }}>
@@ -218,7 +243,7 @@ const ComplaintModal = ({
                       border: isSelected ? '2px solid #52c41a' : '1px solid #f0f0f0',
                       cursor: 'pointer'
                     }}
-                    bodyStyle={{ padding: '12px' }}
+                    styles={{ body: { padding: '12px' } }}
                     onClick={() => handleProductSelect(item)}
                   >
                     <Row align="middle" gutter={16}>
@@ -239,7 +264,7 @@ const ComplaintModal = ({
                         <Text type="secondary">Đơn giá: {item.price.toLocaleString()}đ</Text>
                         {isSelected && (
                           <div style={{ marginTop: 8 }}>
-                            <Text>Số lượng {type === 'refund' ? 'hoàn tiền' : 'đổi trả'}:</Text>
+                            <Text>Số lượng {complaintType === 'refund' ? 'hoàn tiền' : 'đổi trả'}:</Text>
                             <InputNumber
                               min={1}
                               max={item.quantity}
@@ -271,7 +296,7 @@ const ComplaintModal = ({
                   value={selectedReasons}
                 >
                   <Space direction="vertical" style={{ width: '100%' }}>
-                    {(type === 'refund' ? REFUND_REASONS : EXCHANGE_REASONS).map((reason, index) => (
+                    {(complaintType === 'refund' ? REFUND_REASONS : EXCHANGE_REASONS).map((reason, index) => (
                       <Checkbox key={index} value={reason} style={{ marginLeft: 0 }}>
                         {reason}
                       </Checkbox>

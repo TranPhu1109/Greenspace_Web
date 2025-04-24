@@ -11,6 +11,7 @@ import TransactionsList from "@/components/Manager/Transactions/TransactionsList
 import NewDesignOrdersList from "@/components/Manager/NewDesignOrders/NewDesignOrdersList";
 import NewDesignOrderDetail from "@/components/Manager/NewDesignOrders/NewDesignOrderDetail";
 import WebManage from "@/components/Manager/WebManage/WebManage";
+import ComplaintsRefundList from "@/components/Manager/Complaints/ComplaintsRefundList";
 
 export const managerRoutes = {
   path: "/manager",
@@ -64,6 +65,10 @@ export const managerRoutes = {
     {
       path: "promotions",
       element: <PromotionsList />,
+    },
+    {
+      path: "complaints",
+      element: <ComplaintsRefundList />,
     },
     {
       path: "transactions",

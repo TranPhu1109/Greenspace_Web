@@ -12,14 +12,12 @@ const RefundHistory = () => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  console.log(transactions);
-
   // Filter refund transactions
   const refundTransactions = transactions?.filter(log => log.type === 'Refund') || [];
   
-
-  console.log(refundTransactions);
-
+  // Sort by creationDate descending (newest first)
+  const sortedRefundTransactions = [...refundTransactions].sort((a, b) => new Date(b.creationDate) - new Date(a.creationDate));
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center py-4">
@@ -74,7 +72,7 @@ const RefundHistory = () => {
   return (
     <div className="refund-history">
       <Table
-        dataSource={refundTransactions}
+        dataSource={sortedRefundTransactions}
         columns={columns}
         rowKey={(record, index) => `${record.txnRef || ''}-${index}`}
         pagination={{
@@ -85,6 +83,8 @@ const RefundHistory = () => {
         }}
         className="w-full"
         locale={{ emptyText: 'Không có lịch sử hoàn tiền' }}
+        defaultSortOrder="descend"
+        sortDirections={["descend", "ascend"]}
       />
     </div>
   );

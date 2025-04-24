@@ -359,7 +359,7 @@ const ServiceOrderDetail = () => {
               rowKey="productId"
               pagination={false}
               summary={(pageData) => {
-                const totalMaterialPrice = selectedOrder.materialPrice || 0;
+                const totalMaterialPrice = orderDetails.reduce((total, detail) => total + (detail.totalPrice || 0), 0);
                 return (
                   <Table.Summary.Row>
                     <Table.Summary.Cell index={0} colSpan={3}>
