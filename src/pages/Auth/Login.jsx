@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Input, Checkbox, Button, Form, message, Typography, Card } from "antd";
+import { Input, Checkbox, Button, Form, message, Typography, Card, notification } from "antd";
 import {
   GoogleOutlined,
   LockOutlined,
@@ -38,26 +38,35 @@ const Login = () => {
         role: userData.roleName
       });
 
-      message.success(`Đăng nhập thành công! Xin chào ${userData.name}`);
+      notification.success({
+        message: "Đăng nhập thành công!",
+        description: `Xin chào ${userData.name}`,
+        placement: "topRight",
+        duration: 3,
+        showProgress: true,
+        pauseOnHover: true,
+      });
 
       // Navigate based on role or return to previous page
       const role = userData.roleName.toLowerCase();
       if (
         ["admin", "staff", "manager", "accountant", "designer"].includes(role)
       ) {
-        console.log(`Navigating to /${role}/dashboard`);
         navigate(`/${role}/dashboard`);
       } else if (returnUrl !== "/home") {
         // Nếu có returnUrl, trở về trang trước đó
-        console.log(`Navigating to ${returnUrl} with action: ${actionType || 'none'}`);
         navigate(returnUrl, { state: { actionCompleted: true, actionType } });
       } else {
-        console.log('Navigating to /home');
         navigate("/home"); // Default route for other roles
       }
     } catch (error) {
-      console.error("Login failed:", error);
-      message.error("Tài khoản hoặc mật khẩu không đúng!");
+      notification.error({
+        message: "Đăng nhập thất bại!",
+        description: "Tài khoản hoặc mật khẩu không đúng!",
+        showProgress: true,
+        pauseOnHover: true,
+        duration: 3,
+      });
     } finally {
       setLoading(false);
     }

@@ -29,6 +29,8 @@ import {
   InputNumber,
   Tooltip,
   Slider,
+  Tabs,
+  Collapse,
 } from "antd";
 import { format } from "date-fns";
 import {
@@ -48,7 +50,9 @@ import {
   EditOutlined,
   CloseCircleOutlined,
   ArrowRightOutlined,
+  CaretRightOutlined,
 } from "@ant-design/icons";
+import usePercentageStore from "@/stores/usePercentageStore";
 
 const { Title, Text, TextArea } = Typography;
 
@@ -63,6 +67,7 @@ const NewDesignOrderDetail = () => {
   } = useServiceOrderStore();
   const { getProductById } = useProductStore();
   const { sketchRecords, designRecords, getRecordSketch, getRecordDesign, isLoading: recordLoading } = useRecordStore();
+  const { data, fetchPercentage } = usePercentageStore();
   const { updateStatus, updateDepositSettings } = useDesignOrderStore();
   const [localError, setLocalError] = useState(null);
   const [productDetailsMap, setProductDetailsMap] = useState({});
@@ -73,6 +78,11 @@ const NewDesignOrderDetail = () => {
   const [depositPercentage, setDepositPercentage] = useState(0);
   const [refundPercentage, setRefundPercentage] = useState(0);
   const [depositForm] = Form.useForm();
+  const [activeKeys, setActiveKeys] = useState([]);
+
+  useEffect(() => {
+    fetchPercentage();
+  }, [fetchPercentage]);
 
   useEffect(() => {
     const fetchOrderDetailAndRelatedData = async () => {
@@ -223,7 +233,7 @@ const NewDesignOrderDetail = () => {
     setReportManagerModalVisible(true);
   };
 
-  const handleRejectPriceSubmit = () => {
+  const handleRejectPriceSubmit = async () => {
     // Kiểm tra nội dung rich text có trống không 
     // (loại bỏ các thẻ HTML trống và khoảng trắng)
     const isEmptyContent = !reportManagerText ||
@@ -236,7 +246,7 @@ const NewDesignOrderDetail = () => {
 
     // Call the store's updateReport method to update status and report
     try {
-      useDesignOrderStore.getState().updateReport(
+      await useDesignOrderStore.getState().updateReport(
         selectedOrder?.id,
         24,
         reportManagerText,
@@ -244,7 +254,7 @@ const NewDesignOrderDetail = () => {
       );
       message.success('Đã gửi yêu cầu điều chỉnh thành công.');
       // Refresh order data
-      getServiceOrderById(selectedOrder?.id);
+      await getServiceOrderById(selectedOrder?.id);
     } catch (err) {
       message.error(`Lỗi yêu cầu điều chỉnh: ${err.message}`);
     }
@@ -401,7 +411,6 @@ const NewDesignOrderDetail = () => {
     );
   }
 
-  console.log("Render: Rendering main content for order:", selectedOrder.id);
   const currentOrder = selectedOrder;
   const hasImages = currentOrder.image && (currentOrder.image.imageUrl || currentOrder.image.image2 || currentOrder.image.image3);
 
@@ -493,100 +502,73 @@ const NewDesignOrderDetail = () => {
 
   const renderCostCard = () => {
     if (!currentOrder?.designPrice && !currentOrder?.materialPrice) return null;
+    if (!data) return null;
 
     return (
       <Card
         title={
-          <span style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#4caf50',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <DollarOutlined />
-            Chi phí
-          </span>
+          <Space>
+            <span style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#4caf50',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <DollarOutlined />
+              Chi tiết chi phí đơn hàng
+            </span>
+            {currentOrder.status === 'DeterminingDesignPrice' && (
+              <Tag color="orange" style={{ fontSize: 14 }}>
+                Chờ xác định giá
+              </Tag>
+            )}
+          </Space>
         }
         style={{
           borderRadius: '8px',
           boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
           marginBottom: '24px'
         }}
-        extra={
-          (currentOrder?.status === 'DeterminingDesignPrice' || currentOrder?.status === 'ReDeterminingDesignPrice' ||
-            currentOrder?.status === 2 || currentOrder?.status === 24) && (
-            <Tooltip title="Chỉnh sửa tỷ lệ tiền cọc và hoàn trả">
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={showDepositModal}
-              >
-                Cài đặt tiền cọc
-              </Button>
-            </Tooltip>
-          )
-        }
       >
         <Descriptions column={1} size="middle">
           {typeof currentOrder.designPrice === 'number' && (
             <Descriptions.Item label="Giá thiết kế">{formatPrice(currentOrder.designPrice)}</Descriptions.Item>
           )}
-          <Descriptions.Item label="Tỷ lệ tiền cọc giá thiết kế">
+          <Descriptions.Item label="Tỷ lệ đặt cọc cho giá thiết kế">
             <Text strong style={{ color: '#1890ff' }}>
-              {currentOrder.depositPercentage.toFixed(1)}%
+              {data.depositPercentage.toFixed(1)}%
             </Text>
           </Descriptions.Item>
-          <Descriptions.Item label="Tỷ lệ hoàn trả giá thiết kế">
+          <Descriptions.Item label="Tỷ lệ hoàn lại tiền từ tiền đặt cọc">
             <Text strong style={{ color: '#1890ff' }}>
-              {currentOrder.refundPercentage.toFixed(1)}%
+              {data.refundPercentage.toFixed(1)}%
             </Text>
           </Descriptions.Item>
-          <Descriptions.Item label="Số tiền cần cọc giá thiết kế">
+          <Descriptions.Item label="Số tiền đặt cọc cần thanh toán">
             <Text strong style={{ fontSize: '1.1em', color: '#1890ff' }}>
-              {formatPrice(currentOrder.designPrice * currentOrder.depositPercentage)}
+              {formatPrice(currentOrder.designPrice * data.depositPercentage / 100)}
             </Text>
           </Descriptions.Item>
           {typeof currentOrder.materialPrice === 'number' && (
             <Descriptions.Item label="Giá vật liệu">{formatPrice(currentOrder.materialPrice)}</Descriptions.Item>
           )}
-          <Descriptions.Item label="Tổng cộng">
+          <Descriptions.Item label="Tổng chi phí (tạm tính)">
             <Text strong style={{ fontSize: '1.1em', color: '#cf1322' }}>
               {formatPrice(currentOrder.totalCost || (currentOrder.designPrice + currentOrder.materialPrice))}
             </Text>
           </Descriptions.Item>
-
-
-
-          {/* Add deposit information */}
-          {/* {(currentOrder?.status === 'DeterminingDesignPrice' || currentOrder?.status === 'ReDeterminingDesignPrice' ||
-            currentOrder?.status === 2 || currentOrder?.status === 24) && (
-              <>
-                <Descriptions.Item label="Tỷ lệ tiền cọc">
-                  <Text strong style={{ color: '#1890ff' }}>
-                    {currentOrder.depositPercentage.toFixed(1)}%
-                  </Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Tỷ lệ hoàn trả">
-                  <Text strong style={{ color: '#1890ff' }}>
-                    {currentOrder.refundPercentage.toFixed(1)}%
-                  </Text>
-                </Descriptions.Item>
-                <Descriptions.Item label="Số tiền cần cọc">
-                  <Text strong style={{ fontSize: '1.1em', color: '#1890ff' }}>
-                    {formatPrice(currentOrder.designPrice * currentOrder.depositPercentage)}
-                  </Text>
-                </Descriptions.Item>
-              </>
-            )} */}
         </Descriptions>
       </Card>
     );
   };
 
   return (
-    <div className="container mx-auto px-4 py-8" style={{ paddingTop: "20px" }}>
+    <div
+    // className="container mx-auto px-4 py-8" 
+    // style={{ paddingTop: "0px" }}
+    >
       <Breadcrumb
         items={[
           {
@@ -645,7 +627,7 @@ const NewDesignOrderDetail = () => {
               Quay lại
             </Button>
             <Title level={4} style={{ margin: 0 }}>
-              Chi tiết đơn <span style={{ color: '#4caf50' }}>#{id.substring(0, 8)}</span>
+              Chi tiết đơn <span style={{ color: '#4caf50' }}>#{id}</span>
             </Title>
           </div>
         }
@@ -707,8 +689,133 @@ const NewDesignOrderDetail = () => {
           </Col>
         </Row>
 
-        {(currentOrder.status === 'ConsultingAndSketching' && sketchRecords.length > 0) ||
-          (currentOrder.status === 'DoneDesign' && designRecords.length > 0) ? (
+        {currentOrder.description && (
+          <Card
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              marginBottom: '24px',
+              background: '#ffffff', // Cho trắng rõ như Card
+            }}
+            styles={{
+              body: {
+                padding: 0
+              }
+            }}
+          >
+            <Collapse
+              bordered={false}
+              style={{
+                borderRadius: '8px',
+                backgroundColor: 'transparent', // Collapse bên trong không cần màu nền
+              }}
+              expandIconPosition="end"
+              activeKey={activeKeys}
+              onChange={(keys) => {
+                if (Array.isArray(keys)) {
+                  setActiveKeys(keys);
+                } else {
+                  setActiveKeys([keys]);
+                }
+              }}
+              expandIcon={({ isActive }) => (
+                <CaretRightOutlined
+                  rotate={isActive ? 90 : 0}
+                  style={{ fontSize: '16px', color: '#4caf50' }} // 👉 Gọn hơn, màu xanh lá đồng bộ
+                />
+              )}
+            >
+              <Collapse.Panel
+                key="description"
+                header={
+                  <span style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: activeKeys.includes('description') ? '#4caf50' : '#000000', // 🌟 Kiểm tra activeKeys
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <FileTextOutlined />
+                    Mô tả yêu cầu từ khách hàng
+                  </span>
+                }
+                style={{
+                  backgroundColor: '#ffffff', // Panel nền trắng để đồng bộ Card
+                  borderRadius: '8px',
+                }}
+              >
+                <div dangerouslySetInnerHTML={{ __html: currentOrder.description }} />
+              </Collapse.Panel>
+            </Collapse>
+          </Card>
+        )}
+
+        {currentOrder.skecthReport && (
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              marginBottom: '24px',
+              background: '#ffffff', // Cho trắng rõ như Card
+            }}
+            styles={{
+              body: {
+                padding: 0
+              }
+            }}
+          >
+            <Collapse
+              bordered={false}
+              style={{
+                borderRadius: '8px',
+                backgroundColor: 'transparent', // Collapse bên trong không cần màu nền
+              }}
+              expandIconPosition="end"
+              activeKey={activeKeys}
+              onChange={(keys) => {
+                if (Array.isArray(keys)) {
+                  setActiveKeys(keys);
+                } else {
+                  setActiveKeys([keys]);
+                }
+              }}
+              expandIcon={({ isActive }) => (
+                <CaretRightOutlined
+                  rotate={isActive ? 90 : 0}
+                  style={{ fontSize: '16px', color: '#4caf50' }} // 👉 Gọn hơn, màu xanh lá đồng bộ
+                />
+              )}
+            >
+              <Collapse.Panel
+                key="skecthReport"
+                header={
+                  <span style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: activeKeys.includes('skecthReport') ? '#4caf50' : '#000000', // 🌟 Kiểm tra activeKeys
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <FileTextOutlined />
+                    Ghi chú quá trình làm việc & giá thiết kế đề xuất với khách hàng
+                  </span>
+                }
+                style={{
+                  backgroundColor: '#ffffff', // Panel nền trắng để đồng bộ Card
+                  borderRadius: '8px',
+                }}
+              >
+                <div dangerouslySetInnerHTML={{ __html: currentOrder.skecthReport }} />
+              </Collapse.Panel>
+            </Collapse>
+          </Card>
+        )}
+
+        {(currentOrder.status !== 'Pending' && sketchRecords.length > 0) ||
+          (currentOrder.status !== 'Pending' && designRecords.length > 0) ? (
           <Card
             title={
               <span style={{
@@ -720,7 +827,7 @@ const NewDesignOrderDetail = () => {
                 gap: '8px'
               }}>
                 <PictureOutlined />
-                {currentOrder.status === 'ConsultingAndSketching' ? 'Bản vẽ phác thảo' : 'Bản vẽ thiết kế'}
+                {currentOrder.status !== 'Pending' ? 'Bản vẽ phác thảo' : 'Bản vẽ thiết kế'}
               </span>
             }
             style={{
@@ -730,40 +837,99 @@ const NewDesignOrderDetail = () => {
             }}
             loading={recordLoading}
           >
-            {[0, 1, 2].map(phase => {
-              const recordsInPhase = (currentOrder.status === 'ConsultingAndSketching' ? sketchRecords : designRecords)
+
+            {[0, 1, 2, 3].map(phase => {
+              const recordsInPhase = (currentOrder.status !== 'Pending' ? sketchRecords : designRecords)
                 .filter(record => record.phase === phase);
               if (recordsInPhase.length === 0) return null;
 
               const phaseTitle = phase === 0
                 ? "Ảnh khách hàng cung cấp"
-                : `${currentOrder.status === 'ConsultingAndSketching' ? 'Bản phác thảo' : 'Bản thiết kế'} lần ${phase}`;
+                : `${currentOrder.status !== 'Pending' ? 'Bản phác thảo' : 'Bản thiết kế'} lần ${phase}`;
               const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
 
               return (
-                <div key={phase} style={{ marginBottom: '20px' }}>
-                  <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                    {phaseTitle}
-                    {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                  </Title>
-                  <Row gutter={[16, 16]}>
-                    {recordsInPhase.map(record => (
-                      <Col xs={24} sm={8} key={record.id}>
-                        <Card hoverable style={record.isSelected ? { border: '2px solid #52c41a' } : {}} bodyStyle={{ padding: 0 }}>
-                          <Image src={record.image?.imageUrl || '/placeholder.png'} alt={`Ảnh ${phaseTitle} 1`} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
-                          {record.image?.image2 && <Image src={record.image.image2} alt={`Ảnh ${phaseTitle} 2`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }} />}
-                          {record.image?.image3 && <Image src={record.image.image3} alt={`Ảnh ${phaseTitle} 3`} style={{ width: '100%', height: '200px', objectFit: 'cover', marginTop: '8px' }} />}
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-                </div>
+                // <div key={phase} style={{ marginBottom: '20px' }}>
+                //   <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                //     {phaseTitle}
+                //     {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                //   </Title>
+                <Collapse
+                  key={phase}
+                  bordered={false}
+                  defaultActiveKey={phase === 0 ? [] : [`phase-${phase}`]} // Default mở tất cả, muốn đóng mặc định thì để []
+                  style={{ background: 'transparent', marginBottom: '16px' }}
+                >
+                  <Collapse.Panel
+                    key={`phase-${phase}`}
+                    header={
+                      <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                        {phaseTitle}
+                        {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                      </span>
+                    }
+                  >
+                    <Row gutter={[16, 16]}>
+                      {recordsInPhase.map(record => (
+                        <>
+                          {record.image?.imageUrl && (
+                            <Col xs={24} sm={12} md={8} key={`${record.id}-1`}>
+                              <Card hoverable styles={{
+                                body: {
+                                  padding: 0
+                                }
+                              }}>
+                                <Image
+                                  src={record.image.imageUrl}
+                                  alt={`Ảnh ${phaseTitle} 1`}
+                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                />
+                              </Card>
+                            </Col>
+                          )}
+                          {record.image?.image2 && (
+                            <Col xs={24} sm={12} md={8} key={`${record.id}-2`}>
+                              <Card hoverable styles={{
+                                body: {
+                                  padding: 0
+                                }
+                              }}>
+                                <Image
+                                  src={record.image.image2}
+                                  alt={`Ảnh ${phaseTitle} 2`}
+                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                />
+                              </Card>
+                            </Col>
+                          )}
+                          {record.image?.image3 && (
+                            <Col xs={24} sm={12} md={8} key={`${record.id}-3`}>
+                              <Card hoverable styles={{
+                                body: {
+                                  padding: 0
+                                }
+                              }}>
+                                <Image
+                                  src={record.image.image3}
+                                  alt={`Ảnh ${phaseTitle} 3`}
+                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                />
+                              </Card>
+                            </Col>
+                          )}
+                        </>
+                      ))}
+                    </Row>
+
+                  </Collapse.Panel>
+                </Collapse>
+                // </div>
               );
             })}
-            {(currentOrder.status === 'ConsultingAndSketching' && sketchRecords.length === 0 && !recordLoading) ||
-              (currentOrder.status === 'DoneDesign' && designRecords.length === 0 && !recordLoading) ? (
-              <Empty description={`Chưa có ${currentOrder.status === 'ConsultingAndSketching' ? 'bản phác thảo' : 'bản thiết kế'} nào được tải lên.`} />
-            ) : null}
+            {/* {(currentOrder.status !== 'Pending' && sketchRecords.length === 0 && !recordLoading) ||
+              (currentOrder.status !== 'Pending' && designRecords.length === 0 && !recordLoading) ? (
+              <Empty description={`Chưa có ${currentOrder.status !== 'Pending' ? 'bản phác thảo' : 'bản thiết kế'} nào được tải lên.`} />
+            ) : null} */}
           </Card>
         ) : (
           hasImages && (
@@ -778,7 +944,7 @@ const NewDesignOrderDetail = () => {
                   gap: '8px'
                 }}>
                   <PictureOutlined />
-                  Hình ảnh khách hàng cung cấp
+                  Ảnh khách hàng cung cấp
                 </span>
               }
               style={{
@@ -813,53 +979,68 @@ const NewDesignOrderDetail = () => {
           )
         )}
 
-        {currentOrder.description && (
-          <Card
-            title={
-              <span style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#4caf50',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <FileTextOutlined />
-                Mô tả yêu cầu
-              </span>
-            }
-            style={{
-              borderRadius: '8px',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-              marginBottom: '24px'
-            }}
-          >
-            <div dangerouslySetInnerHTML={{ __html: currentOrder.description }} />
-          </Card>
-        )}
+
 
         {currentOrder.report && (
           <Card
-            title={
-              <span style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#4caf50',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <EditOutlined />
-                Ghi chú / Báo cáo từ Designer
-              </span>
-            }
+            bordered={false}
             style={{
               borderRadius: '8px',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-              marginBottom: '24px'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              marginBottom: '24px',
+              background: '#ffffff', // Cho trắng rõ như Card
+            }}
+            styles={{
+              body: {
+                padding: 0
+              }
             }}
           >
-            <div dangerouslySetInnerHTML={{ __html: currentOrder.report }} />
+            <Collapse
+              bordered={false}
+              style={{
+                borderRadius: '8px',
+                backgroundColor: 'transparent', // Collapse bên trong không cần màu nền
+              }}
+              expandIconPosition="end"
+              activeKey={activeKeys.length > 0 ? activeKeys : (currentOrder.status === 'DeterminingDesignPrice' ? ['report'] : [])}
+              onChange={(keys) => {
+                if (Array.isArray(keys)) {
+                  setActiveKeys(keys);
+                } else {
+                  setActiveKeys([keys]);
+                }
+              }}
+              expandIcon={({ isActive }) => (
+                <CaretRightOutlined
+                  rotate={isActive ? 90 : 0}
+                  style={{ fontSize: '16px', color: '#4caf50' }} // 👉 Gọn hơn, màu xanh lá đồng bộ
+                />
+              )}
+            >
+              <Collapse.Panel
+                key="report"
+                header={
+                  <span style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: (activeKeys.includes('report') || (activeKeys.length === 0 && currentOrder.status === 'DeterminingDesignPrice')) ? '#4caf50' : '#000000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <FileTextOutlined />
+                    Báo cáo của designer về phác thảo/thiết kế và giá thiết kế
+                  </span>
+                }
+                style={{
+                  backgroundColor: '#ffffff', // Panel nền trắng để đồng bộ Card
+                  borderRadius: '8px',
+                }}
+              >
+                <div dangerouslySetInnerHTML={{ __html: currentOrder.report }} />
+              </Collapse.Panel>
+            </Collapse>
           </Card>
         )}
 
@@ -888,6 +1069,8 @@ const NewDesignOrderDetail = () => {
                     <p>
                       Trước khi duyệt giá thiết kế, bạn cần đảm bảo các thông số <strong>tiền cọc</strong> và <strong>hoàn trả</strong> được thiết lập hợp lý.
                     </p>
+                    <p>Số tiền cọc phải nằm trong khoảng 30% đến 80% giá thiết kế</p>
+                    <p>Số tiền hoàn trả phải nằm trong khoảng 10% đến 50% giá thiết kế và không được lớn hơn số tiền cọc</p>
                     <Button
                       type="primary"
                       icon={<EditOutlined />}
@@ -968,18 +1151,38 @@ const NewDesignOrderDetail = () => {
       </Modal>
 
       <Modal
-        title="Thiết lập tỷ lệ tiền cọc và hoàn trả"
+        title={
+          <div>
+            Tùy chỉnh tỷ lệ tiền đặt cọc và hoàn cọc cho đơn <strong>#{currentOrder?.id.substring(0, 8)}</strong>
+          </div>
+        }
         open={isDepositModalVisible}
         onOk={handleDepositSettingsSubmit}
         onCancel={() => setIsDepositModalVisible(false)}
         okText="Cập nhật"
         cancelText="Hủy"
+        width={800}
       >
         <Alert
-          message="Thiết lập tỷ lệ tiền cọc và hoàn trả"
-          description={getDepositSettingsWarning() || "Điều chỉnh tỷ lệ tiền cọc khách hàng cần đặt trước khi thiết kế và tỷ lệ hoàn trả nếu khách hàng hủy đơn."}
-          type={getDepositSettingsWarning() ? "warning" : "info"}
-          showIcon
+          message={<Text strong style={{ fontSize: 16 }}>⚙️ Hướng dẫn thiết lập</Text>}
+          description={(
+            <div style={{ paddingTop: 4 }}>
+              <Typography.Paragraph style={{ marginBottom: 8 }}>
+                <Text>📌 Bạn có thể điều chỉnh <b>tỷ lệ tiền đặt cọc</b> và <b>tỷ lệ hoàn trả</b> cho đơn hàng thiết kế. Vui lòng tuân thủ:</Text>
+              </Typography.Paragraph>
+              <ul style={{ paddingLeft: 20, margin: 0 }}>
+                <li>
+                  <Text strong>💰 Tỷ lệ tiền đặt cọc:</Text>{' '}
+                  <Text type="secondary" style={{ color: '#1890ff' }}>30% - 80%</Text> so với giá thiết kế.
+                </li>
+                <li>
+                  <Text strong>🔁 Tỷ lệ hoàn tiền cọc:</Text>{' '}
+                  <Text type="secondary" style={{ color: '#1890ff' }}>10% - 50%</Text> so với số tiền đã cọc.
+                </li>
+              </ul>
+            </div>
+          )}
+          type="info"
           style={{ marginBottom: '16px' }}
         />
 
@@ -987,240 +1190,200 @@ const NewDesignOrderDetail = () => {
           form={depositForm}
           layout="vertical"
           initialValues={{
-            depositPercentage: depositPercentage,
-            refundPercentage: refundPercentage
+            depositPercentage,
+            refundPercentage
           }}
           onValuesChange={(changedValues) => {
-            // Update local state when form values change
             if ('depositPercentage' in changedValues) {
-              const value = changedValues.depositPercentage;
-              if (value !== null && value !== undefined && !isNaN(value)) {
-                setDepositPercentage(value);
-              }
+              const v = changedValues.depositPercentage;
+              if (!isNaN(v)) setDepositPercentage(v);
             }
             if ('refundPercentage' in changedValues) {
-              const value = changedValues.refundPercentage;
-              if (value !== null && value !== undefined && !isNaN(value)) {
-                setRefundPercentage(value);
-              }
+              const v = changedValues.refundPercentage;
+              if (!isNaN(v)) setRefundPercentage(v);
             }
           }}
         >
-          <Form.Item
-            name="depositPercentage"
-            label="Tỷ lệ tiền cọc (%)"
-            extra={`Khách hàng sẽ phải đặt cọc ${(!depositPercentage || isNaN(depositPercentage)) ? '0' : Number(depositPercentage).toFixed(1)}% giá thiết kế (${formatPrice((currentOrder?.designPrice || 0) * (depositPercentage / 100 || 0))})`}
-            rules={[
-              { required: true, message: 'Vui lòng nhập tỷ lệ tiền cọc' },
-              { type: 'number', min: 10, max: 100, message: 'Tỷ lệ phải từ 10 đến 100%' }
-            ]}
-          >
-            <Space style={{ width: '100%' }} direction="vertical">
-              <Slider
-                min={10}
-                max={100}
-                step={1}
-                onChange={(value) => {
-                  // Don't allow depositPercentage to be less than refundPercentage or below 10%
-                  const refundValue = depositForm.getFieldValue('refundPercentage') || 0;
-                  const safeValue = Math.max(value, refundValue, 10);
+          <Tabs defaultActiveKey="deposit">
+            {/* Tab Tiền đặt cọc */}
+            <Tabs.TabPane tab="💰 Tiền đặt cọc" key="deposit">
+              <Form.Item
+                name="depositPercentage"
+                label="Tỷ lệ tiền đặt cọc (%)"
+                extra={`Khách hàng sẽ phải đặt cọc ${isNaN(depositPercentage) ? '0' : depositPercentage.toFixed(1)}% giá thiết kế (${formatPrice((currentOrder?.designPrice || 0) * (depositPercentage / 100 || 0))})`}
+                rules={[
+                  { required: true, message: 'Vui lòng nhập tỷ lệ tiền đặt cọc' },
+                  { type: 'number', min: 30, max: 80, message: 'Tỷ lệ phải từ 30 đến 80%' }
+                ]}
+              >
+                <Space style={{ width: '100%' }} direction="vertical">
+                  <Slider
+                    min={30}
+                    max={80}
+                    step={1}
+                    value={depositForm.getFieldValue('depositPercentage')}
+                    onChange={(value) => {
+                      depositForm.setFieldsValue({ depositPercentage: value });
+                      depositForm.validateFields(['depositPercentage']);
+                      setDepositPercentage(value);
+                    }}
+                    marks={{
+                      30: '30%',
+                      40: '40%',
+                      50: '50%',
+                      60: '60%',
+                      70: '70%',
+                      80: '80%'
+                    }}
+                    tooltip={{
+                      formatter: (value) =>
+                        isNaN(value) ? '0%' : `${Number(value).toFixed(1)}%`
+                    }}
+                  />
 
-                  depositForm.setFieldsValue({ depositPercentage: safeValue });
-                  // Trigger form validation and re-render
-                  depositForm.validateFields(['depositPercentage']);
-                  // Update extra text immediately by updating local state
-                  setDepositPercentage(safeValue);
-                }}
-                value={depositForm.getFieldValue('depositPercentage')}
-                marks={{
-                  10: '10%',
-                  30: '30%',
-                  50: '50%',
-                  70: '70%',
-                  90: '90%',
-                  100: '100%'
-                }}
-                tooltip={{
-                  formatter: (value) => {
-                    if (value === null || value === undefined || isNaN(value)) return '0%';
-                    return `${Number(value).toFixed(1)}%`;
-                  }
-                }}
-              />
+                  <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
+                    <Col span={24}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        {[30, 40, 50, 60, 70, 80].map(percent => (
+                          <Button
+                            key={percent}
+                            type={depositPercentage === percent ? 'primary' : 'default'}
+                            style={{ width: '18%', margin: '0 1%' }}
+                            onClick={() => {
+                              depositForm.setFieldsValue({ depositPercentage: percent });
+                              setDepositPercentage(percent);
+                            }}
+                          >
+                            {percent}%
+                          </Button>
+                        ))}
+                      </div>
+                    </Col>
 
-              {/* Simplified buttons - reduced number for cleaner UI */}
-              <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
-                <Col span={24}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    {[10, 30, 50, 70, 100].map(percent => (
-                      <Button
-                        key={percent}
-                        type={depositPercentage === percent ? 'primary' : 'default'}
-                        style={{ width: '18%', margin: '0 1%' }}
-                        onClick={() => {
-                          const refundValue = depositForm.getFieldValue('refundPercentage') || 0;
-                          // Only allow setting if greater than refund percentage
-                          if (percent >= refundValue) {
-                            depositForm.setFieldsValue({ depositPercentage: percent });
-                            setDepositPercentage(percent);
-                          } else {
-                            message.warning(`Tỷ lệ tiền cọc không thể thấp hơn tỷ lệ hoàn trả (${refundValue}%)`);
-                          }
-                        }}
-                      >
-                        {percent}%
-                      </Button>
-                    ))}
-                  </div>
-                </Col>
+                    <Col span={24}>
+                      <Card size="small" style={{ textAlign: 'center', background: '#f5f5f5' }}>
+                        <Space align="center">
+                          <Text>Giá trị hiện tại:</Text>
+                          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
+                            {depositForm.getFieldValue('depositPercentage')}%
+                          </Text>
+                          <Button
+                            icon={<ArrowLeftOutlined />}
+                            onClick={() => {
+                              const current = depositForm.getFieldValue('depositPercentage') || 0;
+                              const newValue = Math.max(current - 1, 30);
+                              depositForm.setFieldsValue({ depositPercentage: newValue });
+                              setDepositPercentage(newValue);
+                            }}
+                            disabled={depositForm.getFieldValue('depositPercentage') <= 30}
+                          />
+                          <Button
+                            icon={<ArrowRightOutlined />}
+                            onClick={() => {
+                              const current = depositForm.getFieldValue('depositPercentage') || 0;
+                              const newValue = Math.min(current + 1, 80);
+                              depositForm.setFieldsValue({ depositPercentage: newValue });
+                              setDepositPercentage(newValue);
+                            }}
+                            disabled={depositForm.getFieldValue('depositPercentage') >= 80}
+                          />
+                        </Space>
+                      </Card>
+                    </Col>
+                  </Row>
+                </Space>
+              </Form.Item>
+            </Tabs.TabPane>
 
-                <Col span={24}>
-                  <Card size="small" style={{ textAlign: 'center', background: '#f5f5f5' }}>
-                    <Space align="center">
-                      <Text>Giá trị hiện tại:</Text>
-                      <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-                        {depositForm.getFieldValue('depositPercentage')}%
-                      </Text>
+            {/* Tab Tiền hoàn cọc */}
+            <Tabs.TabPane tab="🔁 Tiền hoàn cọc" key="refund">
+              <Form.Item
+                name="refundPercentage"
+                label="Tỷ lệ hoàn tiền cọc (%)"
+                extra="Tỷ lệ phải từ 10 đến 50%."
+                rules={[
+                  { required: true, message: 'Vui lòng nhập tỷ lệ hoàn tiền cọc' },
+                  { type: 'number', min: 10, max: 50, message: 'Tỷ lệ phải từ 10 đến 50%' }
+                ]}
+              >
+                <Space style={{ width: '100%' }} direction="vertical">
+                  <Slider
+                    min={10}
+                    max={50}
+                    step={1}
+                    value={depositForm.getFieldValue('refundPercentage')}
+                    onChange={(value) => {
+                      depositForm.setFieldsValue({ refundPercentage: value });
+                      depositForm.validateFields(['refundPercentage']);
+                      setRefundPercentage(value);
+                    }}
+                    marks={{
+                      10: '10%',
+                      20: '20%',
+                      30: '30%',
+                      40: '40%',
+                      50: '50%'
+                    }}
+                    tooltip={{
+                      formatter: (value) =>
+                        isNaN(value) ? '0%' : `${Number(value).toFixed(1)}%`
+                    }}
+                  />
 
-                      <Button
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => {
-                          const currentValue = depositForm.getFieldValue('depositPercentage') || 0;
-                          const refundValue = depositForm.getFieldValue('refundPercentage') || 0;
-                          // Don't allow below 10% or refund percentage
-                          const newValue = Math.max(currentValue - 1, refundValue, 10);
-                          depositForm.setFieldsValue({ depositPercentage: newValue });
-                          setDepositPercentage(newValue);
-                        }}
-                        disabled={depositForm.getFieldValue('depositPercentage') <= Math.max((depositForm.getFieldValue('refundPercentage') || 0), 10)}
-                      />
-                      <Button
-                        icon={<ArrowRightOutlined />}
-                        onClick={() => {
-                          const currentValue = depositForm.getFieldValue('depositPercentage') || 0;
-                          const newValue = Math.min(currentValue + 1, 100);
-                          depositForm.setFieldsValue({ depositPercentage: newValue });
-                          setDepositPercentage(newValue);
-                        }}
-                        disabled={depositForm.getFieldValue('depositPercentage') >= 100}
-                      />
-                    </Space>
-                  </Card>
-                </Col>
-              </Row>
-            </Space>
-          </Form.Item>
+                  <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
+                    <Col span={24}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        {[10, 20, 30, 40, 50].map(percent => (
+                          <Button
+                            key={percent}
+                            type={refundPercentage === percent ? 'primary' : 'default'}
+                            style={{ width: '18%', margin: '0 1%' }}
+                            onClick={() => {
+                              depositForm.setFieldsValue({ refundPercentage: percent });
+                              setRefundPercentage(percent);
+                            }}
+                          >
+                            {percent}%
+                          </Button>
+                        ))}
+                      </div>
+                    </Col>
 
-          <Form.Item
-            name="refundPercentage"
-            label="Tỷ lệ hoàn trả (%)"
-            extra="Tỷ lệ tiền hoàn trả khi khách hàng hủy đơn sau khi đã đặt cọc, không được lớn hơn tỷ lệ tiền đặt cọc."
-            rules={[
-              { required: true, message: 'Vui lòng nhập tỷ lệ hoàn trả' },
-              { type: 'number', min: 0, max: 100, message: 'Tỷ lệ phải từ 0 đến 100%' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('depositPercentage') >= value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('Tỷ lệ hoàn trả không được lớn hơn tỷ lệ tiền đặt cọc'));
-                },
-              }),
-            ]}
-          >
-            <Space style={{ width: '100%' }} direction="vertical">
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                onChange={(value) => {
-                  // Don't allow refundPercentage to be greater than depositPercentage
-                  const depositValue = depositForm.getFieldValue('depositPercentage') || 0;
-                  const safeValue = Math.min(value, depositValue);
-
-                  depositForm.setFieldsValue({ refundPercentage: safeValue });
-                  // Trigger form validation and re-render
-                  depositForm.validateFields(['refundPercentage']);
-                  // Update local state
-                  setRefundPercentage(safeValue);
-                }}
-                value={depositForm.getFieldValue('refundPercentage')}
-                marks={{
-                  0: '0%',
-                  25: '25%',
-                  50: '50%',
-                  75: '75%',
-                  100: '100%'
-                }}
-                tooltip={{
-                  formatter: (value) => {
-                    if (value === null || value === undefined || isNaN(value)) return '0%';
-                    return `${Number(value).toFixed(1)}%`;
-                  }
-                }}
-              />
-
-              {/* Simplified buttons - reduced number for cleaner UI */}
-              <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
-                <Col span={24}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    {[0, 20, 30, 40, 60, 80].map(percent => (
-                      <Button
-                        key={percent}
-                        type={refundPercentage === percent ? 'primary' : 'default'}
-                        style={{ width: '18%', margin: '0 1%' }}
-                        onClick={() => {
-                          const depositValue = depositForm.getFieldValue('depositPercentage') || 0;
-                          // Only allow setting if less than deposit percentage
-                          if (percent <= depositValue) {
-                            depositForm.setFieldsValue({ refundPercentage: percent });
-                            setRefundPercentage(percent);
-                          } else {
-                            message.warning(`Tỷ lệ hoàn trả không thể cao hơn tỷ lệ tiền cọc (${depositValue}%)`);
-                          }
-                        }}
-                      >
-                        {percent}%
-                      </Button>
-                    ))}
-                  </div>
-                </Col>
-
-                <Col span={24}>
-                  <Card size="small" style={{ textAlign: 'center', background: '#f5f5f5' }}>
-                    <Space align="center">
-                      <Text>Giá trị hiện tại:</Text>
-                      <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-                        {depositForm.getFieldValue('refundPercentage')}%
-                      </Text>
-
-                      <Button
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => {
-                          const currentValue = depositForm.getFieldValue('refundPercentage') || 0;
-                          const newValue = Math.max(currentValue - 1, 0);
-                          depositForm.setFieldsValue({ refundPercentage: newValue });
-                          setRefundPercentage(newValue);
-                        }}
-                        disabled={depositForm.getFieldValue('refundPercentage') <= 0}
-                      />
-                      <Button
-                        icon={<ArrowRightOutlined />}
-                        onClick={() => {
-                          const currentValue = depositForm.getFieldValue('refundPercentage') || 0;
-                          const depositValue = depositForm.getFieldValue('depositPercentage') || 0;
-                          const newValue = Math.min(currentValue + 1, depositValue);
-                          depositForm.setFieldsValue({ refundPercentage: newValue });
-                          setRefundPercentage(newValue);
-                        }}
-                        disabled={depositForm.getFieldValue('refundPercentage') >= depositForm.getFieldValue('depositPercentage')}
-                      />
-                    </Space>
-                  </Card>
-                </Col>
-              </Row>
-            </Space>
-          </Form.Item>
+                    <Col span={24}>
+                      <Card size="small" style={{ textAlign: 'center', background: '#f5f5f5' }}>
+                        <Space align="center">
+                          <Text>Giá trị hiện tại:</Text>
+                          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
+                            {depositForm.getFieldValue('refundPercentage')}%
+                          </Text>
+                          <Button
+                            icon={<ArrowLeftOutlined />}
+                            onClick={() => {
+                              const current = depositForm.getFieldValue('refundPercentage') || 0;
+                              const newValue = Math.max(current - 1, 10);
+                              depositForm.setFieldsValue({ refundPercentage: newValue });
+                              setRefundPercentage(newValue);
+                            }}
+                            disabled={depositForm.getFieldValue('refundPercentage') <= 10}
+                          />
+                          <Button
+                            icon={<ArrowRightOutlined />}
+                            onClick={() => {
+                              const current = depositForm.getFieldValue('refundPercentage') || 0;
+                              const newValue = Math.min(current + 1, 50);
+                              depositForm.setFieldsValue({ refundPercentage: newValue });
+                              setRefundPercentage(newValue);
+                            }}
+                            disabled={depositForm.getFieldValue('refundPercentage') >= 50}
+                          />
+                        </Space>
+                      </Card>
+                    </Col>
+                  </Row>
+                </Space>
+              </Form.Item>
+            </Tabs.TabPane>
+          </Tabs>
         </Form>
       </Modal>
 

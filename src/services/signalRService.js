@@ -64,7 +64,19 @@ class SignalRService {
       console.error("SignalR connection not initialized. Call startConnection first.");
       return;
     }
-    this.connection.on(eventName, callback);
+    
+    // Wrap the callback to log the received data
+    const wrappedCallback = (...args) => {
+      console.group(`🟢 SignalR Event: ${eventName}`);
+      console.log("Received data:", args);
+      console.groupEnd();
+      
+      // Call the original callback
+      callback(...args);
+    };
+    
+    this.connection.on(eventName, wrappedCallback);
+    console.log(`[SignalR] Listening on event: "${eventName}"`);
   };
 
   // Method to remove a listener for a specific event
@@ -73,22 +85,13 @@ class SignalRService {
       console.error("SignalR connection not initialized.");
       return;
     }
-    this.connection.off(eventName, callback);
+    
+    // Since we're wrapping callbacks, we need to be careful when removing them
+    // For simplicity, we'll remove all handlers for this event
+    this.connection.off(eventName);
+    console.log(`[SignalR] Stopped listening on event: "${eventName}"`);
   };
 
-  // Optional: Method to invoke a hub method on the server
-  // invoke = async (methodName, ...args) => {
-  //   if (!this.connection || !this.connectionStarted) {
-  //     console.error("SignalR connection not started.");
-  //     throw new Error("SignalR connection not established.");
-  //   }
-  //   try {
-  //     return await this.connection.invoke(methodName, ...args);
-  //   } catch (err) {
-  //     console.error(`Error invoking hub method ${methodName}:`, err);
-  //     throw err;
-  //   }
-  // };
 }
 
 // Export a singleton instance

@@ -249,8 +249,12 @@ const OrdersTable = ({
             status = "Giao lại";
             break;
           case "9":
-            color = "success";
+            color = "cyan";
             status = "Đã giao hàng thành công";
+            break;
+          case "10":
+            color = "success";
+            status = "Đơn hàng đã hoàn tất";
             break;
           default:
             color = "default";
@@ -293,7 +297,7 @@ const OrdersTable = ({
                   onClick: async (e) => {
                     e.stopPropagation();
                     try {
-                      const success = await updateOrderStatus(record.id, { status: 6, deliveryCode: order_code });
+                      const success = await updateOrderStatus(record.id, { status: 6, deliveryCode: record.deliveryCode });
                       if (success) {
                         message.success("Đã cập nhật trạng thái đơn hàng");
                         fetchOrders();
@@ -315,7 +319,7 @@ const OrdersTable = ({
                   onClick: async (e) => {
                     e.stopPropagation();
                     try {
-                      const success = await updateOrderStatus(record.id, { status: 9, deliveryCode: order_code });
+                      const success = await updateOrderStatus(record.id, { status: 9, deliveryCode: record.deliveryCode });
                       if (success) {
                         message.success("Đã cập nhật trạng thái đơn hàng");
                         fetchOrders();
@@ -333,7 +337,7 @@ const OrdersTable = ({
                   onClick: async (e) => {
                     e.stopPropagation();
                     try {
-                      const success = await updateOrderStatus(record.id, { status: 7, deliveryCode: order_code });
+                      const success = await updateOrderStatus(record.id, { status: 7, deliveryCode: record.deliveryCode });
                       if (success) {
                         message.success("Đã cập nhật trạng thái đơn hàng");
                         fetchOrders();
@@ -354,7 +358,7 @@ const OrdersTable = ({
                   onClick: async (e) => {
                     e.stopPropagation();
                     try {
-                      const success = await updateOrderStatus(record.id, { status: 8, deliveryCode: order_code });
+                      const success = await updateOrderStatus(record.id, { status: 8, deliveryCode: record.deliveryCode });
                       if (success) {
                         message.success("Đã cập nhật trạng thái đơn hàng");
                         fetchOrders();
