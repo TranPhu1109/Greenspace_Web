@@ -144,7 +144,7 @@ const DesignDetails = ({
                 : order?.serviceType || 'Đang tải...'}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Giá thiết kế">
+          <Descriptions.Item label="Chi phí thiết kế chi tiết">
             {order?.designPrice === 0 || !approvedDesignPriceStatuses.includes(order?.status) ? (
               <Tag color="gold">Chưa xác định giá thiết kế</Tag>
             ) : (

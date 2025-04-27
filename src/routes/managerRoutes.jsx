@@ -12,6 +12,7 @@ import NewDesignOrdersList from "@/components/Manager/NewDesignOrders/NewDesignO
 import NewDesignOrderDetail from "@/components/Manager/NewDesignOrders/NewDesignOrderDetail";
 import WebManage from "@/components/Manager/WebManage/WebManage";
 import ComplaintsRefundList from "@/components/Manager/Complaints/ComplaintsRefundList";
+import TransactionPercentageManagement from "@/components/Manager/Percentage/TransactgionPercentageManagement";
 
 export const managerRoutes = {
   path: "/manager",
@@ -86,6 +87,10 @@ export const managerRoutes = {
           element: <NewDesignOrderDetail />,
         },
       ],
+    },
+    {
+      path: "deposit-management",
+      element: <TransactionPercentageManagement />,
     },
     {
       path: "webmanage",

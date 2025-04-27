@@ -75,11 +75,30 @@ const ManagerSidebar = ({ collapsed }) => {
           },
         ],
       },
+      // {
+      //   key: "/manager/new-design-orders",
+      //   icon: <ProjectOutlined />,
+      //   label: <Link to="/manager/new-design-orders">Đơn đặt thiết kế mới</Link>,
+      // },
       {
-        key: "/manager/new-design-orders",
+        key: "designOrders",
         icon: <ProjectOutlined />,
-        label: <Link to="/manager/new-design-orders">Đơn đặt thiết kế mới</Link>,
-      },
+        label: "Đơn đặt thiết kế",
+        children: [
+          {
+            key: "/manager/new-design-orders",
+            label: <Link to="/manager/new-design-orders">Danh sách đơn</Link>,
+          },
+          {
+            key: "/manager/deposit-management",
+            label: <div style={{ whiteSpace: 'normal', lineHeight: '1.2' }}>
+            <Link to="/manager/deposit-management">
+              Quản lý tỷ lệ đặt cọc / hoàn cọc
+            </Link>
+          </div>,
+          },
+        ],
+      },      
       {
         key: "/manager/transactions",
         icon: <HistoryOutlined />,

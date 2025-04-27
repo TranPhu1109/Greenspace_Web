@@ -17,17 +17,13 @@ const REFUND_REASONS = [
   "Giao sai sản phẩm",
   "Sản phẩm giao thiếu",
   "Sản phẩm không đúng mô tả",
-  "Sản phẩm quá hạn sử dụng",
-  "Không còn nhu cầu sử dụng",
   "Đã thanh toán nhưng không nhận được hàng",
   "Sản phẩm bị lỗi sản xuất",
-  "Giao hàng trễ so với cam kết"
 ];
 
 const EXCHANGE_REASONS = [
   "Sản phẩm không đúng kích thước hoặc màu sắc",
   "Sản phẩm không phù hợp với phong cách không gian của tôi",
-  "Muốn đổi sang mẫu thiết kế khác phù hợp hơn",
   "Tặng quà không phù hợp, muốn đổi sang sản phẩm khác",
   "Nhân viên tư vấn sai hoặc chưa đúng nhu cầu",
   "Sản phẩm có lỗi nhẹ, mong muốn đổi cái khác",

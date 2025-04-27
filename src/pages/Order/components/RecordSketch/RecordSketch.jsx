@@ -18,7 +18,8 @@ const RecordSketch = ({
   getServiceOrderById,
   confirmRecord,
   getRecordSketch,
-  updateServiceOrderStatus
+  updateServiceOrderStatus,
+  data
 }) => {
   const [selectedSketchId, setSelectedSketchId] = useState(null);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
@@ -27,28 +28,8 @@ const RecordSketch = ({
   const [submitting, setSubmitting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  console.log('DEBUG - RecordSketch:', {
-    sketchRecords,
-  });
-
-
   // Check if the current status is DoneDesign or later
   const isDoneDesign = order?.status === 'DoneDesign' || order?.status === 6;
-
-  // For testing/debugging in the browser
-  const debugLogPhases = () => {
-    console.log('DEBUG RecordSketch - Current Status:', order?.status);
-    console.log('DEBUG RecordSketch - Max Phase:', maxPhase);
-    console.log('DEBUG RecordSketch - Can View Phase 1:', canViewPhase1Sketches());
-    console.log('DEBUG RecordSketch - Can View Phase 2:', canViewPhase2Sketches());
-    console.log('DEBUG RecordSketch - All Sketch Records:', sketchRecords);
-    console.log('DEBUG RecordSketch - Phases to Display:', getPhasesToDisplay());
-  };
-
-  // Call this once per render to help with debugging
-  React.useEffect(() => {
-    console.log('DEBUG RecordSketch - Initial render');
-  }, []);
 
   // Check which statuses allow viewing phase 1 sketches
   const canViewPhase1Sketches = () => {
@@ -138,24 +119,76 @@ const RecordSketch = ({
     try {
       setIsSubmitting(true);
 
+      // Show a loading message
+      const messageKey = "confirmSketch";
+      message.loading({
+        content: "Đang xác nhận bản phác thảo...",
+        key: messageKey,
+        duration: 0
+      });
+
+      // Create modified copy of sketch records for optimistic update
+      const updatedSketchRecords = sketchRecords.map(record => ({
+        ...record,
+        isSelected: record.id === selectedSketchId
+      }));
+
       // First step: Confirm the sketch selection
       await confirmRecord(selectedSketchId);
+
+      // Close modal immediately
       setIsConfirmModalVisible(false);
 
-      // Second step: Update status to WaitDeposit (status code 21)
-      try {
-        await updateStatus(order.id, 21);
+      // Show success message
+      message.success({
+        content: "Đã chọn bản phác thảo thành công!",
+        key: messageKey,
+        duration: 2
+      });
 
-        // Refresh sketch records
-        await getRecordSketch(order.id);
-
-      } catch (statusError) {
-        console.error("Error updating status:", statusError);
-        Modal.error({ content: 'Không thể cập nhật trạng thái đơn hàng: ' + statusError.message });
+      // Create optimistic update with both order status and sketch selection
+      if (window && window.useRecordStore) {
+        // This directly updates the store without triggering a fetch
+        window.useRecordStore.setState({
+          sketchRecords: updatedSketchRecords
+        });
       }
+
+      // Second step: Update status to WaitDeposit (status code 21)
+      await updateStatus(order.id, 21);
+
+      // Optimistically update the order status locally
+      const localOrderUpdate = {
+        ...order,
+        status: 21 // WaitDeposit status code
+      };
+
+      // Use the global soft update - this prevents re-renders
+      if (window.softUpdateOrderData) {
+        window.softUpdateOrderData(localOrderUpdate);
+      }
+
+      // Don't trigger any data refreshing at all
+      // Let parent components handle data refreshing when needed
+
     } catch (err) {
       console.error("Error confirming sketch:", err);
-      Modal.error({ content: 'Không thể chọn bản phác thảo: ' + err.message });
+      message.error({
+        content: 'Không thể chọn bản phác thảo: ' + err.message,
+        key: "confirmSketch"
+      });
+
+      // If error occurs, we need to refresh data to ensure consistency
+      if (window.silentRefreshData) {
+        setTimeout(() => {
+          window.silentRefreshData(order.id, {
+            refreshSketch: true,
+            refreshOrder: true,
+            showLoading: false,
+            showSuccess: false
+          }).catch(() => { });
+        }, 1000);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -209,6 +242,14 @@ const RecordSketch = ({
     setSubmitting(true);
 
     try {
+      // Show loading notification
+      const messageKey = "revisionRequest";
+      message.loading({
+        content: "Đang gửi yêu cầu phác thảo lại...",
+        key: messageKey,
+        duration: 0
+      });
+
       // 1. Update the order status to ReConsultingAndSketching (19)
       await updateServiceOrderStatus(order.id, 19);
 
@@ -230,26 +271,46 @@ const RecordSketch = ({
         console.warn("No work tasks found for this order");
       }
 
-      notification.success({ content: "Đã gửi yêu cầu phác thảo lại thành công." });
+      // Show notification and close modal
+      message.success({
+        content: "Đã gửi yêu cầu phác thảo lại thành công!",
+        key: messageKey,
+        duration: 2
+      });
+
+      // Close modal immediately
       setIsRevisionModalVisible(false);
 
-      // 4. Refresh the order data to reflect the changes
-      const updatedOrder = await getServiceOrderById(order.id);
+      // Optimistically update the order status locally
+      const localOrderUpdate = {
+        ...order,
+        status: 19 // ReConsultingAndSketching status code
+      };
 
-      // 5. Refresh sketch records
-      await getRecordSketch(order.id);
-
-      // 6. Call window.refreshOrderData if available (to trigger parent refresh)
-      if (window.refreshOrderData) {
-        window.refreshOrderData(order.id);
+      // Use the global soft update if available
+      if (window.softUpdateOrderData) {
+        window.softUpdateOrderData(localOrderUpdate);
       }
 
+      // No need for background updates, UI is already updated optimistically
     } catch (error) {
       console.error("Error requesting revision:", error);
       Modal.error({
         title: "Lỗi khi gửi yêu cầu phác thảo lại",
         content: error.message || "Vui lòng thử lại sau"
       });
+
+      // Only in case of error, do a background refresh
+      if (window.silentRefreshData) {
+        setTimeout(() => {
+          window.silentRefreshData(order.id, {
+            refreshOrder: true,
+            refreshSketch: false,
+            showLoading: false,
+            showSuccess: false
+          }).catch(() => { });
+        }, 1000);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -258,26 +319,57 @@ const RecordSketch = ({
   // Cancel order handler passed from parent
   const handleCancelOrder = async () => {
     setIsSubmitting(true);
+
     try {
+      // Show loading notification
+      const messageKey = "cancelOrder";
+      message.loading({
+        content: "Đang hủy đơn hàng...",
+        key: messageKey,
+        duration: 0
+      });
+
       // Use cancelServiceOrder from useServiceOrderStore (passed from parent)
       await updateServiceForCus(order.id, {
         serviceType: 1,
         status: "OrderCancelled"
       });
-      Modal.success({ content: "Đã hủy đơn hàng thành công." });
 
-      // Refresh all data
-      const updatedOrder = await getServiceOrderById(order.id);
+      // Show success notification
+      message.success({
+        content: "Đã hủy đơn hàng thành công!",
+        key: messageKey,
+        duration: 2
+      });
 
-      // Refresh sketch records as well
-      await getRecordSketch(order.id);
+      // Optimistically update the order status locally
+      const localOrderUpdate = {
+        ...order,
+        status: "OrderCancelled"
+      };
 
-      // Call global refresh function if available
-      if (window.refreshOrderData) {
-        window.refreshOrderData(order.id);
+      // Use the global soft update if available
+      if (window.softUpdateOrderData) {
+        window.softUpdateOrderData(localOrderUpdate);
       }
+
+      // No need for background updates, UI is already updated optimistically
     } catch (err) {
-      Modal.error({ content: "Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message) });
+      message.error({
+        content: "Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message),
+        key: "cancelOrder"
+      });
+
+      // Only in case of error, do a background refresh
+      if (window.silentRefreshData) {
+        setTimeout(() => {
+          window.silentRefreshData(order.id, {
+            refreshOrder: true,
+            showLoading: false,
+            showSuccess: false
+          }).catch(() => { });
+        }, 1000);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -331,8 +423,8 @@ const RecordSketch = ({
     const isReConsulting = order?.status === 'ReConsultingAndSketching' || order?.status === 19;
 
     // Add phase 2 if status permits and it exists
-    if ((canViewPhase2Sketches() && maxPhase >= 2) || 
-        ((hasPhase3 || maxPhase >= 3) && (isDeterminingPrice || isReConsulting) && maxPhase >= 2)) {
+    if ((canViewPhase2Sketches() && maxPhase >= 2) ||
+      ((hasPhase3 || maxPhase >= 3) && (isDeterminingPrice || isReConsulting) && maxPhase >= 2)) {
       phases.push(2);
     }
 
@@ -350,13 +442,6 @@ const RecordSketch = ({
   };
 
   const phasesToDisplay = getPhasesToDisplay();
-
-  // Call debug logging function after all other functions are defined
-  React.useEffect(() => {
-    if (order && sketchRecords) {
-      debugLogPhases();
-    }
-  }, [order?.status, sketchRecords, maxPhase]);
 
   return (
     <>
@@ -457,10 +542,119 @@ const RecordSketch = ({
         {/* Action buttons for sketch selection - only show when in DoneDeterminingDesignPrice status */}
         {(order?.status === 'DoneDeterminingDesignPrice' || order?.status === 22) && (
           <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              {!sketchRecords.some(r => r.isSelected) && maxPhase >= 1 && (
-                <Text type="secondary" style={{ marginTop: '8px' }}>Vui lòng chọn một bản phác thảo hoặc thực hiện hành động khác.</Text>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+
+              {/* Warning Card nếu đã tới Phase 3 mà chưa chọn */}
+              {!sketchRecords.some(r => r.isSelected) && maxPhase >= 3 && (
+                <Card
+                  bordered={false}
+                  style={{
+                    background: '#fffef0', // Màu vàng nhẹ hơn chút cho sáng
+                    border: '1px solid #ffd666', // Viền vàng cam nhẹ
+                    borderRadius: '12px', // Bo tròn mềm mại hơn
+                    padding: '24px 32px',
+                    width: '100%',
+                    maxWidth: '635px',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(255, 215, 0, 0.2)', // Đổ bóng vàng nhẹ
+                  }}
+                >
+                  {/* Header Warning */}
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '24px' }}>⚠️</span>
+                    <Text strong style={{ fontSize: '18px', color: '#d48806' }}>
+                      Vui lòng chọn 1 trong 3 bản phác thảo ✏️
+                    </Text>
+                  </div>
+
+                  {/* Nội dung hướng dẫn */}
+                  <div style={{ color: '#8c6d1f', fontSize: '15px', textAlign: 'left', lineHeight: 1.6 }}>
+                    <p>📄 Bạn đã yêu cầu tối đa <strong>3 lần phác thảo</strong>.</p>
+                    <p>✅ Hãy chọn <strong>1 bản phác thảo</strong> mà bạn yêu thích để tiếp tục quy trình thiết kế.</p>
+                    <p>❌ Nếu không hài lòng với các phương án, bạn có thể <strong>hủy đơn thiết kế</strong> này.</p>
+                  </div>
+                </Card>
+
               )}
+
+              {/* Nếu chưa chọn mà chưa tới phase 3 */}
+              {!sketchRecords.some(r => r.isSelected) && maxPhase < 3 && (
+                <Text type="secondary" style={{ fontSize: '14px', textAlign: 'center' }}>
+                  Vui lòng chọn một bản phác thảo hoặc thực hiện hành động khác.
+                </Text>
+              )}
+
+              {/* Các nút hành động */}
+              {!sketchRecords.some(r => r.isSelected) && (
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {/* Nút yêu cầu phác thảo lại */}
+                  {(maxPhase === 1 || maxPhase === 2) && (
+                    <Button
+                      icon={<EditOutlined />}
+                      onClick={handleShowRevisionModal}
+                      disabled={isSubmitting || externalIsSubmitting || recordLoading || submitting}
+                      loading={submitting}
+                      type="primary"
+                    >
+                      Yêu cầu phác thảo lại
+                    </Button>
+                  )}
+
+                  {/* Nút hủy đơn */}
+                  <Popconfirm
+                    title="Bạn chắc chắn muốn hủy đơn hàng này?"
+                    onConfirm={handleCancelOrder}
+                    okText="Xác nhận hủy"
+                    cancelText="Không"
+                    okButtonProps={{ danger: true }}
+                    disabled={isSubmitting || externalIsSubmitting || recordLoading}
+                  >
+                    <Button
+                      danger
+                      icon={<StopOutlined />}
+                      loading={isSubmitting && order?.status === 'OrderCancelled'}
+                      disabled={isSubmitting || externalIsSubmitting || recordLoading}
+                    >
+                      Hủy đơn thiết kế
+                    </Button>
+                  </Popconfirm>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* {(order?.status === 'DoneDeterminingDesignPrice' || order?.status === 22) && (
+          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px'  }}>
+              {!sketchRecords.some(r => r.isSelected) && maxPhase >= 3 && (
+                <Card
+                  bordered={false}
+                  style={{
+                    backgroundColor: '#fff7e6',
+                    border: '1px solid #faad14',
+                    borderRadius: '8px',
+                    flex: '1',
+                    minWidth: '280px'
+                  }}
+                >
+                  <Text strong style={{ fontSize: '16px', color: '#d48806' }}>
+                    ⚠️ Vui lòng chọn 1 trong 3 bản phác thảo
+                  </Text>
+                  <div style={{ marginTop: '8px', color: '#d48806' }}>
+                    <p>Bạn đã yêu cầu 3 lần phác thảo.</p>
+                    <p>Vui lòng chọn một bản phác thảo yêu thích để tiếp tục quy trình.</p>
+                    <p>Nếu không hài lòng, bạn có thể hủy đơn thiết kế này.</p>
+                  </div>
+                </Card>
+              )}
+
+              {!sketchRecords.some(r => r.isSelected) && maxPhase < 3 && (
+                <Text type="secondary" style={{ marginTop: '8px' }}>
+                  Vui lòng chọn một bản phác thảo hoặc thực hiện hành động khác.
+                </Text>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {(maxPhase === 1 || maxPhase === 2) && !sketchRecords.some(r => r.isSelected) && (
                   <Button
@@ -487,33 +681,51 @@ const RecordSketch = ({
                       loading={isSubmitting && order?.status === 'OrderCancelled'}
                       disabled={isSubmitting || externalIsSubmitting || recordLoading}
                     >
-                      Hủy đơn hàng
+                      Hủy đơn thiết kế
                     </Button>
                   </Popconfirm>
                 )}
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </Card>
 
       {/* Add Confirmation Modal */}
       <Modal
-        title="Xác nhận chọn bản phác thảo"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+            <span style={{ fontSize: '18px', fontWeight: 600 }}>Xác nhận chọn bản phác thảo</span>
+          </div>
+        }
         open={isConfirmModalVisible}
         onOk={handleConfirmSelection}
         onCancel={handleCancelSelection}
         okText="Xác nhận"
         cancelText="Hủy"
         confirmLoading={isSubmitting || externalIsSubmitting}
+        bodyStyle={{ paddingTop: '16px' }}
       >
-        <p>Bạn có chắc chắn muốn chọn bản phác thảo này không?</p>
-        <p>Sau khi chọn, hệ thống sẽ tự động tạo hợp đồng và bạn sẽ cần thanh toán 50% phí thiết kế để tiếp tục.</p>
+        <div style={{ fontSize: '15px', lineHeight: '1.7', color: '#595959' }}>
+          <p>🎯 Bạn có chắc chắn muốn <strong>chọn bản phác thảo</strong> này không?</p>
+          <p>📝 Sau khi chọn:</p>
+          <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
+            <li>Hệ thống sẽ <strong>tự động tạo hợp đồng thiết kế</strong>.</li>
+            <li>Bạn cần thanh toán <strong style={{ color: '#fa541c' }}>{data?.depositPercentage}% phí thiết kế</strong> để tiếp tục.</li>
+          </ul>
+          <p style={{ marginTop: '16px' }}>💡 Hãy chắc chắn rằng bạn đã xem kỹ bản phác thảo trước khi xác nhận nhé!</p>
+        </div>
       </Modal>
 
       {/* Add Revision Request Modal */}
       <Modal
-        title="Yêu cầu phác thảo lại"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <EditOutlined style={{ fontSize: '24px' }} />
+            <span style={{ fontSize: '18px', fontWeight: 600, }}>Yêu cầu phác thảo lại</span>
+          </div>
+        }
         open={isRevisionModalVisible}
         onCancel={handleCloseRevisionModal}
         onOk={handleSubmitRevision}
@@ -522,29 +734,28 @@ const RecordSketch = ({
         cancelText="Hủy bỏ"
         width={800}
       >
+        {/* Hướng dẫn */}
         <div style={{
           backgroundColor: '#f6ffed',
           border: '1px solid #b7eb8f',
-          padding: '12px 16px',
-          borderRadius: '4px',
-          marginBottom: '16px'
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '24px'
         }}>
-          <Typography.Title level={5} style={{ color: '#52c41a', marginTop: 0 }}>
-            Hướng dẫn phản hồi
+          <Typography.Title level={5} style={{ color: '#52c41a', marginTop: 0, marginBottom: '8px' }}>
+          🌿 Hướng dẫn chi tiết
           </Typography.Title>
-          <Typography.Paragraph>
-            Vui lòng cung cấp chi tiết về những điều bạn muốn thay đổi hoặc điều chỉnh trong bản phác thảo.
+          <Typography.Paragraph style={{ fontSize: '14px', color: '#595959' }}>
+            Vui lòng cung cấp chi tiết về các điều chỉnh bạn mong muốn cho bản phác thảo:
           </Typography.Paragraph>
-          <Typography.Paragraph strong>
-            Những thông tin cần đề cập:
-          </Typography.Paragraph>
-          <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
-            <li>Mô tả cụ thể những phần bạn muốn thay đổi</li>
-            <li>Ý tưởng hoặc phong cách mới mà bạn mong muốn</li>
-            <li>Các yếu tố cần giữ nguyên từ bản phác thảo hiện tại</li>
+          <ul style={{ paddingLeft: '20px', fontSize: '14px', color: '#595959', marginBottom: 0,listStyleType: 'disc', listStylePosition: 'inside' }}>
+            <li>Mô tả cụ thể các phần cần thay đổi hoặc chỉnh sửa</li>
+            <li>Phong cách mới hoặc ý tưởng bạn muốn đề xuất</li>
+            <li>Các chi tiết bạn muốn giữ lại từ bản phác thảo hiện tại</li>
           </ul>
         </div>
 
+        {/* Editor nhập nội dung */}
         <EditorComponent
           value={revisionNote}
           onChange={(content) => setRevisionNote(content)}

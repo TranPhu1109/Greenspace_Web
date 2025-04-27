@@ -3,7 +3,8 @@ import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typogr
 import { FileTextOutlined, ReloadOutlined, CheckCircleOutlined, UploadOutlined, CloseCircleOutlined, UserOutlined, MailOutlined, PhoneOutlined, DollarOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import AddressForm from "@/components/Common/AddressForm"; // Import AddressForm
-import { Document, Page } from "react-pdf";
+import { Worker, Viewer } from '@react-pdf-viewer/core';
+import '@react-pdf-viewer/core/lib/styles/index.css';
 
 const { Text, Title, Paragraph } = Typography;
 const { Step } = Steps;
@@ -572,6 +573,15 @@ const ContractSection = ({
         footer={null} // Custom footer buttons within steps
         maskClosable={!generatingContract && !signingAndPaying && !uploading} // Prevent closing during async ops
         destroyOnClose={false} // Don't destroy to preserve contract data
+        styles={{
+          body: {
+            maxHeight: '85vh',   // 💥 Giới hạn chiều cao
+            overflowY: 'auto',   // 💥 Cuộn bên trong
+            paddingRight: '16px', // 💥 Không bị che scroll
+            scrollbarWidth: 'thin', // 💥 Scrollbar nhỏ
+            scrollbarColor: '#d9d9d9 #f5f5f5' // 💥 Màu scrollbar
+          },
+        }}
       >
         <Spin spinning={generatingContract || signingAndPaying || uploading || checkingExistingContracts}
           tip={
@@ -683,16 +693,17 @@ const ContractSection = ({
               </Paragraph>
 
               {/* Contract PDF Display */}
+              
               {contracts.length > 0 && contracts[0].description ? (
                 <iframe
                   src={contracts[0].description}
-                  style={{ width: "100%", height: "50vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
+                  style={{ width: "100%", height: "70vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
                   title="Contract PDF Preview"
                 />
               ) : localContractData?.description ? (
                 <iframe
                   src={localContractData.description}
-                  style={{ width: "100%", height: "50vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
+                  style={{ width: "100%", height: "70vh", border: "1px solid #d9d9d9", marginBottom: 15, flexGrow: 1 }}
                   title="Contract PDF Preview"
                 />
               ) : (
