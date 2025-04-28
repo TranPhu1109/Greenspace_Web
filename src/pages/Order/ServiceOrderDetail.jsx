@@ -834,6 +834,7 @@ const ServiceOrderDetail = () => {
                   refreshAllData={refreshAllData}
                   updateTaskOrder={updateTaskOrder}
                   getServiceOrderById={getServiceOrderById}
+                  data={data}
                 />
               )}
           </Card>

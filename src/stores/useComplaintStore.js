@@ -204,7 +204,8 @@ const useComplaintStore = create((set, get) => ({
     id,
     statusCode,
     complaintType = 0,
-    deliveryCode = ""
+    deliveryCode = "",
+    reason = null
   ) => {
     set({ loading: true, error: null });
     try {
@@ -212,6 +213,7 @@ const useComplaintStore = create((set, get) => ({
         status: statusCode,
         complaintType: complaintType,
         deliveryCode: deliveryCode,
+        reason: reason || ''
       });
 
       set({ loading: false });

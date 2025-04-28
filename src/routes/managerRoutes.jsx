@@ -13,6 +13,7 @@ import NewDesignOrderDetail from "@/components/Manager/NewDesignOrders/NewDesign
 import WebManage from "@/components/Manager/WebManage/WebManage";
 import ComplaintsRefundList from "@/components/Manager/Complaints/ComplaintsRefundList";
 import TransactionPercentageManagement from "@/components/Manager/Percentage/TransactgionPercentageManagement";
+import ComplaintReasonManage from "@/components/Manager/Complaints/ComplaintsResion";
 
 export const managerRoutes = {
   path: "/manager",
@@ -95,6 +96,10 @@ export const managerRoutes = {
     {
       path: "webmanage",
       element: <WebManage />,
+    },
+    {
+      path: "complaint-reasons",
+      element: <ComplaintReasonManage />,
     },
   ],
 };

@@ -24,7 +24,8 @@ const ContractSection = ({
   generateContract,  // Func to generate contract API
   refreshAllData,    // Func to refresh all order data
   updateTaskOrder,    // Func to update workTask status
-  getServiceOrderById // Func to get service order by id
+  getServiceOrderById, // Func to get service order by id
+  data // Func to get service order by id
 }) => {
   const [form] = Form.useForm(); // Form instance for user info
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
@@ -318,7 +319,10 @@ const ContractSection = ({
     const contractToSign = localContractData || (contracts.length > 0 ? contracts[0] : null);
     console.log("Contract to sign:", contractToSign);
 
-    if (!contractToSign || !contractToSign.data.id) {
+    // Try to get ID from nested data or directly from the object
+    const contractId = contractToSign?.data?.id || contractToSign?.id;
+
+    if (!contractToSign || !contractId) { // Check if contract and ID exist
       message.error("Không tìm thấy thông tin hợp đồng. Vui lòng thử tạo lại.");
       return;
     }
@@ -344,8 +348,7 @@ const ContractSection = ({
       console.log("Contract to sign:", contractToSign);
       // 2. Sign Contract API Call
       try {
-        await signContract(contractToSign.data.id, signatureImageUrl);
-        message.success("Đã ký hợp đồng thành công.");
+        await signContract(contractId, signatureImageUrl); // Use the extracted contractId
       } catch (signError) {
         console.error("Sign contract error:", signError);
         throw new Error("Ký hợp đồng thất bại: " + (signError.response?.data?.message || signError.message));
@@ -370,7 +373,6 @@ const ContractSection = ({
           amount,
           description: paymentDescription,
         });
-        message.success("Thanh toán đặt cọc thành công!");
 
       } catch (paymentError) {
         console.error("Payment error:", paymentError);
@@ -381,7 +383,6 @@ const ContractSection = ({
       // 4. Update Order Status
       try {
         await updateStatus(selectedOrder.id, 3); // 3: DepositSuccessful
-        message.success("Đã cập nhật trạng thái đơn hàng.");
       } catch (statusError) {
         console.error("Status update error:", statusError);
         // Notify user that payment was made but status update failed
@@ -423,7 +424,6 @@ const ContractSection = ({
 
             console.log("Updating task:", taskToUpdate.id, "with payload:", taskPayload);
             await updateTaskOrder(taskToUpdate.id, taskPayload);
-            message.success("Đã cập nhật trạng thái công việc thành công.");
           } else {
             console.warn("No valid workTask found to update for order:", selectedOrder.id);
           }
@@ -442,7 +442,7 @@ const ContractSection = ({
       if (refreshAllData) {
         await refreshAllData(selectedOrder.id);
       }
-
+      message.success("🎉 Đã ký và đặt cọc thành công!");
       handleCloseModal();
       await getServiceOrderById(selectedOrder.id);
 
@@ -654,7 +654,7 @@ const ContractSection = ({
                     </Form.Item>
                     <Alert
                       // message={`Bạn sẽ thanh toán ${(selectedOrder.depositPercentage || 50)}% phí thiết kế (${formatPrice((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100)}) để đặt cọc.`}
-                      message={`Bạn sẽ thanh toán ${(selectedOrder.depositPercentage || 50)}% phí thiết kế (${formatPrice(Math.round((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100))}) để đặt cọc.`}
+                      message={`Bạn sẽ thanh toán ${(data?.depositPercentage || 50)}% phí thiết kế (${formatPrice(Math.round((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100))}) để đặt cọc.`}
                       type="info"
                       showIcon
                       style={{ marginBottom: 16 }}
@@ -816,7 +816,7 @@ const ContractSection = ({
                 type="warning"
                 showIcon
                 message="Xác nhận ký và thanh toán"
-                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100)}.`}
+                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100)}.`}
                 style={{ marginBottom: 16 }}
               />
 

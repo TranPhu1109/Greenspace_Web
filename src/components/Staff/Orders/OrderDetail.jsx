@@ -26,6 +26,7 @@ import {
   EnvironmentOutlined,
   CalendarOutlined,
   CloseCircleOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
 import "./OrderDetail.scss";
 import { Tooltip } from "antd";
@@ -294,6 +295,17 @@ const OrderDetail = () => {
               <Descriptions.Item
                 label={
                   <span style={{ fontWeight: "bold" }}>
+                    <EnvironmentOutlined /> Mã đơn vận chuyển
+                  </span>
+                }
+              >
+                <Text copyable={{ text: selectedOrder.deliveryCode, icon: <CopyOutlined /> }}>
+                  {selectedOrder.deliveryCode}
+                </Text>
+              </Descriptions.Item>
+              <Descriptions.Item
+                label={
+                  <span style={{ fontWeight: "bold" }}>
                     <EnvironmentOutlined /> Địa chỉ giao hàng
                   </span>
                 }
@@ -374,36 +386,38 @@ const OrderDetail = () => {
                       style={{ fontSize: "14px" }}
                       color={
                         selectedOrder.status === "3" ||
-                        selectedOrder.status === "7"
+                          selectedOrder.status === "7"
                           ? "red"
                           : selectedOrder.status === "9"
-                          ? "green"
-                          : selectedOrder.status === "1"
-                          ? "blue"
-                          : "gold"
+                            ? "green"
+                            : selectedOrder.status === "1"
+                              ? "blue"
+                              : "gold"
                       }
                     >
                       {selectedOrder.status === "0"
                         ? "Chờ xử lý"
                         : selectedOrder.status === "1"
-                        ? "Đang xử lý"
-                        : selectedOrder.status === "2"
-                        ? "Đã xử lý"
-                        : selectedOrder.status === "3"
-                        ? "Đã hủy"
-                        : selectedOrder.status === "4"
-                        ? "Đã hoàn tiền"
-                        : selectedOrder.status === "5"
-                        ? "Đã hoàn tiền xong"
-                        : selectedOrder.status === "6"
-                        ? "Đã lấy hàng & đang giao"
-                        : selectedOrder.status === "7"
-                        ? "Giao hàng thất bại"
-                        : selectedOrder.status === "8"
-                        ? "Giao lại"
-                        : selectedOrder.status === "9"
-                        ? "Đã giao hàng thành công"
-                        : "Đang xử lý"}
+                          ? "Đang xử lý"
+                          : selectedOrder.status === "2"
+                            ? "Đã xử lý"
+                            : selectedOrder.status === "3"
+                              ? "Đã hủy"
+                              : selectedOrder.status === "4"
+                                ? "Đã hoàn tiền"
+                                : selectedOrder.status === "5"
+                                  ? "Đã hoàn tiền xong"
+                                  : selectedOrder.status === "6"
+                                    ? "Đã lấy hàng & đang giao"
+                                    : selectedOrder.status === "7"
+                                      ? "Giao hàng thất bại"
+                                      : selectedOrder.status === "8"
+                                        ? "Giao lại"
+                                        : selectedOrder.status === "9"
+                                          ? "Đã giao hàng thành công"
+                                          : selectedOrder.status === "10"
+                                            ? "Đơn hàng đã hoàn thành"
+                                            : "Đang xử lý"}
                     </Tag>
                     {selectedOrder.status === "0" && (
                       <Button
@@ -504,79 +518,76 @@ const OrderDetail = () => {
             <Divider />
 
             {/* Trạng thái đơn hàng */}
-            <div className="order-status-tracker">
-              <Title level={5}>Trạng thái đơn hàng</Title>
+            <div style={{ marginTop: 24, background: "#fafafa", padding: 20, borderRadius: 12 }}>
+              <Title level={5} style={{ marginBottom: 16 }}>🚚 Trạng thái đơn hàng</Title>
               <Steps
                 direction="vertical"
                 current={getCurrentStep(selectedOrder.status)}
                 status={
-                  selectedOrder.status === "3" ||
-                  selectedOrder.status === "4" ||
-                  selectedOrder.status === "5" ||
-                  selectedOrder.status === "7"
-                    ? "error"
-                    : selectedOrder.status === "9"
-                    ? "finish"
-                    : "process"
+                  ["3", "4", "5", "7"].includes(selectedOrder.status) ? "error" :
+                    ["9", "10"].includes(selectedOrder.status) ? "finish" : "process"
                 }
-                className="order-steps"
-                progressDot
+                style={{ marginLeft: 8 }}
               >
                 <Step
                   title="Chờ xử lý"
+                  icon={<ShoppingOutlined style={{ fontSize: 28, color: selectedOrder.status === "0" ? "#1890ff" : "#d9d9d9" }} />}
                   description={
-                    <div className="step-description">
+                    <>
                       <p>Đơn hàng đang chờ xác nhận</p>
                       {selectedOrder.status === "0" && (
-                        <p className="step-time">
-                          {new Date(selectedOrder.creationDate).toLocaleString("vi-VN")}
-                        </p>
+                        <p style={{ fontSize: 12, color: "#888" }}>{new Date(selectedOrder.creationDate).toLocaleString("vi-VN")}</p>
                       )}
-                    </div>
+                    </>
                   }
-                  icon={<ShoppingOutlined style={{ fontSize: '24px' }} />}
                 />
                 <Step
                   title="Đã xác nhận"
+                  icon={<CheckCircleOutlined style={{ fontSize: 28, color: ["1", "2"].includes(selectedOrder.status) ? "#1890ff" : "#d9d9d9" }} />}
                   description={
-                    <div className="step-description">
-                      <p>Đơn hàng đã được xác nhận và đang xử lý</p>
-                      {(selectedOrder.status === "1" || selectedOrder.status === "2") && (
-                        <p className="step-time">
-                          {new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}
-                        </p>
+                    <>
+                      <p>Đơn hàng đã xác nhận và xử lý</p>
+                      {["1", "2"].includes(selectedOrder.status) && (
+                        <p style={{ fontSize: 12, color: "#888" }}>{new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}</p>
                       )}
-                    </div>
+                    </>
                   }
-                  icon={<CheckCircleOutlined style={{ fontSize: '24px' }} />}
                 />
                 <Step
                   title="Đang giao hàng"
+                  icon={<TruckOutlined style={{ fontSize: 28, color: ["6", "8"].includes(selectedOrder.status) ? "#faad14" : "#d9d9d9" }} />}
                   description={
-                    <div className="step-description">
-                      <p>Đơn hàng đang được giao</p>
-                      {(selectedOrder.status === "6" || selectedOrder.status === "8") && (
-                        <p className="step-time">
-                          {new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}
-                        </p>
+                    <>
+                      <p>Đơn hàng đang trên đường giao</p>
+                      {["6", "8"].includes(selectedOrder.status) && (
+                        <p style={{ fontSize: 12, color: "#888" }}>{new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}</p>
                       )}
-                    </div>
+                    </>
                   }
-                  icon={<TruckOutlined style={{ fontSize: '24px' }} />}
                 />
                 <Step
                   title="Đã giao hàng"
+                  icon={<CheckCircleOutlined style={{ fontSize: 28, color: selectedOrder.status === "9" ? "#52c41a" : "#d9d9d9" }} />}
                   description={
-                    <div className="step-description">
-                      <p>Đơn hàng đã được giao thành công</p>
+                    <>
+                      <p>Đơn hàng giao thành công</p>
                       {selectedOrder.status === "9" && (
-                        <p className="step-time">
-                          {new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}
-                        </p>
+                        <p style={{ fontSize: 12, color: "#888" }}>{new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}</p>
                       )}
-                    </div>
+                    </>
                   }
-                  icon={<CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />}
+                />
+                <Step
+                  title="Đã hoàn thành"
+                  icon={<CheckCircleOutlined style={{ fontSize: 28, color: selectedOrder.status === "10" ? "#237804" : "#d9d9d9" }} />}
+                  description={
+                    <>
+                      <p>Đơn hàng hoàn tất</p>
+                      {selectedOrder.status === "10" && (
+                        <p style={{ fontSize: 12, color: "#888" }}>{new Date(selectedOrder.updatedDate || selectedOrder.creationDate).toLocaleString("vi-VN")}</p>
+                      )}
+                    </>
+                  }
                 />
               </Steps>
             </div>
