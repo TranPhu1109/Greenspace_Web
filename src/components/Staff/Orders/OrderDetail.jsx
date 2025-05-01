@@ -72,7 +72,7 @@ const OrderDetail = () => {
   };
 
   // Thêm hàm xử lý chấp nhận/từ chối đơn hàng
-  const handleAcceptOrder = async () => {
+  const handleAcceptOrder = async () => { 
     try {
       // Tạo đơn ship
       const addressParts = selectedOrder.address

@@ -175,7 +175,7 @@ const TemplateOrderDetail = () => {
   // Update Steps component to show all statuses
   const getCurrentStep = (status) => {
     const stepMap = {
-      "Pending": 0,
+      "Pending": 0, // Chờ xử lý
       "PaymentSuccess": 1,
       "Processing": 2,
       "PickedPackageAndDelivery": 3,
@@ -470,81 +470,91 @@ const TemplateOrderDetail = () => {
                 <div className="selected-materials">
                   <h4>Vật liệu:</h4>
                   <div style={{ marginBottom: "10px" }}>
-                    <Table
-                      dataSource={selectedOrder.serviceOrderDetails.map(
-                        (detail) => {
-                          const product = products.find(
-                            (p) => p.id === detail.productId
-                          );
-                          const category = categories.find(
-                            (c) => c.id === product?.categoryId
-                          );
-                          return {
-                            ...detail,
-                            product,
-                            category,
-                          };
-                        }
-                      )}
-                      pagination={false}
-                      size="small"
-                      bordered
-                      summary={() => (
-                        <Table.Summary>
-                          <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={3}>
-                              <strong>Tổng tiền vật liệu</strong>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={1}>
-                              <strong>
-                                {selectedOrder.materialPrice.toLocaleString(
-                                  "vi-VN"
-                                )}{" "}
-                                đ
-                              </strong>
-                            </Table.Summary.Cell>
-                          </Table.Summary.Row>
-                        </Table.Summary>
-                      )}
-                    >
-                      <Table.Column
-                        title="Sản phẩm"
-                        key="product"
-                        render={(record) => (
-                          <Space>
-                            <img
-                              src={record.product?.image.imageUrl}
-                              alt={record.product?.name}
-                              style={{
-                                width: 50,
-                                height: 50,
-                                borderRadius: "5px",
-                                objectFit: "cover",
-                              }}
-                            />
-                            <div>
-                              <div>{record.product?.name}</div>
-                              <Tag color="green">{record.category?.name}</Tag>
-                            </div>
-                          </Space>
-                        )}
-                      />
-                      <Table.Column title="Số lượng" dataIndex="quantity" />
-                      <Table.Column
-                        title="Đơn giá"
-                        dataIndex="price"
-                        render={(price) => (
-                          <span>{price.toLocaleString("vi-VN")} đ</span>
-                        )}
-                      />
-                      <Table.Column
-                        title="Thành tiền"
-                        dataIndex="totalPrice"
-                        render={(totalPrice) => (
-                          <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
-                        )}
-                      />
-                    </Table>
+                    {/* Calculate material price from details */}
+                    {(() => {
+                      const calculatedMaterialPrice = selectedOrder.serviceOrderDetails.reduce(
+                        (sum, detail) => sum + detail.totalPrice,
+                        0
+                      );
+
+                      return (
+                        <Table
+                          dataSource={selectedOrder.serviceOrderDetails.map(
+                            (detail) => {
+                              const product = products.find(
+                                (p) => p.id === detail.productId
+                              );
+                              const category = categories.find(
+                                (c) => c.id === product?.categoryId
+                              );
+                              return {
+                                ...detail,
+                                product,
+                                category,
+                              };
+                            }
+                          )}
+                          pagination={false}
+                          size="small"
+                          bordered
+                          summary={() => (
+                            <Table.Summary>
+                              <Table.Summary.Row>
+                                <Table.Summary.Cell index={0} colSpan={3}>
+                                  <strong>Tổng tiền vật liệu</strong>
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={1}>
+                                  <strong>
+                                    {calculatedMaterialPrice.toLocaleString(
+                                      "vi-VN"
+                                    )}{" "}
+                                    đ
+                                  </strong>
+                                </Table.Summary.Cell>
+                              </Table.Summary.Row>
+                            </Table.Summary>
+                          )}
+                        >
+                          <Table.Column
+                            title="Sản phẩm"
+                            key="product"
+                            render={(record) => (
+                              <Space>
+                                <img
+                                  src={record.product?.image.imageUrl}
+                                  alt={record.product?.name}
+                                  style={{
+                                    width: 50,
+                                    height: 50,
+                                    borderRadius: "5px",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                                <div>
+                                  <div>{record.product?.name}</div>
+                                  <Tag color="green">{record.category?.name}</Tag>
+                                </div>
+                              </Space>
+                            )}
+                          />
+                          <Table.Column title="Số lượng" dataIndex="quantity" />
+                          <Table.Column
+                            title="Đơn giá"
+                            dataIndex="price"
+                            render={(price) => (
+                              <span>{price.toLocaleString("vi-VN")} đ</span>
+                            )}
+                          />
+                          <Table.Column
+                            title="Thành tiền"
+                            dataIndex="totalPrice"
+                            render={(totalPrice) => (
+                              <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
+                            )}
+                          />
+                        </Table>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -711,7 +721,10 @@ const TemplateOrderDetail = () => {
                   display: "block",
                   marginTop: "4px"
                 }}>
-                  {((selectedOrder.designPrice || 0) + (selectedOrder.materialPrice || 0)).toLocaleString("vi-VN")} đ
+                  {((selectedOrder.designPrice || 0) + (selectedOrder.serviceOrderDetails.reduce(
+                    (sum, detail) => sum + detail.totalPrice,
+                    0
+                  ) || 0)).toLocaleString("vi-VN")} đ
                 </span>
               </Descriptions.Item>
             </Descriptions>

@@ -187,6 +187,7 @@ export const useCloudinaryStorage = () => {
       setError(err);
       throw err;
     }
+
   };
 
   // Trả về các hàm và state cần thiết
