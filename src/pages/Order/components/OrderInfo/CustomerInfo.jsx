@@ -42,6 +42,24 @@ const CustomerInfo = ({ order }) => {
         <Descriptions.Item label="Địa chỉ">
           {order?.address?.replace(/\|/g, ', ') || 'Đang tải...'}
         </Descriptions.Item>
+        <Descriptions.Item label="Thời gian designer liên hệ">
+          {order?.workTasks?.[0]?.dateAppointment && order?.workTasks?.[0]?.timeAppointment ? (
+            <div>
+              <div>
+                <strong>📅 Ngày:</strong>{' '}
+                <span style={{ color: '#1677ff' }}>
+                  {order.workTasks[0].dateAppointment.split('-').reverse().join('/')}
+                </span>
+              </div>
+              <div>
+                <strong>⏰ Giờ:</strong>{' '}
+                <span style={{ color: '#52c41a' }}>{order.workTasks[0].timeAppointment}</span>
+              </div>
+            </div>
+          ) : (
+            <span style={{ color: '#999' }}>Chờ xác nhận</span>
+          )}
+        </Descriptions.Item>
       </Descriptions>
     </Card>
   );

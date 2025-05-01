@@ -129,7 +129,7 @@ const NewDesignOrderDetail = () => {
     try {
       signalRService.startConnection().then(() => { // Ensure connection is attempted
         console.log(`SignalR connection ready for NewDesignOrderDetail listener (Order ID: ${id}).`);
-        signalRService.on("messagereceived", handleOrderUpdate);
+        signalRService.on("messageReceived", handleOrderUpdate);
       }).catch(err => {
           console.error(`SignalR connection failed in NewDesignOrderDetail (Order ID: ${id}):`, err);
       });
@@ -140,7 +140,7 @@ const NewDesignOrderDetail = () => {
     // Cleanup function
     return () => {
       console.log(`Removing SignalR listener from NewDesignOrderDetail (Order ID: ${id}).`);
-      signalRService.off("messagereceived", handleOrderUpdate);
+      signalRService.off("messageReceived", handleOrderUpdate);
       // Consider stopping connection only if no other components need it.
       // signalRService.stopConnection();
     };

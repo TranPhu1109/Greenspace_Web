@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Table, Tag, Space, Tooltip } from "antd";
+import { Table, Tag, Space, Tooltip, Popover } from "antd";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
 import useDesignerTask from "@/stores/useDesignerTask";
@@ -118,6 +118,29 @@ const TaskList = () => {
       title: "Ghi chú",
       dataIndex: "note",
       key: "note",
+      render: (noteHtml) => {
+        if (!noteHtml) return "Không có";
+        return (
+          <Popover
+            placement="right"
+            title="Ghi chú"
+            content={<div dangerouslySetInnerHTML={{ __html: noteHtml }} />}
+            trigger="hover"
+          >
+            <div
+              className="cursor-pointer hover:underline"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+              dangerouslySetInnerHTML={{ __html: noteHtml }}
+            />
+          </Popover>
+        );
+      },
     },
     {
       title: "Lịch hẹn gặp khách hàng",

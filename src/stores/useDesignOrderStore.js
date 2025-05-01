@@ -255,7 +255,7 @@ const useDesignOrderStore = create((set, get) => ({
   updateProductOrder: async (serviceOrderId, updateData) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`/api/serviceorder/customer/${serviceOrderId}`, updateData);
+      const response = await axios.put(`/api/serviceorder/${serviceOrderId}`, updateData);
       
       // Update the order in the store
       set(state => ({
@@ -264,6 +264,49 @@ const useDesignOrderStore = create((set, get) => ({
         ),
         selectedOrder: state.selectedOrder?.id === serviceOrderId 
           ? { ...state.selectedOrder, ...updateData }
+          : state.selectedOrder,
+        isLoading: false
+      }));
+
+      return response.data;
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
+  updateDepositSettings: async (serviceOrderId, depositPercentage, refundPercentage) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      // Validate input values
+      const deposit = parseFloat(depositPercentage);
+      const refund = parseFloat(refundPercentage);
+ 
+      // Call the API to update deposit settings
+      const response = await axios.put(`/api/serviceorder/deposit/${serviceOrderId}`, {
+        depositPercentage: deposit,
+        refundPercentage: refund
+      });
+      
+      // Update the order in the store
+      set(state => ({
+        designOrders: state.designOrders.map(order => 
+          order.id === serviceOrderId ? { 
+            ...order, 
+            depositPercentage: deposit,
+            refundPercentage: refund
+          } : order
+        ),
+        selectedOrder: state.selectedOrder?.id === serviceOrderId 
+          ? { 
+              ...state.selectedOrder, 
+              depositPercentage: deposit,
+              refundPercentage: refund
+            }
           : state.selectedOrder,
         isLoading: false
       }));

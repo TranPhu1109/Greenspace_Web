@@ -352,26 +352,25 @@ const ServiceOrderHistory = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}
           />
-          
-          {/* <Title level={2} className="mb-6">
-            Lịch sử đơn đặt thiết kế
-          </Title> */}
 
-          {!dataLoaded ? (
-            <Alert
-              message="Đang tải dữ liệu"
-              description="Vui lòng đợi trong giây lát..."
-              type="info"
-              showIcon
-            />
-          ) : serviceOrders.length === 0 ? (
-            <Alert
-              message="Không có đơn đặt thiết kế"
-              description="Bạn chưa có đơn đặt thiết kế nào."
-              type="info"
-              showIcon
-            />
-          ) : (
+          {
+          // !dataLoaded ? (
+          //   <Alert
+          //     message="Đang tải dữ liệu"
+          //     description="Vui lòng đợi trong giây lát..."
+          //     type="info"
+          //     showIcon
+          //   />
+          // ) : 
+          // serviceOrders.length === 0 ? (
+          //   <Alert
+          //     message="Không có đơn đặt thiết kế"
+          //     description="Bạn chưa có đơn đặt thiết kế nào."
+          //     type="info"
+          //     showIcon
+          //   />
+          // ) : 
+          (
             <Table
               dataSource={serviceOrders}
               columns={columns}

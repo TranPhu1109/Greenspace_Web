@@ -295,28 +295,21 @@ const useProductStore = create(persist((set, get) => ({
       }
       
       if (response.status === 200 || response.data) {
+        const product = response.data;
         const formattedProduct = {
-          ...response.data,
+          ...product,
           image: {
-            imageUrl: response.data.image?.imageUrl || "",
-            imageUrl2: response.data.image?.image2 || "",
-            imageUrl3: response.data.image?.image3 || "",
+            imageUrl: product.image?.imageUrl || "",
+            image2: product.image?.image2 || "",
+            image3: product.image?.image3 || "",
           }
         };
+        
         set({ selectedProduct: formattedProduct, isLoading: false });
         return formattedProduct;
       }
       
-      const processedProduct = {
-        ...response.data,
-        image: {
-          imageUrl: response.data.image?.imageUrl || "",
-          image2: response.data.image?.image2 || "",
-          image3: response.data.image?.image3 || "",
-        }
-      };
-
-      return processedProduct;
+      return null;
     } catch (error) {
       if (!axios.isCancel(error)) {
         set({ error: error.message, isLoading: false });

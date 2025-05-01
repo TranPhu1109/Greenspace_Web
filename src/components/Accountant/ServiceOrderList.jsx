@@ -40,7 +40,7 @@ const ServiceOrderList = () => {
   const loadAllOrders = async () => {
     try {
       await Promise.all([
-        fetchServiceOrders(),
+        // fetchServiceOrders(),
         fetchMaterialPriceOrders()
       ]);
     } catch (error) {
