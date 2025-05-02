@@ -91,7 +91,7 @@ const BlogDetail = () => {
             </div>
           )} */}
           <div className="blog-content" style={{ marginTop: 24 }}>
-            <div dangerouslySetInnerHTML={{ __html: blog.description }} />
+            <div className="html-preview" dangerouslySetInnerHTML={{ __html: blog.description }} />
           </div>
         </Card>
       </div>

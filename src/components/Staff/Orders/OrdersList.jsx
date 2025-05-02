@@ -4,6 +4,7 @@ import useOrderStore from "../../../stores/orderStore";
 import useProductStore from "../../../stores/useProductStore";
 import OrdersTable from "./components/OrdersTable";
 import OrdersFilter from "./components/OrdersFilter";
+import signalRService from "../../../services/signalRService";
 
 const { Title } = Typography;
 
@@ -22,6 +23,30 @@ const OrdersList = () => {
     fetchOrders();
     fetchProducts();
   }, [fetchOrders, fetchProducts]);
+
+  // Setup SignalR connection
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+        
+        // Register listener for messageReceived event
+        signalRService.on("messageReceived", (message) => {
+          // When a new order message is received, refresh the orders
+          fetchOrders();
+        });
+      } catch (error) {
+        console.error("Failed to connect to SignalR hub:", error);
+      }
+    };
+    
+    setupSignalR();
+    
+    // Cleanup on component unmount
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [fetchOrders]);
 
   // Lọc dữ liệu khi orders, searchText, filterStatus, filterPayment hoặc dateRange thay đổi
   useEffect(() => {

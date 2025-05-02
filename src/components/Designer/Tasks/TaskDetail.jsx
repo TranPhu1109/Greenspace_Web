@@ -152,7 +152,7 @@ const TaskDetail = () => {
   } = useDesignerTask();
   const { getProductById, fetchProducts, products } = useProductStore();
   const { user } = useAuthStore();
-  const { sketchRecords, designRecords, getRecordSketch, getRecordDesign } = useRecordStore();
+  const { sketchRecords, designRecords, getRecordSketch, getRecordDesign, resetState } = useRecordStore();
   const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModalVisibleDesign, setIsModalVisibleDesign] = useState(false);
@@ -174,7 +174,8 @@ const TaskDetail = () => {
   const [adjustImagesOnly, setAdjustImagesOnly] = useState(false);
   const [adjustmentOption, setAdjustmentOption] = useState('both'); // 'both', 'priceOnly', 'imagesOnly'
   const [showReportEditor, setShowReportEditor] = useState(false);
-
+  const [showSketchReportEditor, setShowSketchReportEditor] = useState(false);
+  const [sketchReport, setSketchReport] = useState("");
   // Debug log để kiểm tra các hàm
   useEffect(() => {
     console.log("Task state:", { task });
@@ -199,9 +200,39 @@ const TaskDetail = () => {
   }, [id, fetchTaskDetail]);
 
   useEffect(() => {
+    // Load task detail và records khi component mount với ID mới
+    const loadTaskDetail = async () => {
+      if (!id) return;
+
+      try {
+        await fetchTaskDetail(id);
+
+        // Chỉ tải sketch records khi task được load thành công
+        if (task?.serviceOrder?.id) {
+          await getRecordSketch(task.serviceOrder.id);
+          await getRecordDesign(task.serviceOrder.id);
+        }
+      } catch (error) {
+        console.error("Error loading task detail:", error);
+      }
+    };
+
+    loadTaskDetail();
+
+    // Cleanup function - reset store khi unmount
+    return () => {
+      resetState(); // Reset toàn bộ records trong store
+      setSketchReport(""); // Reset local state cho sketchReport
+      setReport(""); // Reset local state cho report
+      setShowReportEditor(false); // Reset state cho editor visibility
+      setShowSketchReportEditor(false);
+    };
+  }, [id]);
+
+  useEffect(() => {
     if (task && task.serviceOrder && task.serviceOrder.id) {
-    getRecordSketch(task.serviceOrder.id);
-    getRecordDesign(task.serviceOrder.id);
+      getRecordSketch(task.serviceOrder.id);
+      getRecordDesign(task.serviceOrder.id);
     }
   }, [task, getRecordSketch, getRecordDesign]);
 
@@ -223,15 +254,15 @@ const TaskDetail = () => {
     }
   }, [task]);
 
-  // Add useEffect to initialize showReportEditor based on existing report
+  // Add useEffect to initialize showSketchReportEditor based on existing report
   useEffect(() => {
     // If there's no report yet, show the editor by default
-    if (task?.serviceOrder?.report) {
-      setShowReportEditor(false);
+    if (task?.serviceOrder?.skecthReport) {
+      setShowSketchReportEditor(false);
     } else {
-      setShowReportEditor(true);
+      setShowSketchReportEditor(true);
     }
-  }, [task?.serviceOrder?.report]);
+  }, [task?.serviceOrder?.skecthReport]);
 
   const handleDesignImageUpload = async (file) => {
     try {
@@ -259,7 +290,7 @@ const TaskDetail = () => {
     setIsModalVisible(true);
     // Set initial form values
     sketchForm.setFieldsValue({
-      designPrice: task?.serviceOrder?.designPrice || 0
+      designPrice: task?.serviceOrder?.designPrice
     });
 
     // In case of ReDeterminingDesignPrice, also set a default message based on manager's report
@@ -280,150 +311,261 @@ const TaskDetail = () => {
     setIsModalVisibleDesign(true);
   };
 
+  // const handleOkSketch = async () => {
+  //   // Add check for task and task.serviceOrder
+  //   if (!task || !task.serviceOrder) {
+  //     message.error("Dữ liệu công việc chưa được tải xong. Vui lòng thử lại.");
+  //     console.error("handleOkSketch called with null task or task.serviceOrder:", task);
+  //     return;
+  //   }
+
+  //   let uploadedUrls = [];
+  //   try {
+  //     const values = await sketchForm.validateFields();
+  //     const currentOrderStatus = task?.serviceOrder?.status; // Get current order status
+
+  //     setUploadingSketch(true);
+
+  //     // Xử lý tải lên ảnh nếu cần
+  //     const isPriceOnly = adjustmentOption === 'priceOnly';
+  //     const isImagesOnly = adjustmentOption === 'imagesOnly';
+
+  //     if (!isPriceOnly) {
+  //       // Step 1: Upload images
+  //       if (sketchFiles.length > 0) {
+  //         message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0);
+  //         uploadedUrls = await uploadImages(sketchFiles);
+  //         message.destroy();
+  //         if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
+  //           throw new Error("Lỗi trong quá trình tải ảnh lên.");
+  //         }
+  //         message.success("Tải ảnh lên thành công!");
+  //       } else if (isRedeterminingModal && currentSketchImages.length > 0 && !isImagesOnly) {
+  //         // Nếu đang trong modal Redetermining và không chọn cập nhật ảnh, giữ nguyên ảnh hiện tại
+  //         uploadedUrls = currentSketchImages;
+  //       } else {
+  //         // If no new files, check if *any* existing images are present before assuming old ones
+  //         const existingImages = [
+  //           task.serviceOrder.image?.imageUrl,
+  //           task.serviceOrder.image?.image2,
+  //           task.serviceOrder.image?.image3
+  //         ].filter(Boolean);
+
+  //         if (existingImages.length === 0 && sketchFiles.length === 0 && !isPriceOnly) {
+  //           // If no existing images AND no new files, require upload
+  //           throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
+  //         }
+
+  //         // Use existing images if no new files were uploaded BUT existing images are present
+  //         uploadedUrls = existingImages;
+  //       }
+  //     } else {
+  //       // Nếu chỉ điều chỉnh giá, sử dụng ảnh hiện tại
+  //       uploadedUrls = [
+  //         task.serviceOrder.image?.imageUrl,
+  //         task.serviceOrder.image?.image2,
+  //         task.serviceOrder.image?.image3
+  //       ].filter(Boolean);
+  //     }
+
+  //     // Determine the status to send for record creation based on current order status
+  //     let statusForRecordCreation;
+  //     if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
+  //       statusForRecordCreation = 1;
+  //     } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
+  //       statusForRecordCreation = 19;
+  //     } else if (currentOrderStatus === 'ReDeterminingDesignPrice' || currentOrderStatus === 24) {
+  //       statusForRecordCreation = 24;
+  //     } else {
+  //       // Handle unexpected status - log a warning and default or throw error
+  //       console.warn(`Unexpected initial status ${currentOrderStatus} for sketch submission. Defaulting status to 1.`);
+  //       statusForRecordCreation = 1; // Defaulting to 1 might be safer than failing
+  //     }
+
+  //     // Step 2: Update service order with initial status (for record creation)
+  //     const serviceOrderUpdateData = {
+  //       serviceType: 1,
+  //       designPrice: isImagesOnly ? task.serviceOrder.designPrice : values.designPrice,
+  //       description: task.serviceOrder.description,
+  //       status: statusForRecordCreation,
+  //       report: report,
+  //       skecthReport: task.serviceOrder.skecthReport || "",
+  //       reportManger: task.serviceOrder.reportManger || "",
+  //       reportAccoutant: task.serviceOrder.reportAccoutant || "",
+  //       image: {
+  //         imageUrl: uploadedUrls[0] || "",
+  //         image2: uploadedUrls[1] || "",
+  //         image3: uploadedUrls[2] || ""
+  //       },
+  //     };
+
+  //     await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
+
+  //     // Step 3: Update Service Order Status to DeterminingDesignPrice (2)
+  //     await updateStatus(task.serviceOrder.id, 2);
+
+  //     // Step 4: Update task status to DoneConsulting (1)
+  //     await updateTaskStatus(task.id, {
+  //       serviceOrderId: task.serviceOrder.id,
+  //       userId: user.id,
+  //       dateAppointment: task.dateAppointment,
+  //       timeAppointment: task.timeAppointment,
+  //       status: 1, // Task status: DoneConsulting
+  //       note: "Hoàn thành phác thảo và báo giá dự kiến."
+  //     });
+
+  //     // --- Success handling ---
+  //     let successMessage = "";
+  //     if (isPriceOnly) {
+  //       successMessage = "Đã cập nhật giá thiết kế thành công.";
+  //     } else if (isImagesOnly) {
+  //       successMessage = "Đã cập nhật bản phác thảo thành công.";
+  //     } else {
+  //       successMessage = "Đã cập nhật bản phác thảo và giá thiết kế thành công.";
+  //     }
+
+  //     message.success(successMessage);
+  //     setIsModalVisible(false);
+  //     sketchForm.resetFields();
+  //     setSketchFiles([]);
+
+  //     // Refetch task detail first
+  //     await fetchTaskDetail(id);
+
+  //     // Explicitly refetch sketch records AFTER task detail is updated
+  //     try {
+  //       await getRecordSketch(task.serviceOrder.id);
+  //     } catch (sketchError) {
+  //       console.error("Failed to refetch sketches after update:", sketchError);
+  //       message.warning("Không thể làm mới danh sách bản phác thảo ngay lập tức.");
+  //     }
+
+  //   } catch (error) {
+  //     message.destroy();
+  //     if (error.name === 'ValidationError') {
+  //       message.error("Vui lòng điền đầy đủ thông tin được yêu cầu.");
+  //     } else if (error.message.includes("Lỗi trong quá trình tải ảnh lên") || error.message.includes("Vui lòng tải lên ít nhất một ảnh phác thảo")) {
+  //       message.error(error.message);
+  //     } else if (error.response?.data?.error?.includes("maximum number of edits")) {
+  //       message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
+  //     } else {
+  //       message.error("Cập nhật thất bại: " + (error.response?.data?.message || error.message || "Lỗi không xác định"));
+  //       console.error("Update error in handleOkSketch:", error);
+  //     }
+  //   } finally {
+  //     setUploadingSketch(false);
+  //   }
+  // };
   const handleOkSketch = async () => {
-    // Add check for task and task.serviceOrder
     if (!task || !task.serviceOrder) {
-      message.error("Dữ liệu công việc chưa được tải xong. Vui lòng thử lại.");
-      console.error("handleOkSketch called with null task or task.serviceOrder:", task);
+      message.error("Dữ liệu công việc chưa sẵn sàng. Vui lòng thử lại.");
       return;
     }
 
-    let uploadedUrls = [];
-    try {
-      const values = await sketchForm.validateFields();
-      const currentOrderStatus = task?.serviceOrder?.status; // Get current order status
+    const currentOrderStatus = task.serviceOrder.status;
+    const isConsulting = (currentOrderStatus === 'ConsultingAndSketching');
+    const isReConsulting = (currentOrderStatus === 'ReConsultingAndSketching');
+    const isReDetermining = (currentOrderStatus === 'ReDeterminingDesignPrice');
 
+    const isPriceOnly = (adjustmentOption === 'priceOnly');
+    const isImagesOnly = (adjustmentOption === 'imagesOnly');
+
+    try {
+      const values = await sketchForm.validateFields(); // Validate giá thiết kế
       setUploadingSketch(true);
 
-      // Xử lý tải lên ảnh nếu cần
-      const isPriceOnly = adjustmentOption === 'priceOnly';
-      const isImagesOnly = adjustmentOption === 'imagesOnly';
+      let uploadedUrls = [];
 
+      // --- Step 1: Validate hình ảnh ---
       if (!isPriceOnly) {
-      // Step 1: Upload images
-      if (sketchFiles.length > 0) {
-        message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0);
-        uploadedUrls = await uploadImages(sketchFiles);
-        message.destroy();
-        if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
-          throw new Error("Lỗi trong quá trình tải ảnh lên.");
+        if (sketchFiles.length === 0) {
+          if (isConsulting || isReConsulting || isReDetermining) {
+            throw new Error("Bạn cần tải lên ít nhất một ảnh phác thảo.");
+          }
+          // Các trạng thái khác có thể không cần ảnh mới
         }
-        message.success("Tải ảnh lên thành công!");
-        } else if (isRedeterminingModal && currentSketchImages.length > 0 && !isImagesOnly) {
-          // Nếu đang trong modal Redetermining và không chọn cập nhật ảnh, giữ nguyên ảnh hiện tại
-          uploadedUrls = currentSketchImages;
-      } else {
-        // If no new files, check if *any* existing images are present before assuming old ones
-        const existingImages = [
-          task.serviceOrder.image?.imageUrl,
-          task.serviceOrder.image?.image2,
-          task.serviceOrder.image?.image3
-        ].filter(Boolean);
 
-          if (existingImages.length === 0 && sketchFiles.length === 0 && !isPriceOnly) {
-          // If no existing images AND no new files, require upload
-          throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
-        }
-        // Use existing images if no new files were uploaded BUT existing images are present
-        uploadedUrls = existingImages;
+        if (sketchFiles.length > 0) {
+          // Upload ảnh
+          message.loading({ content: `Đang tải lên ${sketchFiles.length} ảnh...`, key: 'upload', duration: 0 });
+          uploadedUrls = await uploadImages(sketchFiles);
+          message.destroy('upload');
+
+          if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
+            throw new Error("Tải ảnh thất bại. Vui lòng thử lại.");
+          }
+        } else {
+          // Không upload mới => dùng ảnh cũ nếu có
+          uploadedUrls = [
+            task.serviceOrder.image?.imageUrl,
+            task.serviceOrder.image?.image2,
+            task.serviceOrder.image?.image3,
+          ].filter(Boolean);
         }
       } else {
-        // Nếu chỉ điều chỉnh giá, sử dụng ảnh hiện tại
+        // Nếu chỉ update giá, giữ nguyên ảnh cũ
         uploadedUrls = [
           task.serviceOrder.image?.imageUrl,
           task.serviceOrder.image?.image2,
-          task.serviceOrder.image?.image3
+          task.serviceOrder.image?.image3,
         ].filter(Boolean);
       }
 
-      // Determine the status to send for record creation based on current order status
-      let statusForRecordCreation;
-      if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
-        statusForRecordCreation = 1;
-      } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
-        statusForRecordCreation = 19;
-      } else if (currentOrderStatus === 'ReDeterminingDesignPrice' || currentOrderStatus === 24) {
-        statusForRecordCreation = 24;
-      } else {
-        // Handle unexpected status - log a warning and default or throw error
-        console.warn(`Unexpected initial status ${currentOrderStatus} for sketch submission. Defaulting status to 1.`);
-        statusForRecordCreation = 1; // Defaulting to 1 might be safer than failing
-      }
-      console.log(`Using status ${statusForRecordCreation} for initial update (record creation).`);
-
-      // Step 2: Update service order with initial status (for record creation)
-      const serviceOrderUpdateData = {
+      // --- Step 2: Chuẩn bị payload ---
+      const updatePayload = {
         serviceType: 1,
         designPrice: isImagesOnly ? task.serviceOrder.designPrice : values.designPrice,
         description: task.serviceOrder.description,
-        status: statusForRecordCreation,
-        report: report || "",
+        status: isConsulting || isReConsulting ? 1 : isReDetermining ? 24 : 1, // tùy vào trạng thái
+        report: report || task.serviceOrder.report || "",
+        skecthReport: task.serviceOrder.skecthReport || "",
+        reportManger: task.serviceOrder.reportManger || "",
+        reportAccoutant: task.serviceOrder.reportAccoutant || "",
         image: {
           imageUrl: uploadedUrls[0] || "",
           image2: uploadedUrls[1] || "",
-          image3: uploadedUrls[2] || ""
+          image3: uploadedUrls[2] || "",
         },
       };
 
-      console.log("Payload for updateServiceOrder:", serviceOrderUpdateData);
-      await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
-      console.log(`ServiceOrder updated with status ${statusForRecordCreation}.`);
+      // --- Step 3: Update ServiceOrder ---
+      await updateServiceOrder(task.serviceOrder.id, updatePayload);
 
-      // Step 3: Update Service Order Status to DeterminingDesignPrice (2)
-      await updateStatus(task.serviceOrder.id, 2);
+      // --- Step 4: Update ServiceOrder Status ---
+      await updateStatus(task.serviceOrder.id, 2); // Chuyển sang DeterminingDesignPrice
 
-      // Step 4: Update task status to DoneConsulting (1)
+      // --- Step 5: Update Task Status ---
       await updateTaskStatus(task.id, {
         serviceOrderId: task.serviceOrder.id,
         userId: user.id,
         dateAppointment: task.dateAppointment,
         timeAppointment: task.timeAppointment,
-        status: 1, // Task status: DoneConsulting
+        status: 1, // DoneConsulting
         note: "Hoàn thành phác thảo và báo giá dự kiến."
       });
 
-      // --- Success handling ---
-      let successMessage = "";
-      if (isPriceOnly) {
-        successMessage = "Đã cập nhật giá thiết kế thành công.";
-      } else if (isImagesOnly) {
-        successMessage = "Đã cập nhật bản phác thảo thành công.";
-      } else {
-        successMessage = "Đã cập nhật bản phác thảo và giá thiết kế thành công.";
-      }
-
-      message.success(successMessage);
-      setIsModalVisible(false);
-      sketchForm.resetFields();
-      setSketchFiles([]);
-
-      // Refetch task detail first
+      // --- Step 6: Refetch data ---
       await fetchTaskDetail(id);
+      await getRecordSketch(task.serviceOrder.id);
 
-      // Explicitly refetch sketch records AFTER task detail is updated
-      try {
-        await getRecordSketch(task.serviceOrder.id);
-      } catch (sketchError) {
-        console.error("Failed to refetch sketches after update:", sketchError);
-        message.warning("Không thể làm mới danh sách bản phác thảo ngay lập tức.");
-      }
+      message.success("Cập nhật bản phác thảo và giá thiết kế thành công.");
+      setIsModalVisible(false);
+      setSketchFiles([]);
+      sketchForm.resetFields();
 
     } catch (error) {
       message.destroy();
       if (error.name === 'ValidationError') {
-        message.error("Vui lòng điền đầy đủ thông tin được yêu cầu.");
-      } else if (error.message.includes("Lỗi trong quá trình tải ảnh lên") || error.message.includes("Vui lòng tải lên ít nhất một ảnh phác thảo")) {
-        message.error(error.message);
-      } else if (error.response?.data?.error?.includes("maximum number of edits")) {
-        message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
+        message.error("Vui lòng nhập đầy đủ các trường thông tin bắt buộc.");
       } else {
-        message.error("Cập nhật thất bại: " + (error.response?.data?.message || error.message || "Lỗi không xác định"));
-        console.error("Update error in handleOkSketch:", error);
+        message.error(error.message || "Có lỗi xảy ra. Vui lòng thử lại.");
       }
+      console.error("handleOkSketch error:", error);
     } finally {
       setUploadingSketch(false);
     }
   };
+
 
   const handleOkDesign = async () => {
     try {
@@ -454,15 +596,13 @@ const TaskDetail = () => {
 
       // Xác định phase mới dựa trên maxPhaseInDesignRecords
       const newPhase = maxPhaseInDesignRecords + 1;
-      console.log(`Cập nhật thiết kế với phase mới: ${newPhase}`);
-      
+
       // Xác định trạng thái của service order
       const currentOrderStatus = task?.serviceOrder?.status;
-      console.log(`Trạng thái service order hiện tại: ${currentOrderStatus}`);
 
       // Determine the status to use based on current order status
       let statusForRecordCreation;
-      
+
       if (currentOrderStatus === 'DepositSuccessful' || currentOrderStatus === 3) {
         statusForRecordCreation = 4; // AssignToDesigner
       } else if (currentOrderStatus === 'ReDesign' || currentOrderStatus === 20) {
@@ -494,7 +634,7 @@ const TaskDetail = () => {
 
       // Refresh design records after successful update
       await getRecordDesign(task.serviceOrder.id);
-      
+
       // Cập nhật maxPhaseInDesignRecords với phase mới
       setMaxPhaseInDesignRecords(newPhase);
 
@@ -657,8 +797,8 @@ const TaskDetail = () => {
         return {
           productId: item.productId,
           quantity: item.quantity,
-          price: product?.price || 0,
-          totalPrice: (product?.price || 0) * item.quantity
+          // price: product?.price || 0,
+          // totalPrice: (product?.price || 0) * item.quantity
         };
       });
 
@@ -667,7 +807,11 @@ const TaskDetail = () => {
         serviceType: 1,
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
+        skecthReport: task.serviceOrder.skecthReport || "",
         status: 4, // AssignToDesigner
+        report: task.serviceOrder.report || "",
+        reportManger: task.serviceOrder.reportManger || "",
+        reportAccoutant: task.serviceOrder.reportAccoutant || "",
         // image: task.serviceOrder.image,
         serviceOrderDetails: updatedServiceOrderDetails // Sử dụng danh sách đã được cập nhật
       };
@@ -726,6 +870,8 @@ const TaskDetail = () => {
           const taskUpdateResponse = await updateTaskStatus(task.id, {
             serviceOrderId: task.serviceOrder.id,
             userId: user.id,
+            dateAppointment: task.dateAppointment,
+            timeAppointment: task.timeAppointment,
             status: 3, // Update to status 3 as requested
             note: "Hoàn tất thiết kế chi tiết và sản phẩm đã được chọn"
           });
@@ -873,17 +1019,17 @@ const TaskDetail = () => {
   };
 
   // Add function to toggle report editor visibility
-  const toggleReportEditor = () => {
+  const toggleSketchReportEditor = () => {
     // Khi đóng editor, reset giá trị report về giá trị ban đầu
-    if (showReportEditor) {
+    if (!showSketchReportEditor) {
       // Nếu đang mở và đóng xuống, reset về giá trị trong serviceOrder nếu có
-      setReport(task?.serviceOrder?.report || "");
+      setSketchReport(task?.serviceOrder?.skecthReport || "");
     }
-    setShowReportEditor(prev => !prev);
+    setShowSketchReportEditor(prev => !prev);
   };
 
   // Modified handleUpdateReport to hide the editor after successful update
-  const handleUpdateReport = async () => {
+  const handleUpdateSketchReport = async () => {
     if (!task || !task.serviceOrder) {
       message.error("Dữ liệu công việc chưa được tải xong. Vui lòng thử lại.");
       return;
@@ -891,21 +1037,46 @@ const TaskDetail = () => {
 
     const currentOrderStatus = task?.serviceOrder?.status;
 
-    // Determine the status to use based on current order status
-    let statusForUpdateReport;
+    // Map status names to their numeric values
+    const statusMap = {
+      'Pending': 0,
+      'ConsultingAndSketching': 1,
+      'DeterminingDesignPrice': 2,
+      'DepositSuccessful': 3,
+      'AssignToDesigner': 4,
+      'DeterminingMaterialPrice': 5,
+      'DoneDesign': 6,
+      'PaymentSuccess': 7,
+      'Processing': 8,
+      'PickedPackageAndDelivery': 9,
+      'DeliveryFail': 10,
+      'ReDelivery': 11,
+      'DeliveredSuccessfully': 12,
+      'CompleteOrder': 13,
+      'OrderCancelled': 14,
+      'Warning': 15,
+      'Refund': 16,
+      'DoneRefund': 17,
+      'StopService': 18,
+      'ReConsultingAndSketching': 19,
+      'ReDesign': 20,
+      'WaitDeposit': 21,
+      'DoneDeterminingDesignPrice': 22,
+      'DoneDeterminingMaterialPrice': 23,
+      'ReDeterminingDesignPrice': 24,
+      'ExchangeProdcut': 25,
+      'WaitForScheduling': 26,
+      'Installing': 27,
+      'DoneInstalling': 28,
+      'ReInstall': 29,
+      'CustomerConfirm': 30,
+      'Successfully': 31
+    };
 
-    if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
-      statusForUpdateReport = 1; // AssignToDesigner
-    } else if (currentOrderStatus === 'DeterminingDesignPrice' || currentOrderStatus === 2) {
-      statusForUpdateReport = 2; // Giữ nguyên trạng thái ReDesign
-    } else if (currentOrderStatus === 'ReDeterminingDesignPrice' || currentOrderStatus === 24) {
-      statusForUpdateReport = 24; // Giữ nguyên trạng thái ReDesign
-    } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
-      statusForUpdateReport = 19; // Giữ nguyên trạng thái ReDesign
-    } else {
-      console.warn(`Unexpected initial status ${currentOrderStatus} for report submission. Defaulting status to 1.`);
-      statusForUpdateReport = 1; // Default to AssignToDesigner
-    }
+    // If currentOrderStatus is a number, use it directly, otherwise look up the numeric value
+    const statusForUpdateReport = typeof currentOrderStatus === 'number'
+      ? currentOrderStatus
+      : statusMap[currentOrderStatus] || 0;
 
     try {
       // Prepare service order data
@@ -914,7 +1085,10 @@ const TaskDetail = () => {
         designPrice: task.serviceOrder.designPrice,
         description: task.serviceOrder.description,
         status: statusForUpdateReport,
-        report: report || "",
+        report: task.serviceOrder.report || "",
+        reportManger: task.serviceOrder.reportManger || "",
+        reportAccoutant: task.serviceOrder.reportAccoutant || "",
+        skecthReport: sketchReport,
         // Do NOT include image
       };
 
@@ -1239,10 +1413,10 @@ const TaskDetail = () => {
               </Descriptions.Item>
 
               <Descriptions.Item label={<><PhoneOutlined /> Số điện thoại</>} span={1}>
-                  <Space>
+                <Space>
                   {task.serviceOrder.cusPhone}
-                  </Space>
-                </Descriptions.Item>
+                </Space>
+              </Descriptions.Item>
 
               <Descriptions.Item label={<><MailOutlined /> Email</>} span={1}>
                 <Space>
@@ -1288,9 +1462,9 @@ const TaskDetail = () => {
               </Descriptions.Item>
 
               {/* {task.serviceOrder.materialPrice && ( */}
-                <Descriptions.Item label="Giá vật liệu" span={1}>
+              <Descriptions.Item label="Giá vật liệu" span={1}>
                 {task.serviceOrder.materialPrice === 0 ? "Chưa có" : `${task.serviceOrder.materialPrice.toLocaleString("vi-VN")} đ`}
-                </Descriptions.Item>
+              </Descriptions.Item>
               {/* )} */}
 
               <Descriptions.Item label="Tổng tiền" span={1}>
@@ -1342,7 +1516,7 @@ const TaskDetail = () => {
                   borderLeft: '4px solid #f5222d'
                 }}
               >
-                <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.reportManger }} />
+                <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.serviceOrder.reportManger }} />
               </Card>
             )}
 
@@ -1430,156 +1604,200 @@ const TaskDetail = () => {
 
             {/* Description - show after customer images */}
             {task.serviceOrder.description && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>
-                <div className="p-4 bg-gray-50 rounded border">
-                  <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.description }} />
-                </div>
-              </div>
+              <Collapse defaultActiveKey={['description']} bordered={false} className="mt-4 pt-4 border-t border-green-500">
+                <Collapse.Panel
+                  key="description"
+                  header={<Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>}
+                >
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.serviceOrder.description }} />
+                  </div>
+                </Collapse.Panel>
+              </Collapse>
             )}
             {task.note && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <Title level={5}><FileTextOutlined /> Ghi chú </Title>
-                <div className="p-4 bg-gray-50 rounded border">
-                  <div dangerouslySetInnerHTML={{ __html: task.note }} />
-                </div>
-              </div>
+              <Collapse defaultActiveKey={[]} bordered={false} className="mt-4 pt-4 border-t border-green-500">
+                <Collapse.Panel
+                  key="note"
+                  header={
+                    <Title
+                      level={5}
+                      style={{
+                        color:
+                          task.serviceOrder.status === 'ConsultingAndSketching'
+                            ? '#1890ff'
+                            : task.serviceOrder.status === 'ReConsultingAndSketching'
+                              ? '#faad14'
+                              : 'default'
+                      }}
+                    >
+                      <FileTextOutlined />{' '}
+                      {task.serviceOrder.status === 'ReConsultingAndSketching'
+                        ? 'Yêu cầu chỉnh sửa từ khách hàng'
+                        : 'Ghi chú về đơn thiết kế'}
+                    </Title>
+                  }
+                >
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.note }} />
+                  </div>
+                </Collapse.Panel>
+              </Collapse>
             )}
 
             {/* Report Section - Modified */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <Title level={5}><FileTextOutlined /> Ghi chú / Báo cáo Designer</Title>
-              </div>
-
-              {/* Display existing report if available */}
-              {task.serviceOrder?.report && (
-                <div className={showReportEditor ? "mb-4" : ""}>
-                  <div className="p-4 bg-gray-50 rounded border">
-                    <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.report }} />
+            <Collapse
+              defaultActiveKey={['sketchReport']}
+              bordered={false}
+              className="mt-4 pt-4 border-t border-gray-200"
+            >
+              <Collapse.Panel
+                key="sketchReport"
+                header={
+                  <Title level={5}>
+                    <FileTextOutlined /> Ghi chú quá trình làm việc & giá thiết kế đề xuất với khách hàng
+                  </Title>
+                }
+              >
+                {/* Display existing report if available */}
+                {task.serviceOrder?.skecthReport && (
+                  <div className={showReportEditor ? "mb-4" : ""}>
+                    <div className="p-4 bg-gray-50 rounded border">
+                      <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.serviceOrder.skecthReport }} />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Editor for creating/updating report */}
-              {showReportEditor && (
-                <div className="mt-4 mb-4">
-                  <Card
-                    title="Chỉnh sửa ghi chú / báo cáo"
-                    extra={
-                      task.serviceOrder?.report && (
+                {/* Editor for creating/updating report */}
+                {showSketchReportEditor && (
+                  <div className="mt-4 mb-4">
+                    <Card
+                      title="Chỉnh sửa ghi chú / báo cáo"
+                      extra={
+                        task.serviceOrder?.skecthReport && (
+                          <Button
+                            type="primary"
+                            danger
+                            onClick={toggleSketchReportEditor}
+                            icon={<CloseCircleOutlined />}
+                          >
+                            Hủy
+                          </Button>
+                        )
+                      }
+                    >
+                      <EditorComponent
+                        value={sketchReport}
+                        onChange={(value) => setSketchReport(value)}
+                        height={400}
+                      />
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          marginTop: '16px',
+                        }}
+                      >
                         <Button
                           type="primary"
-                          danger
-                          onClick={toggleReportEditor}
-                          icon={<CloseCircleOutlined />}
+                          onClick={handleUpdateSketchReport}
+                          icon={<SaveOutlined />}
                         >
-                          Hủy
+                          Lưu ghi chú
                         </Button>
-                      )
-                    }
-                  >
-                    <EditorComponent
-                      value={report}
-                      onChange={(value) => setReport(value)}
-                      height={400}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                      <Button
-                        type="primary"
-                        onClick={handleUpdateReport}
-                        icon={<SaveOutlined />}
-                      >
-                        Lưu ghi chú
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              )}
+                      </div>
+                    </Card>
+                  </div>
+                )}
 
-              {/* Show button to open editor if report exists and editor is hidden */}
-              {!showReportEditor && task.serviceOrder?.report && (
-                <div className="mt-3 text-center">
-                  <Button
-                    type="dashed"
-                    onClick={toggleReportEditor}
-                    icon={<EditOutlined />}
-                    style={{ width: '100%', color: 'green', marginBottom: '14px' }}
-                  >
-                    Cập nhật ghi chú / báo cáo
-                  </Button>
-                </div>
-              )}
-            </div>
+                {/* Show button to open editor if report exists and editor is hidden */}
+                {!showSketchReportEditor && task.serviceOrder?.skecthReport && (
+                  <div className="mt-3 text-center">
+                    <Button
+                      type="dashed"
+                      onClick={toggleSketchReportEditor}
+                      icon={<EditOutlined />}
+                      style={{
+                        width: '100%',
+                        color: 'green',
+                        marginBottom: '14px',
+                      }}
+                    >
+                      Cập nhật ghi chú / báo cáo
+                    </Button>
+                  </div>
+                )}
+              </Collapse.Panel>
+            </Collapse>
 
             {/* ----- Sketch Records (Phases 1, 2, 3) ----- */}
-            {showSketchRecords && (
+            {showSketchRecords && sketchRecords.some(record => record.serviceOrderId === task?.serviceOrder?.id) && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <Title level={5}><PictureOutlined /> Bản phác thảo / Thiết kế</Title>
                 {[1, 2, 3].map(phase => {
                   const recordsInPhase = sketchRecords.filter(record => record.phase === phase);
 
-                    if (recordsInPhase.length === 0) return null;
+                  if (recordsInPhase.length === 0) return null;
 
                   const phaseTitle = `Bản phác thảo lần ${phase}`;
-                    // Check if *any* record in this phase is selected (usually only one can be)
-                    const isPhaseSelected = recordsInPhase.some(record => record.isSelected);
+                  // Check if *any* record in this phase is selected (usually only one can be)
+                  const isPhaseSelected = recordsInPhase.some(record => record.isSelected);
 
-                    return (
-                      <div key={phase} style={{ marginBottom: '20px' }}>
-                        <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                          {phaseTitle}
+                  return (
+                    <div key={phase} style={{ marginBottom: '20px' }}>
+                      <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
+                        {phaseTitle}
                         {isPhaseSelected && (
-                            <Tag color="success" icon={<CheckSquareOutlined />} style={{ marginLeft: 8 }}>
-                              Khách hàng đã chọn
-                            </Tag>
-                          )}
-                        </Title>
-                        {/* Wrap images in PreviewGroup for gallery view */}
-                        <Image.PreviewGroup items={recordsInPhase.flatMap(r => [r.image?.imageUrl, r.image?.image2, r.image?.image3].filter(Boolean))}>
-                          <Row gutter={[16, 16]}>
-                            {/* Iterate through records (usually one per phase), then display its images horizontally */}
-                            {recordsInPhase.map((record, recordIndex) => (
-                              <React.Fragment key={`${record.id}-${recordIndex}`}>
-                                {record.image?.imageUrl && (
-                                  <Col xs={24} sm={12} md={8}> {/* Adjust column spans as needed */}
-                                    <Image
-                                      src={record.image.imageUrl}
-                                      alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.1`}
-                                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                  </Col>
-                                )}
-                                {record.image?.image2 && (
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Image
-                                      src={record.image.image2}
-                                      alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.2`}
-                                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                  </Col>
-                                )}
-                                {record.image?.image3 && (
-                                  <Col xs={24} sm={12} md={8}>
-                                    <Image
-                                      src={record.image.image3}
-                                      alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.3`}
-                                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
-                                  </Col>
-                                )}
-                                {/* If a record has no images, optionally show a placeholder */}
-                                {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
-                                  <Col span={24}><Text type="secondary">Không có ảnh cho bản ghi này.</Text></Col>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </Row>
-                        </Image.PreviewGroup>
-                      </div>
-                    );
-                  })}
-                </div>
+                          <Tag color="success" icon={<CheckSquareOutlined />} style={{ marginLeft: 8 }}>
+                            Khách hàng đã chọn
+                          </Tag>
+                        )}
+                      </Title>
+                      {/* Wrap images in PreviewGroup for gallery view */}
+                      <Image.PreviewGroup items={recordsInPhase.flatMap(r => [r.image?.imageUrl, r.image?.image2, r.image?.image3].filter(Boolean))}>
+                        <Row gutter={[16, 16]}>
+                          {/* Iterate through records (usually one per phase), then display its images horizontally */}
+                          {recordsInPhase.map((record, recordIndex) => (
+                            <React.Fragment key={`${record.id}-${recordIndex}`}>
+                              {record.image?.imageUrl && (
+                                <Col xs={24} sm={12} md={8}> {/* Adjust column spans as needed */}
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.1`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                  />
+                                </Col>
+                              )}
+                              {record.image?.image2 && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.2`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                  />
+                                </Col>
+                              )}
+                              {record.image?.image3 && (
+                                <Col xs={24} sm={12} md={8}>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Ảnh ${phaseTitle} - ${recordIndex + 1}.3`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px' }}
+                                  />
+                                </Col>
+                              )}
+                              {/* If a record has no images, optionally show a placeholder */}
+                              {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
+                                <Col span={24}><Text type="secondary">Không có ảnh cho bản ghi này.</Text></Col>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </Row>
+                      </Image.PreviewGroup>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
             {/* Design Records Display */}
@@ -1667,7 +1885,7 @@ const TaskDetail = () => {
                   type="primary"
                   icon={<UploadOutlined />}
                   onClick={showModal}
-                  disabled={task.serviceOrder.report === ""}
+                  disabled={task.serviceOrder.skecthReport === ""}
                 >
                   Tải lên bản vẽ phác thảo
                 </Button>
@@ -1679,7 +1897,8 @@ const TaskDetail = () => {
             {/* Design upload button */}
             {task.status === "Design" &&
               (task.serviceOrder.status === "DepositSuccessful" ||
-                task.serviceOrder.status === "ReDesign") &&
+                task.serviceOrder.status === "ReDesign" ||
+                task.serviceOrder.status === "AssignToDesigner") &&
               // Cập nhật điều kiện hiển thị nút dựa trên maxPhaseInDesignRecords
               (
                 // TH1: Chưa có bản thiết kế nào (maxPhase = 0)
@@ -1826,9 +2045,20 @@ const TaskDetail = () => {
           >
             <InputNumber
               style={{ width: '100%' }}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              formatter={(value) => value ? `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
               parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
               placeholder="Nhập giá dự kiến (VNĐ)"
+            />
+          </Form.Item>
+          <Form.Item
+            name="report"
+            label="Ghi chú/báo cáo về bản phác thảo"
+            rules={[{ required: true, message: "Vui lòng nhập ghi chú/báo cáo về bản phác thảo" }]}
+          >
+            <EditorComponent
+              value={report}
+              onChange={(value) => setReport(value)}
+              height={400} // Chiều cao nhỏ hơn để vừa với modal
             />
           </Form.Item>
         </Form>

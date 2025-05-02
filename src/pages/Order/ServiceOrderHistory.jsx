@@ -144,13 +144,13 @@ const ServiceOrderHistory = () => {
       Completed: "green",
       NoDesignIdea: "default",
       StopService: "default", // Added missing status
-      ReConsultingAndSketching: "default", // Added missing status
-      ReDesign: "default", // Added missing status
-      WaitDeposit: "default", // Added missing status
-      DoneDeterminingDesignPrice: "default", // Added missing status
-      DoneDeterminingMaterialPrice: "default", // Added missing status
-      ReDeterminingDesignPrice: "default", // Added missing status
-      ExchangeProdcut: "default", // Added missing status
+      ReConsultingAndSketching: "warning", // Added missing status
+      ReDesign: "warning", // Added missing status
+      WaitDeposit: "purple", // Added missing status
+      DoneDeterminingDesignPrice: "green", // Added missing status
+      DoneDeterminingMaterialPrice: "green", // Added missing status
+      ReDeterminingDesignPrice: "warning", // Added missing status
+      ExchangeProdcut: "warning", // Added missing status
     };
     return statusColors[status] || "default";
   };
@@ -181,7 +181,7 @@ const ServiceOrderHistory = () => {
       ReConsultingAndSketching: "Phác thảo lại", // Added missing status
       ReDesign: "Thiết kế lại", // Added missing status
       WaitDeposit: "Chờ đặt cọc", // Added missing status
-      DoneDeterminingDesignPrice: "Đã hoàn thành xác định giá", // Added missing status
+      DoneDeterminingDesignPrice: "Hoàn thành tư vấn & phác thảo", // Added missing status
       DoneDeterminingMaterialPrice: "Đã hoàn thành xác định giá vật liệu", // Added missing status
       ReDeterminingDesignPrice: "Xác định lại giá thiết kế", // Added missing status
       ExchangeProdcut: "Đổi sản phẩm", // Added missing status
@@ -352,26 +352,25 @@ const ServiceOrderHistory = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}
           />
-          
-          {/* <Title level={2} className="mb-6">
-            Lịch sử đơn đặt thiết kế
-          </Title> */}
 
-          {!dataLoaded ? (
-            <Alert
-              message="Đang tải dữ liệu"
-              description="Vui lòng đợi trong giây lát..."
-              type="info"
-              showIcon
-            />
-          ) : serviceOrders.length === 0 ? (
-            <Alert
-              message="Không có đơn đặt thiết kế"
-              description="Bạn chưa có đơn đặt thiết kế nào."
-              type="info"
-              showIcon
-            />
-          ) : (
+          {
+          // !dataLoaded ? (
+          //   <Alert
+          //     message="Đang tải dữ liệu"
+          //     description="Vui lòng đợi trong giây lát..."
+          //     type="info"
+          //     showIcon
+          //   />
+          // ) : 
+          // serviceOrders.length === 0 ? (
+          //   <Alert
+          //     message="Không có đơn đặt thiết kế"
+          //     description="Bạn chưa có đơn đặt thiết kế nào."
+          //     type="info"
+          //     showIcon
+          //   />
+          // ) : 
+          (
             <Table
               dataSource={serviceOrders}
               columns={columns}

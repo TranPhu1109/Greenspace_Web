@@ -11,6 +11,10 @@ import TransactionsList from "@/components/Manager/Transactions/TransactionsList
 import NewDesignOrdersList from "@/components/Manager/NewDesignOrders/NewDesignOrdersList";
 import NewDesignOrderDetail from "@/components/Manager/NewDesignOrders/NewDesignOrderDetail";
 import WebManage from "@/components/Manager/WebManage/WebManage";
+import ComplaintsRefundList from "@/components/Manager/Complaints/ComplaintsRefundList";
+import TransactionPercentageManagement from "@/components/Manager/Percentage/TransactgionPercentageManagement";
+import ComplaintReasonManage from "@/components/Manager/Complaints/ComplaintsResion";
+import Policy from "@/components/Manager/Policy/Policy";
 
 export const managerRoutes = {
   path: "/manager",
@@ -66,6 +70,10 @@ export const managerRoutes = {
       element: <PromotionsList />,
     },
     {
+      path: "complaints",
+      element: <ComplaintsRefundList />,
+    },
+    {
       path: "transactions",
       element: <TransactionsList />,
     },
@@ -83,8 +91,20 @@ export const managerRoutes = {
       ],
     },
     {
-      path: "webmanage",
+      path: "deposit-management",
+      element: <TransactionPercentageManagement />,
+    },
+    {
+      path: "logo",
       element: <WebManage />,
+    },
+    {
+      path: "complaint-reasons",
+      element: <ComplaintReasonManage />,
+    },
+    {
+      path: "policy",
+      element: <Policy />,
     },
   ],
 };

@@ -50,12 +50,9 @@ import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import api from "@/api/api";
 
 // Import utils
-import { 
-  getStatusText, 
+import {
+  getStatusText,
   getStatusColor,
-  showOnlyPhase0Statuses,
-  showAllPhasesStatuses,
-  showDesignRecordsStatuses,
   contractVisibleStatuses,
   contractVisibleStatusCodes,
   finalMaterialPriceStatuses,
@@ -66,6 +63,7 @@ import { formatPrice } from "./utils/PriceFormatter";
 // Import components
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import usePercentageStore from "@/stores/usePercentageStore";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -76,11 +74,8 @@ const ServiceOrderDetail = () => {
   const navigate = useNavigate();
   const { updateStatus, selectedOrder, getDesignOrderById } = useDesignOrderStore();
   const {
-    loading,
-    error,
     getServiceOrderById,
     updateServiceForCus,
-    cancelServiceOrder,
     updateServiceOrderStatus,
     updateTaskOrder
   } = useServiceOrderStore();
@@ -93,7 +88,6 @@ const ServiceOrderDetail = () => {
     confirmRecord,
     confirmDesignRecord,
     isLoading: recordLoading,
-    error: recordError
   } = useRecordStore();
   const {
     getContractByServiceOrder,
@@ -102,8 +96,9 @@ const ServiceOrderDetail = () => {
     signContract,
     generateContract,
   } = useContractStore();
+  const { data, fetchPercentage } = usePercentageStore();
   const { uploadImages, progress } = useCloudinaryStorage();
-  
+
   // Order state and flags
   const [order, setOrder] = useState(null);
   const [localError, setLocalError] = useState(null);
@@ -111,20 +106,10 @@ const ServiceOrderDetail = () => {
   const [fetchingProducts, setFetchingProducts] = useState(false);
   const [showContractButton, setShowContractButton] = useState(false);
   const [showPaymentButton, setShowPaymentButton] = useState(false);
-  
+
   // Loading and submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDesignRecords, setLoadingDesignRecords] = useState(false);
-  
-  
-  // Form input states
-  const [revisionNote, setRevisionNote] = useState("");
-  const [redesignNote, setRedesignNote] = useState("");
-  const [cancelDesignNote, setCancelDesignNote] = useState("");
-  
-  // Selection states
-  const [selectedSketchId, setSelectedSketchId] = useState(null);
-  const [selectedDesignId, setSelectedDesignId] = useState(null);
 
   const componentId = useRef("service-order");
 
@@ -135,35 +120,23 @@ const ServiceOrderDetail = () => {
         console.log("refreshOrderData called for order:", orderId || id);
         // Use the passed orderId or fall back to the component's id
         const orderIdToRefresh = orderId || id;
-        
-        // Show loading indicator
-        message.loading({ content: "Đang tải lại dữ liệu...", key: "refreshData" });
-        
+
         // Call the comprehensive refresh function
-        const refreshedOrder = await refreshAllData(orderIdToRefresh);
-        
-        // Update UI and show success message
-        if (refreshedOrder) {
-          message.success({ 
-            content: "Dữ liệu đã được cập nhật", 
-            key: "refreshData", 
-            duration: 1 
-          });
-        }
+        await refreshAllData(orderIdToRefresh);
+
       } catch (error) {
-        console.error("Error in global refreshOrderData:", error);
-        message.error({ 
-          content: "Không thể tải lại dữ liệu: " + error.message, 
-          key: "refreshData" 
+        message.error({
+          content: "Không thể tải lại dữ liệu: " + error.message,
+          key: "refreshData"
         });
       }
     };
-    
+
     // Define softUpdateOrderData to update data without refreshing the whole component
     window.softUpdateOrderData = (updatedOrder) => {
       try {
         console.log("softUpdateOrderData called with:", updatedOrder);
-        
+
         // Only update necessary states without calling API again
         if (updatedOrder) {
           setOrder(updatedOrder);
@@ -176,17 +149,219 @@ const ServiceOrderDetail = () => {
       }
     };
 
+    // Make store instances available to components for direct updates
+    window.useRecordStore = useRecordStore;
+    window.useServiceOrderStore = useServiceOrderStore;
+
+    // Add a new silent refresh function for smoother updates
+    window.silentRefreshData = async (orderId, options = {}) => {
+      try {
+        const orderIdToRefresh = orderId || id;
+        console.log("silentRefreshData called for order:", orderIdToRefresh);
+
+        // Default options
+        const defaultOptions = {
+          refreshOrder: true,
+          refreshSketch: true,
+          refreshDesign: true,
+          refreshContract: true,
+          refreshProducts: true,
+          batchUpdates: true, // Wait until all data is fetched before updating state
+          showLoading: false,
+          showSuccess: false,
+          quietMode: true, // Don't update state if data hasn't changed
+        };
+
+        // Merge default options with provided options
+        const settings = { ...defaultOptions, ...options };
+
+        // Set up promises array for all data we need to fetch
+        const promises = [];
+        const results = {};
+
+        // Add order data promise if needed
+        if (settings.refreshOrder) {
+          const orderPromise = getServiceOrderById(orderIdToRefresh)
+            .catch(err => {
+              console.warn("Error fetching order data:", err);
+              return null;
+            });
+          promises.push(orderPromise);
+
+          // Also get design order data if refreshing order
+          const designOrderPromise = getDesignOrderById(orderIdToRefresh, componentId.current)
+            .catch(err => {
+              console.warn("Error fetching design order data:", err);
+              return null;
+            });
+          promises.push(designOrderPromise);
+        }
+
+        // Add sketch records promise if needed
+        if (settings.refreshSketch) {
+          const sketchPromise = getRecordSketch(orderIdToRefresh)
+            .catch(err => {
+              if (err.response?.status !== 404) {
+                console.warn("Error fetching sketch records:", err);
+              }
+              return null;
+            });
+          promises.push(sketchPromise);
+        }
+
+        // Add design records promise if needed
+        if (settings.refreshDesign) {
+          const designPromise = getRecordDesign(orderIdToRefresh)
+            .catch(err => {
+              if (err.response?.status !== 404) {
+                console.warn("Error fetching design records:", err);
+              }
+              return null;
+            });
+          promises.push(designPromise);
+        }
+
+        // Fetch contract if needed
+        if (settings.refreshContract) {
+          // First check if we need to refresh contract based on order status
+          const currentOrder = order || useServiceOrderStore.getState().selectedOrder;
+          const shouldShowContract =
+            contractVisibleStatuses.includes(currentOrder?.status) ||
+            contractVisibleStatusCodes.includes(currentOrder?.status);
+
+          if (shouldShowContract) {
+            const contractPromise = getContractByServiceOrder(orderIdToRefresh)
+              .then(() => {
+                results.contractFound = true;
+              })
+              .catch(async (err) => {
+                // Try to generate contract if in WaitDeposit status
+                if (currentOrder?.status === "WaitDeposit" || currentOrder?.status === 21) {
+                  try {
+                    await generateContract({
+                      userId: currentOrder.userId,
+                      serviceOrderId: currentOrder.id,
+                      userName: currentOrder.userName,
+                      email: currentOrder.email,
+                      phone: currentOrder.cusPhone,
+                      address: currentOrder.address,
+                      designPrice: currentOrder.designPrice,
+                    });
+                    await getContractByServiceOrder(orderIdToRefresh);
+                    results.contractGenerated = true;
+                  } catch (genError) {
+                    console.warn("Error generating contract:", genError);
+                  }
+                }
+                return null;
+              });
+            promises.push(contractPromise);
+          }
+        }
+
+        // Execute all promises in parallel
+        const fetchResults = await Promise.allSettled(promises);
+
+        // Process results and update state in a controlled way
+        let updatedOrder = null;
+        let shouldUpdateUI = false;
+
+        // Find the order result if it exists
+        if (settings.refreshOrder && fetchResults[0]?.status === 'fulfilled' && fetchResults[0]?.value) {
+          updatedOrder = fetchResults[0].value;
+
+          // Check if order has actually changed
+          const currentOrder = order || useServiceOrderStore.getState().selectedOrder;
+          if (!settings.quietMode || (
+            currentOrder && (
+              currentOrder.status !== updatedOrder.status ||
+              currentOrder.designPrice !== updatedOrder.designPrice ||
+              currentOrder.updatedAt !== updatedOrder.updatedAt
+            )
+          )) {
+            shouldUpdateUI = true;
+          }
+
+          // Update product details if requested and order has details
+          if (settings.refreshProducts && updatedOrder.serviceOrderDetails?.length > 0) {
+            const productPromises = updatedOrder.serviceOrderDetails.map(detail =>
+              getProductById(detail.productId).catch(() => null)
+            );
+
+            const productResults = await Promise.allSettled(productPromises);
+            const detailsMap = {};
+
+            productResults.forEach((result, index) => {
+              if (result.status === 'fulfilled' && result.value) {
+                detailsMap[updatedOrder.serviceOrderDetails[index].productId] = result.value;
+              }
+            });
+
+            results.productDetails = detailsMap;
+          }
+        }
+
+        // Only update UI if there are actual changes or quietMode is disabled
+        if (shouldUpdateUI || !settings.quietMode) {
+          // Now apply all updates at once using a synchronized approach
+          if (settings.batchUpdates) {
+            // Use React 18's batched updates or manually batch them
+
+            // Start batch update operations
+            if (updatedOrder) {
+              // Update in order: soft updates first, then redux store
+              setOrder(updatedOrder);
+              useServiceOrderStore.getState().selectedOrder = updatedOrder;
+            }
+
+            // Update product details map if we have them
+            if (results.productDetails) {
+              setProductDetailsMap(results.productDetails);
+            }
+
+            // Update contract visibility if needed
+            if (results.contractFound || results.contractGenerated) {
+              setShowContractButton(true);
+            }
+
+            // Reset any loading states
+            setLoadingDesignRecords(false);
+            setFetchingProducts(false);
+          }
+        }
+
+        return {
+          success: true,
+          updatedOrder,
+          results,
+          changes: shouldUpdateUI
+        };
+      } catch (error) {
+        console.error("Error in silentRefreshData:", error);
+        return {
+          success: false,
+          error
+        };
+      }
+    };
+
     // Cleanup function to remove the function from window when component unmounts
     return () => {
       delete window.refreshOrderData;
       delete window.softUpdateOrderData;
+      delete window.silentRefreshData;
+      delete window.useRecordStore;
+      delete window.useServiceOrderStore;
     };
-  // We can't include refreshAllData in dependencies because it's defined after this hook
-  // This is okay because refreshAllData doesn't depend on any state that changes during component lifecycle
-  }, [id]);  // Only depend on id which is stable
+    // We can't include refreshAllData in dependencies because it's defined after this hook
+    // This is okay because refreshAllData doesn't depend on any state that changes during component lifecycle
+  }, [id, order, getServiceOrderById, getDesignOrderById, getRecordSketch, getRecordDesign,
+    getContractByServiceOrder, getProductById, generateContract, contractVisibleStatuses,
+    contractVisibleStatusCodes]);  // Include all dependencies
 
   useEffect(() => {
     getServiceOrderById(id);
+    fetchPercentage();
   }, []);
 
   // Calculate maxPhase safely
@@ -225,19 +400,19 @@ const ServiceOrderDetail = () => {
         }
 
         // Always fetch sketch records to show at least phase 0 (original images)
-          console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
-          await getRecordSketch(id); // Fetch sketches
-        
+        console.log(`Fetching sketches for order ${id} with status ${orderData.status}`);
+        await getRecordSketch(id); // Fetch sketches
+
         // Always fetch design records - let the component decide whether to show them
         console.log(`Fetching design records for order ${id}`);
-          setLoadingDesignRecords(true);
-          try {
-            await getRecordDesign(id);
-            console.log("Design records fetched successfully");
-          } catch (designError) {
-            console.error("Error fetching design records:", designError);
-          } finally {
-            setLoadingDesignRecords(false);
+        setLoadingDesignRecords(true);
+        try {
+          await getRecordDesign(id);
+          console.log("Design records fetched successfully");
+        } catch (designError) {
+          console.error("Error fetching design records:", designError);
+        } finally {
+          setLoadingDesignRecords(false);
         }
 
       } catch (err) {
@@ -260,12 +435,12 @@ const ServiceOrderDetail = () => {
   useEffect(() => {
     const fetchContract = async () => {
       // Check if current status should show contract (either by name or code)
-      const shouldShowContract = 
-        contractVisibleStatuses.includes(selectedOrder?.status) || 
+      const shouldShowContract =
+        contractVisibleStatuses.includes(selectedOrder?.status) ||
         contractVisibleStatusCodes.includes(selectedOrder?.status);
-      
+
       console.log("Contract fetch check - Status:", selectedOrder?.status, "Should show:", shouldShowContract);
-      
+
       if (shouldShowContract) {
         console.log("Status requires contract visibility, checking for contract...");
         try {
@@ -288,7 +463,7 @@ const ServiceOrderDetail = () => {
                 address: selectedOrder.address,
                 designPrice: selectedOrder.designPrice,
               });
-              
+
               // Fetch the contract again after generating it
               await getContractByServiceOrder(selectedOrder.id);
               console.log("Contract generated successfully");
@@ -324,150 +499,52 @@ const ServiceOrderDetail = () => {
     } else {
       setShowPaymentButton(false);
     }
-    
+
     // Ensure contract button is visible if contract exists and status should show contract
-    const shouldShowContract = 
-      contractVisibleStatuses.includes(selectedOrder?.status) || 
+    const shouldShowContract =
+      contractVisibleStatuses.includes(selectedOrder?.status) ||
       contractVisibleStatusCodes.includes(selectedOrder?.status);
-      
+
     if (contract && !showContractButton && shouldShowContract) {
       setShowContractButton(true);
     }
   }, [contract, selectedOrder?.status, showContractButton]);
 
-  // Update the handleConfirmSketch function to use the new confirmation modal approach
-  const handleConfirmSketch = (recordId) => {
-    setSelectedSketchId(recordId);
-    setIsConfirmModalVisible(true);
-  };
-
-  // New function to confirm sketch selection
-  const handleConfirmSelection = async () => {
-    try {
-      setLocalError(null);
-      setIsSubmitting(true);
-      
-      // First step: Confirm the sketch selection
-      await confirmRecord(selectedSketchId);
-      message.success('Đã chọn bản phác thảo thành công!');
-      setIsConfirmModalVisible(false);
-      
-      // Second step: Update status to WaitDeposit (status code 21)
-      try {
-        await updateStatus(id, 21);
-        message.success('Đã cập nhật trạng thái đơn hàng');
-        
-        // Use refreshAllData instead of multiple separate fetch calls
-        await refreshAllData(id);
-        
-        // Force UI update to reflect the new status and show contract button
-        setTimeout(() => {
-          setShowContractButton(true);
-        }, 500);
-      } catch (statusError) {
-        console.error("Error updating status:", statusError);
-        message.error('Không thể cập nhật trạng thái đơn hàng: ' + statusError.message);
-      }
-    } catch (err) {
-      console.error("Error confirming sketch:", err);
-      message.error('Không thể chọn bản phác thảo: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Function to cancel sketch selection
-  const handleCancelSelection = () => {
-    setSelectedSketchId(null);
-    setIsConfirmModalVisible(false);
-  };
-
-  // Add this comprehensive refresh function
+  // Update refreshAllData to use the new silentRefreshData when appropriate
   const refreshAllData = async (orderId) => {
     try {
-      console.log("Refreshing all data for order:", orderId);
       setLocalError(null);
-      
-      // 1. Refresh the service order data
-      const refreshedOrder = await getServiceOrderById(orderId);
-      setOrder(refreshedOrder);
-      
-      // 2. Also refresh the design order data
-      await getDesignOrderById(orderId, componentId.current);
-      
-      // 3. Always refresh sketch records (at least phase 0)
-      await getRecordSketch(orderId);
-      
-      // 4. Always refresh design records - let the component decide whether to display them
-      setLoadingDesignRecords(true);
-      try {
-        await getRecordDesign(orderId);
-      } catch (designError) {
-        console.error("Error refreshing design records:", designError);
-      } finally {
-        setLoadingDesignRecords(false);
+
+      // Use a loading state to prevent flickering
+      message.loading({ content: "Đang cập nhật dữ liệu...", key: "refreshData", duration: 0 });
+
+      // Use the silentRefreshData function with loading indicator
+      const result = await window.silentRefreshData(orderId, {
+        refreshOrder: true,
+        refreshSketch: true,
+        refreshDesign: true,
+        refreshContract: true,
+        refreshProducts: true,
+        batchUpdates: true,
+        showLoading: false, // We're already showing a loading message
+        showSuccess: false
+      });
+
+      // Clear loading indicator
+      message.destroy("refreshData");
+
+      return result.updatedOrder;
+    } catch (error) {
+      // Only show error messages for non-404 errors
+      if (error.response?.status !== 404) {
+        message.error({
+          content: "Không thể cập nhật đầy đủ dữ liệu",
+          key: "refreshData"
+        });
+      } else {
+        // Clear the loading message without showing a success message
+        message.destroy("refreshData");
       }
-      
-      // 5. Check and refresh contract data if status indicates it should be visible
-      const shouldShowContract = 
-        contractVisibleStatuses.includes(refreshedOrder?.status) || 
-        contractVisibleStatusCodes.includes(refreshedOrder?.status);
-      
-      if (shouldShowContract) {
-        try {
-          await getContractByServiceOrder(orderId);
-          setShowContractButton(true);
-        } catch (contractError) {
-          console.error("Error refreshing contract:", contractError);
-          // If in WaitDeposit status but no contract, try generating one
-          if (refreshedOrder?.status === "WaitDeposit" || refreshedOrder?.status === 21) {
-            try {
-              await generateContract({
-                userId: refreshedOrder.userId,
-                serviceOrderId: refreshedOrder.id,
-                userName: refreshedOrder.userName,
-                email: refreshedOrder.email,
-                phone: refreshedOrder.cusPhone,
-                address: refreshedOrder.address,
-                designPrice: refreshedOrder.designPrice,
-              });
-              
-              await getContractByServiceOrder(orderId);
-              setShowContractButton(true);
-            } catch (genError) {
-              console.error("Error generating contract during refresh:", genError);
-            }
-          }
-        }
-      }
-      
-      // 6. Refresh product details if needed
-      if (refreshedOrder?.serviceOrderDetails && refreshedOrder.serviceOrderDetails.length > 0) {
-        setFetchingProducts(true);
-        try {
-          const productPromises = refreshedOrder.serviceOrderDetails.map(detail =>
-            getProductById(detail.productId)
-          );
-          const productResults = await Promise.all(productPromises);
-          const detailsMap = {};
-          productResults.forEach((product, index) => {
-            if (product) {
-              detailsMap[refreshedOrder.serviceOrderDetails[index].productId] = product;
-            }
-          });
-          setProductDetailsMap(detailsMap);
-        } catch (productsError) {
-          console.error("Error refreshing products:", productsError);
-        } finally {
-          setFetchingProducts(false);
-        }
-      }
-      
-      console.log("Refresh completed for order:", orderId);
-      return refreshedOrder;
-      } catch (error) {
-      console.error("Error in refreshAllData:", error);
-      message.error("Không thể cập nhật dữ liệu: " + error.message);
       return null;
     }
   };
@@ -480,10 +557,10 @@ const ServiceOrderDetail = () => {
         "CompleteOrder",
         order.deliveryCode
       );
-      
+
       if (response === "Update Successfully!") {
         message.success("Đã xác nhận hoàn thành đơn hàng");
-        
+
         // Use refreshAllData instead of multiple separate fetch calls
         await refreshAllData(order.id);
       } else {
@@ -492,262 +569,6 @@ const ServiceOrderDetail = () => {
     } catch (error) {
       console.error("Error completing order:", error);
       message.error("Không thể xác nhận hoàn thành đơn hàng");
-    }
-  };
-
-  // --- Revision Modal Handlers ---
-  const handleOpenRevisionModal = () => {
-    setRevisionNote(""); // Clear previous note
-    setIsRevisionModalVisible(true);
-  };
-
-  const handleCloseRevisionModal = () => {
-    setIsRevisionModalVisible(false);
-  };
-
-  // Update handleSubmitRevision to use refreshAllData
-  const handleSubmitRevision = async () => {
-    if (!revisionNote.trim()) {
-      message.warning("Vui lòng nhập lý do yêu cầu phác thảo lại.");
-      return;
-    }
-    setIsSubmitting(true);
-    const payload = {
-      serviceType: 1,
-      status: 19, // ReConsultingAndSketching
-      report: revisionNote // Add note to report field
-    };
-    try {
-      // Use updateServiceForCus from useServiceOrderStore
-      await updateServiceForCus(id, payload);
-      message.success("Đã gửi yêu cầu phác thảo lại.");
-      setIsRevisionModalVisible(false);
-      
-      // Use refreshAllData instead of just fetching order
-      await refreshAllData(id);
-    } catch (err) {
-      message.error("Gửi yêu cầu thất bại: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // --- Redesign Modal Handlers ---
-  const handleOpenRedesignModal = () => {
-    setRedesignNote(""); // Clear previous note
-    setIsRedesignModalVisible(true);
-  };
-
-  const handleCloseRedesignModal = () => {
-    setIsRedesignModalVisible(false);
-  };
-
-  // Update handleSubmitRedesign to use refreshAllData
-  const handleSubmitRedesign = async () => {
-    if (!redesignNote.trim()) {
-      message.warning("Vui lòng nhập lý do yêu cầu thiết kế lại.");
-      return;
-    }
-    setIsSubmitting(true);
-    const payload = {
-      serviceType: 1,
-      status: 20, // ReDesign
-      report: redesignNote // Add note to report field
-    };
-    try {
-      // Use updateServiceForCus from useServiceOrderStore
-      await updateServiceForCus(id, payload);
-      message.success("Đã gửi yêu cầu thiết kế lại.");
-      setIsRedesignModalVisible(false);
-      
-      // Use refreshAllData instead of multiple separate fetch calls
-      await refreshAllData(id);
-    } catch (err) {
-      message.error("Gửi yêu cầu thiết kế lại thất bại: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // --- Cancel Order Handler ---
-  const handleCancelOrder = async () => {
-    setIsSubmitting(true);
-    // No need for payload, cancelServiceOrder handles the status update
-    try {
-      // Use cancelServiceOrder from useServiceOrderStore
-      await cancelServiceOrder(id);
-      message.success("Đã hủy đơn hàng thành công.");
-      
-      // Use refreshAllData
-      await refreshAllData(id);
-    } catch (err) {
-      message.error("Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // New function to handle design record confirmation
-  const handleConfirmDesign = (recordId) => {
-    setSelectedDesignId(recordId);
-    setIsConfirmDesignModalVisible(true);
-  };
-  
-  // Update handleDesignSelection to use refreshAllData
-  const handleDesignSelection = async () => {
-    try {
-      setIsSubmitting(true);
-      
-      // First step: Confirm the design selection
-      await confirmDesignRecord(selectedDesignId);
-      message.success('Đã chọn bản thiết kế chi tiết thành công!');
-      setIsConfirmDesignModalVisible(false);
-      
-      // Second step: Update status to DoneDesign (status code 6)
-      try {
-        await updateStatus(id, 6);
-        message.success('Đã cập nhật trạng thái đơn hàng');
-        
-        // Use refreshAllData
-        await refreshAllData(id);
-      } catch (statusError) {
-        console.error("Error updating status after design selection:", statusError);
-        message.error('Không thể cập nhật trạng thái đơn hàng: ' + statusError.message);
-      }
-    } catch (err) {
-      console.error("Error confirming design:", err);
-      message.error('Không thể chọn bản thiết kế: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Function to cancel design selection
-  const handleCancelDesignSelection = () => {
-    setSelectedDesignId(null);
-    setIsConfirmDesignModalVisible(false);
-  };
-  
-  // Update handleOpenCancelWithFeeModal to use refreshAllData
-  const handleOpenCancelWithFeeModal = () => {
-    setCancelDesignNote("");
-    setIsCancelWithFeeModalVisible(true);
-  };
-  
-  // Update handleCancelWithFee to use refreshAllData
-  const handleCancelWithFee = async () => {
-    if (!cancelDesignNote.trim()) {
-      message.warning("Vui lòng nhập lý do hủy đơn hàng.");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      // Calculate 50% of the design price
-      const cancelFee = order?.designPrice ? order.designPrice * 0.5 : 0;
-      
-      // Handle payment for cancellation fee
-      try {
-        const walletStorage = localStorage.getItem("wallet-storage");
-        if (!walletStorage) {
-          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
-        }
-        const walletData = JSON.parse(walletStorage);
-        const walletId = walletData.state.walletId;
-        if (!walletId) {
-          throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
-        }
-
-        // Make payment for cancellation fee
-        const response = await api.post("/api/bill", {
-          walletId: walletId,
-          serviceOrderId: order.id,
-          amount: cancelFee,
-          description: `Thanh toán 50% phí thiết kế còn lại cho việc hủy đơn hàng #${order.id.slice(0, 8)}`,
-        });
-
-        if (response.data) {
-          // Update order status to cancelled
-          const payload = {
-            serviceType: 1,
-            status: 14, // OrderCancelled
-            report: `Hủy sau khi xem 3 bản thiết kế: ${cancelDesignNote}`
-          };
-          
-          await updateServiceForCus(id, payload);
-          message.success("Đã hủy đơn hàng và thanh toán phí hủy thành công.");
-          setIsCancelWithFeeModalVisible(false);
-          
-          // Use refreshAllData
-          await refreshAllData(id);
-        }
-      } catch (paymentError) {
-        console.error("Payment error:", paymentError);
-        throw new Error("Thanh toán phí hủy thất bại: " + (paymentError.response?.data?.error || paymentError.message));
-      }
-    } catch (err) {
-      message.error("Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handler for making final payment in DoneDesign status
-  const handleOpenPaymentModal = () => {
-    setIsPaymentModalVisible(true);
-  };
-  
-  // Update handleFinalPayment to use refreshAllData
-  const handleFinalPayment = async () => {
-    if (!order) {
-      message.error("Không tìm thấy thông tin đơn hàng. Vui lòng làm mới trang.");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      // Calculate remaining payment amount (50% of design price + material price)
-      const remainingDesignFee = order.designPrice * 0.5; // 50% of design price
-      const materialPrice = order.materialPrice || 0;
-      const totalPayment = remainingDesignFee + materialPrice;
-      
-      // Handle payment for final payment
-      try {
-        const walletStorage = localStorage.getItem("wallet-storage");
-        if (!walletStorage) {
-          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
-        }
-        const walletData = JSON.parse(walletStorage);
-        const walletId = walletData.state.walletId;
-        if (!walletId) {
-          throw new Error("Không tìm thấy ID ví. Vui lòng đăng nhập lại.");
-        }
-
-        // Make payment
-        const response = await api.post("/api/bill", {
-          walletId: walletId,
-          serviceOrderId: order.id,
-          amount: totalPayment,
-          description: `Thanh toán 50% phí thiết kế còn lại và giá vật liệu cho đơn hàng #${order.id.slice(0, 8)}`,
-        });
-
-        if (response.data) {
-          // Update order status to PaymentSuccess (7)
-          await updateStatus(id, 7);
-          message.success("Thanh toán thành công! Đơn hàng của bạn đang được xử lý.");
-          setIsPaymentModalVisible(false);
-          
-          // Use refreshAllData
-          await refreshAllData(id);
-        }
-      } catch (paymentError) {
-        console.error("Payment error:", paymentError);
-        throw new Error("Thanh toán thất bại: " + (paymentError.response?.data?.error || paymentError.message));
-      }
-    } catch (err) {
-      message.error("Thanh toán thất bại: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -788,7 +609,7 @@ const ServiceOrderDetail = () => {
                 ),
               },
             ]}
-            style={{ 
+            style={{
               marginBottom: '16px',
               padding: '12px 16px',
               backgroundColor: '#fff',
@@ -796,10 +617,10 @@ const ServiceOrderDetail = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}
           />
-          
+
           <Card
             className="shadow-md mb-6"
-            style={{ 
+            style={{
               marginBottom: '16px',
               borderRadius: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
@@ -832,10 +653,10 @@ const ServiceOrderDetail = () => {
               </Col>
 
               <Col xs={24} md={12}>
-                <DesignDetails 
-                  order={order} 
-                  formatPrice={formatPrice} 
-                  handleCompleteOrder={handleCompleteOrder} 
+                <DesignDetails
+                  order={order}
+                  formatPrice={formatPrice}
+                  handleCompleteOrder={handleCompleteOrder}
                   approvedDesignPriceStatuses={approvedDesignPriceStatuses}
                   finalMaterialPriceStatuses={finalMaterialPriceStatuses}
                   updateStatus={updateStatus}
@@ -844,10 +665,96 @@ const ServiceOrderDetail = () => {
                 />
               </Col>
             </Row>
-
+            {/* Description Section */}
+            <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
+              <Col xs={24} md={12} style={{ display: 'flex' }}>
+                {order?.description && (
+                  <Card
+                    title={
+                      <span style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        color: '#4caf50',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <FileTextOutlined />
+                        Mô tả của bạn
+                      </span>
+                    }
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: '16px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                    }}
+                    bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  >
+                    <div
+                      className="html-preview"
+                      dangerouslySetInnerHTML={{ __html: order.description }}
+                      style={{
+                        fontSize: '15px',
+                        maxWidth: '100%',
+                        overflow: 'hidden',
+                        flex: 1
+                      }}
+                    />
+                  </Card>
+                )}
+              </Col>
+              <Col xs={24} md={12} style={{ display: 'flex' }}>
+                <Card
+                  title={
+                    <span style={{
+                      fontSize: '18px',
+                      fontWeight: '600',
+                      color: '#4caf50',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <FileTextOutlined />
+                      Nội dung tư vấn
+                    </span>
+                  }
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: '16px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                  }}
+                  bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                >
+                  {order?.skecthReport ? (
+                    <div
+                      className="html-preview"
+                      dangerouslySetInnerHTML={{ __html: order.skecthReport }}
+                      style={{ flex: 1 }}
+                    />
+                  ) : (
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '16px'
+                    }}>
+                      <Typography.Text type="secondary" style={{ textAlign: 'center' }}>
+                        Designer của chúng tôi sẽ liên hệ với bạn để tư vấn và cung cấp nội dung tư vấn trong thời gian sớm nhất.
+                      </Typography.Text>
+                    </div>
+                  )}
+                </Card>
+              </Col>
+            </Row>
             {/* Sketch Records Component - always show at least phase 0 */}
             {sketchRecords && sketchRecords.length > 0 && (
-              <RecordSketch 
+              <RecordSketch
                 order={order}
                 sketchRecords={sketchRecords}
                 recordLoading={recordLoading}
@@ -859,71 +766,37 @@ const ServiceOrderDetail = () => {
                 confirmRecord={confirmRecord}
                 getRecordSketch={getRecordSketch}
                 updateServiceOrderStatus={updateServiceOrderStatus}
+                data={data}
               />
             )}
-            
+
             {/* Show original images from order only if no sketch records exist and in early stages */}
-            {(!sketchRecords || sketchRecords.length === 0) && order?.image && 
-             (order.status === 'Pending' || order.status === 'ConsultingAndSketching' || 
-              order.status === 0 || order.status === 1) && (
-              <OriginalImages order={order} recordLoading={recordLoading} />
-            )}
+            {(!sketchRecords || sketchRecords.length === 0) && order?.image &&
+              (order.status === 'Pending' || order.status === 'ConsultingAndSketching' ||
+                order.status === 0 || order.status === 1) && (
+                <OriginalImages order={order} recordLoading={recordLoading} />
+              )}
 
             {/* Design Records Component - component tự quyết định khi nào nên hiển thị */}
-              <RecordDesign 
-                order={order}
-                designRecords={designRecords}
-                loadingDesignRecords={loadingDesignRecords}
-                isSubmitting={isSubmitting}
-                confirmDesignRecord={confirmDesignRecord}
-                updateStatus={updateStatus}
-                getServiceOrderById={getServiceOrderById}
-                getRecordDesign={getRecordDesign}
-                updateServiceForCus={updateServiceForCus}
-                api={api}
-                formatPrice={formatPrice}
+            <RecordDesign
+              order={order}
+              designRecords={designRecords}
+              loadingDesignRecords={loadingDesignRecords}
+              isSubmitting={isSubmitting}
+              confirmDesignRecord={confirmDesignRecord}
+              updateStatus={updateStatus}
+              getServiceOrderById={getServiceOrderById}
+              getRecordDesign={getRecordDesign}
+              updateServiceForCus={updateServiceForCus}
+              api={api}
+              formatPrice={formatPrice}
               sketchRecords={sketchRecords}
               updateTaskOrder={updateTaskOrder}
-              />
-
-            {/* Description Section */}
-            {order?.description && (
-              <Card
-                title={
-                  <span style={{
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    color: '#4caf50',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <FileTextOutlined />
-                    Mô tả
-                  </span>
-                }
-                style={{
-                  borderRadius: '16px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                  marginBottom: '24px'
-                }}
-              >
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: order.description,
-                  }}
-                  style={{
-                    fontSize: '15px',
-                    maxWidth: '100%',
-                    overflow: 'hidden'
-                  }}
-                />
-              </Card>
-            )}
+            />
 
             {/* Products List Component */}
             {order?.serviceOrderDetails && order.serviceOrderDetails.length > 0 && (
-              <ProductsList 
+              <ProductsList
                 order={order}
                 productDetailsMap={productDetailsMap}
                 fetchingProducts={fetchingProducts}
@@ -934,37 +807,38 @@ const ServiceOrderDetail = () => {
             )}
 
             {/* Order Timeline Component */}
-            <OrderTimeline 
+            <OrderTimeline
               order={order}
               getStatusText={getStatusText}
               getStatusColor={getStatusColor}
             />
 
             {/* Contract Section */}
-            {(showContractButton || contractVisibleStatuses.includes(order?.status) || 
-              contractVisibleStatusCodes.includes(order?.status) || 
-              contractVisibleStatusCodes.includes(selectedOrder?.status) || 
+            {(showContractButton || contractVisibleStatuses.includes(order?.status) ||
+              contractVisibleStatusCodes.includes(order?.status) ||
+              contractVisibleStatusCodes.includes(selectedOrder?.status) ||
               contractVisibleStatuses.includes(selectedOrder?.status)) && (
-              <ContractSection 
-                contract={contract}
-                selectedOrder={selectedOrder || order}
-                contractLoading={contractLoading}
-                getContractByServiceOrder={getContractByServiceOrder}
-                contractVisibleStatuses={contractVisibleStatuses}
-                contractVisibleStatusCodes={contractVisibleStatusCodes}
-                showContractButton={showContractButton}
-                showPaymentButton={showPaymentButton}
-                uploadImages={uploadImages}
-                signContract={signContract}
-                updateStatus={updateStatus}
-                formatPrice={formatPrice}
-                api={api}
-                generateContract={generateContract}
-                refreshAllData={refreshAllData}
-                updateTaskOrder={updateTaskOrder}
-                getServiceOrderById={getServiceOrderById}
-              />
-            )}
+                <ContractSection
+                  contract={contract}
+                  selectedOrder={selectedOrder || order}
+                  contractLoading={contractLoading}
+                  getContractByServiceOrder={getContractByServiceOrder}
+                  contractVisibleStatuses={contractVisibleStatuses}
+                  contractVisibleStatusCodes={contractVisibleStatusCodes}
+                  showContractButton={showContractButton}
+                  showPaymentButton={showPaymentButton}
+                  uploadImages={uploadImages}
+                  signContract={signContract}
+                  updateStatus={updateStatus}
+                  formatPrice={formatPrice}
+                  api={api}
+                  generateContract={generateContract}
+                  refreshAllData={refreshAllData}
+                  updateTaskOrder={updateTaskOrder}
+                  getServiceOrderById={getServiceOrderById}
+                  data={data}
+                />
+              )}
           </Card>
         </div>
       </Content>

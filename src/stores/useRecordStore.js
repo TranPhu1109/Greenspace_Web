@@ -11,6 +11,7 @@ const useRecordStore = create((set) => ({
   getRecordSketch: async (orderServiceId) => {
     set({ isLoading: true, error: null });
     try {
+      set({ sketchRecords: [] });
       const response = await api.get(`/api/recordsketch/${orderServiceId}/orderservice`);
       set({ 
         sketchRecords: response.data,
@@ -105,6 +106,7 @@ const useRecordStore = create((set) => ({
   resetState: () => {
     set({
       sketchRecords: [],
+      designRecords: [],
       isLoading: false,
       error: null
     });

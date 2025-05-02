@@ -16,7 +16,6 @@ import logo from "../../assets/logo.png";
 import "./AdminSidebar.scss";
 
 const { Sider } = Layout;
-const { SubMenu } = Menu;
 
 const ManagerSidebar = ({ collapsed }) => {
   const location = useLocation();
@@ -27,6 +26,142 @@ const ManagerSidebar = ({ collapsed }) => {
       return pathname.split("/").slice(0, 3).join("/");
     }
     return pathname;
+  };
+
+  // Define menu items using the new items format
+  const getItems = () => {
+    return [
+      {
+        key: "/manager/dashboard",
+        icon: <DashboardOutlined />,
+        label: <Link to="/manager/dashboard">Dashboard</Link>,
+      },
+      {
+        key: "staff",
+        icon: <TeamOutlined />,
+        label: "Danh sách người dùng",
+        children: [
+          {
+            key: "/manager/customer-list",
+            label: <Link to="/manager/customer-list">Danh sách khách hàng</Link>,
+          },
+          {
+            key: "/manager/employee-list",
+            label: <Link to="/manager/employee-list">Danh sách nhân viên</Link>,
+          },
+        ],
+      },
+      {
+        key: "/manager/products",
+        icon: <AppstoreOutlined />,
+        label: <Link to="/manager/products">Sản phẩm</Link>,
+      },
+      {
+        key: "sales",
+        icon: <ShoppingOutlined />,
+        label: "Bán hàng",
+        children: [
+          {
+            key: "/manager/orders",
+            label: <Link to="/manager/orders">Đơn hàng</Link>,
+          },
+          {
+            key: "/manager/promotions",
+            label: <Link to="/manager/promotions">Khuyến mãi</Link>,
+          },
+          {
+            key: "/manager/complaints",
+            label: <Link to="/manager/complaints">Xử lý khiếu nại hoàn tiền</Link>,
+          },
+        ],
+      },
+      // {
+      //   key: "/manager/new-design-orders",
+      //   icon: <ProjectOutlined />,
+      //   label: <Link to="/manager/new-design-orders">Đơn đặt thiết kế mới</Link>,
+      // },
+      {
+        key: "designOrders",
+        icon: <ProjectOutlined />,
+        label: "Đơn đặt thiết kế",
+        children: [
+          {
+            key: "/manager/new-design-orders",
+            label: <Link to="/manager/new-design-orders">Danh sách đơn</Link>,
+          },
+          {
+            key: "/manager/deposit-management",
+            label: <div style={{ whiteSpace: 'normal', lineHeight: '1.2' }}>
+            <Link to="/manager/deposit-management">
+              Quản lý tỷ lệ đặt cọc / hoàn cọc
+            </Link>
+          </div>,
+          },
+        ],
+      },      
+      {
+        key: "/manager/transactions",
+        icon: <HistoryOutlined />,
+        label: <Link to="/manager/transactions">Lịch sử giao dịch</Link>,
+      },
+      // {
+      //   key: "reports",
+      //   icon: <FileTextOutlined />,
+      //   label: "Báo cáo",
+      //   children: [
+      //     {
+      //       key: "/manager/reports/sales",
+      //       label: <Link to="/manager/reports/sales">Báo cáo bán hàng</Link>,
+      //     },
+      //     {
+      //       key: "/manager/reports/inventory",
+      //       label: <Link to="/manager/reports/inventory">Báo cáo kho hàng</Link>,
+      //     },
+      //     {
+      //       key: "/manager/reports/financial",
+      //       label: <Link to="/manager/reports/financial">Báo cáo tài chính</Link>,
+      //     },
+      //   ],
+      // },
+      {
+        key: "webmanage",
+        icon: <SettingOutlined />,
+        label: "Quản lý website",
+        children: [
+          {
+            key: "/manager/policy",
+            label: <Link to="/manager/policy">Quản lý chính sách</Link>,
+          },
+          {
+            key: "/manager/logo",
+            label: <Link to="/manager/logo">Quản lý logo & banner website</Link>,
+          },
+        ],
+      },
+      // {
+      //   key: "/manager/policy",
+      //   icon: <SettingOutlined />,
+      //   label: <Link to="/manager/policy">Quản lý chính sách</Link>,
+      // },
+      // {
+      //   key: "/manager/webmanage",
+      //   icon: <SettingOutlined />,
+      //   label: <Link to="/manager/webmanage">Quản lý logo & banner website</Link>,
+      // },
+      
+      
+      // Commented items can be added back if needed
+      // {
+      //   key: "/manager/analytics",
+      //   icon: <BarChartOutlined />,
+      //   label: <Link to="/manager/analytics">Phân tích</Link>,
+      // },
+      // {
+      //   key: "/manager/settings",
+      //   icon: <SettingOutlined />,
+      //   label: <Link to="/manager/settings">Cài đặt</Link>,
+      // },
+    ];
   };
 
   return (
@@ -48,70 +183,9 @@ const ManagerSidebar = ({ collapsed }) => {
             theme="light"
             mode="inline"
             selectedKeys={[getSelectedKey(location.pathname)]}
-            defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales"]}
-          >
-            <Menu.Item key="/manager/dashboard" icon={<DashboardOutlined />}>
-              <Link to="/manager/dashboard">Dashboard</Link>
-            </Menu.Item>
-
-            <SubMenu
-              key="staff"
-              icon={<TeamOutlined />}
-              title="Danh sách người dùng"
-            >
-              <Menu.Item key="/manager/customer-list">
-                <Link to="/manager/customer-list">Danh sách khách hàng</Link>
-              </Menu.Item>
-              <Menu.Item key="/manager/employee-list">
-                <Link to="/manager/employee-list">Danh sách nhân viên</Link>
-              </Menu.Item>
-            </SubMenu>
-
-            <Menu.Item key="/manager/products" icon={<AppstoreOutlined />}>
-              <Link to="/manager/products">Sản phẩm</Link>
-            </Menu.Item>
-
-            <SubMenu key="sales" icon={<ShoppingOutlined />} title="Bán hàng">
-              <Menu.Item key="/manager/orders">
-                <Link to="/manager/orders">Đơn hàng</Link>
-              </Menu.Item>
-              <Menu.Item key="/manager/promotions">
-                <Link to="/manager/promotions">Khuyến mãi</Link>
-              </Menu.Item>
-            </SubMenu>
-
-            <Menu.Item key="/manager/new-design-orders" icon={<ProjectOutlined />}>
-              <Link to="/manager/new-design-orders">Đơn đặt thiết kế mới</Link>
-            </Menu.Item>
-
-            <Menu.Item key="/manager/transactions" icon={<HistoryOutlined />}>
-              <Link to="/manager/transactions">Lịch sử giao dịch</Link>
-            </Menu.Item>
-
-            <SubMenu key="reports" icon={<FileTextOutlined />} title="Báo cáo">
-              <Menu.Item key="/manager/reports/sales">
-                <Link to="/manager/reports/sales">Báo cáo bán hàng</Link>
-              </Menu.Item>
-              <Menu.Item key="/manager/reports/inventory">
-                <Link to="/manager/reports/inventory">Báo cáo kho hàng</Link>
-              </Menu.Item>
-              <Menu.Item key="/manager/reports/financial">
-                <Link to="/manager/reports/financial">Báo cáo tài chính</Link>
-              </Menu.Item>
-            </SubMenu>
-
-            <Menu.Item key="/manager/webmanage" icon={<SettingOutlined />}>
-              <Link to="/manager/webmanage">Quản lý logo & banner website</Link>
-            </Menu.Item>
-
-            {/* <Menu.Item key="/manager/analytics" icon={<BarChartOutlined />}>
-              <Link to="/manager/analytics">Phân tích</Link>
-            </Menu.Item>
-
-            <Menu.Item key="/manager/settings" icon={<SettingOutlined />}>
-              <Link to="/manager/settings">Cài đặt</Link>
-            </Menu.Item> */}
-          </Menu>
+            defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales", "webmanage"]}
+            items={getItems()}
+          />
         </div>
       </Sider>
     </div>

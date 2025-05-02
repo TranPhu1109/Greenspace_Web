@@ -255,7 +255,7 @@ const useDesignOrderStore = create((set, get) => ({
   updateProductOrder: async (serviceOrderId, updateData) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`/api/serviceorder/customer/${serviceOrderId}`, updateData);
+      const response = await axios.put(`/api/serviceorder/${serviceOrderId}`, updateData);
       
       // Update the order in the store
       set(state => ({

@@ -149,7 +149,7 @@ const OrderExpandedRow = ({ order }) => {
         </Steps>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div >
         <div>
           <Descriptions
             title="Thông tin khách hàng"
