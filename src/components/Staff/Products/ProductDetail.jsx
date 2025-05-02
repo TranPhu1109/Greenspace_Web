@@ -340,7 +340,7 @@ const ProductDetail = () => {
                         </Space>
                       </Descriptions.Item>
                       <Descriptions.Item label="Mô tả">
-                      <div dangerouslySetInnerHTML={{ __html: productData.description }} />
+                      <div className="html-preview" dangerouslySetInnerHTML={{ __html: productData.description }} />
                       </Descriptions.Item>
                     </Descriptions>
                   ) : (

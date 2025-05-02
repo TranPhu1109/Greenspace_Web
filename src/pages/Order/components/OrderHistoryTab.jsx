@@ -49,6 +49,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
   const [complaints, setComplaints] = useState([]);
   const [complaintsLoading, setComplaintsLoading] = useState(false);
   const [dataInitialized, setDataInitialized] = useState(false);
+  const [policyModalVisible, setPolicyModalVisible] = useState(false);
+  const [tempSelectedOrder, setTempSelectedOrder] = useState(null);
+
 
   // Use complaints from props if available, otherwise fetch them
   useEffect(() => {
@@ -297,22 +300,22 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
             ) : null}
             {isCompleted && (
               <>
-              {hasExistingComplaint ? null : (
-                <Button
-                  type="primary"
-                  block
-                  onClick={async () => {
-                    const success = await confirmDelivery(record.id, record.deliveryCode);
-                    if (success) {
-                      message.success("Đã xác nhận giao hàng thành công");
-                      await fetchOrderHistory();
-                    } else if (error) {
-                      message.error(error);
-                    }
-                  }}
-                >
-                  Đã nhận hàng
-                </Button>
+                {hasExistingComplaint ? null : (
+                  <Button
+                    type="primary"
+                    block
+                    onClick={async () => {
+                      const success = await confirmDelivery(record.id, record.deliveryCode);
+                      if (success) {
+                        message.success("Đã xác nhận giao hàng thành công");
+                        await fetchOrderHistory();
+                      } else if (error) {
+                        message.error(error);
+                      }
+                    }}
+                  >
+                    Đã nhận hàng
+                  </Button>
                 )}
                 <Button
                   type="dashed"
@@ -320,12 +323,76 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                   block
                   disabled={hasExistingComplaint}
                   onClick={() => {
-                    setSelectedProductForComplaint({
-                      parentOrder: record,
-                      orderDetails: record.orderDetails
-                    });
-                    setComplaintModalVisible(true);
+                    setTempSelectedOrder(record);
+                    setPolicyModalVisible(true);
                   }}
+
+                // onClick={() => {
+                //   Modal.confirm({
+                //     title: "Chính sách Trả/Đổi hàng",
+                //     content: (
+                //       <div style={{
+                //         maxHeight: '60vh', overflowY: 'auto', paddingRight: 8, scrollbarWidth: 'thin', // Firefox
+                //         scrollbarColor: '#d9d9d9 transparent',
+                //       }}>
+                //         <Card style={{ marginBottom: 16, backgroundColor: '#e6f7ff', borderColor: '#91d5ff' }}>
+                //           <Title level={5}>📜 Chính sách Trả hàng & Hoàn tiền</Title>
+                //           <Text type="secondary">
+                //             • Sản phẩm trả về phải còn nguyên vẹn, chưa sử dụng, còn đủ phụ kiện.<br />
+                //             • Hoàn tiền 100% với sản phẩm lỗi hoặc giao sai.<br />
+                //             • Không hỗ trợ hoàn tiền cho sản phẩm hư hỏng do sử dụng.<br />
+                //             • Xử lý hoàn tiền trong 3-7 ngày sau khi nhận sản phẩm.
+                //           </Text>
+                //         </Card>
+
+                //         <Card style={{ marginBottom: 16, backgroundColor: '#fff0f6', borderColor: '#ffadd2' }}>
+                //           <Title level={5}>🔄 Chính sách Đổi hàng</Title>
+                //           <Text type="secondary">
+                //             • Đổi sản phẩm nếu lỗi kỹ thuật, giao nhầm, hỏng hóc.<br />
+                //             • Đổi sang sản phẩm cùng hoặc cao hơn giá trị.<br />
+                //             • Không đổi sản phẩm đã qua sử dụng hoặc thiếu phụ kiện.
+                //           </Text>
+                //         </Card>
+
+                //         <Card style={{ backgroundColor: '#fefefe', border: '1px solid #d9d9d9', padding: 20 }}>
+                //           <Title level={5}>📦 Hướng dẫn Gửi Trả/Đổi Hàng</Title>
+                //           <Space direction="vertical" size="small">
+                //             <Text>1️⃣ Chuẩn bị sản phẩm còn mới, đủ hộp, phụ kiện.</Text>
+                //             <Text>2️⃣ Đóng gói bằng màng chống sốc, thùng carton chắc chắn.</Text>
+                //             <Text>3️⃣ Viết thông tin đơn hàng rõ ràng vào trong và ngoài gói hàng.</Text>
+                //             <Text>4️⃣ Gửi hàng đến:</Text>
+                //             <div style={{ paddingLeft: 16 }}>
+                //               <Text strong>Bộ phận Kho hàng GreenSpace</Text><br />
+                //               <Text>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</Text><br />
+                //               <Text>Số điện thoại: 0909 999 888</Text>
+                //             </div>
+                //             <Text>5️⃣ Gửi hàng trong vòng 2 ngày từ khi gửi yêu cầu.</Text>
+                //             <Text type="danger">* Bắt buộc chụp ảnh sản phẩm trước khi giao hàng *</Text>
+                //           </Space>
+                //         </Card>
+
+                //       </div>
+                //     ),
+                //     okText: "Tôi đã đọc và đồng ý",
+                //     cancelText: "Huỷ",
+                //     centered: true,
+                //     width: 700,
+                //     onOk: () => {
+                //       setSelectedProductForComplaint({
+                //         parentOrder: record,
+                //         orderDetails: record.orderDetails
+                //       });
+                //       setComplaintModalVisible(true);
+                //     },
+                //   });
+                // }}
+                // onClick={() => {
+                //   setSelectedProductForComplaint({
+                //     parentOrder: record,
+                //     orderDetails: record.orderDetails
+                //   });
+                //   setComplaintModalVisible(true);
+                // }}
                 >
                   {hasExistingComplaint ? 'Đã gửi yêu cầu' : 'Yêu cầu trả/đổi hàng'}
                 </Button>
@@ -500,7 +567,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
 
       feedbackForm.resetFields();
       setSelectedProductForFeedback(null);
-      
+
       // Refresh order data after feedback
       await fetchOrderHistory();
     } catch (error) {
@@ -553,28 +620,28 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
           </Space>
         </Col>
         <Col span={24}>
-            <Table
-              columns={columns}
-              dataSource={filteredOrders}
-              expandable={{
-                expandedRowRender,
-                rowExpandable: (record) => record.orderDetails?.length > 0,
-              }}
-              rowKey="id"
-              pagination={{
-                // pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng ${total} đơn hàng`,
-              }}
-              locale={{
-                emptyText: (
-                  <div style={{ padding: "24px 0" }}>
-                    <ShoppingOutlined style={{ fontSize: 24, marginBottom: 16 }} />
-                    <p>Chưa có đơn hàng nào</p>
-                  </div>
-                )
-              }}
-            />
+          <Table
+            columns={columns}
+            dataSource={filteredOrders}
+            expandable={{
+              expandedRowRender,
+              rowExpandable: (record) => record.orderDetails?.length > 0,
+            }}
+            rowKey="id"
+            pagination={{
+              // pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Tổng ${total} đơn hàng`,
+            }}
+            locale={{
+              emptyText: (
+                <div style={{ padding: "24px 0" }}>
+                  <ShoppingOutlined style={{ fontSize: 24, marginBottom: 16 }} />
+                  <p>Chưa có đơn hàng nào</p>
+                </div>
+              )
+            }}
+          />
         </Col>
       </Row>
       <ComplaintModal
@@ -692,6 +759,78 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
           </Row>
         )}
       </Modal>
+
+      <Modal
+        title="Chính sách Trả/Đổi hàng"
+        open={policyModalVisible}
+        onCancel={() => setPolicyModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setPolicyModalVisible(false)}>
+            Huỷ
+          </Button>,
+          <Button
+            key="agree"
+            type="primary"
+            onClick={() => {
+              setPolicyModalVisible(false);
+              setSelectedProductForComplaint({
+                parentOrder: tempSelectedOrder,
+                orderDetails: tempSelectedOrder.orderDetails,
+              });
+              setComplaintModalVisible(true);
+            }}
+          >
+            Tôi đã đọc và đồng ý
+          </Button>,
+        ]}
+        width={700}
+        centered
+      >
+        <div style={{
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          paddingRight: 8,
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#d9d9d9 transparent',
+        }}>
+          <Card style={{ marginBottom: 16, backgroundColor: '#e6f7ff', borderColor: '#91d5ff' }}>
+            <Title level={5}>📜 Chính sách Trả hàng & Hoàn tiền</Title>
+            <Text type="secondary">
+              • Sản phẩm trả về phải còn nguyên vẹn, chưa sử dụng, còn đủ phụ kiện.<br />
+              • Hoàn tiền 100% với sản phẩm lỗi hoặc giao sai.<br />
+              • Không hỗ trợ hoàn tiền cho sản phẩm hư hỏng do sử dụng.<br />
+              • Xử lý hoàn tiền trong 3-7 ngày sau khi nhận sản phẩm.
+            </Text>
+          </Card>
+
+          <Card style={{ marginBottom: 16, backgroundColor: '#fff0f6', borderColor: '#ffadd2' }}>
+            <Title level={5}>🔄 Chính sách Đổi hàng</Title>
+            <Text type="secondary">
+              • Đổi sản phẩm nếu lỗi kỹ thuật, giao nhầm, hỏng hóc.<br />
+              • Đổi sang sản phẩm cùng hoặc cao hơn giá trị.<br />
+              • Không đổi sản phẩm đã qua sử dụng hoặc thiếu phụ kiện.
+            </Text>
+          </Card>
+
+          <Card style={{ backgroundColor: '#fefefe', border: '1px solid #d9d9d9', padding: 20 }}>
+            <Title level={5}>📦 Hướng dẫn Gửi Trả/Đổi Hàng</Title>
+            <Space direction="vertical" size="small">
+              <Text>1️⃣ Chuẩn bị sản phẩm còn mới, đủ hộp, phụ kiện.</Text>
+              <Text>2️⃣ Đóng gói bằng màng chống sốc, thùng carton chắc chắn.</Text>
+              <Text>3️⃣ Ghi mã đơn hàng, số điện thoại vào trong gói hàng.</Text>
+              <Text>4️⃣ Gửi hàng tới:</Text>
+              <div style={{ paddingLeft: 16 }}>
+                <Text strong>Bộ phận Kho hàng GreenSpace</Text><br />
+                <Text>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, TP. Hồ Chí Minh</Text><br />
+                <Text>Số điện thoại: 0909 999 888</Text>
+              </div>
+              <Text>5️⃣ Gửi hàng trong vòng 2 ngày từ khi gửi yêu cầu.</Text>
+              <Text type="danger">* Bắt buộc chụp ảnh sản phẩm và gói hàng trước khi gửi *</Text>
+            </Space>
+          </Card>
+        </div>
+      </Modal>
+
     </div>
   );
 };

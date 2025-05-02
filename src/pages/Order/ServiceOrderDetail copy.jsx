@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import useServiceOrderStore from "@/stores/useServiceOrderStore";
 import useProductStore from "@/stores/useProductStore";
@@ -58,7 +58,7 @@ const { TextArea } = Input;
 const ServiceOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const {updateStatus, selectedOrder, getDesignOrderById} = useDesignOrderStore();
+  const { updateStatus, selectedOrder, getDesignOrderById } = useDesignOrderStore();
   const {
     loading,
     error,
@@ -104,7 +104,7 @@ const ServiceOrderDetail = () => {
   const [revisionNote, setRevisionNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  
+
   // New states for design records
   const [selectedDesignId, setSelectedDesignId] = useState(null);
   const [isConfirmDesignModalVisible, setIsConfirmDesignModalVisible] = useState(false);
@@ -144,7 +144,7 @@ const ServiceOrderDetail = () => {
     "ReDesign",                 // 20
     // Add other relevant statuses if needed
   ];
-  
+
   // Define statuses where design records should be shown
   const showDesignRecordsStatuses = [
     'AssignToDesigner',           // 4
@@ -161,7 +161,7 @@ const ServiceOrderDetail = () => {
     'Warning',                    // 15
     'ReDesign',                   // 20
   ];
-  
+
   // Define statuses where contract should be visible
   const contractVisibleStatuses = [
     'WaitDeposit',                // 21
@@ -220,7 +220,7 @@ const ServiceOrderDetail = () => {
         } else {
           console.log(`Sketches not required for status: ${orderData.status}`);
         }
-        
+
         // Fetch design records if the status requires it
         if (showDesignRecordsStatuses.includes(orderData.status)) {
           console.log(`Fetching design records for order ${id} with status ${orderData.status}`);
@@ -260,7 +260,7 @@ const ServiceOrderDetail = () => {
     if (order?.status === "WaitDeposit" || order?.status === 21) {
       console.log("Order is in WaitDeposit status, ensuring contract button is shown");
       setShowContractButton(true);
-      
+
       // Try to fetch contract if it's not already loaded
       if (!contract && order.id) {
         console.log("Attempting to fetch contract for order in WaitDeposit status");
@@ -280,14 +280,14 @@ const ServiceOrderDetail = () => {
               address: order.address,
               designPrice: order.designPrice,
             })
-            .then(() => {
-              console.log("Contract generated successfully after status detection");
-              message.success("Hợp đồng đã được tạo thành công!");
-              getContractByServiceOrder(order.id); // Fetch the newly created contract
-            })
-            .catch(genErr => {
-              console.error("Error generating contract after status detection:", genErr);
-            });
+              .then(() => {
+                console.log("Contract generated successfully after status detection");
+                message.success("Hợp đồng đã được tạo thành công!");
+                getContractByServiceOrder(order.id); // Fetch the newly created contract
+              })
+              .catch(genErr => {
+                console.error("Error generating contract after status detection:", genErr);
+              });
           });
       }
     }
@@ -297,12 +297,12 @@ const ServiceOrderDetail = () => {
   useEffect(() => {
     const fetchContract = async () => {
       // Check if current status should show contract (either by name or code)
-      const shouldShowContract = 
-        contractVisibleStatuses.includes(selectedOrder?.status) || 
+      const shouldShowContract =
+        contractVisibleStatuses.includes(selectedOrder?.status) ||
         contractVisibleStatusCodes.includes(selectedOrder?.status);
-      
+
       console.log("Contract fetch check - Status:", selectedOrder?.status, "Should show:", shouldShowContract);
-      
+
       if (shouldShowContract) {
         console.log("Status requires contract visibility, checking for contract...");
         try {
@@ -325,7 +325,7 @@ const ServiceOrderDetail = () => {
                 address: selectedOrder.address,
                 designPrice: selectedOrder.designPrice,
               });
-              
+
               // Fetch the contract again after generating it
               await getContractByServiceOrder(selectedOrder.id);
               console.log("Contract generated successfully");
@@ -361,12 +361,12 @@ const ServiceOrderDetail = () => {
     } else {
       setShowPaymentButton(false);
     }
-    
+
     // Ensure contract button is visible if contract exists and status should show contract
-    const shouldShowContract = 
-      contractVisibleStatuses.includes(selectedOrder?.status) || 
+    const shouldShowContract =
+      contractVisibleStatuses.includes(selectedOrder?.status) ||
       contractVisibleStatusCodes.includes(selectedOrder?.status);
-      
+
     if (contract && !showContractButton && shouldShowContract) {
       setShowContractButton(true);
     }
@@ -380,18 +380,18 @@ const ServiceOrderDetail = () => {
       1: "Đang tư vấn & phác thảo",
       'ConsultingAndSketching': "Đang tư vấn & phác thảo",
       2: "Đang tư vấn & phác thảo", // Hide DeterminingDesignPrice
-      'DeterminingDesignPrice': "Đang tư vấn & phác thảo", 
+      'DeterminingDesignPrice': "Đang tư vấn & phác thảo",
       22: "Chờ duyệt phác thảo",
       'DoneDeterminingDesignPrice': "Chờ duyệt phác thảo",
       19: "Đang tư vấn & phác thảo", // Hide ReConsultingAndSketching
-      'ReConsultingAndSketching': "Đang tư vấn & phác thảo", 
+      'ReConsultingAndSketching': "Đang tư vấn & phác thảo",
       21: "Chờ đặt cọc",
       'WaitDeposit': "Chờ đặt cọc",
       3: "Đặt cọc thành công",
       'DepositSuccessful': "Đặt cọc thành công",
       4: "Đang thiết kế",
       'AssignToDesigner': "Đang thiết kế",
-      5: "Đang thiết kế", 
+      5: "Đang thiết kế",
       'DeterminingMaterialPrice': "Đang thiết kế",
       20: "Đang thiết kế", // Hide ReDesign
       'ReDesign': "Đang thiết kế",
@@ -426,7 +426,7 @@ const ServiceOrderDetail = () => {
       // Add other statuses if needed
     };
     // Return mapped text or the original status if not found
-    return statusMap[status] || status?.toString() || 'Không xác định'; 
+    return statusMap[status] || status?.toString() || 'Không xác định';
   };
 
   // Mapping from backend status number/name to display color
@@ -490,30 +490,30 @@ const ServiceOrderDetail = () => {
   const handleViewContract = async () => {
     try {
       console.log("Attempting to view contract with ID:", contract?.id);
-      console.log("Order data:", { 
-        orderId: order?.id, 
+      console.log("Order data:", {
+        orderId: order?.id,
         selectedOrderId: selectedOrder?.id,
         orderStatus: order?.status,
-        selectedOrderStatus: selectedOrder?.status 
+        selectedOrderStatus: selectedOrder?.status
       });
-      
+
       // If contract is already loaded, display it
       if (contract?.description) {
         console.log("Contract already loaded with description, showing modal");
         setIsContractModalVisible(true);
         return;
       }
-      
+
       // Use the ID from either order or selectedOrder, whichever is available
       const orderIdToUse = id || order?.id || selectedOrder?.id;
-      
+
       // Try to fetch the contract if it's not already loaded
       if (orderIdToUse) {
         console.log("Fetching contract for order:", orderIdToUse);
         try {
           const contractData = await getContractByServiceOrder(orderIdToUse);
           console.log("Contract fetched successfully:", contractData?.id);
-          
+
           if (contractData?.description) {
             setIsContractModalVisible(true);
           } else {
@@ -522,21 +522,21 @@ const ServiceOrderDetail = () => {
           }
         } catch (error) {
           console.error("Error fetching contract:", error);
-          
+
           // Get the current status from either source
           const currentStatus = order?.status || selectedOrder?.status;
-          
+
           // Try to generate a contract if in WaitDeposit status
           if (currentStatus === "WaitDeposit" || currentStatus === 21) {
             message.info("Đang tạo hợp đồng mới, vui lòng đợi...");
             try {
               // Use data from whichever order object is available
               const orderData = order || selectedOrder;
-              
+
               if (!orderData) {
                 throw new Error("Không tìm thấy dữ liệu đơn hàng để tạo hợp đồng");
               }
-              
+
               await generateContract({
                 userId: orderData.userId,
                 serviceOrderId: orderIdToUse,
@@ -546,7 +546,7 @@ const ServiceOrderDetail = () => {
                 address: orderData.address,
                 designPrice: orderData.designPrice,
               });
-              
+
               const newContract = await getContractByServiceOrder(orderIdToUse);
               if (newContract?.description) {
                 setIsContractModalVisible(true);
@@ -586,24 +586,24 @@ const ServiceOrderDetail = () => {
   const handleConfirmSelection = async () => {
     try {
       setLocalError(null);
-      
+
       // First step: Confirm the sketch selection
       await confirmRecord(selectedSketchId);
       message.success('Đã chọn bản phác thảo thành công!');
       setIsConfirmModalVisible(false);
-      
+
       // Second step: Update status to WaitDeposit (status code 21)
       try {
         await updateStatus(id, 21);
         message.success('Đã cập nhật trạng thái đơn hàng');
-        
+
         // Third step: Refresh all relevant data
         const updatedOrder = await getServiceOrderById(id);
         console.log('Updated order status:', updatedOrder?.status);
-        
+
         // Update local order state to reflect new status
         setOrder(updatedOrder);
-        
+
         // Explicitly attempt to get or generate contract
         try {
           console.log("Attempting to fetch contract after status update");
@@ -630,10 +630,10 @@ const ServiceOrderDetail = () => {
             message.error("Không thể tạo hợp đồng tự động, vui lòng thử lại sau.");
           }
         }
-        
+
         // Refresh sketch records
         await getRecordSketch(id);
-        
+
         // Force UI update to reflect the new status and show contract button
         // This helps avoid needing a page reload
         setTimeout(() => {
@@ -687,19 +687,19 @@ const ServiceOrderDetail = () => {
 
       setUploading(true);
       setPaymentLoading(true);
-      
+
       // First upload the signature image
       const uploadedUrls = await uploadImages([previewImage]);
       console.log('Uploaded URLs:', uploadedUrls);
-      
+
       if (!uploadedUrls || uploadedUrls.length === 0) {
         throw new Error('Không nhận được URL hình ảnh sau khi tải lên');
       }
-      
+
       // Store the signature URL
       const signatureImageUrl = uploadedUrls[0];
       setSignatureUrl(signatureImageUrl);
-      
+
       // Process payment FIRST
       try {
         const walletStorage = localStorage.getItem("wallet-storage");
@@ -726,16 +726,16 @@ const ServiceOrderDetail = () => {
           if (contract?.id) {
             await signContract(contract.id, signatureImageUrl);
             message.success("Thanh toán và ký hợp đồng thành công");
-            
+
             // Update order status to DepositSuccessful (status code 3)
-            await updateStatus(orderData.id, 3); 
+            await updateStatus(orderData.id, 3);
             message.success("Đã cập nhật trạng thái đơn hàng");
-            
+
             // Refresh data
             await getContractByServiceOrder(orderData.id);
             const updatedOrderData = await getServiceOrderById(id);
             setOrder(updatedOrderData); // Update local state with fresh data
-            
+
             // Close modal
             closeSignAndPayModal();
           } else {
@@ -758,19 +758,19 @@ const ServiceOrderDetail = () => {
     }
   };
 
-   // Định dạng giá tiền
-   const formatPrice = (price) => {
+  // Định dạng giá tiền
+  const formatPrice = (price) => {
     // Handle undefined, null, NaN or invalid values
     if (price === undefined || price === null || isNaN(price) || typeof price !== 'number') {
       return 'Chưa xác định';
     }
-    
+
     // Format the price with Vietnamese locale
     return price.toLocaleString("vi-VN") + " VNĐ";
   };
 
   console.log("order", order);
-  
+
   const handleCompleteOrder = async () => {
     try {
       const response = await updateStatus(
@@ -778,16 +778,16 @@ const ServiceOrderDetail = () => {
         "CompleteOrder",
         order.deliveryCode
       );
-      
+
       //console.log('Response data:', response);
-      
+
       if (response === "Update Successfully!") {
         message.success("Đã xác nhận hoàn thành đơn hàng");
-        
+
         // Refresh both service order and design order data
         const updatedOrder = await getServiceOrderById(id);
         setOrder(updatedOrder);
-        
+
         await getDesignOrderById(id, componentId.current);
       } else {
         message.error("Cập nhật trạng thái không thành công");
@@ -806,7 +806,7 @@ const ServiceOrderDetail = () => {
       key: 'product',
       render: (_, record) => {
         const product = productDetailsMap[record.productId];
-    return (
+        return (
           <Space>
             <Image
               src={product?.image?.imageUrl || '/placeholder.png'}
@@ -919,7 +919,7 @@ const ServiceOrderDetail = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   // --- Redesign Modal Handlers ---
   const handleOpenRedesignModal = () => {
     setRedesignNote(""); // Clear previous note
@@ -979,32 +979,32 @@ const ServiceOrderDetail = () => {
     setSelectedDesignId(recordId);
     setIsConfirmDesignModalVisible(true);
   };
-  
+
   // Function to confirm design selection
   const handleDesignSelection = async () => {
     try {
       setIsSubmitting(true);
-      
+
       // First step: Confirm the design selection
       await confirmDesignRecord(selectedDesignId);
       message.success('Đã chọn bản thiết kế chi tiết thành công!');
       setIsConfirmDesignModalVisible(false);
-      
+
       // Second step: Update status to DoneDesign (status code 6)
       try {
         await updateStatus(id, 6);
         message.success('Đã cập nhật trạng thái đơn hàng');
-        
+
         // Third step: Refresh order data
         const updatedOrder = await getServiceOrderById(id);
         console.log('Updated order status after design selection:', updatedOrder?.status);
-        
+
         // Update local order state
         setOrder(updatedOrder);
-        
+
         // Refresh design records
         await getRecordDesign(id);
-        
+
       } catch (statusError) {
         console.error("Error updating status after design selection:", statusError);
         message.error('Không thể cập nhật trạng thái đơn hàng: ' + statusError.message);
@@ -1016,31 +1016,31 @@ const ServiceOrderDetail = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   // Function to cancel design selection
   const handleCancelDesignSelection = () => {
     setSelectedDesignId(null);
     setIsConfirmDesignModalVisible(false);
   };
-  
+
   // Function to open cancel with fee modal
   const handleOpenCancelWithFeeModal = () => {
     setCancelDesignNote("");
     setIsCancelWithFeeModalVisible(true);
   };
-  
+
   // Function to handle order cancellation with 50% fee
   const handleCancelWithFee = async () => {
     if (!cancelDesignNote.trim()) {
       message.warning("Vui lòng nhập lý do hủy đơn hàng.");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       // Calculate 50% of the design price
       const cancelFee = order?.designPrice ? order.designPrice * 0.5 : 0;
-      
+
       // Handle payment for cancellation fee
       try {
         const walletStorage = localStorage.getItem("wallet-storage");
@@ -1068,11 +1068,11 @@ const ServiceOrderDetail = () => {
             status: 14, // OrderCancelled
             report: `Hủy sau khi xem 3 bản thiết kế: ${cancelDesignNote}`
           };
-          
+
           await updateServiceForCus(id, payload);
           message.success("Đã hủy đơn hàng và thanh toán phí hủy thành công.");
           setIsCancelWithFeeModalVisible(false);
-          
+
           // Refresh order data
           const updatedOrder = await getServiceOrderById(id);
           setOrder(updatedOrder);
@@ -1092,20 +1092,20 @@ const ServiceOrderDetail = () => {
   const handleOpenPaymentModal = () => {
     setIsPaymentModalVisible(true);
   };
-  
+
   const handleFinalPayment = async () => {
     if (!order) {
       message.error("Không tìm thấy thông tin đơn hàng. Vui lòng làm mới trang.");
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       // Calculate remaining payment amount (50% of design price + material price)
       const remainingDesignFee = order.designPrice * 0.5; // 50% of design price
       const materialPrice = order.materialPrice || 0;
       const totalPayment = remainingDesignFee + materialPrice;
-      
+
       // Handle payment for final payment
       try {
         const walletStorage = localStorage.getItem("wallet-storage");
@@ -1131,7 +1131,7 @@ const ServiceOrderDetail = () => {
           await updateStatus(id, 7);
           message.success("Thanh toán thành công! Đơn hàng của bạn đang được xử lý.");
           setIsPaymentModalVisible(false);
-          
+
           // Refresh order data
           const updatedOrder = await getServiceOrderById(id);
           setOrder(updatedOrder);
@@ -1166,19 +1166,19 @@ const ServiceOrderDetail = () => {
       <Layout className="min-h-screen">
         <Header />
         <Content className="container mx-auto px-4 py-8 flex flex-col items-center justify-center" style={{ marginTop: "150px" }}>
-            <Alert
-              type="error"
+          <Alert
+            type="error"
             message="Lỗi tải dữ liệu"
             description={displayError.toString()}
             showIcon
             className="mb-4 w-full max-w-lg"
-            />
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/history-booking-services")}
-            >
+          />
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/history-booking-services")}
+          >
             Quay lại lịch sử
-            </Button>
+          </Button>
         </Content>
         <Footer />
       </Layout>
@@ -1190,19 +1190,19 @@ const ServiceOrderDetail = () => {
       <Layout className="min-h-screen">
         <Header />
         <Content className="container mx-auto px-4 py-8 flex flex-col items-center justify-center" style={{ marginTop: "150px" }}>
-            <Alert
-              type="warning"
+          <Alert
+            type="warning"
             message="Không tìm thấy đơn hàng"
             description={`Không thể tìm thấy thông tin cho đơn hàng #${id}.`}
             showIcon
             className="mb-4 w-full max-w-lg"
-            />
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate("/history-booking-services")}
-            >
+          />
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate("/history-booking-services")}
+          >
             Quay lại lịch sử
-            </Button>
+          </Button>
         </Content>
         <Footer />
       </Layout>
@@ -1250,7 +1250,7 @@ const ServiceOrderDetail = () => {
                 ),
               },
             ]}
-            style={{ 
+            style={{
               marginBottom: '16px',
               padding: '12px 16px',
               backgroundColor: '#fff',
@@ -1258,10 +1258,10 @@ const ServiceOrderDetail = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
             }}
           />
-          
+
           <Card
             className="shadow-md mb-6"
-            style={{ 
+            style={{
               marginBottom: '16px',
               borderRadius: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
@@ -1384,8 +1384,8 @@ const ServiceOrderDetail = () => {
                         order?.status === 'DoneDesign' || order?.status === 6
                           ? "Giá vật liệu"
                           : (finalMaterialPriceStatuses.includes(order?.status)
-                              ? "Giá vật liệu"
-                              : "Giá vật liệu (dự kiến)")
+                            ? "Giá vật liệu"
+                            : "Giá vật liệu (dự kiến)")
                       }
                     >
                       {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
@@ -1397,38 +1397,38 @@ const ServiceOrderDetail = () => {
                       )}
                     </Descriptions.Item>
                     <Descriptions.Item label="Tổng chi phí">
-                      {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" || 
-                       order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder'
-                       || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
+                      {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" ||
+                        order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder'
+                        || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
                         || order?.status === "DeliveredSuccessfully"
 
 
-                       ? (
-                        <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
-                          {formatPrice((order.designPrice || 0) + (order.materialPrice || 0))}
-                        </span>
-                      ) : (
-                        order?.totalCost === undefined ? 'Đang tải...' :
-                          order.totalCost === 0 ? (
-                            <Tag color="gold">Chưa xác định tổng</Tag>
-                          ) : (
-                            <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPrice(order.totalCost)}</span>
-                          )
-                      )}
+                        ? (
+                          <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
+                            {formatPrice((order.designPrice || 0) + (order.materialPrice || 0))}
+                          </span>
+                        ) : (
+                          order?.totalCost === undefined ? 'Đang tải...' :
+                            order.totalCost === 0 ? (
+                              <Tag color="gold">Chưa xác định tổng</Tag>
+                            ) : (
+                              <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPrice(order.totalCost)}</span>
+                            )
+                        )}
                     </Descriptions.Item>
                     <Descriptions.Item label="Ngày tạo">
                       {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : 'Đang tải...'}
                     </Descriptions.Item>
 
-                    
-                    
+
+
                     {/* Payment Reminder for DoneDesign status */}
                     {(order?.status === 'DoneDesign') && (
                       <Descriptions.Item label="">
-                        <div style={{ 
-                          backgroundColor: '#fffbe6', 
-                          border: '1px solid #ffe58f', 
-                          padding: '8px 12px', 
+                        <div style={{
+                          backgroundColor: '#fffbe6',
+                          border: '1px solid #ffe58f',
+                          padding: '8px 12px',
                           borderRadius: '4px',
                           marginTop: '8px',
                           marginBottom: '10px'
@@ -1437,9 +1437,9 @@ const ServiceOrderDetail = () => {
                             Vui lòng thanh toán 50% phí thiết kế còn lại và giá vật liệu để tiếp tục.
                           </Text>
                         </div>
-                        <Button 
-                          type="primary" 
-                          icon={<DollarOutlined />} 
+                        <Button
+                          type="primary"
+                          icon={<DollarOutlined />}
                           onClick={handleOpenPaymentModal}
                           style={{ width: '100%', marginTop: '8px' }}
                         >
@@ -1448,10 +1448,10 @@ const ServiceOrderDetail = () => {
                       </Descriptions.Item>
                     )}
                   </Descriptions>
-                  
+
                   {order?.status === "DeliveredSuccessfully" && (
                     <Button
-                    style={{marginTop:15}}
+                      style={{ marginTop: 15 }}
                       type="primary"
                       onClick={() => {
                         Modal.confirm({
@@ -1466,7 +1466,7 @@ const ServiceOrderDetail = () => {
                     >
                       Xác nhận hoàn thành
                     </Button>
-                  )}  
+                  )}
                 </Card>
               </Col>
             </Row>
@@ -1642,7 +1642,7 @@ const ServiceOrderDetail = () => {
               }
             })()}
             {/* ------------- End Conditional Image Display Section ------------- */}
-            
+
             {/* ------------- Design Records Display Section ------------- */}
             {showDesignRecordsStatuses.includes(order?.status) && (
               <Card
@@ -1662,12 +1662,12 @@ const ServiceOrderDetail = () => {
 
                       const phaseTitle = `Bản thiết kế chi tiết lần ${phase}`;
                       const isAnySelectedInPhase = phaseRecords.some(record => record.isSelected);
-                      
+
                       // Determine if selection is allowed for this design record
-                      const isSelectionAllowed = 
-                        (order?.status === 'DoneDeterminingDesignPrice' || 
-                         order?.status === 'AssignToDesigner' || 
-                         order?.status === 'DeterminingMaterialPrice') && 
+                      const isSelectionAllowed =
+                        (order?.status === 'DoneDeterminingDesignPrice' ||
+                          order?.status === 'AssignToDesigner' ||
+                          order?.status === 'DeterminingMaterialPrice') &&
                         !designRecords.some(r => r.isSelected);
 
                       return (
@@ -1737,7 +1737,7 @@ const ServiceOrderDetail = () => {
                         </div>
                       );
                     })}
-                    
+
                     {/* Action buttons for design records */}
                     {(order?.status === 'DoneDeterminingDesignPrice') && (
                       <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
@@ -1751,7 +1751,7 @@ const ServiceOrderDetail = () => {
                             Yêu cầu thiết kế lại
                           </Button>
                         )}
-                        
+
                         {/* Only show cancel with fee button if all 3 design phases are present */}
                         {designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
                           <Button
@@ -1763,10 +1763,10 @@ const ServiceOrderDetail = () => {
                             Hủy đơn và thanh toán 50% còn lại
                           </Button>
                         )}
-                        
+
                         {!designRecords.some(r => r.isSelected) && (
                           <Text type="secondary" style={{ alignSelf: 'center' }}>
-                            {designRecords.some(r => r.phase === 3) 
+                            {designRecords.some(r => r.phase === 3)
                               ? "Vui lòng chọn một bản thiết kế hoặc hủy đơn hàng (sẽ phải thanh toán 50% phí thiết kế còn lại)."
                               : "Vui lòng chọn một bản thiết kế để tiếp tục."}
                           </Text>
@@ -1803,6 +1803,7 @@ const ServiceOrderDetail = () => {
                 }}
               >
                 <div
+                  className="html-preview"
                   dangerouslySetInnerHTML={{
                     __html: order.description,
                   }}
@@ -1896,7 +1897,7 @@ const ServiceOrderDetail = () => {
               }}
             >
               <Timeline mode="left">
-                {/* First item: Order Creation */}             
+                {/* First item: Order Creation */}
                 <Timeline.Item color="green" dot={<CheckCircleOutlined />}>
                   <p style={{ fontSize: '15px', marginBottom: '4px' }}>Đơn hàng được tạo</p>
                   <Text type="secondary" style={{ fontSize: '14px' }}>
@@ -1904,37 +1905,37 @@ const ServiceOrderDetail = () => {
                   </Text>
                 </Timeline.Item>
 
-                {/* Process and display status history */}            
+                {/* Process and display status history */}
                 {(() => {
                   if (!order?.statusHistory || order.statusHistory.length === 0) {
                     // Show current status if no history available (fallback)
-                     return (
-                        <Timeline.Item color={getStatusColor(order.status)} dot={<ClockCircleOutlined />}>
-                          <p style={{ fontSize: '15px', marginBottom: '4px', fontWeight: '600' }}>
-                            {getStatusText(order.status)}
-                          </p>
-                           {/* Optionally add modification date if available */}
-                </Timeline.Item>
-                     );
+                    return (
+                      <Timeline.Item color={getStatusColor(order.status)} dot={<ClockCircleOutlined />}>
+                        <p style={{ fontSize: '15px', marginBottom: '4px', fontWeight: '600' }}>
+                          {getStatusText(order.status)}
+                        </p>
+                        {/* Optionally add modification date if available */}
+                      </Timeline.Item>
+                    );
                   }
 
                   const displayHistory = [];
                   let lastDisplayedStatusText = null;
 
                   // Add creation as the effective first status text for comparison
-                   lastDisplayedStatusText = "Đơn hàng được tạo"; // Or map status 0/Pending if creation date is the first history entry
+                  lastDisplayedStatusText = "Đơn hàng được tạo"; // Or map status 0/Pending if creation date is the first history entry
 
                   order.statusHistory.forEach(historyEntry => {
                     const currentStatusText = getStatusText(historyEntry.status);
                     // Display every entry from history
                     displayHistory.push({
-                      text: currentStatusText, 
+                      text: currentStatusText,
                       color: getStatusColor(historyEntry.status),
                       timestamp: historyEntry.timestamp,
                       // Icon based on status (example: cancel icon)
-                      icon: historyEntry.status === 'OrderCancelled' || historyEntry.status === 14 
-                            ? <CloseCircleOutlined style={{ fontSize: '16px' }}/> 
-                            : <ClockCircleOutlined style={{ fontSize: '16px' }}/>
+                      icon: historyEntry.status === 'OrderCancelled' || historyEntry.status === 14
+                        ? <CloseCircleOutlined style={{ fontSize: '16px' }} />
+                        : <ClockCircleOutlined style={{ fontSize: '16px' }} />
                     });
                   });
 
@@ -1950,116 +1951,116 @@ const ServiceOrderDetail = () => {
                             {item.text}
                           </p>
                           <Text type="secondary" style={{ fontSize: '14px' }}>
-                             {item.timestamp ? format(new Date(item.timestamp), "dd/MM/yyyy HH:mm") : '...'}
+                            {item.timestamp ? format(new Date(item.timestamp), "dd/MM/yyyy HH:mm") : '...'}
                           </Text>
                         </Timeline.Item>
                       ))}
                     </>
                   );
-                 })()}
+                })()}
               </Timeline>
             </Card>
 
-            {/* Add this after the timeline Card, before the closing Card tag */} 
-            {(showContractButton || contractVisibleStatuses.includes(order?.status) || 
-              contractVisibleStatusCodes.includes(order?.status) || 
-              contractVisibleStatusCodes.includes(selectedOrder?.status) || 
+            {/* Add this after the timeline Card, before the closing Card tag */}
+            {(showContractButton || contractVisibleStatuses.includes(order?.status) ||
+              contractVisibleStatusCodes.includes(order?.status) ||
+              contractVisibleStatusCodes.includes(selectedOrder?.status) ||
               contractVisibleStatuses.includes(selectedOrder?.status)) && (
-              <Card
-                title={
-                  <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FileTextOutlined /> Hợp đồng
-                  </span>
-                }
-                style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginTop: '24px' }}
-                loading={contractLoading}
-                extra={
-                  <Button type="link" onClick={() => {
-                    console.log("Refreshing contract data");
-                    // Use whichever ID is available
-                    const idToUse = id || order?.id || selectedOrder?.id;
-                    console.log("Using order ID for refresh:", idToUse, {
-                      urlId: id,
-                      orderId: order?.id,
-                      selectedOrderId: selectedOrder?.id
-                    });
-                    
-                    if (idToUse) {
-                      getContractByServiceOrder(idToUse)
-                        .then(data => {
-                          console.log("Contract refreshed successfully:", data?.id);
-                          if (!data) {
-                            message.warning("Không tìm thấy hợp đồng");
-                          }
-                        })
-                        .catch(err => {
-                          console.error("Error refreshing contract:", err);
-                          message.error("Lỗi khi tải lại hợp đồng: " + err.message);
-                        });
-                    } else {
-                      console.error("No order ID available for refresh");
-                      message.error("Không tìm thấy ID đơn hàng để tải lại hợp đồng");
-                    }
-                  }}>
-                    <ReloadOutlined /> Làm mới
-                  </Button>
-                }
-              >
-                <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                  <Button
-                    type="primary"
-                    icon={<FileTextOutlined />}
-                    onClick={handleViewContract}
-                    loading={contractLoading}
-                    style={{ width: '100%' }}
-                  >
-                    Xem hợp đồng
-                  </Button>
-                  
-                  
-                  
-                  {/* Ensure the signing button appears as soon as the status is updated */}
-                  {(!contract?.modificationDate && (
-                    showContractButton || 
-                    selectedOrder?.status === "WaitDeposit" || selectedOrder?.status === 21 ||
-                    order?.status === "WaitDeposit" || order?.status === 21)) && (
-                    <>
-                      <div style={{ padding: '8px 16px', backgroundColor: '#f5f5f9', borderRadius: '4px', margin: '8px 0' }}>
-                        <Text type="secondary">
-                          Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây
-                        </Text>
-                      </div>
-                      <Button
-                        type="primary"
-                        icon={<FileTextOutlined />}
-                        onClick={() => {
-                          console.log("Order status check for signing:", {
-                            orderStatus: order?.status, 
-                            selectedOrderStatus: selectedOrder?.status,
-                            showContractButton
+                <Card
+                  title={
+                    <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FileTextOutlined /> Hợp đồng
+                    </span>
+                  }
+                  style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginTop: '24px' }}
+                  loading={contractLoading}
+                  extra={
+                    <Button type="link" onClick={() => {
+                      console.log("Refreshing contract data");
+                      // Use whichever ID is available
+                      const idToUse = id || order?.id || selectedOrder?.id;
+                      console.log("Using order ID for refresh:", idToUse, {
+                        urlId: id,
+                        orderId: order?.id,
+                        selectedOrderId: selectedOrder?.id
+                      });
+
+                      if (idToUse) {
+                        getContractByServiceOrder(idToUse)
+                          .then(data => {
+                            console.log("Contract refreshed successfully:", data?.id);
+                            if (!data) {
+                              message.warning("Không tìm thấy hợp đồng");
+                            }
+                          })
+                          .catch(err => {
+                            console.error("Error refreshing contract:", err);
+                            message.error("Lỗi khi tải lại hợp đồng: " + err.message);
                           });
-                          openSignAndPayModal();
-                        }}
-                        style={{ width: '100%' }}
-                      >
-                        Ký hợp đồng & Thanh toán cọc
-                      </Button>
-                    </>
-                  )}
-                  
-                  {contract?.modificationDate && (
-                     <Tag icon={<CheckCircleOutlined />} color="success">
+                      } else {
+                        console.error("No order ID available for refresh");
+                        message.error("Không tìm thấy ID đơn hàng để tải lại hợp đồng");
+                      }
+                    }}>
+                      <ReloadOutlined /> Làm mới
+                    </Button>
+                  }
+                >
+                  <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                    <Button
+                      type="primary"
+                      icon={<FileTextOutlined />}
+                      onClick={handleViewContract}
+                      loading={contractLoading}
+                      style={{ width: '100%' }}
+                    >
+                      Xem hợp đồng
+                    </Button>
+
+
+
+                    {/* Ensure the signing button appears as soon as the status is updated */}
+                    {(!contract?.modificationDate && (
+                      showContractButton ||
+                      selectedOrder?.status === "WaitDeposit" || selectedOrder?.status === 21 ||
+                      order?.status === "WaitDeposit" || order?.status === 21)) && (
+                        <>
+                          <div style={{ padding: '8px 16px', backgroundColor: '#f5f5f9', borderRadius: '4px', margin: '8px 0' }}>
+                            <Text type="secondary">
+                              Bạn đã đọc và đồng ý với hợp đồng 50% cho giai đoạn thiết kế chi tiết, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây
+                            </Text>
+                          </div>
+                          <Button
+                            type="primary"
+                            icon={<FileTextOutlined />}
+                            onClick={() => {
+                              console.log("Order status check for signing:", {
+                                orderStatus: order?.status,
+                                selectedOrderStatus: selectedOrder?.status,
+                                showContractButton
+                              });
+                              openSignAndPayModal();
+                            }}
+                            style={{ width: '100%' }}
+                          >
+                            Ký hợp đồng & Thanh toán cọc
+                          </Button>
+                        </>
+                      )}
+
+                    {contract?.modificationDate && (
+                      <Tag icon={<CheckCircleOutlined />} color="success">
                         Hợp đồng đã được ký vào {format(new Date(contract.modificationDate), "dd/MM/yyyy HH:mm")}
-                     </Tag>
-                  )}
-                </Space>
-              </Card>
-            )}
+                      </Tag>
+                    )}
+                  </Space>
+                </Card>
+              )}
 
           </Card>
         </div>
 
-        {/* Contract Modal */} 
+        {/* Contract Modal */}
         <Modal
           title="Hợp đồng"
           visible={isContractModalVisible}
@@ -2092,7 +2093,7 @@ const ServiceOrderDetail = () => {
           )}
         </Modal>
 
-        {/* Sign and Pay Modal */} 
+        {/* Sign and Pay Modal */}
         <Modal
           title="Ký hợp đồng và thanh toán cọc"
           visible={isSignAndPayModalVisible}
@@ -2134,10 +2135,10 @@ const ServiceOrderDetail = () => {
                     }}
                     preview={false}
                   />
-                  <Button 
-                    type="link" 
-                    danger 
-                    icon={<CloseCircleOutlined />} 
+                  <Button
+                    type="link"
+                    danger
+                    icon={<CloseCircleOutlined />}
                     onClick={() => setPreviewImage(null)}
                     style={{ position: 'absolute', top: -5, right: -5, background: 'rgba(255,255,255,0.7)', borderRadius: '50%' }}
                   />
@@ -2154,8 +2155,8 @@ const ServiceOrderDetail = () => {
                       const file = e.target.files[0];
                       if (file) {
                         if (file.size > 5 * 1024 * 1024) { // Check file size (e.g., 5MB)
-                           message.error('Kích thước ảnh chữ ký quá lớn (tối đa 5MB).');
-                           return;
+                          message.error('Kích thước ảnh chữ ký quá lớn (tối đa 5MB).');
+                          return;
                         }
                         const reader = new FileReader();
                         reader.onload = (e) => {
@@ -2261,7 +2262,7 @@ const ServiceOrderDetail = () => {
             placeholder="Ví dụ: Tôi đã xem tất cả các bản thiết kế nhưng không phù hợp với ý tưởng của tôi..."
           />
         </Modal>
-        
+
         {/* Redesign Request Modal */}
         <Modal
           title="Yêu cầu thiết kế lại"
@@ -2307,11 +2308,11 @@ const ServiceOrderDetail = () => {
               </Text>
             </Descriptions.Item>
           </Descriptions>
-          
-          <div style={{ 
-            backgroundColor: '#f6ffed', 
-            border: '1px solid #b7eb8f', 
-            padding: '12px 16px', 
+
+          <div style={{
+            backgroundColor: '#f6ffed',
+            border: '1px solid #b7eb8f',
+            padding: '12px 16px',
             borderRadius: '4px',
             marginTop: '16px'
           }}>
@@ -2347,7 +2348,7 @@ const ServiceOrderDetail = () => {
           placeholder="Ví dụ: Tôi muốn thay đổi màu sắc chủ đạo, thêm nhiều cây xanh hơn..."
         />
       </Modal>
-      
+
       {/* Design Confirmation Modal */}
       <Modal
         title="Xác nhận chọn bản thiết kế chi tiết"
@@ -2361,7 +2362,7 @@ const ServiceOrderDetail = () => {
         <p>Bạn có chắc chắn muốn chọn bản thiết kế chi tiết này không?</p>
         <p>Sau khi chọn, thiết kế này sẽ được sử dụng để xác định giá vật liệu và tiến hành các bước tiếp theo.</p>
       </Modal>
-      
+
       {/* Cancel with Fee Modal */}
       <Modal
         title="Hủy đơn hàng và thanh toán 50% phí thiết kế còn lại"
@@ -2385,7 +2386,7 @@ const ServiceOrderDetail = () => {
           placeholder="Ví dụ: Tôi đã xem tất cả các bản thiết kế nhưng không phù hợp với ý tưởng của tôi..."
         />
       </Modal>
-      
+
       {/* Redesign Request Modal */}
       <Modal
         title="Yêu cầu thiết kế lại"
@@ -2431,11 +2432,11 @@ const ServiceOrderDetail = () => {
             </Text>
           </Descriptions.Item>
         </Descriptions>
-        
-        <div style={{ 
-          backgroundColor: '#f6ffed', 
-          border: '1px solid #b7eb8f', 
-          padding: '12px 16px', 
+
+        <div style={{
+          backgroundColor: '#f6ffed',
+          border: '1px solid #b7eb8f',
+          padding: '12px 16px',
           borderRadius: '4px',
           marginTop: '16px'
         }}>
@@ -2450,7 +2451,7 @@ const ServiceOrderDetail = () => {
         </div>
       </Modal>
 
-      
+
 
     </Layout>
   );

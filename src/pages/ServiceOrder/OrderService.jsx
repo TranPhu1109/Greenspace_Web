@@ -1106,7 +1106,7 @@ const OrderService = () => {
                             dangerouslySetInnerHTML={{
                               __html: currentDesign?.description,
                             }}
-                            className="design-description"
+                            className="design-description html-preview"
                           />
                         </Panel>
                       </Collapse>

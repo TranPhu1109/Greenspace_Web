@@ -124,7 +124,7 @@ const TaskList = () => {
           <Popover
             placement="right"
             title="Ghi chú"
-            content={<div dangerouslySetInnerHTML={{ __html: noteHtml }} />}
+            content={<div className="html-preview" dangerouslySetInnerHTML={{ __html: noteHtml }} />}
             trigger="hover"
           >
             <div

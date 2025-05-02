@@ -104,30 +104,52 @@ const ManagerSidebar = ({ collapsed }) => {
         icon: <HistoryOutlined />,
         label: <Link to="/manager/transactions">Lịch sử giao dịch</Link>,
       },
+      // {
+      //   key: "reports",
+      //   icon: <FileTextOutlined />,
+      //   label: "Báo cáo",
+      //   children: [
+      //     {
+      //       key: "/manager/reports/sales",
+      //       label: <Link to="/manager/reports/sales">Báo cáo bán hàng</Link>,
+      //     },
+      //     {
+      //       key: "/manager/reports/inventory",
+      //       label: <Link to="/manager/reports/inventory">Báo cáo kho hàng</Link>,
+      //     },
+      //     {
+      //       key: "/manager/reports/financial",
+      //       label: <Link to="/manager/reports/financial">Báo cáo tài chính</Link>,
+      //     },
+      //   ],
+      // },
       {
-        key: "reports",
-        icon: <FileTextOutlined />,
-        label: "Báo cáo",
+        key: "webmanage",
+        icon: <SettingOutlined />,
+        label: "Quản lý website",
         children: [
           {
-            key: "/manager/reports/sales",
-            label: <Link to="/manager/reports/sales">Báo cáo bán hàng</Link>,
+            key: "/manager/policy",
+            label: <Link to="/manager/policy">Quản lý chính sách</Link>,
           },
           {
-            key: "/manager/reports/inventory",
-            label: <Link to="/manager/reports/inventory">Báo cáo kho hàng</Link>,
-          },
-          {
-            key: "/manager/reports/financial",
-            label: <Link to="/manager/reports/financial">Báo cáo tài chính</Link>,
+            key: "/manager/logo",
+            label: <Link to="/manager/logo">Quản lý logo & banner website</Link>,
           },
         ],
       },
-      {
-        key: "/manager/webmanage",
-        icon: <SettingOutlined />,
-        label: <Link to="/manager/webmanage">Quản lý logo & banner website</Link>,
-      },
+      // {
+      //   key: "/manager/policy",
+      //   icon: <SettingOutlined />,
+      //   label: <Link to="/manager/policy">Quản lý chính sách</Link>,
+      // },
+      // {
+      //   key: "/manager/webmanage",
+      //   icon: <SettingOutlined />,
+      //   label: <Link to="/manager/webmanage">Quản lý logo & banner website</Link>,
+      // },
+      
+      
       // Commented items can be added back if needed
       // {
       //   key: "/manager/analytics",
@@ -161,7 +183,7 @@ const ManagerSidebar = ({ collapsed }) => {
             theme="light"
             mode="inline"
             selectedKeys={[getSelectedKey(location.pathname)]}
-            defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales"]}
+            defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales", "webmanage"]}
             items={getItems()}
           />
         </div>
