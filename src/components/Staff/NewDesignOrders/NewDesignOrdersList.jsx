@@ -326,7 +326,7 @@ const NewDesignOrdersList = () => {
       render: (text) => (
         <div className="requirements-preview">
           <Tooltip
-            title={<span dangerouslySetInnerHTML={{ __html: text }}></span>}
+            title={<span className="html-preview" dangerouslySetInnerHTML={{ __html: text }}></span>}
             color="orange"
             placement="topLeft"
           >

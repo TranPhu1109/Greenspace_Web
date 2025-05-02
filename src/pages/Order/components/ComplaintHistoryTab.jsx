@@ -299,13 +299,14 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
             <Button
               type="dashed"
               size="small"
-              icon={<InfoCircleOutlined />}
+              icon={<InfoCircleOutlined style={{ color: 'blue' }} />}
               onClick={() => handleOpenShippingModal(record)}
               style={{
                 width: 120,
                 whiteSpace: 'normal',
                 height: 'auto',
-                textAlign: 'center'
+                textAlign: 'center',
+                color: 'blue'
               }}
             >
               Thông tin gửi hàng

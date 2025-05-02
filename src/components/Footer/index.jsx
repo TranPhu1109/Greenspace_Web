@@ -15,7 +15,7 @@ const Footer = () => {
                 Chúng tôi cung cấp các giải pháp thiết kế và sản phẩm xanh cho không gian sống của bạn.
               </p>
             </div>
-            
+
             {/* Contact */}
             <div className="footer-section">
               <h3 className="footer-title">Liên hệ</h3>
@@ -25,7 +25,7 @@ const Footer = () => {
                 <li>Điện thoại: (028) 1234 5678</li>
               </ul>
             </div>
-            
+
             {/* Newsletter */}
             <div className="footer-section">
               <h3 className="footer-title">Đăng ký nhận tin</h3>
@@ -33,9 +33,9 @@ const Footer = () => {
                 Đăng ký để nhận thông tin mới nhất về sản phẩm và khuyến mãi.
               </p>
               <div className="footer-newsletter">
-                <input 
-                  type="email" 
-                  placeholder="Email của bạn" 
+                <input
+                  type="email"
+                  placeholder="Email của bạn"
                   className="footer-input"
                 />
                 <button className="footer-button">
@@ -51,30 +51,40 @@ const Footer = () => {
             <div className="footer-section">
               <h3 className="footer-title">Vị trí cửa hàng</h3>
               <div className="footer-map-container">
-                <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4241674197667!2d106.69173407486698!3d10.780260089362!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3a9d8d1bb3%3A0xd7ab182b35e0765d!2sNguy%E1%BB%85n%20Hu%E1%BB%87%20Walking%20Street!5e0!3m2!1sen!2s!4v1716204301121!5m2!1sen!2s" 
-                  width="100%" 
-                  height="200" 
-                  style={{ border: 0 }} 
-                  allowFullScreen="" 
-                  loading="lazy" 
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4241674197667!2d106.69173407486698!3d10.780260089362!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3a9d8d1bb3%3A0xd7ab182b35e0765d!2sNguy%E1%BB%85n%20Hu%E1%BB%87%20Walking%20Street!5e0!3m2!1sen!2s!4v1716204301121!5m2!1sen!2s"
+                  width="100%"
+                  height="200"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="GreenSpace Location"
                   className="footer-map"
                 ></iframe>
               </div>
             </div>
-            
+
             {/* Quick Links */}
             <div className="footer-section">
               <h3 className="footer-title">Liên kết nhanh</h3>
               <ul className="footer-links">
-                <li><Link to="/" className="footer-link">Trang chủ</Link></li>
-                <li><Link to="/design" className="footer-link">Thiết kế</Link></li>
+                <li><Link to="/home" className="footer-link">Trang chủ</Link></li>
+                <li><Link to="/designs" className="footer-link">Thiết kế</Link></li>
                 <li><Link to="/products" className="footer-link">Sản phẩm</Link></li>
                 <li><Link to="/about" className="footer-link">Giới thiệu</Link></li>
                 <li><Link to="/support" className="footer-link">Hỗ trợ</Link></li>
                 <li><Link to="/blog" className="footer-link">Blog</Link></li>
+              </ul>
+            </div>
+            <div className="footer-section">
+              <h3 className="footer-title">Chính sách</h3>
+              <ul className="footer-links">
+                <li><Link to="/home" className="footer-link">Điều khoản và điều kiện</Link></li>
+                <li><Link to="/designs" className="footer-link">Chính sách bảo mật</Link></li>
+                <li><Link to="/about" className="footer-link">Chính sách đổi trả</Link></li>
+                <li><Link to="/support" className="footer-link">Chính sách thanh toán</Link></li>
+                <li><Link to="/blog" className="footer-link">Chính sách bảo hành</Link></li>
               </ul>
             </div>
           </div>
@@ -82,7 +92,7 @@ const Footer = () => {
 
         <div className="footer-bottom">
           <div className="footer-copyright">
-            <p>© 2024 GreenSpace. Tất cả quyền được bảo lưu.</p>
+            <p>© 2025 GreenSpace. Tất cả quyền được bảo lưu.</p>
           </div>
           <div className="footer-social">
             <a href="#" className="social-link">
@@ -98,9 +108,14 @@ const Footer = () => {
               </svg>
             </a>
             <a href="#" className="social-link">
-              <span className="sr-only">Twitter</span>
-              <svg className="social-icon" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+              <span className="sr-only">TikTok</span>
+              <svg
+                className="social-icon"
+                fill="currentColor"
+                viewBox="0 0 512 512"
+                aria-hidden="true"
+              >
+                <path d="M412.19,118.66a109.27,109.27,0,0,1-9.45-5.5,132.87,132.87,0,0,1-24.27-20.62c-18.1-20.71-24.86-41.72-27.35-56.43h.1C349.14,23.9,350,16,350.13,16H267.69V334.78c0,4.28,0,8.51-.18,12.69,0,.52-.05,1-.08,1.56,0,.23,0,.47-.05.71,0,.06,0,.12,0,.18a70,70,0,0,1-35.22,55.56,68.8,68.8,0,0,1-34.11,9c-38.41,0-69.54-31.32-69.54-70s31.13-70,69.54-70a68.9,68.9,0,0,1,21.41,3.39l.1-83.94a153.14,153.14,0,0,0-118,34.52,161.79,161.79,0,0,0-35.3,43.53c-3.48,6-16.61,30.11-18.2,69.24-1,22.21,5.67,45.22,8.85,54.73v.2c2,5.6,9.75,24.71,22.38,40.82A167.53,167.53,0,0,0,115,470.66v-.2l.2.2C155.11,497.78,199.36,496,199.36,496c7.66-.31,33.32,0,62.46-13.81,32.32-15.31,50.72-38.12,50.72-38.12a158.46,158.46,0,0,0,27.64-45.93c7.46-19.61,9.95-43.13,9.95-52.53V176.49c1,.6,14.32,9.41,14.32,9.41s19.19,12.3,49.13,20.31c21.48,5.7,50.42,6.9,50.42,6.9V131.27C453.86,132.37,433.27,129.17,412.19,118.66Z" />
               </svg>
             </a>
           </div>

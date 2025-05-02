@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typography, Form, Spin, Steps, Alert, Collapse } from "antd";
+import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typography, Form, Spin, Steps, Alert, Collapse, notification } from "antd";
 import { FileTextOutlined, ReloadOutlined, CheckCircleOutlined, UploadOutlined, CloseCircleOutlined, UserOutlined, MailOutlined, PhoneOutlined, DollarOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import AddressForm from "@/components/Common/AddressForm"; // Import AddressForm
@@ -41,7 +41,6 @@ const ContractSection = ({
   const [useSavedAddress, setUseSavedAddress] = useState(false); // Track if using saved address
   const [userInfo, setUserInfo] = useState({}); // User info from localStorage
   const [checkingExistingContracts, setCheckingExistingContracts] = useState(false);
-  const [numPages, setNumPages] = useState(null);
 
   // Check if current status is WaitDeposit
   const isWaitDepositStatus =
@@ -57,6 +56,28 @@ const ContractSection = ({
       checkForExistingContracts(selectedOrder.id);
     }
   }, [selectedOrder?.id, getContractByServiceOrder]);
+
+  // New useEffect to check for selected sketches and fetch contract if needed
+  useEffect(() => {
+    const fetchContractForSelectedSketch = async () => {
+      // Check if selectedOrder has sketchRecords with isSelected=true
+      const hasSelectedSketch = selectedOrder?.recordSketches?.some(record => record.isSelected === true);
+      
+      if (hasSelectedSketch && selectedOrder?.id) {
+        console.log("Found selected sketch in order data, fetching contract...");
+        try {
+          // Fetch latest contract data to ensure UI is up-to-date
+          await checkForExistingContracts(selectedOrder.id);
+        } catch (error) {
+          console.error("Error fetching contract for selected sketch:", error);
+        }
+      }
+    };
+
+    fetchContractForSelectedSketch();
+  }, [selectedOrder]);
+
+  console.log("order", selectedOrder);
 
   // Function to check for existing contracts
   const checkForExistingContracts = async (orderId) => {
@@ -487,9 +508,11 @@ const ContractSection = ({
       return;
     }
 
-    message.loading("Đang tải thông tin hợp đồng...");
+    // message.loading("Đang tải thông tin hợp đồng...");
     await checkForExistingContracts(selectedOrder.id);
-    message.success("Đã tải lại thông tin hợp đồng thành công.");
+    notification.success({
+      message: "Đã tải lại thông tin hợp đồng thành công.",
+    });
   };
 
   // Determine if the main contract section card should be shown
@@ -500,6 +523,11 @@ const ContractSection = ({
 
   // Find a signed contract if it exists
   const signedContract = contracts.find(c => c.modificationDate);
+
+  console.log("localContractData", localContractData);
+  console.log("contracts", contracts);
+  console.log("signedContract", signedContract);
+  console.log("isWaitDepositStatus", isWaitDepositStatus);
 
   if (!shouldShowContractCard) {
     return null; // Don't render anything if status is not relevant
@@ -693,7 +721,7 @@ const ContractSection = ({
               </Paragraph>
 
               {/* Contract PDF Display */}
-              
+
               {contracts.length > 0 && contracts[0].description ? (
                 <iframe
                   src={contracts[0].description}

@@ -472,6 +472,7 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
                   {orderDetail.description && (
                     <Descriptions.Item label="Mô tả yêu cầu">
                       <div
+                        className="html-preview"
                         style={{ maxHeight: '150px', overflow: 'auto' }}
                         dangerouslySetInnerHTML={{ __html: orderDetail.description }}
                       />
@@ -481,6 +482,7 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
                   {orderDetail.report && (
                     <Descriptions.Item label="Báo cáo tư vấn">
                       <div
+                        className="html-preview"
                         style={{ maxHeight: '150px', overflow: 'auto' }}
                         dangerouslySetInnerHTML={{ __html: orderDetail.report }}
                       />

@@ -58,7 +58,7 @@ const ProductDetail = () => {
   const { user } = useAuthStore();
   const [product, setProduct] = useState(null);
   console.log("product", product);
-  
+
   const [quantity, setQuantity] = useState(1);
   const [feedbacks, setFeedbacks] = useState([]);
   const [showError, setShowError] = useState(false);
@@ -89,22 +89,22 @@ const ProductDetail = () => {
 
     const existingCartItem = cartItems.find(item => item.id === product.id);
     const existingQuantity = existingCartItem ? existingCartItem.quantity : 0;
-    
+
     // Kiểm tra nếu tổng số lượng vượt quá stock
     if (existingQuantity + value > product.stock) {
       const maxAddable = product.stock - existingQuantity;
-      
+
       if (maxAddable <= 0) {
         message.warning(`Bạn đã có ${existingQuantity} sản phẩm này trong giỏ hàng - đạt giới hạn tồn kho.`);
         setQuantity(1); // Giữ ở 1 để người dùng vẫn có thể nhìn thấy UI
         return;
       }
-      
+
       message.warning(`Đã có ${existingQuantity} sản phẩm trong giỏ hàng. Bạn chỉ có thể thêm tối đa ${maxAddable} sản phẩm nữa.`);
       setQuantity(maxAddable);
       return;
     }
-    
+
     setQuantity(value);
   };
 
@@ -217,10 +217,10 @@ const ProductDetail = () => {
   const handleAddToCart = async () => {
     try {
       await addToCart(product.id, quantity);
-      
+
       // Trigger sự kiện cập nhật giỏ hàng local
       window.dispatchEvent(new Event('localCartUpdated'));
-      
+
       // Cập nhật lại giỏ hàng sau khi thêm sản phẩm
       if (user) {
         await fetchCartItems();
@@ -242,21 +242,21 @@ const ProductDetail = () => {
 
   const goToLogin = () => {
     setIsLoginModalVisible(false);
-    navigate("/login", { 
-      state: { 
+    navigate("/login", {
+      state: {
         returnUrl: `/products/${id}`,
-        actionType 
-      } 
+        actionType
+      }
     });
   };
 
   const goToRegister = () => {
     setIsLoginModalVisible(false);
-    navigate("/register", { 
-      state: { 
+    navigate("/register", {
+      state: {
         returnUrl: `/products/${id}`,
-        actionType 
-      } 
+        actionType
+      }
     });
   };
 
@@ -266,10 +266,10 @@ const ProductDetail = () => {
       // Nếu có thông tin state và người dùng đã đăng nhập
       if (location?.state?.actionCompleted && user && product) {
         const action = location.state.actionType;
-        
+
         // Xóa state để tránh thực hiện lại hành động nếu người dùng refresh trang
         window.history.replaceState({}, document.title);
-        
+
         // Thực hiện hành động tương ứng
         if (action === 'cart') {
           await handleAddToCart();
@@ -278,7 +278,7 @@ const ProductDetail = () => {
         }
       }
     };
-    
+
     checkLoginStatus();
   }, [user, product, location?.state]);
 
@@ -418,8 +418,8 @@ const ProductDetail = () => {
                           {product.stock === 0
                             ? "Hết hàng"
                             : maxAddableQuantity <= 0
-                            ? "Đã đạt giới hạn"
-                            : "Thêm vào giỏ hàng"}
+                              ? "Đã đạt giới hạn"
+                              : "Thêm vào giỏ hàng"}
                         </Button>
                         <Button
                           type="default"
@@ -449,6 +449,7 @@ const ProductDetail = () => {
               <Tabs.TabPane tab="Mô tả sản phẩm" key="1">
                 <Card style={{ marginBottom: "16px" }}>
                   <div
+                    className="html-preview"
                     dangerouslySetInnerHTML={{ __html: product?.description }}
                     style={{
                       marginBottom: 16,
@@ -521,7 +522,7 @@ const ProductDetail = () => {
       <Footer />
 
       {/* Sử dụng LoginRequiredModal component */}
-      <LoginRequiredModal 
+      <LoginRequiredModal
         isVisible={isLoginModalVisible}
         onCancel={handleModalCancel}
         actionType={actionType}

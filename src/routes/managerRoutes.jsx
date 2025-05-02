@@ -14,6 +14,7 @@ import WebManage from "@/components/Manager/WebManage/WebManage";
 import ComplaintsRefundList from "@/components/Manager/Complaints/ComplaintsRefundList";
 import TransactionPercentageManagement from "@/components/Manager/Percentage/TransactgionPercentageManagement";
 import ComplaintReasonManage from "@/components/Manager/Complaints/ComplaintsResion";
+import Policy from "@/components/Manager/Policy/Policy";
 
 export const managerRoutes = {
   path: "/manager",
@@ -94,12 +95,16 @@ export const managerRoutes = {
       element: <TransactionPercentageManagement />,
     },
     {
-      path: "webmanage",
+      path: "logo",
       element: <WebManage />,
     },
     {
       path: "complaint-reasons",
       element: <ComplaintReasonManage />,
+    },
+    {
+      path: "policy",
+      element: <Policy />,
     },
   ],
 };

@@ -32,14 +32,16 @@ const useDesignerTask = create((set) => ({
   },
 
   // Cập nhật trạng thái task
-  updateTaskStatus: async (taskId, { serviceOrderId, userId, status, note }) => {
+  updateTaskStatus: async (taskId, { serviceOrderId, userId, status, note, dateAppointment, timeAppointment }) => {
     set({ isLoading: true, error: null });
     try {
       await api.put(`/api/worktask/${taskId}`, {
         serviceOrderId,
         userId,
         status,
-        note
+        note,
+        dateAppointment,
+        timeAppointment
       });
       set((state) => ({
         tasks: state.tasks.map((task) =>

@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { Input, Checkbox, Button, Form, message, Typography, Card, Progress } from 'antd';
+import { useState, useEffect } from 'react';
+import { Input, Checkbox, Button, Form, message, Typography, Card, Progress, Modal } from 'antd';
 import { GoogleOutlined, LockOutlined, MailOutlined, UserOutlined, ArrowLeftOutlined, PhoneOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './Auth.scss';
 import logoImage from '../../assets/logo.png';
 import loginBg from '../../assets/login.png';
 import useAuthStore from '../../stores/useAuthStore';
+import axios from '../../api/api';
+import parse from 'html-react-parser';
 
 const { Title, Text } = Typography;
 
@@ -16,9 +18,47 @@ const Register = () => {
   const { register } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [termsVisible, setTermsVisible] = useState(false);
+  const [privacyVisible, setPrivacyVisible] = useState(false);
+  const [termsContent, setTermsContent] = useState('');
+  const [loadingTerms, setLoadingTerms] = useState(false);
+  
   // Lấy returnUrl và actionType từ state (nếu có)
   const returnUrl = location.state?.returnUrl || "/home";
   const actionType = location.state?.actionType;
+
+  // Tải nội dung điều khoản và điều kiện
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      setLoadingTerms(true);
+      try {
+        const response = await axios.get('/api/policy');
+        if (response.data && response.data.length > 0) {
+          // Tìm policy có documentName chứa "ĐIỀU KHOẢN VÀ ĐIỀU KIỆN"
+          const termsPolicy = response.data.find(policy => 
+            policy.documentName.includes('ĐIỀU KHOẢN VÀ ĐIỀU KIỆN'));
+          
+          if (termsPolicy) {
+            setTermsContent(termsPolicy.document1 || '');
+          }
+          
+          // Có thể thêm logic để tìm privacy policy nếu cần
+          // const privacyPolicy = response.data.find(policy => 
+          //   policy.documentName.includes('CHÍNH SÁCH BẢO MẬT'));
+          // 
+          // if (privacyPolicy) {
+          //   setPrivacyContent(privacyPolicy.document1 || '');
+          // }
+        }
+      } catch (error) {
+        console.error('Error fetching policies:', error);
+      } finally {
+        setLoadingTerms(false);
+      }
+    };
+
+    fetchPolicies();
+  }, []);
 
   const handleRegister = async (values) => {
     if (!values.agreeTerms) {
@@ -91,6 +131,18 @@ const Register = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Xử lý click vào link điều khoản
+  const handleViewTerms = (e) => {
+    e.preventDefault();
+    setTermsVisible(true);
+  };
+
+  // Xử lý click vào link điều kiện
+  const handleViewPrivacy = (e) => {
+    e.preventDefault();
+    setPrivacyVisible(true);
   };
 
   return (
@@ -253,7 +305,7 @@ const Register = () => {
                 
                 <Form.Item name="agreeTerms" valuePropName="checked" style={{ marginBottom: '10px' }}>
                   <Checkbox className="terms-checkbox">
-                    Tôi đồng ý với <Link to="/terms">điều khoản</Link> và <Link to="/privacy">điều kiện</Link>
+                    Tôi đồng ý với <a href="#" onClick={handleViewTerms}>điều khoản</a> và <a href="#" onClick={handleViewPrivacy}>điều kiện</a>
                   </Checkbox>
                 </Form.Item>
                 
@@ -300,6 +352,56 @@ const Register = () => {
           </div>
         </Card>
       </div>
+
+      {/* Modal điều khoản */}
+      <Modal
+        title="Điều khoản sử dụng"
+        open={termsVisible}
+        onCancel={() => setTermsVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setTermsVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+        style={{ top: 20 }}
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      >
+        {loadingTerms ? (
+          <div style={{ textAlign: 'center', padding: '30px' }}>
+            Đang tải nội dung...
+          </div>
+        ) : (
+          <div className="terms-content">
+            {termsContent ? parse(termsContent) : 'Không có dữ liệu điều khoản.'}
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal điều kiện (nếu cần) */}
+      <Modal
+        title="Điều kiện sử dụng"
+        open={privacyVisible}
+        onCancel={() => setPrivacyVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setPrivacyVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+        style={{ top: 20 }}
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      >
+        {loadingTerms ? (
+          <div style={{ textAlign: 'center', padding: '30px' }}>
+            Đang tải nội dung...
+          </div>
+        ) : (
+          <div className="terms-content">
+            {termsContent ? parse(termsContent) : 'Không có dữ liệu điều kiện.'}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

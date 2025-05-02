@@ -642,14 +642,14 @@ const CustomTemplateOrderDetail = () => {
             <Divider />
             <div>
               <h4>Mô tả yêu cầu:</h4>
-              <p
+              <div className="html-preview"
                 dangerouslySetInnerHTML={{
                   __html:
                     selectedOrder.description ||
                     "<p>Không có yêu cầu cụ thể</p>",
                 }}
                 style={{ fontSize: "15px", lineHeight: "1.6" }}
-              ></p>
+              ></div>
             </div>
             {selectedOrder.attachments &&
               selectedOrder.attachments.length > 0 && (

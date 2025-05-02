@@ -223,10 +223,11 @@ const DesignDetailPage = () => {
                           </Col>
                         )}
                       </Row> */}
-                      
+
                     </Card>
                     <Card title="Mô tả">
                       <div
+                        className="html-preview"
                         dangerouslySetInnerHTML={{
                           __html: currentDesign.description,
                         }}
@@ -274,8 +275,8 @@ const DesignDetailPage = () => {
                     </div>
 
                     <div className="design-actions">
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         block
                         onClick={handleBuyDesign}
                       >
@@ -342,7 +343,7 @@ const DesignDetailPage = () => {
         <Footer />
 
         {/* Sử dụng component DesignLoginModal */}
-        <DesignLoginModal 
+        <DesignLoginModal
           isVisible={loginModalVisible}
           onCancel={handleLoginModalClose}
           actionType={actionType}

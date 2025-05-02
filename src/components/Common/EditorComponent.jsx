@@ -14,7 +14,7 @@ const EditorComponent = ({ value, onChange, height = 600 }) => {
           'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
           'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
           'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-          'emoticons', 'codesample', 'template'
+          'emoticons', 'codesample'
         ],
         toolbar:
           `undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | 
