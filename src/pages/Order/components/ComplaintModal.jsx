@@ -6,30 +6,31 @@ import useProductStore from '../../../stores/useProductStore';
 import useAuthStore from '../../../stores/useAuthStore';
 import { useCloudinaryStorage } from '@/hooks/useCloudinaryStorage';
 import Paragraph from 'antd/es/skeleton/Paragraph';
+import useComplaintReasonStore from '@/stores/useComplaintReasonStore';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
 
-const REFUND_REASONS = [
-  "Tôi đổi ý và muốn trả hàng",
-  "Sản phẩm bị lỗi kỹ thuật",
-  "Sản phẩm bị hư hỏng trong quá trình vận chuyển",
-  "Giao sai sản phẩm",
-  "Sản phẩm giao thiếu",
-  "Sản phẩm không đúng mô tả",
-  "Đã thanh toán nhưng không nhận được hàng",
-  "Sản phẩm bị lỗi sản xuất",
-];
+// const REFUND_REASONS = [
+//   "Tôi đổi ý và muốn trả hàng",
+//   "Sản phẩm bị lỗi kỹ thuật",
+//   "Sản phẩm bị hư hỏng trong quá trình vận chuyển",
+//   "Giao sai sản phẩm",
+//   "Sản phẩm giao thiếu",
+//   "Sản phẩm không đúng mô tả",
+//   "Đã thanh toán nhưng không nhận được hàng",
+//   "Sản phẩm bị lỗi sản xuất",
+// ];
 
-const EXCHANGE_REASONS = [
-  "Sản phẩm không đúng kích thước hoặc màu sắc",
-  "Sản phẩm không phù hợp với phong cách không gian của tôi",
-  "Tặng quà không phù hợp, muốn đổi sang sản phẩm khác",
-  "Nhân viên tư vấn sai hoặc chưa đúng nhu cầu",
-  "Sản phẩm có lỗi nhẹ, mong muốn đổi cái khác",
-  "Bao bì sản phẩm bị rách hoặc móp méo khi nhận",
-  "Không tương thích với không gian hiện tại (kích thước, màu sắc, chất liệu)"
-];
+// const EXCHANGE_REASONS = [
+//   "Sản phẩm không đúng kích thước hoặc màu sắc",
+//   "Sản phẩm không phù hợp với phong cách không gian của tôi",
+//   "Tặng quà không phù hợp, muốn đổi sang sản phẩm khác",
+//   "Nhân viên tư vấn sai hoặc chưa đúng nhu cầu",
+//   "Sản phẩm có lỗi nhẹ, mong muốn đổi cái khác",
+//   "Bao bì sản phẩm bị rách hoặc móp méo khi nhận",
+//   "Không tương thích với không gian hiện tại (kích thước, màu sắc, chất liệu)"
+// ];
 
 const ComplaintModal = ({
   visible,
@@ -41,7 +42,7 @@ const ComplaintModal = ({
   const [form] = Form.useForm();
   const [videoFile, setVideoFile] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
-  const [selectedReasons, setSelectedReasons] = useState([]);
+  const [selectedReasonId, setSelectedReasonId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [productDetails, setProductDetails] = useState({});
@@ -50,18 +51,24 @@ const ComplaintModal = ({
   const { getProductById } = useProductStore();
   const { user } = useAuthStore();
   const { uploadImages, progress, error } = useCloudinaryStorage();
+  const reasons = useComplaintReasonStore((state) => state.reasons);
+  const fetchComplaintReasons = useComplaintReasonStore((state) => state.fetchComplaintReasons);
+  const reasonsLoading = useComplaintReasonStore((state) => state.loading);
 
   useEffect(() => {
     if (visible) {
       fetchProductDetails();
       setSelectedProducts([]);
-      setSelectedReasons([]);
+      setSelectedReasonId(null);
       setComplaintType(type || 'refund');
       setVideoFile(null);
       setImageFiles([]);
       form.resetFields();
+      if (!reasons || reasons.length === 0) {
+        fetchComplaintReasons();
+      }
     }
-  }, [visible, selectedProductForComplaint, type, form]);
+  }, [visible, selectedProductForComplaint, type, form, fetchComplaintReasons, reasons]);
 
   const fetchProductDetails = async () => {
     if (!selectedProductForComplaint?.orderDetails) return;
@@ -132,12 +139,6 @@ const ComplaintModal = ({
         }
       }
 
-      // Combine selected reasons and custom reason
-      const allReasons = [
-        ...selectedReasons,
-        ...(values.customReason ? [values.customReason] : [])
-      ].join('; ');
-
       const images = {
         imageUrl: uploadedFiles[0] || '', // Video URL
         image2: uploadedFiles[1] || '',   // First image URL
@@ -155,7 +156,7 @@ const ComplaintModal = ({
         userId: user?.id,
         orderId: selectedProductForComplaint.parentOrder.id,
         complaintType: values.complaintType === 'refund' ? 1 : 0, // 1 for refund, 0 for exchange
-        reason: allReasons,
+        complaintReasonId: selectedReasonId,
         image: images,
         complaintDetails: complaintDetails
       });
@@ -169,7 +170,7 @@ const ComplaintModal = ({
       form.resetFields();
       setVideoFile(null);
       setImageFiles([]);
-      setSelectedReasons([]);
+      setSelectedReasonId(null);
       setSelectedProducts([]);
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -217,14 +218,14 @@ const ComplaintModal = ({
     setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleReasonChange = (checkedValues) => {
-    setSelectedReasons(checkedValues);
+  const handleReasonChange = (e) => {
+    setSelectedReasonId(e.target.value);
   };
 
   const handleComplaintTypeChange = (e) => {
     const newType = e.target.value;
     setComplaintType(newType);
-    setSelectedReasons([]);
+    setSelectedReasonId(null);
     form.setFieldsValue({ complaintType: newType });
   };
 
@@ -254,6 +255,9 @@ const ComplaintModal = ({
           overflow: 'hidden',
         },
       }}
+      style={{
+        marginTop: -40,
+      }}
     >
       <div
         style={{
@@ -275,6 +279,7 @@ const ComplaintModal = ({
               <Form.Item
                 name="complaintType"
                 label="Loại yêu cầu"
+                tooltip="Hãy chọn loại yêu cầu phù hợp với vấn đề bạn đang gặp phải"
                 rules={[{ required: true, message: 'Vui lòng chọn loại yêu cầu' }]}
               >
                 <Radio.Group onChange={handleComplaintTypeChange} value={complaintType}>
@@ -366,36 +371,25 @@ const ComplaintModal = ({
               <Form.Item
                 label="Lý do khiếu nại"
                 required
-                tooltip="Vui lòng chọn ít nhất một lý do hoặc nhập lý do khác"
+                tooltip="Vui lòng chọn một lý do hoặc nhập lý do khác"
               >
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  <Checkbox.Group
+                  <Radio.Group
                     style={{ width: '100%' }}
                     onChange={handleReasonChange}
-                    value={selectedReasons}
+                    value={selectedReasonId}
+                    loading={reasonsLoading}
                   >
                     <Space direction="vertical" style={{ width: '100%' }}>
-                      {(complaintType === 'refund' ? REFUND_REASONS : EXCHANGE_REASONS).map((reason, index) => (
-                        <Checkbox key={index} value={reason} style={{ marginLeft: 0 }}>
-                          {reason}
-                        </Checkbox>
-                      ))}
+                      {reasons && reasons.length > 0 ? reasons.map((item) => (
+                        <Radio key={item.id} value={item.id} style={{ marginLeft: 0, width: '100%' }}>
+                          {item.reason}
+                        </Radio>
+                      )) : (
+                        <span style={{ color: '#aaa' }}>Không có lý do khiếu nại nào khả dụng</span>
+                      )}
                     </Space>
-                  </Checkbox.Group>
-
-                  <Divider>Lý do khác</Divider>
-
-                  <Form.Item
-                    name="customReason"
-                    style={{ marginBottom: 0 }}
-                  >
-                    <TextArea
-                      placeholder="Nhập lý do khác (nếu có)"
-                      rows={3}
-                      maxLength={500}
-                      showCount
-                    />
-                  </Form.Item>
+                  </Radio.Group>
                 </Space>
               </Form.Item>
             </Col>
@@ -538,7 +532,7 @@ const ComplaintModal = ({
                     loading={loading || isUploading}
                     disabled={
                       selectedProducts.length === 0 ||
-                      (selectedReasons.length === 0 && !form.getFieldValue('customReason')) ||
+                      !selectedReasonId ||
                       !videoFile
                     }
                   >

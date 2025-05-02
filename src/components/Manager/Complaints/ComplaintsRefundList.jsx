@@ -17,6 +17,7 @@ import {
   Tooltip,
   message,
   DatePicker,
+  Drawer,
 } from "antd";
 import {
   SearchOutlined,
@@ -30,6 +31,7 @@ import useComplaintStore from "../../../stores/useComplaintStore";
 import useProductStore from "../../../stores/useProductStore";
 import signalRService from "../../../services/signalRService";
 import "./ComplaintsRefundList.scss"; // You'll need to create this file
+import ComplaintReasonManage from "./ComplaintsResion";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -46,6 +48,7 @@ const ComplaintsRefundList = () => {
     processRefund
   } = useComplaintStore();
   const { getProductById } = useProductStore();
+  const [isReasonDrawerOpen, setIsReasonDrawerOpen] = useState(false);
 
   const [searchText, setSearchText] = useState("");
   const [filterStatus, setFilterStatus] = useState(null);
@@ -290,14 +293,14 @@ const ComplaintsRefundList = () => {
     },
     {
       title: "Lý do",
-      dataIndex: "reason",
-      key: "reason",
+      dataIndex: "complaintReason",
+      key: "complaintReason",
       width: 200,
       ellipsis: true,
-      render: (reason) => (
+      render: (complaintReason) => (
         <Tooltip
           title={
-            reason?.split(";").map((item, idx) => (
+            complaintReason?.split(";").map((item, idx) => (
               <div key={idx} style={{ marginBottom: 4 }}>
                 • {item.trim()}
               </div>
@@ -320,7 +323,7 @@ const ComplaintsRefundList = () => {
           }}
         >
           <Text ellipsis style={{ cursor: "pointer" }}>
-            {reason?.length > 30 ? `${reason.slice(0, 30)}...` : reason || "Không có lý do"}
+            {complaintReason?.length > 30 ? `${complaintReason.slice(0, 30)}...` : complaintReason || "Không có lý do"}
           </Text>
         </Tooltip>
       ),
@@ -411,8 +414,8 @@ const ComplaintsRefundList = () => {
           </Descriptions.Item>
           <Descriptions.Item label="Lý do khiếu nại" span={3}>
             <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-              {selectedComplaint.reason
-                ? selectedComplaint.reason.split(";").map((item, idx) => (
+              {selectedComplaint.complaintReason
+                ? selectedComplaint.complaintReason.split(";").map((item, idx) => (
                   <div key={idx}>• {item.trim()}</div>
                 ))
                 : "Không có lý do"}
@@ -636,7 +639,12 @@ const ComplaintsRefundList = () => {
   return (
     <div className="complaints-refund-list-container">
       <Card>
-        <Title level={4}>Quản lý hoàn tiền</Title>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Title level={4} style={{ margin: 0 }}>Quản lý hoàn tiền</Title>
+          <Button type="default" onClick={() => setIsReasonDrawerOpen(true)}>
+          ⚙️ Cài đặt lý do khiếu nại
+          </Button>
+        </div>
         <Row gutter={[16, 16]} className="filter-row">
           <Col xs={24} sm={24} md={6} lg={6} xl={6}>
             <Input
@@ -671,7 +679,7 @@ const ComplaintsRefundList = () => {
           </Col>
           <Col xs={24} sm={8} md={2} lg={2} xl={2}>
             <Button onClick={resetFilters} style={{ width: "100%" }}>
-              Đặt lại
+              Xóa bộ lọc
             </Button>
           </Col>
         </Row>
@@ -717,6 +725,17 @@ const ComplaintsRefundList = () => {
       >
         {renderComplaintDetail()}
       </Modal>
+
+      <Drawer
+        title="Quản lý lý do khiếu nại"
+        open={isReasonDrawerOpen}
+        onClose={() => setIsReasonDrawerOpen(false)}
+        width={480}
+        destroyOnClose
+        placement="right"
+      >
+        <ComplaintReasonManage />
+      </Drawer>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typography, Form, Spin, Steps, Alert, Collapse } from "antd";
+import { Card, Button, Space, Tag, message, Modal, Image, Divider, Input, Typography, Form, Spin, Steps, Alert, Collapse, notification } from "antd";
 import { FileTextOutlined, ReloadOutlined, CheckCircleOutlined, UploadOutlined, CloseCircleOutlined, UserOutlined, MailOutlined, PhoneOutlined, DollarOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 import AddressForm from "@/components/Common/AddressForm"; // Import AddressForm
@@ -24,7 +24,8 @@ const ContractSection = ({
   generateContract,  // Func to generate contract API
   refreshAllData,    // Func to refresh all order data
   updateTaskOrder,    // Func to update workTask status
-  getServiceOrderById // Func to get service order by id
+  getServiceOrderById, // Func to get service order by id
+  data // Func to get service order by id
 }) => {
   const [form] = Form.useForm(); // Form instance for user info
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
@@ -40,7 +41,6 @@ const ContractSection = ({
   const [useSavedAddress, setUseSavedAddress] = useState(false); // Track if using saved address
   const [userInfo, setUserInfo] = useState({}); // User info from localStorage
   const [checkingExistingContracts, setCheckingExistingContracts] = useState(false);
-  const [numPages, setNumPages] = useState(null);
 
   // Check if current status is WaitDeposit
   const isWaitDepositStatus =
@@ -56,6 +56,28 @@ const ContractSection = ({
       checkForExistingContracts(selectedOrder.id);
     }
   }, [selectedOrder?.id, getContractByServiceOrder]);
+
+  // New useEffect to check for selected sketches and fetch contract if needed
+  useEffect(() => {
+    const fetchContractForSelectedSketch = async () => {
+      // Check if selectedOrder has sketchRecords with isSelected=true
+      const hasSelectedSketch = selectedOrder?.recordSketches?.some(record => record.isSelected === true);
+      
+      if (hasSelectedSketch && selectedOrder?.id) {
+        console.log("Found selected sketch in order data, fetching contract...");
+        try {
+          // Fetch latest contract data to ensure UI is up-to-date
+          await checkForExistingContracts(selectedOrder.id);
+        } catch (error) {
+          console.error("Error fetching contract for selected sketch:", error);
+        }
+      }
+    };
+
+    fetchContractForSelectedSketch();
+  }, [selectedOrder]);
+
+  console.log("order", selectedOrder);
 
   // Function to check for existing contracts
   const checkForExistingContracts = async (orderId) => {
@@ -318,7 +340,10 @@ const ContractSection = ({
     const contractToSign = localContractData || (contracts.length > 0 ? contracts[0] : null);
     console.log("Contract to sign:", contractToSign);
 
-    if (!contractToSign || !contractToSign.data.id) {
+    // Try to get ID from nested data or directly from the object
+    const contractId = contractToSign?.data?.id || contractToSign?.id;
+
+    if (!contractToSign || !contractId) { // Check if contract and ID exist
       message.error("Không tìm thấy thông tin hợp đồng. Vui lòng thử tạo lại.");
       return;
     }
@@ -344,8 +369,7 @@ const ContractSection = ({
       console.log("Contract to sign:", contractToSign);
       // 2. Sign Contract API Call
       try {
-        await signContract(contractToSign.data.id, signatureImageUrl);
-        message.success("Đã ký hợp đồng thành công.");
+        await signContract(contractId, signatureImageUrl); // Use the extracted contractId
       } catch (signError) {
         console.error("Sign contract error:", signError);
         throw new Error("Ký hợp đồng thất bại: " + (signError.response?.data?.message || signError.message));
@@ -370,7 +394,6 @@ const ContractSection = ({
           amount,
           description: paymentDescription,
         });
-        message.success("Thanh toán đặt cọc thành công!");
 
       } catch (paymentError) {
         console.error("Payment error:", paymentError);
@@ -381,7 +404,6 @@ const ContractSection = ({
       // 4. Update Order Status
       try {
         await updateStatus(selectedOrder.id, 3); // 3: DepositSuccessful
-        message.success("Đã cập nhật trạng thái đơn hàng.");
       } catch (statusError) {
         console.error("Status update error:", statusError);
         // Notify user that payment was made but status update failed
@@ -423,7 +445,6 @@ const ContractSection = ({
 
             console.log("Updating task:", taskToUpdate.id, "with payload:", taskPayload);
             await updateTaskOrder(taskToUpdate.id, taskPayload);
-            message.success("Đã cập nhật trạng thái công việc thành công.");
           } else {
             console.warn("No valid workTask found to update for order:", selectedOrder.id);
           }
@@ -442,7 +463,7 @@ const ContractSection = ({
       if (refreshAllData) {
         await refreshAllData(selectedOrder.id);
       }
-
+      message.success("🎉 Đã ký và đặt cọc thành công!");
       handleCloseModal();
       await getServiceOrderById(selectedOrder.id);
 
@@ -487,9 +508,11 @@ const ContractSection = ({
       return;
     }
 
-    message.loading("Đang tải thông tin hợp đồng...");
+    // message.loading("Đang tải thông tin hợp đồng...");
     await checkForExistingContracts(selectedOrder.id);
-    message.success("Đã tải lại thông tin hợp đồng thành công.");
+    notification.success({
+      message: "Đã tải lại thông tin hợp đồng thành công.",
+    });
   };
 
   // Determine if the main contract section card should be shown
@@ -500,6 +523,11 @@ const ContractSection = ({
 
   // Find a signed contract if it exists
   const signedContract = contracts.find(c => c.modificationDate);
+
+  console.log("localContractData", localContractData);
+  console.log("contracts", contracts);
+  console.log("signedContract", signedContract);
+  console.log("isWaitDepositStatus", isWaitDepositStatus);
 
   if (!shouldShowContractCard) {
     return null; // Don't render anything if status is not relevant
@@ -654,7 +682,7 @@ const ContractSection = ({
                     </Form.Item>
                     <Alert
                       // message={`Bạn sẽ thanh toán ${(selectedOrder.depositPercentage || 50)}% phí thiết kế (${formatPrice((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100)}) để đặt cọc.`}
-                      message={`Bạn sẽ thanh toán ${(selectedOrder.depositPercentage || 50)}% phí thiết kế (${formatPrice(Math.round((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100))}) để đặt cọc.`}
+                      message={`Bạn sẽ thanh toán ${(data?.depositPercentage || 50)}% phí thiết kế (${formatPrice(Math.round((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100))}) để đặt cọc.`}
                       type="info"
                       showIcon
                       style={{ marginBottom: 16 }}
@@ -693,7 +721,7 @@ const ContractSection = ({
               </Paragraph>
 
               {/* Contract PDF Display */}
-              
+
               {contracts.length > 0 && contracts[0].description ? (
                 <iframe
                   src={contracts[0].description}
@@ -816,7 +844,7 @@ const ContractSection = ({
                 type="warning"
                 showIcon
                 message="Xác nhận ký và thanh toán"
-                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (selectedOrder.depositPercentage || 50) / 100)}.`}
+                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100)}.`}
                 style={{ marginBottom: 16 }}
               />
 

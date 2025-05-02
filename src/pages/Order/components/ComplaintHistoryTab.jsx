@@ -15,12 +15,15 @@ import {
   Modal,
   Tooltip,
   App,
+  QRCode,
 } from "antd";
 import { format } from "date-fns";
-import { ShoppingOutlined, ReloadOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { ShoppingOutlined, ReloadOutlined, CheckCircleOutlined, InfoOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import useComplaintStore from "../../../stores/useComplaintStore";
 import useAuthStore from "../../../stores/useAuthStore";
 import useProductStore from "../../../stores/useProductStore";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -35,6 +38,9 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
   const [productDetails, setProductDetails] = useState({});
   const [confirmingComplaint, setConfirmingComplaint] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const [shippingModalVisible, setShippingModalVisible] = useState(false);
+  const [selectedShippingRecord, setSelectedShippingRecord] = useState(null);
+
 
   // Use complaints from props if available, otherwise fetch them
   useEffect(() => {
@@ -218,37 +224,40 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
     },
     {
       title: "Lý do",
-      dataIndex: "reason",
-      key: "reason",
+      dataIndex: "complaintReason",
+      key: "complaintReason",
       width: 150,
       ellipsis: true,
-      render: (reason) => (
-        // <Text ellipsis={{ tooltip: reason }}>{reason}</Text>
-        <Tooltip
-          title={
-            reason.split(";").map((item, index) => (
-              <div key={index} style={{ marginBottom: 4 }}>
-                • {item.trim()}
-              </div>
-            ))
-          }
-          color="#ffffff"
-          styles={{
-            body: {
-              backgroundColor: "#f9f9f9",
-              color: "#000",
-              fontSize: 14,
-              padding: 12,
-              borderRadius: 8,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            },
-          }}
-        >
-          <Text ellipsis style={{ cursor: "pointer" }}>
-            {reason}
-          </Text>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        // Prefer complaintReason, fallback to reason (legacy)
+        const displayReason = record.complaintReason || '';
+        return (
+          <Tooltip
+            title={
+              displayReason.split(";").map((item, index) => (
+                <div key={index} style={{ marginBottom: 4 }}>
+                  {item.trim()}
+                </div>
+              ))
+            }
+            color="#ffffff"
+            styles={{
+              body: {
+                backgroundColor: "#f9f9f9",
+                color: "#000",
+                fontSize: 14,
+                padding: 12,
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              },
+            }}
+          >
+            <Text ellipsis style={{ cursor: "pointer" }}>
+              {displayReason}
+            </Text>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Trạng thái",
@@ -286,10 +295,160 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
                 : 'Đã nhận tiền'}
             </Button>
           )}
+          {record.status === "pending" && (
+            <Button
+              type="dashed"
+              size="small"
+              icon={<InfoCircleOutlined style={{ color: 'blue' }} />}
+              onClick={() => handleOpenShippingModal(record)}
+              style={{
+                width: 120,
+                whiteSpace: 'normal',
+                height: 'auto',
+                textAlign: 'center',
+                color: 'blue'
+              }}
+            >
+              Thông tin gửi hàng
+            </Button>
+          )}
         </Space>
       ),
     },
   ];
+
+  const handleOpenShippingModal = (record) => {
+    setSelectedShippingRecord(record);
+    setShippingModalVisible(true);
+  };
+
+  const handleDownloadShippingInfo = async (record) => {
+    // 1. Tạo iframe ẩn
+    const iframe = document.createElement('iframe');
+    Object.assign(iframe.style, {
+      position: 'absolute',
+      top: '-9999px',
+      left: '0',
+      width: '600px',
+      height: '800px',
+      border: 'none',
+    });
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument;
+    doc.open();
+    doc.write('<!DOCTYPE html><html><head></head><body></body></html>');
+    doc.close();
+    const wrapper = doc.createElement('div');
+    wrapper.innerHTML = `
+      <div style="max-width: 500px; margin: 32px auto; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 8px #0001; background: #fff; padding: 32px;">
+        <div style="font-size: 22px; font-weight: bold; color: #1890ff; text-align: center; margin-bottom: 18px; letter-spacing: 1px;">THÔNG TIN GỬI HÀNG</div>
+        <div style="display: flex; flex-direction: column; align-items: center; margin: 18px 0;">
+          <img id="qrcode-download" src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${record.orderId}" alt="QRCode" style="width: 120px; height: 120px;" />
+          <div style="font-size: 13px; color: #888; margin-top: 4px;">Mã đơn hàng: <span style="color: #faad14; font-weight: 600;">${record.orderId}</span></div>
+        </div>
+        <div style="margin-bottom: 18px;"><span style="font-weight: 500; color: #555; min-width: 160px; display: inline-block;">Người gửi:</span> <span style="color: #222; font-size: 15px;">${record.userName}</span></div>
+        <div style="margin-bottom: 18px;"><span style="font-weight: 500; color: #555; min-width: 160px; display: inline-block;">Số điện thoại người gửi:</span> <span style="color: #222; font-size: 15px;">${record.cusPhone}</span></div>
+        <div style="margin-bottom: 18px;"><span style="font-weight: 500; color: #555; min-width: 160px; display: inline-block;">Số điện thoại nhận hàng:</span> <span style="color: #222; font-size: 15px;">0909 999 888</span></div>
+        <div style="margin-bottom: 18px;"><span style="font-weight: 500; color: #555; min-width: 160px; display: inline-block;">Địa chỉ kho nhận hàng:</span><br />
+          <span style="color: #222; font-size: 15px;">Bộ phận Kho hàng GreenSpace<br />7 Đường D1, Long Thạnh Mỹ, TP. Thủ Đức, TP. Hồ Chí Minh<br />Hotline: 0909 999 888</span>
+        </div>
+        <div style="text-align: center; color: #888; font-size: 13px; margin-top: 24px;">
+          Vui lòng ghi rõ <span style="color: #faad14; font-weight: 600;">MÃ ĐƠN HÀNG</span> lên gói hàng trước khi gửi!<br />
+          Cảm ơn bạn đã sử dụng dịch vụ của <span style="color: #1890ff; font-weight: 600;">GreenSpace</span>.
+        </div>
+      </div>
+    `;
+    // 3. Chèn wrapper vào iframe
+    doc.body.appendChild(wrapper);
+
+    // 4. Đợi QR code load xong
+    const img = doc.getElementById('qrcode-download');
+    if (img && !img.complete) {
+      await new Promise(res => { img.onload = img.onerror = res; });
+    }
+
+    // 5. Chụp canvas trên toàn body của iframe
+    const canvas = await html2canvas(doc.body, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+    });
+
+    // 6. Tạo PDF và lưu
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgWidth = Math.min(pageWidth - 40, canvas.width);
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 20, 40, imgWidth, imgHeight);
+    pdf.save(`Shipping_Info_${record.orderId}.pdf`);
+
+    // 7. Dọn dẹp
+    document.body.removeChild(iframe);
+  };
+
+  const handlePrintShippingInfo = () => {
+    if (!selectedShippingRecord) {
+      message.error('Không tìm thấy thông tin để in.');
+      return;
+    }
+
+    // Create a new window for printing
+    const printWindow = window.open('', '', 'width=800,height=900');
+    if (!printWindow) {
+      message.error('Không thể mở cửa sổ in.');
+      return;
+    }
+
+    // Prepare the print HTML with QRCode
+    const printHtml = `
+      <html>
+      <head>
+        <title>Thông Tin Gửi Hàng - GreenSpace</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #fff; color: #222; margin: 0; padding: 0; }
+          .print-container { max-width: 500px; margin: 24px auto; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px 32px 24px 32px; background: #fff; }
+          .print-title { font-size: 22px; font-weight: bold; color: #1890ff; text-align: center; margin-bottom: 18px; letter-spacing: 1px; }
+          .print-logo { display: block; margin: 0 auto 12px auto; max-width: 120px; }
+          .print-section { margin-bottom: 18px; }
+          .print-label { font-weight: bold; color: #555; display: inline-block; min-width: 160px; }
+          .print-value { color: #222; font-size: 15px; }
+          .qrcode-container { text-align: center; margin: 18px 0 18px 0; }
+          .print-footer { text-align: center; color: #888; font-size: 13px; margin-top: 24px; }
+          .print-highlight { color: #faad14; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="print-container">
+          <div class="print-title">THÔNG TIN GỬI HÀNG</div>
+          <div class="qrcode-container">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${selectedShippingRecord.orderId}" alt="QRCode" style="width: 120px; height: 120px;" />
+            <div style="font-size: 13px; color: #888; margin-top: 4px;">Mã đơn hàng: <span class="print-highlight">${selectedShippingRecord.orderId}</span></div>
+          </div>
+          <div class="print-section"><span class="print-label">Người gửi:</span> <span class="print-value">${selectedShippingRecord.userName}</span></div>
+          <div class="print-section"><span class="print-label">Số điện thoại người gửi:</span> <span class="print-value">${selectedShippingRecord.cusPhone}</span></div>
+          <div class="print-section"><span class="print-label">Số điện thoại nhận hàng:</span> <span class="print-value">0909 999 888</span></div>
+          <div class="print-section"><span class="print-label">Địa chỉ kho nhận hàng:</span><br />
+            <span class="print-value">Bộ phận Kho hàng GreenSpace<br />7 Đường D1, Long Thạnh Mỹ, TP. Thủ Đức, TP. Hồ Chí Minh<br />Hotline: 0909 999 888</span>
+          </div>
+          <div class="print-footer">
+            Vui lòng ghi rõ <span class="print-highlight">MÃ ĐƠN HÀNG</span> lên gói hàng trước khi gửi!<br />
+            Cảm ơn bạn đã sử dụng dịch vụ của <span style="color: #1890ff; font-weight: bold;">GreenSpace</span>.
+          </div>
+        </div>
+        <script>
+          window.onload = function() { window.print(); };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+  };
+
+
 
   const expandedRowRender = (record) => {
     return (
@@ -309,6 +468,18 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
           <Descriptions.Item label="Ngày cập nhật" span={2}>
             {record.modificationDate ? format(new Date(record.modificationDate), "dd/MM/yyyy HH:mm") : '--'}
           </Descriptions.Item>
+          {record.reason ? (
+            <Descriptions.Item
+              span={3}
+              label={
+                <div style={{ maxWidth: 80, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                  Lý do từ chối khiếu nại
+                </div>
+              }
+            >
+              {record.reason}
+            </Descriptions.Item>
+          ) : null}
           <Descriptions.Item label="Địa chỉ" span={3}>
             {record.address.replace(/\|/g, ', ')}
           </Descriptions.Item>
@@ -509,6 +680,46 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
             />
           </Col>
         </Row>
+        <Modal
+          title={null}
+          open={shippingModalVisible}
+          onCancel={() => setShippingModalVisible(false)}
+          footer={null}
+          width={600}
+          centered
+          styles={{ body: { background: '#f7faff', padding: 0 } }}
+        >
+          {selectedShippingRecord && (
+            <div style={{ maxWidth: 500, margin: '32px auto', border: '1px solid #e0e0e0', borderRadius: 12, boxShadow: '0 2px 8px #0001', background: '#fff', padding: 32 }}>
+              <div style={{ fontSize: 22, fontWeight: 'bold', color: '#1890ff', textAlign: 'center', marginBottom: 18, letterSpacing: 1 }}>THÔNG TIN GỬI HÀNG</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '18px 0' }}>
+                <QRCode value={selectedShippingRecord?.orderId || ''} size={120} />
+                <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+                  Mã đơn hàng: <span style={{ color: '#faad14', fontWeight: 600 }}>{selectedShippingRecord.orderId}</span>
+                </div>
+              </div>
+              <div style={{ marginBottom: 18 }}><span style={{ fontWeight: 500, color: '#555', minWidth: 160, display: 'inline-block' }}>Người gửi:</span> <span style={{ color: '#222', fontSize: 15 }}>{selectedShippingRecord.userName}</span></div>
+              <div style={{ marginBottom: 18 }}><span style={{ fontWeight: 500, color: '#555', minWidth: 160, display: 'inline-block' }}>Số điện thoại người gửi:</span> <span style={{ color: '#222', fontSize: 15 }}>{selectedShippingRecord.cusPhone}</span></div>
+              <div style={{ marginBottom: 18 }}><span style={{ fontWeight: 500, color: '#555', minWidth: 160, display: 'inline-block' }}>Số điện thoại nhận hàng:</span> <span style={{ color: '#222', fontSize: 15 }}>0909 999 888</span></div>
+              <div style={{ marginBottom: 18 }}><span style={{ fontWeight: 500, color: '#555', minWidth: 160, display: 'inline-block' }}>Địa chỉ kho nhận hàng:</span><br />
+                <span style={{ color: '#222', fontSize: 15 }}>Bộ phận Kho hàng GreenSpace<br />7 Đường D1, Long Thạnh Mỹ, TP. Thủ Đức, TP. Hồ Chí Minh<br />Hotline: 0909 999 888</span>
+              </div>
+              <div style={{ textAlign: 'center', color: '#888', fontSize: 13, marginTop: 24 }}>
+                Vui lòng ghi rõ <span style={{ color: '#faad14', fontWeight: 600 }}>MÃ ĐƠN HÀNG</span> lên gói hàng trước khi gửi!<br />
+                Cảm ơn bạn đã sử dụng dịch vụ của <span style={{ color: '#1890ff', fontWeight: 600 }}>GreenSpace</span>.
+              </div>
+              <Space style={{ marginTop: 32, justifyContent: 'center', width: '100%' }}>
+                <Button type="primary" onClick={() => handleDownloadShippingInfo(selectedShippingRecord)}>
+                  Tải xuống (.pdf)
+                </Button>
+                <Button onClick={handlePrintShippingInfo}>
+                  In
+                </Button>
+              </Space>
+            </div>
+          )}
+        </Modal>
+
       </div>
     </App>
   );

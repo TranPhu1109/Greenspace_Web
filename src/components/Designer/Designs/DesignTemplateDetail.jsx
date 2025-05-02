@@ -495,7 +495,7 @@ const DesignTemplateDetail = () => {
                 border: "none",
               }}
             >
-              <div dangerouslySetInnerHTML={{ __html: designIdeaById?.description }} />
+              <div className="html-preview" dangerouslySetInnerHTML={{ __html: designIdeaById?.description }} />
             </Card>
             
           </Col>

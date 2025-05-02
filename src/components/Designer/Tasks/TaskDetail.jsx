@@ -254,15 +254,15 @@ const TaskDetail = () => {
     }
   }, [task]);
 
-  // Add useEffect to initialize showReportEditor based on existing report
+  // Add useEffect to initialize showSketchReportEditor based on existing report
   useEffect(() => {
     // If there's no report yet, show the editor by default
-    if (task?.serviceOrder?.report) {
-      setShowReportEditor(false);
+    if (task?.serviceOrder?.skecthReport) {
+      setShowSketchReportEditor(false);
     } else {
-      setShowReportEditor(true);
+      setShowSketchReportEditor(true);
     }
-  }, [task?.serviceOrder?.report]);
+  }, [task?.serviceOrder?.skecthReport]);
 
   const handleDesignImageUpload = async (file) => {
     try {
@@ -869,6 +869,8 @@ const TaskDetail = () => {
           const taskUpdateResponse = await updateTaskStatus(task.id, {
             serviceOrderId: task.serviceOrder.id,
             userId: user.id,
+            dateAppointment: task.dateAppointment,
+            timeAppointment: task.timeAppointment,
             status: 3, // Update to status 3 as requested
             note: "Hoàn tất thiết kế chi tiết và sản phẩm đã được chọn"
           });
@@ -1018,7 +1020,7 @@ const TaskDetail = () => {
   // Add function to toggle report editor visibility
   const toggleSketchReportEditor = () => {
     // Khi đóng editor, reset giá trị report về giá trị ban đầu
-    if (showSketchReportEditor) {
+    if (!showSketchReportEditor) {
       // Nếu đang mở và đóng xuống, reset về giá trị trong serviceOrder nếu có
       setSketchReport(task?.serviceOrder?.skecthReport || "");
     }
@@ -1513,7 +1515,7 @@ const TaskDetail = () => {
                   borderLeft: '4px solid #f5222d'
                 }}
               >
-                <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.reportManger }} />
+                <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.serviceOrder.reportManger }} />
               </Card>
             )}
 
@@ -1601,108 +1603,131 @@ const TaskDetail = () => {
 
             {/* Description - show after customer images */}
             {task.serviceOrder.description && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>
-                <div className="p-4 bg-gray-50 rounded border">
-                  <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.description }} />
-                </div>
-              </div>
+              <Collapse defaultActiveKey={['description']} bordered={false} className="mt-4 pt-4 border-t border-green-500">
+                <Collapse.Panel
+                  key="description"
+                  header={<Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>}
+                >
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.serviceOrder.description }} />
+                  </div>
+                </Collapse.Panel>
+              </Collapse>
             )}
             {task.note && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <Title
-                  level={5}
-                  style={{
-                    color:
-                      task.serviceOrder.status === 'ConsultingAndSketching'
-                        ? '#1890ff'
-                        : task.serviceOrder.status === 'ReConsultingAndSketching'
-                          ? '#faad14'
-
-                          : '#1890ff'
-                  }}
+              <Collapse defaultActiveKey={[]} bordered={false} className="mt-4 pt-4 border-t border-green-500">
+                <Collapse.Panel
+                  key="note"
+                  header={
+                    <Title
+                      level={5}
+                      style={{
+                        color:
+                          task.serviceOrder.status === 'ConsultingAndSketching'
+                            ? '#1890ff'
+                            : task.serviceOrder.status === 'ReConsultingAndSketching'
+                              ? '#faad14'
+                              : 'default'
+                      }}
+                    >
+                      <FileTextOutlined />{' '}
+                      {task.serviceOrder.status === 'ReConsultingAndSketching'
+                        ? 'Yêu cầu chỉnh sửa từ khách hàng'
+                        : 'Ghi chú về đơn thiết kế'}
+                    </Title>
+                  }
                 >
-                  <FileTextOutlined />{' '}
-                  {task.serviceOrder.status === 'ReConsultingAndSketching'
-                    ? 'Yêu cầu chỉnh sửa từ khách hàng'
-                    : 'Ghi chú về đơn thiết kế'}
-                </Title>
-
-                <div className="p-4 bg-gray-50 rounded border">
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: task.note
-                    }}
-                  />
-                </div>
-              </div>
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.note }} />
+                  </div>
+                </Collapse.Panel>
+              </Collapse>
             )}
 
             {/* Report Section - Modified */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <Title level={5}><FileTextOutlined /> Ghi chú quá trình làm việc & giá thiết kế đề xuất với khách hàng</Title>
-              </div>
-
-              {/* Display existing report if available */}
-              {task.serviceOrder?.skecthReport && (
-                <div className={showReportEditor ? "mb-4" : ""}>
-                  <div className="p-4 bg-gray-50 rounded border">
-                    <div dangerouslySetInnerHTML={{ __html: task.serviceOrder.skecthReport }} />
+            <Collapse
+              defaultActiveKey={['sketchReport']}
+              bordered={false}
+              className="mt-4 pt-4 border-t border-gray-200"
+            >
+              <Collapse.Panel
+                key="sketchReport"
+                header={
+                  <Title level={5}>
+                    <FileTextOutlined /> Ghi chú quá trình làm việc & giá thiết kế đề xuất với khách hàng
+                  </Title>
+                }
+              >
+                {/* Display existing report if available */}
+                {task.serviceOrder?.skecthReport && (
+                  <div className={showReportEditor ? "mb-4" : ""}>
+                    <div className="p-4 bg-gray-50 rounded border">
+                      <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.serviceOrder.skecthReport }} />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Editor for creating/updating report */}
-              {showReportEditor && (
-                <div className="mt-4 mb-4">
-                  <Card
-                    title="Chỉnh sửa ghi chú / báo cáo"
-                    extra={
-                      task.serviceOrder?.skecthReport && (
+                {/* Editor for creating/updating report */}
+                {showSketchReportEditor && (
+                  <div className="mt-4 mb-4">
+                    <Card
+                      title="Chỉnh sửa ghi chú / báo cáo"
+                      extra={
+                        task.serviceOrder?.skecthReport && (
+                          <Button
+                            type="primary"
+                            danger
+                            onClick={toggleSketchReportEditor}
+                            icon={<CloseCircleOutlined />}
+                          >
+                            Hủy
+                          </Button>
+                        )
+                      }
+                    >
+                      <EditorComponent
+                        value={sketchReport}
+                        onChange={(value) => setSketchReport(value)}
+                        height={400}
+                      />
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          marginTop: '16px',
+                        }}
+                      >
                         <Button
                           type="primary"
-                          danger
-                          onClick={toggleSketchReportEditor}
-                          icon={<CloseCircleOutlined />}
+                          onClick={handleUpdateSketchReport}
+                          icon={<SaveOutlined />}
                         >
-                          Hủy
+                          Lưu ghi chú
                         </Button>
-                      )
-                    }
-                  >
-                    <EditorComponent
-                      value={sketchReport}
-                      onChange={(value) => setSketchReport(value)}
-                      height={400}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                      <Button
-                        type="primary"
-                        onClick={handleUpdateSketchReport}
-                        icon={<SaveOutlined />}
-                      >
-                        Lưu ghi chú
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              )}
+                      </div>
+                    </Card>
+                  </div>
+                )}
 
-              {/* Show button to open editor if report exists and editor is hidden */}
-              {!showReportEditor && task.serviceOrder?.skecthReport && (
-                <div className="mt-3 text-center">
-                  <Button
-                    type="dashed"
-                    onClick={toggleSketchReportEditor}
-                    icon={<EditOutlined />}
-                    style={{ width: '100%', color: 'green', marginBottom: '14px' }}
-                  >
-                    Cập nhật ghi chú / báo cáo
-                  </Button>
-                </div>
-              )}
-            </div>
+                {/* Show button to open editor if report exists and editor is hidden */}
+                {!showSketchReportEditor && task.serviceOrder?.skecthReport && (
+                  <div className="mt-3 text-center">
+                    <Button
+                      type="dashed"
+                      onClick={toggleSketchReportEditor}
+                      icon={<EditOutlined />}
+                      style={{
+                        width: '100%',
+                        color: 'green',
+                        marginBottom: '14px',
+                      }}
+                    >
+                      Cập nhật ghi chú / báo cáo
+                    </Button>
+                  </div>
+                )}
+              </Collapse.Panel>
+            </Collapse>
 
             {/* ----- Sketch Records (Phases 1, 2, 3) ----- */}
             {showSketchRecords && sketchRecords.some(record => record.serviceOrderId === task?.serviceOrder?.id) && (

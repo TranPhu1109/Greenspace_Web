@@ -292,7 +292,7 @@ const OrderHistoryDetail = () => {
     } else {
       setShowPaymentButton(false);
     }
-    
+
     // If contract exists but showContractButton is false, set it to true
     // This ensures the button appears as soon as contract data is available
     if (contract && !showContractButton && selectedOrder?.status === "WaitDeposit") {
@@ -511,19 +511,19 @@ const OrderHistoryDetail = () => {
 
       setUploading(true);
       setPaymentLoading(true);
-      
+
       // First upload the signature image but don't sign the contract yet
       const uploadedUrls = await uploadImages([previewImage]);
       console.log('Uploaded URLs:', uploadedUrls);
-      
+
       if (!uploadedUrls || uploadedUrls.length === 0) {
         throw new Error('Không nhận được URL hình ảnh sau khi tải lên');
       }
-      
+
       // Store the signature URL temporarily
       const signatureImageUrl = uploadedUrls[0];
       setSignatureUrl(signatureImageUrl);
-      
+
       // Process payment first
       try {
         // Get walletId from localStorage and parse it correctly
@@ -559,7 +559,7 @@ const OrderHistoryDetail = () => {
           if (contract?.id) {
             await signContract(contract.id, signatureImageUrl);
             message.success("Thanh toán và ký hợp đồng thành công");
-            
+
             // Update order status and refresh data
             await updateStatus(selectedOrder.id, "DepositSuccessful");
             await getContractByServiceOrder(selectedOrder.id);
@@ -953,6 +953,7 @@ const OrderHistoryDetail = () => {
 
                     <Descriptions.Item label="Mô tả">
                       <div
+                        className="html-preview"
                         dangerouslySetInnerHTML={{
                           __html:
                             selectedOrder?.description || "Không có mô tả",
@@ -1004,6 +1005,7 @@ const OrderHistoryDetail = () => {
                           )}
                         <Descriptions.Item label="Mô tả" span={3}>
                           <div
+                            className="html-preview"
                             dangerouslySetInnerHTML={{
                               __html:
                                 designIdea?.description || "Không có mô tả",
@@ -1319,12 +1321,12 @@ const OrderHistoryDetail = () => {
                       <Empty description="Chưa có bản vẽ chi tiết nào" />
                     ) : (selectedOrder.status === "DoneDesign" ||
                       selectedOrder.status === "DeterminingMaterialPrice"
-                        ? designRecords
-                        : designRecords.filter((record) => record.isSelected)
-                      ).length > 0 ? (
+                      ? designRecords
+                      : designRecords.filter((record) => record.isSelected)
+                    ).length > 0 ? (
                       <div>
                         {(selectedOrder.status === "DoneDesign" ||
-                        selectedOrder.status === "DeterminingMaterialPrice"
+                          selectedOrder.status === "DeterminingMaterialPrice"
                           ? designRecords
                           : designRecords.filter((record) => record.isSelected)
                         ).map((record, index) => (
@@ -1587,7 +1589,7 @@ const OrderHistoryDetail = () => {
                           >
                             {formatPrice(
                               selectedOrder.designPrice +
-                                calculateMaterialPrice(selectedOrder)
+                              calculateMaterialPrice(selectedOrder)
                             )}
                           </Text>
                         </Descriptions.Item>
@@ -1611,7 +1613,7 @@ const OrderHistoryDetail = () => {
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                              calculateMaterialPrice(selectedOrder)
+                            calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1619,7 +1621,7 @@ const OrderHistoryDetail = () => {
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                              calculateMaterialPrice(selectedOrder)
+                            calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1665,7 +1667,7 @@ const OrderHistoryDetail = () => {
                             : "Bạn đã đọc và đồng ý với hợp đồng, để kí hợp đồng, vui lòng cung cấp ảnh chữ kí của bạn tại đây"}
                         </Text>
                       </div>
-                      
+
                       {!contract?.modificationDate && selectedOrder?.status === "WaitDeposit" && (
                         <>
                           <Button
@@ -1834,8 +1836,8 @@ const OrderHistoryDetail = () => {
                         preview={false}
                       />
                       <div style={{ marginTop: "10px" }}>
-                        <Button 
-                          type="link" 
+                        <Button
+                          type="link"
                           onClick={() => setPreviewImage(null)}
                           style={{ padding: 0 }}
                         >
@@ -1931,7 +1933,7 @@ const OrderHistoryDetail = () => {
                   Tổng thanh toán:{" "}
                   {formatPrice(
                     selectedOrder.designPrice * 0.5 +
-                      calculateMaterialPrice(selectedOrder)
+                    calculateMaterialPrice(selectedOrder)
                   )}
                 </Text>
               </p>

@@ -1,0 +1,143 @@
+.policy-preview-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background-color: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.policy-preview-card {
+  transition: all 0.3s ease;
+  max-width: 100%;
+  margin: 0 auto;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+}
+
+.policy-preview-header {
+  margin-bottom: 20px;
+}
+
+.policy-preview-title {
+  color: #4caf50 !important;
+  text-align: center;
+  margin-bottom: 16px !important;
+  font-weight: 600 !important;
+}
+
+.policy-preview-divider {
+  border-top: 2px solid #4caf50;
+  margin: 16px 0;
+}
+
+.policy-preview-content {
+  line-height: 1.8;
+  font-size: 16px;
+  color: #333;
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #333;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  h2 {
+    font-size: 24px;
+  }
+
+  h3 {
+    font-size: 20px;
+  }
+
+  p {
+    margin-bottom: 16px;
+  }
+
+  ul, ol {
+    margin-bottom: 16px;
+    padding-left: 24px;
+  }
+
+  ul {
+    list-style-type: disc; /* ✅ HIỂN THỊ DẤU CHẤM */
+  }
+
+  ol {
+    list-style-type: decimal; /* ✅ HIỂN THỊ SỐ THỨ TỰ */
+  }
+
+  li {
+    margin-bottom: 8px;
+  }
+
+  blockquote {
+    border-left: 4px solid #096dd9;
+    padding-left: 16px;
+    margin: 16px 0;
+    color: #595959;
+    font-style: italic;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 24px auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+
+    th, td {
+      border: 1px solid #d9d9d9;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f0f5ff;
+      color: #096dd9;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  }
+
+  a {
+    color: #1890ff;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  pre {
+    background-color: #f6f8fa;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 16px 0;
+    overflow: auto;
+  }
+
+  code {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    background-color: #f6f8fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 14px;
+  }
+}

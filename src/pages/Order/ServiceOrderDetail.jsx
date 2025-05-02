@@ -96,7 +96,7 @@ const ServiceOrderDetail = () => {
     signContract,
     generateContract,
   } = useContractStore();
-  const {data, fetchPercentage} = usePercentageStore();
+  const { data, fetchPercentage } = usePercentageStore();
   const { uploadImages, progress } = useCloudinaryStorage();
 
   // Order state and flags
@@ -732,6 +732,7 @@ const ServiceOrderDetail = () => {
                     bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
                   >
                     <div
+                      className="html-preview"
                       dangerouslySetInnerHTML={{ __html: order.description }}
                       style={{
                         fontSize: '15px',
@@ -769,6 +770,7 @@ const ServiceOrderDetail = () => {
                 >
                   {order?.skecthReport ? (
                     <div
+                      className="html-preview"
                       dangerouslySetInnerHTML={{ __html: order.skecthReport }}
                       style={{ flex: 1 }}
                     />
@@ -873,6 +875,7 @@ const ServiceOrderDetail = () => {
                   refreshAllData={refreshAllData}
                   updateTaskOrder={updateTaskOrder}
                   getServiceOrderById={getServiceOrderById}
+                  data={data}
                 />
               )}
           </Card>

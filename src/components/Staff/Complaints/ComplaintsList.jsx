@@ -63,6 +63,7 @@ const ComplaintsList = () => {
   const [isShippingModalVisible, setIsShippingModalVisible] = useState(false);
   const [shippingForm] = Form.useForm();
   const [processingAction, setProcessingAction] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -142,7 +143,7 @@ const ComplaintsList = () => {
         "processing": 3,   // Processing
         "refund": 4,       // Hoàn tiền (chỉ dùng cho Refund)
         "complete": 5,     // Hoàn thành
-        "rejected": 6,     // reject
+        "reject": 6,     // reject
         "delivery": 7,     // Delivery (chỉ dùng cho ProductReturn)
         "delivered": 8,    // delivered (chỉ dùng cho ProductReturn)
       };
@@ -168,23 +169,41 @@ const ComplaintsList = () => {
         return;
       }
 
+      // Nếu chọn từ chối mà chưa nhập lý do thì không cho submit
+      if (selectedStatus === 'reject' && !rejectReason.trim()) {
+        message.error('Vui lòng nhập lý do từ chối khiếu nại!');
+        return;
+      }
+
       setProcessingAction(true);
 
       // Sử dụng deliveryCode hiện tại nếu có
       const deliveryCode = selectedComplaint.deliveryCode || '';
 
-      await updateComplaintStatus(
-        selectedComplaint.id,
-        numericStatus,
-        isProductReturn ? 0 : 1, // complaintType: 0 for ProductReturn, 1 for Refund
-        deliveryCode
-      );
+      // Nếu là rejected, truyền thêm lý do từ chối
+      if (selectedStatus === 'reject') {
+        await updateComplaintStatus(
+          selectedComplaint.id,
+          numericStatus,
+          isProductReturn ? 0 : 1, // complaintType: 0 for ProductReturn, 1 for Refund
+          deliveryCode,
+          rejectReason.trim()
+        );
+      } else {
+        await updateComplaintStatus(
+          selectedComplaint.id,
+          numericStatus,
+          isProductReturn ? 0 : 1, // complaintType: 0 for ProductReturn, 1 for Refund
+          deliveryCode
+        );
+      }
 
       message.success(`Cập nhật trạng thái khiếu nại thành công!`);
       await fetchComplaints(); // Refresh data
       setIsDetailModalVisible(false);
       setSelectedComplaint(null);
       setSelectedStatus(null);
+      setRejectReason("");
     } catch (error) {
       message.error(`Lỗi khi cập nhật trạng thái: ${error.message}`);
     } finally {
@@ -363,40 +382,40 @@ const ComplaintsList = () => {
     },
     {
       title: "Lý do",
-      dataIndex: "reason",
-      key: "reason",
-      width: 200,
+      dataIndex: "complaintReason",
+      key: "complaintReason",
+      width: 150,
       ellipsis: true,
-      render: (reason) => (
-        <Tooltip
-          title={
-            reason.split(";").map((item, idx) => (
-              <div key={idx} style={{ marginBottom: 4 }}>
-                • {item.trim()}
-              </div>
-            ))
-          }
-          placement="top"
-          color="#ffffff"
-          arrow={true}
-          styles={{
-            body: {
-              backgroundColor: "#f9f9f9",
-              color: "#000",
-              padding: 12,
-              fontSize: 14,
-              borderRadius: 8,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-              whiteSpace: "pre-wrap",
-              maxWidth: 300,
-            },
-          }}
-        >
-          <Text ellipsis style={{ cursor: "pointer" }}>
-            {reason.length > 30 ? `${reason.slice(0, 30)}...` : reason}
-          </Text>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        // Prefer complaintReason, fallback to reason (legacy)
+        const displayReason = record.complaintReason || '';
+        return (
+          <Tooltip
+            title={
+              displayReason.split(";").map((item, index) => (
+                <div key={index} style={{ marginBottom: 4 }}>
+                  {item.trim()}
+                </div>
+              ))
+            }
+            color="#ffffff"
+            styles={{
+              body: {
+                backgroundColor: "#f9f9f9",
+                color: "#000",
+                fontSize: 14,
+                padding: 12,
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              },
+            }}
+          >
+            <Text ellipsis style={{ cursor: "pointer" }}>
+              {displayReason}
+            </Text>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Trạng thái",
@@ -494,7 +513,7 @@ const ComplaintsList = () => {
       if (numericStatus === 1 || currentStatus === '1' || currentStatus === 'ItemArrivedAtWarehouse') {
         return [
           <Option key="approved" value="approved">Chấp nhận khiếu nại đổi trả</Option>,
-          <Option key="rejected" value="rejected">Từ chối khiếu nại</Option>
+          <Option key="reject" value="reject">Từ chối khiếu nại</Option>
         ];
       }
 
@@ -539,7 +558,7 @@ const ComplaintsList = () => {
       if (numericStatus === 1 || currentStatus === '1' || currentStatus === 'ItemArrivedAtWarehouse') {
         return [
           <Option key="approved" value="approved">Chấp nhận khiếu nại hoàn tiền</Option>,
-          <Option key="rejected" value="rejected">Từ chối khiếu nại</Option>
+          <Option key="reject" value="reject">Từ chối khiếu nại</Option>
         ];
       }
 
@@ -619,13 +638,18 @@ const ComplaintsList = () => {
           </Descriptions.Item>
           <Descriptions.Item label="Lý do khiếu nại" span={3}>
             <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-              {selectedComplaint.reason
+              {selectedComplaint.complaintReason
                 ?.split(";")
                 .map((item, idx) => (
                   <div key={idx}>• {item.trim()}</div>
                 )) || "Không có lý do"}
             </div>
           </Descriptions.Item>
+          {selectedComplaint.reason ? (
+            <Descriptions.Item label="Lý do từ chối khiếu nại" span={3}>
+              {selectedComplaint.reason}
+            </Descriptions.Item>
+          ) : null}
 
           <Descriptions.Item label="Trạng thái" span={3}>
             <Space>
@@ -643,79 +667,79 @@ const ComplaintsList = () => {
         {(selectedComplaint.image?.imageUrl ||
           selectedComplaint.image?.image2 ||
           selectedComplaint.image?.image3) && (
-          <Card title="Video/Hình ảnh khiếu nại" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              {selectedComplaint.image?.imageUrl && (
-                <div
-                  style={{
-                    backgroundColor: '#fafafa',
-                    padding: 16,
-                    borderRadius: 8,
-                    border: '1px solid #f0f0f0',
-                    flex: '1 1 320px',
-                    maxWidth: 360,
-                  }}
-                >
-                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                    🎥 Video minh chứng:
-                  </Text>
-                  <video
-                    src={selectedComplaint.image.imageUrl}
-                    controls
-                    width={320}
-                    style={{ borderRadius: 6, maxHeight: 220 }}
-                  />
-                </div>
-              )}
+            <Card title="Video/Hình ảnh khiếu nại" style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {selectedComplaint.image?.imageUrl && (
+                  <div
+                    style={{
+                      backgroundColor: '#fafafa',
+                      padding: 16,
+                      borderRadius: 8,
+                      border: '1px solid #f0f0f0',
+                      flex: '1 1 320px',
+                      maxWidth: 360,
+                    }}
+                  >
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                      🎥 Video minh chứng:
+                    </Text>
+                    <video
+                      src={selectedComplaint.image.imageUrl}
+                      controls
+                      width={320}
+                      style={{ borderRadius: 6, maxHeight: 220 }}
+                    />
+                  </div>
+                )}
 
-              {(selectedComplaint.image?.image2 ||
-                selectedComplaint.image?.image3) && (
-                <div
-                  style={{
-                    backgroundColor: '#fafafa',
-                    padding: 16,
-                    borderRadius: 8,
-                    border: '1px solid #f0f0f0',
-                    flex: '1 1 320px',
-                    maxWidth: 360,
-                  }}
-                >
-                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                    🖼️ Hình ảnh bổ sung:
-                  </Text>
-                  <Space size="middle" wrap>
-                    {selectedComplaint.image.image2 && (
-                      <Image
-                        src={selectedComplaint.image.image2}
-                        alt="Hình ảnh khiếu nại 2"
-                        width={100}
-                        height={100}
-                        style={{
-                          objectFit: 'cover',
-                          borderRadius: 6,
-                          border: '1px solid #f0f0f0',
-                        }}
-                      />
-                    )}
-                    {selectedComplaint.image.image3 && (
-                      <Image
-                        src={selectedComplaint.image.image3}
-                        alt="Hình ảnh khiếu nại 3"
-                        width={100}
-                        height={100}
-                        style={{
-                          objectFit: 'cover',
-                          borderRadius: 6,
-                          border: '1px solid #f0f0f0',
-                        }}
-                      />
-                    )}
-                  </Space>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
+                {(selectedComplaint.image?.image2 ||
+                  selectedComplaint.image?.image3) && (
+                    <div
+                      style={{
+                        backgroundColor: '#fafafa',
+                        padding: 16,
+                        borderRadius: 8,
+                        border: '1px solid #f0f0f0',
+                        flex: '1 1 320px',
+                        maxWidth: 360,
+                      }}
+                    >
+                      <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                        🖼️ Hình ảnh bổ sung:
+                      </Text>
+                      <Space size="middle" wrap>
+                        {selectedComplaint.image.image2 && (
+                          <Image
+                            src={selectedComplaint.image.image2}
+                            alt="Hình ảnh khiếu nại 2"
+                            width={100}
+                            height={100}
+                            style={{
+                              objectFit: 'cover',
+                              borderRadius: 6,
+                              border: '1px solid #f0f0f0',
+                            }}
+                          />
+                        )}
+                        {selectedComplaint.image.image3 && (
+                          <Image
+                            src={selectedComplaint.image.image3}
+                            alt="Hình ảnh khiếu nại 3"
+                            width={100}
+                            height={100}
+                            style={{
+                              objectFit: 'cover',
+                              borderRadius: 6,
+                              border: '1px solid #f0f0f0',
+                            }}
+                          />
+                        )}
+                      </Space>
+                    </div>
+                  )}
+              </div>
+            </Card>
+          )}
 
         <Card title="Sản phẩm khiếu nại">
           <Table
@@ -802,19 +826,22 @@ const ComplaintsList = () => {
                           <li>Giao hàng → Đã giao hàng </li>
                           <li>Đã giao hàng → Hoàn thành </li>
                         </ol>
-                        <p><strong>Lưu ý:</strong> Đối với đơn đổi trả không sử dụng trạng thái Hoàn tiền (4).</p>
+                        <p><strong>Lưu ý:</strong> Đối với đơn đổi trả không sử dụng trạng thái Hoàn tiền.</p>
                       </div>
                     ) : (
                       <div>
                         <p><strong>Quy trình xử lý khiếu nại hoàn tiền:</strong></p>
                         <ol>
-                          <li>Đang chờ xử lý → Đã về kho kiểm tra </li>
-                          <li>Đã về kho kiểm tra → Chấp nhận hoặc Từ chối </li>
-                          <li>Chấp nhận → Đang xử lý hoàn tiền </li>
-                          <li>Đang xử lý hoàn tiền → Hoàn tiền (tự động xử lý bởi hệ thống) </li>
-                          <li>Hoàn tiền → Hoàn thành (tự động xử lý bởi hệ thống) </li>
+                          <li>Đang chờ xử lý → Đã về kho kiểm tra</li>
+                          <li>Đã về kho kiểm tra → Chấp nhận hoặc Từ chối</li>
+                          <li>Chấp nhận → Chờ Manager xác nhận hoàn tiền</li>
+                          <li>Manager xác nhận → Đang xử lý hoàn tiền</li>
+                          <li>Đang xử lý hoàn tiền → Hoàn tiền (tự động xử lý bởi hệ thống)</li>
+                          <li>Hoàn tiền → Hoàn thành (tự động xử lý bởi hệ thống)</li>
                         </ol>
-                        <p><strong>Lưu ý:</strong> Staff chỉ được thay đổi trạng thái đến "Đang xử lý hoàn tiền". Các bước tiếp theo sẽ do hệ thống xử lý.</p>
+                        <p><strong>Lưu ý:</strong>
+                          Staff chỉ được phép thay đổi trạng thái đến "Chấp nhận". Các bước xác nhận hoàn tiền và xử lý hoàn tiền sẽ do Manager và hệ thống đảm nhận.
+                        </p>
                       </div>
                     )
                   }
@@ -830,10 +857,42 @@ const ComplaintsList = () => {
                 >
                   {renderStatusOptions()}
                 </Select>
+                {selectedStatus === 'reject' && (
+                  <div style={{ marginTop: 24 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <Text strong style={{ fontSize: 14 }}>
+                        Lý do từ chối khiếu nại <Text type="danger">*</Text>
+                      </Text>
+                    </div>
+
+                    <Form.Item
+                      required
+                      validateStatus={rejectReason.trim() ? undefined : 'error'}
+                      help={!rejectReason.trim() ? 'Vui lòng nhập lý do từ chối' : ''}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input.TextArea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        rows={4}
+                        maxLength={500}
+                        showCount
+                        placeholder="Nhập lý do từ chối khiếu nại..."
+                        style={{
+                          borderRadius: 8,
+                          padding: '10px 12px',
+                          resize: 'vertical',
+                          fontSize: 14,
+                        }}
+                      />
+                    </Form.Item>
+                  </div>
+                )}
+
                 <Space style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
                   <Button
                     type="primary"
-                    disabled={!selectedStatus || processingAction}
+                    disabled={!selectedStatus || processingAction || (selectedStatus === 'reject' && !rejectReason.trim())}
                     onClick={handleStatusChange}
                     loading={processingAction}
                   >
@@ -846,6 +905,13 @@ const ComplaintsList = () => {
       </>
     );
   };
+
+  // Reset rejectReason when modal closes or status changes
+  useEffect(() => {
+    if (!isDetailModalVisible || selectedStatus !== 'reject') {
+      setRejectReason("");
+    }
+  }, [isDetailModalVisible, selectedStatus]);
 
   return (
     <div className="complaints-list-container">

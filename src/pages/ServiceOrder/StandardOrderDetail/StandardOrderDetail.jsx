@@ -238,8 +238,8 @@ const StandardOrderDetail = () => {
               <Text strong>{product?.name || "N/A"}</Text>
               <Text type="secondary">{product?.categoryName || "N/A"}</Text>
               {product?.designImage1URL && (
-                <Button 
-                  type="link" 
+                <Button
+                  type="link"
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -249,8 +249,8 @@ const StandardOrderDetail = () => {
                 >
                   <Space>
                     <Text type="success">
-                      {product.designImage1URL.includes('.pdf') 
-                        ? 'Xem hướng dẫn lắp đặt (PDF)' 
+                      {product.designImage1URL.includes('.pdf')
+                        ? 'Xem hướng dẫn lắp đặt (PDF)'
                         : 'Xem hướng dẫn lắp đặt (Video)'}
                     </Text>
                   </Space>
@@ -364,7 +364,7 @@ const StandardOrderDetail = () => {
                     ),
                   },
                 ]}
-                style={{ 
+                style={{
                   marginBottom: '16px',
                   padding: '12px 16px',
                   backgroundColor: '#fff',
@@ -493,6 +493,7 @@ const StandardOrderDetail = () => {
                     )}
                     <Descriptions.Item label="Mô tả" span={3}>
                       <div
+                        className="html-preview"
                         dangerouslySetInnerHTML={{
                           __html: designIdea?.description || "Không có mô tả",
                         }}
@@ -571,9 +572,9 @@ const StandardOrderDetail = () => {
                           <Image
                             src={designIdea.designImage1URL}
                             alt="Bản vẽ thiết kế"
-                            style={{ 
-                              width: "100%", 
-                              height: "100%", 
+                            style={{
+                              width: "100%",
+                              height: "100%",
                               objectFit: "cover"
                             }}
                             preview={{
@@ -585,8 +586,8 @@ const StandardOrderDetail = () => {
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
                           <Text type="secondary">Bản vẽ thiết kế</Text>
                           <div>
-                            <Button 
-                              type="primary" 
+                            <Button
+                              type="primary"
                               icon={<BulbOutlined />}
                               onClick={() => {
                                 // Tìm và kích hoạt nút phóng to của Image
@@ -606,15 +607,15 @@ const StandardOrderDetail = () => {
                     {designIdea.designImage2URL && (
                       <div>
                         <div style={{ position: "relative", width: "100%", height: "200px", overflow: "hidden", borderRadius: "8px" }}>
-                          <div 
-                            style={{ 
-                              position: "absolute", 
-                              top: 0, 
-                              left: 0, 
-                              width: "100%", 
-                              height: "100%", 
-                              display: "flex", 
-                              alignItems: "center", 
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
                               justifyContent: "center",
                               backgroundColor: "#f5f5f5"
                             }}
@@ -625,8 +626,8 @@ const StandardOrderDetail = () => {
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
                           <Text type="secondary">Hướng dẫn lắp đặt (PDF)</Text>
                           <div>
-                            <Button 
-                              type="primary" 
+                            <Button
+                              type="primary"
                               icon={<FilePdfOutlined />}
                               onClick={() => window.open(designIdea.designImage2URL, '_blank')}
                               style={{ marginTop: "8px" }}
@@ -640,10 +641,10 @@ const StandardOrderDetail = () => {
                     {designIdea.designImage3URL && (
                       <div>
                         <div style={{ position: "relative", width: "100%", height: "200px", overflow: "hidden", borderRadius: "8px" }}>
-                          {designIdea.designImage3URL.includes('.mp4') || 
-                           designIdea.designImage3URL.includes('.avi') || 
-                           designIdea.designImage3URL.includes('.mov') || 
-                           !designIdea.designImage3URL.includes('.pdf') ? (
+                          {designIdea.designImage3URL.includes('.mp4') ||
+                            designIdea.designImage3URL.includes('.avi') ||
+                            designIdea.designImage3URL.includes('.mov') ||
+                            !designIdea.designImage3URL.includes('.pdf') ? (
                             <div
                               style={{
                                 position: "absolute",
@@ -662,15 +663,15 @@ const StandardOrderDetail = () => {
                               <VideoCameraOutlined style={{ fontSize: 64, color: "#fff" }} />
                             </div>
                           ) : (
-                            <div 
-                              style={{ 
-                                position: "absolute", 
-                                top: 0, 
-                                left: 0, 
-                                width: "100%", 
-                                height: "100%", 
-                                display: "flex", 
-                                alignItems: "center", 
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                display: "flex",
+                                alignItems: "center",
                                 justifyContent: "center",
                                 backgroundColor: "#f5f5f5",
                                 cursor: "pointer"
@@ -683,22 +684,22 @@ const StandardOrderDetail = () => {
                         </div>
                         <div style={{ textAlign: "center", marginTop: "8px" }}>
                           <Text type="secondary">
-                            {designIdea.designImage3URL.includes('.pdf') 
-                              ? 'Hướng dẫn bổ sung (PDF)' 
+                            {designIdea.designImage3URL.includes('.pdf')
+                              ? 'Hướng dẫn bổ sung (PDF)'
                               : 'Video hướng dẫn lắp đặt'}
                           </Text>
                           <div>
-                            <Button 
-                              type="primary" 
-                              icon={designIdea.designImage3URL.includes('.pdf') 
-                                ? <FilePdfOutlined /> 
+                            <Button
+                              type="primary"
+                              icon={designIdea.designImage3URL.includes('.pdf')
+                                ? <FilePdfOutlined />
                                 : <VideoCameraOutlined />
                               }
                               onClick={() => window.open(designIdea.designImage3URL, '_blank')}
                               style={{ marginTop: "8px" }}
                             >
-                              {designIdea.designImage3URL.includes('.pdf') 
-                                ? 'Mở file PDF' 
+                              {designIdea.designImage3URL.includes('.pdf')
+                                ? 'Mở file PDF'
                                 : 'Xem video hướng dẫn'}
                             </Button>
                           </div>

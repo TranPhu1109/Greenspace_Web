@@ -35,7 +35,7 @@ const RequirementsSection = ({
     <Card title="Yêu cầu thiết kế" className="requirements-section">
       <div className="requirements-content">
         <h4>Mô tả yêu cầu:</h4>
-        <p dangerouslySetInnerHTML={{ __html: requirementsText }}></p>
+        <p className="html-preview" dangerouslySetInnerHTML={{ __html: requirementsText }}></p>
       </div>
 
       <Row gutter={[16, 16]}>

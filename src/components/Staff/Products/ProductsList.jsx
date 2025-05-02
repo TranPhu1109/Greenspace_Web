@@ -234,7 +234,7 @@ const ProductsList = () => {
               textOverflow: "ellipsis",
             }}
           >
-            <div dangerouslySetInnerHTML={{ __html: text }} />
+            <div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />
           </span>
         </Tooltip>
       ),

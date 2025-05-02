@@ -176,7 +176,7 @@ const DesignsPage = () => {
                               {design.categoryName}
                             </span>
                             <p
-                              className="design-description"
+                              className="design-description html-preview"
                               dangerouslySetInnerHTML={{
                                 __html: design.description,
                               }}

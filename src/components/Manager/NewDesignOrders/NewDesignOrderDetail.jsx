@@ -745,7 +745,7 @@ const NewDesignOrderDetail = () => {
                   borderRadius: '8px',
                 }}
               >
-                <div dangerouslySetInnerHTML={{ __html: currentOrder.description }} />
+                <div className="html-preview" dangerouslySetInnerHTML={{ __html: currentOrder.description }} />
               </Collapse.Panel>
             </Collapse>
           </Card>
@@ -808,7 +808,7 @@ const NewDesignOrderDetail = () => {
                   borderRadius: '8px',
                 }}
               >
-                <div dangerouslySetInnerHTML={{ __html: currentOrder.skecthReport }} />
+                <div className="html-preview" dangerouslySetInnerHTML={{ __html: currentOrder.skecthReport }} />
               </Collapse.Panel>
             </Collapse>
           </Card>
@@ -1038,7 +1038,7 @@ const NewDesignOrderDetail = () => {
                   borderRadius: '8px',
                 }}
               >
-                <div dangerouslySetInnerHTML={{ __html: currentOrder.report }} />
+                <div className="html-preview" dangerouslySetInnerHTML={{ __html: currentOrder.report }} />
               </Collapse.Panel>
             </Collapse>
           </Card>
