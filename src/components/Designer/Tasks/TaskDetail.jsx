@@ -1500,7 +1500,7 @@ const TaskDetail = () => {
               </Collapse>
             )}
             {task.note && (
-              <Collapse defaultActiveKey={[]} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small">
+              <Collapse defaultActiveKey={task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign' ? ['note'] : []} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small">
                 <Collapse.Panel
                   key="note"
                   header={
@@ -1510,13 +1510,13 @@ const TaskDetail = () => {
                         color:
                           task.serviceOrder.status === 'ConsultingAndSketching'
                             ? '#1890ff'
-                            : task.serviceOrder.status === 'ReConsultingAndSketching'
+                            : (task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign')
                               ? '#faad14'
                               : 'default'
                       }}
                     >
                       <FileTextOutlined />{' '}
-                      {task.serviceOrder.status === 'ReConsultingAndSketching'
+                      {(task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign')
                         ? 'Yêu cầu chỉnh sửa từ khách hàng'
                         : 'Ghi chú về đơn thiết kế'}
                     </Title>
@@ -2093,8 +2093,11 @@ const TaskDetail = () => {
                                   alt={product.name}
                                   width={40}
                                   height={40}
-                                  className="object-cover rounded mr-2"
-                                  style={{ borderRadius: "4px", marginRight: "8px" }}
+                                  style={{ objectFit: "cover", borderRadius: "4px", marginRight: "8px" }}
+                                  // width={40}
+                                  // height={40}
+                                  // className="object-cover rounded mr-2"
+                                  // style={{ borderRadius: "4px", marginRight: "8px" }}
                                 />
                               ) : (
                                 <div className="w-[40px] h-[40px] bg-gray-200 rounded mr-2 flex items-center justify-center">

@@ -37,7 +37,7 @@ const RecordSketch = ({
       'DoneDesign', 'PaymentSuccess', 'Processing', 'PickedPackageAndDelivery',
       'DeliveryFail', 'ReDelivery', 'DeliveredSuccessfully', 'CompleteOrder',
       'WaitDeposit', 'DoneDeterminingDesignPrice', 'ReConsultingAndSketching',
-      'DepositSuccessful', 'DeterminingMaterialPrice', 'ReDesign'
+      'DepositSuccessful', 'DeterminingMaterialPrice', 'ReDesign', 'DoneDeterminingMaterialPrice'
     ];
 
     const phase1StatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23];
@@ -58,7 +58,7 @@ const RecordSketch = ({
       'DoneDesign', 'PaymentSuccess', 'Processing', 'PickedPackageAndDelivery',
       'DeliveryFail', 'ReDelivery', 'DeliveredSuccessfully', 'CompleteOrder',
       'WaitDeposit', 'DoneDeterminingDesignPrice', 'ReConsultingAndSketching',
-      'DepositSuccessful', 'DeterminingMaterialPrice', 'ReDesign'
+      'DepositSuccessful', 'DeterminingMaterialPrice', 'ReDesign', 'DoneDeterminingMaterialPrice'
       // 'DeterminingDesignPrice' is NOT included for phase 2 by default
     ];
     const phase2StatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23, 24];  // Status code 2 is NOT included by default
@@ -93,7 +93,7 @@ const RecordSketch = ({
         'DoneDesign', 'PaymentSuccess', 'Processing', 'PickedPackageAndDelivery',
         'DeliveryFail', 'ReDelivery', 'DeliveredSuccessfully', 'CompleteOrder',
         'WaitDeposit', 'DoneDeterminingDesignPrice', 'DepositSuccessful',
-        'DeterminingMaterialPrice'
+        'DeterminingMaterialPrice', 'DoneDeterminingMaterialPrice'
       ];
       const allowedStatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23];
 

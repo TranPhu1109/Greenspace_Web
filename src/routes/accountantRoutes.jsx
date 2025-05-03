@@ -5,6 +5,9 @@ import DesignOrdersList from "../pages/Admin/DesignOrders/DesignOrdersList";
 import PendingDesignOrders from "../pages/Admin/DesignOrders/PendingDesignOrders";
 import ServiceOrderList from "@/components/Accountant/ServiceOrderList";
 import ServiceOrderDetail from "@/components/Accountant/ServiceOrderDetail";
+import ProductsList from "@/components/Staff/Products/ProductsList";
+import ProductDetail from "@/pages/Products/ProductDetail";
+import Categories from "@/components/Staff/Products/Categories";
 
 export const accountantRoutes = {
   path: "/accountant",
@@ -40,6 +43,23 @@ export const accountantRoutes = {
         {
           path: ":id",
           element: <ServiceOrderDetail />,
+        },
+      ],
+    },
+    {
+      path: "products",
+      children: [
+        {
+          index: true,
+          element: <ProductsList />,
+        },
+        {
+          path: ":id",
+          element: <ProductDetail />,
+        },
+        {
+          path: "categories",
+          element: <Categories />,
         },
       ],
     },
