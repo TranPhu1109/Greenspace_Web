@@ -662,6 +662,7 @@ const ServiceOrderDetail = () => {
                   updateStatus={updateStatus}
                   getServiceOrderById={getServiceOrderById}
                   api={api}
+                  data={data}
                 />
               </Col>
             </Row>

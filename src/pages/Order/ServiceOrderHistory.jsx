@@ -126,7 +126,7 @@ const ServiceOrderHistory = () => {
       Pending: "orange",
       ConsultingAndSketching: "blue",
       DeterminingDesignPrice: "blue",
-      DepositSuccessful: "cyan",
+      DepositSuccessful: "green",
       AssignToDesigner: "geekblue",
       DeterminingMaterialPrice: "geekblue",
       DoneDesign: "volcano",
@@ -205,42 +205,50 @@ const ServiceOrderHistory = () => {
     },
     {
       title: "Khách hàng",
-      dataIndex: "userName",
-      key: "userName",
-    },
-    {
-      title: "Số điện thoại",
-      dataIndex: "cusPhone",
-      key: "cusPhone",
+      key: "customer",
+      render: (_, record) => (
+        <div>
+          <div>{record.userName}</div>
+          <div>{record.cusPhone}</div>
+        </div>
+      ),
     },
     {
       title: "Kích thước",
       key: "dimensions",
       render: (_, record) => `${record.length}m x ${record.width}m`,
     },
-    {
-      title: "Loại dịch vụ",
-      dataIndex: "serviceType",
-      key: "serviceType",
-      render: (type) => {
-        const serviceTypeMap = {
-          NoDesignIdea: "Không có mẫu thiết kế",
-        };
-        return serviceTypeMap[type] || type;
-      },
-    },
     // {
-    //   title: "Tổng chi phí",
-    //   dataIndex: "totalCost",
-    //   key: "totalCost",
-    //   render: (cost) => `${cost.toLocaleString("vi-VN")} VNĐ`,
+    //   title: "Loại dịch vụ",
+    //   dataIndex: "serviceType",
+    //   key: "serviceType",
+    //   render: (type) => {
+    //     const serviceTypeMap = {
+    //       NoDesignIdea: "Không có mẫu thiết kế",
+    //     };
+    //     return serviceTypeMap[type] || type;
+    //   },
     // },
+    {
+      title: "Mã vận đơn",
+      dataIndex: "deliveryCode",
+      key: "deliveryCode",
+      render: (code) =>
+        code ? (
+          <Typography.Text copyable>{code}</Typography.Text>
+        ) : (
+          "---"
+        ),
+    },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
       render: (status) => (
-        <Tag color={getStatusColor(status)}>
+        <Tag
+          color={getStatusColor(status)}
+          style={{ maxWidth: '120px', whiteSpace: 'normal', wordBreak: 'break-word' }}
+        >
           {getStatusText(status)}
         </Tag>
       ),
