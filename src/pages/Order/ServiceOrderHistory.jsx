@@ -295,7 +295,7 @@ const ServiceOrderHistory = () => {
           },
         ];
         
-        if (canCancel) {
+        if (record.status === 'Pending') {
           items.push({
             key: 'cancel',
             label: (
@@ -309,18 +309,20 @@ const ServiceOrderHistory = () => {
         }
         
         return (
-          <Dropdown 
-            menu={{ items }} 
-            trigger={['click']}
-            placement="bottomRight"
-            disabled={cancellingOrderId === record.id}
-          >
-            <Button 
-              type="text" 
-              icon={<MoreOutlined />} 
-              loading={cancellingOrderId === record.id}
-            />
-          </Dropdown>
+          <div onClick={(e) => e.stopPropagation()}>
+            <Dropdown 
+              menu={{ items }} 
+              trigger={['click']}
+              placement="bottomRight"
+              disabled={cancellingOrderId === record.id}
+            >
+              <Button 
+                type="text" 
+                icon={<MoreOutlined />} 
+                loading={cancellingOrderId === record.id}
+              />
+            </Dropdown>
+          </div>
         );
       },
     },
@@ -386,7 +388,16 @@ const ServiceOrderHistory = () => {
               // pagination={{ pageSize: 10 }}
               className="shadow-md"
               onRow={(record) => ({
-                onClick: () => navigate(`/service-order/${record.id}`),
+                onClick: (e) => {
+                  // Don't navigate if clicking on buttons or links
+                  if (e.target.tagName !== 'BUTTON' && 
+                      !e.target.closest('button') && 
+                      e.target.tagName !== 'A' && 
+                      !e.target.closest('a') &&
+                      !e.target.closest('.ant-dropdown-trigger')) {
+                    navigate(`/service-order/${record.id}`);
+                  }
+                },
                 style: { cursor: 'pointer' }
               })}
               style={{ 
