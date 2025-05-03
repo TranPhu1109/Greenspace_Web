@@ -187,7 +187,7 @@ const useProductStore = create(persist((set, get) => ({
   createProduct: async (productData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = api.post(
+      const response = await api.post(
         "/api/product",
         {
           name: productData.name,
@@ -211,7 +211,7 @@ const useProductStore = create(persist((set, get) => ({
         set({ isLoading: false });
         return response.data;
       }
-      throw new Error("Failed to create product");
+      throw new Error(`Failed to create product: ${response.status} ${response.statusText}`);
     } catch (error) {
       set({ error: error.message, isLoading: false });
       throw error;

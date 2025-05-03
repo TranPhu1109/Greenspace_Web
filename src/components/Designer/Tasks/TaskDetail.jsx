@@ -29,6 +29,8 @@ import {
   Switch,
   Radio,
   Alert,
+  Transfer,
+  Tree,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -150,7 +152,7 @@ const TaskDetail = () => {
     updateTaskStatus,
     setCurrentTask: setTask
   } = useDesignerTask();
-  const { getProductById, fetchProducts, products } = useProductStore();
+  const { getProductById, fetchProducts, products, fetchCategories, categories } = useProductStore();
   const { user } = useAuthStore();
   const { sketchRecords, designRecords, getRecordSketch, getRecordDesign, resetState } = useRecordStore();
   const { uploadImages, progress, error: uploadError } = useCloudinaryStorage();
@@ -165,6 +167,7 @@ const TaskDetail = () => {
   const [designImageUrls, setDesignImageUrls] = useState([]);
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [tempServiceOrderDetails, setTempServiceOrderDetails] = useState([]);
   const [maxPhaseInDesignRecords, setMaxPhaseInDesignRecords] = useState(0);
@@ -176,6 +179,8 @@ const TaskDetail = () => {
   const [showReportEditor, setShowReportEditor] = useState(false);
   const [showSketchReportEditor, setShowSketchReportEditor] = useState(false);
   const [sketchReport, setSketchReport] = useState("");
+  const [materialRequirements, setMaterialRequirements] = useState("");
+
   // Debug log để kiểm tra các hàm
   useEffect(() => {
     console.log("Task state:", { task });
@@ -264,6 +269,13 @@ const TaskDetail = () => {
     }
   }, [task?.serviceOrder?.skecthReport]);
 
+  // Initialize materialRequirements from task data when task changes
+  useEffect(() => {
+    if (task?.serviceOrder?.reportAccoutant) {
+      setMaterialRequirements(task.serviceOrder.reportAccoutant);
+    }
+  }, [task]);
+
   const handleDesignImageUpload = async (file) => {
     try {
       setUploadingDesign(true);
@@ -311,151 +323,6 @@ const TaskDetail = () => {
     setIsModalVisibleDesign(true);
   };
 
-  // const handleOkSketch = async () => {
-  //   // Add check for task and task.serviceOrder
-  //   if (!task || !task.serviceOrder) {
-  //     message.error("Dữ liệu công việc chưa được tải xong. Vui lòng thử lại.");
-  //     console.error("handleOkSketch called with null task or task.serviceOrder:", task);
-  //     return;
-  //   }
-
-  //   let uploadedUrls = [];
-  //   try {
-  //     const values = await sketchForm.validateFields();
-  //     const currentOrderStatus = task?.serviceOrder?.status; // Get current order status
-
-  //     setUploadingSketch(true);
-
-  //     // Xử lý tải lên ảnh nếu cần
-  //     const isPriceOnly = adjustmentOption === 'priceOnly';
-  //     const isImagesOnly = adjustmentOption === 'imagesOnly';
-
-  //     if (!isPriceOnly) {
-  //       // Step 1: Upload images
-  //       if (sketchFiles.length > 0) {
-  //         message.info(`Đang tải lên ${sketchFiles.length} ảnh phác thảo...`, 0);
-  //         uploadedUrls = await uploadImages(sketchFiles);
-  //         message.destroy();
-  //         if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
-  //           throw new Error("Lỗi trong quá trình tải ảnh lên.");
-  //         }
-  //         message.success("Tải ảnh lên thành công!");
-  //       } else if (isRedeterminingModal && currentSketchImages.length > 0 && !isImagesOnly) {
-  //         // Nếu đang trong modal Redetermining và không chọn cập nhật ảnh, giữ nguyên ảnh hiện tại
-  //         uploadedUrls = currentSketchImages;
-  //       } else {
-  //         // If no new files, check if *any* existing images are present before assuming old ones
-  //         const existingImages = [
-  //           task.serviceOrder.image?.imageUrl,
-  //           task.serviceOrder.image?.image2,
-  //           task.serviceOrder.image?.image3
-  //         ].filter(Boolean);
-
-  //         if (existingImages.length === 0 && sketchFiles.length === 0 && !isPriceOnly) {
-  //           // If no existing images AND no new files, require upload
-  //           throw new Error("Vui lòng tải lên ít nhất một ảnh phác thảo.");
-  //         }
-
-  //         // Use existing images if no new files were uploaded BUT existing images are present
-  //         uploadedUrls = existingImages;
-  //       }
-  //     } else {
-  //       // Nếu chỉ điều chỉnh giá, sử dụng ảnh hiện tại
-  //       uploadedUrls = [
-  //         task.serviceOrder.image?.imageUrl,
-  //         task.serviceOrder.image?.image2,
-  //         task.serviceOrder.image?.image3
-  //       ].filter(Boolean);
-  //     }
-
-  //     // Determine the status to send for record creation based on current order status
-  //     let statusForRecordCreation;
-  //     if (currentOrderStatus === 'ConsultingAndSketching' || currentOrderStatus === 1) {
-  //       statusForRecordCreation = 1;
-  //     } else if (currentOrderStatus === 'ReConsultingAndSketching' || currentOrderStatus === 19) {
-  //       statusForRecordCreation = 19;
-  //     } else if (currentOrderStatus === 'ReDeterminingDesignPrice' || currentOrderStatus === 24) {
-  //       statusForRecordCreation = 24;
-  //     } else {
-  //       // Handle unexpected status - log a warning and default or throw error
-  //       console.warn(`Unexpected initial status ${currentOrderStatus} for sketch submission. Defaulting status to 1.`);
-  //       statusForRecordCreation = 1; // Defaulting to 1 might be safer than failing
-  //     }
-
-  //     // Step 2: Update service order with initial status (for record creation)
-  //     const serviceOrderUpdateData = {
-  //       serviceType: 1,
-  //       designPrice: isImagesOnly ? task.serviceOrder.designPrice : values.designPrice,
-  //       description: task.serviceOrder.description,
-  //       status: statusForRecordCreation,
-  //       report: report,
-  //       skecthReport: task.serviceOrder.skecthReport || "",
-  //       reportManger: task.serviceOrder.reportManger || "",
-  //       reportAccoutant: task.serviceOrder.reportAccoutant || "",
-  //       image: {
-  //         imageUrl: uploadedUrls[0] || "",
-  //         image2: uploadedUrls[1] || "",
-  //         image3: uploadedUrls[2] || ""
-  //       },
-  //     };
-
-  //     await updateServiceOrder(task.serviceOrder.id, serviceOrderUpdateData);
-
-  //     // Step 3: Update Service Order Status to DeterminingDesignPrice (2)
-  //     await updateStatus(task.serviceOrder.id, 2);
-
-  //     // Step 4: Update task status to DoneConsulting (1)
-  //     await updateTaskStatus(task.id, {
-  //       serviceOrderId: task.serviceOrder.id,
-  //       userId: user.id,
-  //       dateAppointment: task.dateAppointment,
-  //       timeAppointment: task.timeAppointment,
-  //       status: 1, // Task status: DoneConsulting
-  //       note: "Hoàn thành phác thảo và báo giá dự kiến."
-  //     });
-
-  //     // --- Success handling ---
-  //     let successMessage = "";
-  //     if (isPriceOnly) {
-  //       successMessage = "Đã cập nhật giá thiết kế thành công.";
-  //     } else if (isImagesOnly) {
-  //       successMessage = "Đã cập nhật bản phác thảo thành công.";
-  //     } else {
-  //       successMessage = "Đã cập nhật bản phác thảo và giá thiết kế thành công.";
-  //     }
-
-  //     message.success(successMessage);
-  //     setIsModalVisible(false);
-  //     sketchForm.resetFields();
-  //     setSketchFiles([]);
-
-  //     // Refetch task detail first
-  //     await fetchTaskDetail(id);
-
-  //     // Explicitly refetch sketch records AFTER task detail is updated
-  //     try {
-  //       await getRecordSketch(task.serviceOrder.id);
-  //     } catch (sketchError) {
-  //       console.error("Failed to refetch sketches after update:", sketchError);
-  //       message.warning("Không thể làm mới danh sách bản phác thảo ngay lập tức.");
-  //     }
-
-  //   } catch (error) {
-  //     message.destroy();
-  //     if (error.name === 'ValidationError') {
-  //       message.error("Vui lòng điền đầy đủ thông tin được yêu cầu.");
-  //     } else if (error.message.includes("Lỗi trong quá trình tải ảnh lên") || error.message.includes("Vui lòng tải lên ít nhất một ảnh phác thảo")) {
-  //       message.error(error.message);
-  //     } else if (error.response?.data?.error?.includes("maximum number of edits")) {
-  //       message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
-  //     } else {
-  //       message.error("Cập nhật thất bại: " + (error.response?.data?.message || error.message || "Lỗi không xác định"));
-  //       console.error("Update error in handleOkSketch:", error);
-  //     }
-  //   } finally {
-  //     setUploadingSketch(false);
-  //   }
-  // };
   const handleOkSketch = async () => {
     if (!task || !task.serviceOrder) {
       message.error("Dữ liệu công việc chưa sẵn sàng. Vui lòng thử lại.");
@@ -620,6 +487,9 @@ const TaskDetail = () => {
         description: task.serviceOrder.description,
         status: statusForRecordCreation, // Use the determined status
         report: task.serviceOrder.report || "", // Giữ lại report để biết lý do redesign
+        reportManger: task.serviceOrder.reportManger || "",
+        reportAccoutant: task.serviceOrder.reportAccoutant || "",
+        skecthReport: task.serviceOrder.skecthReport || "",
         image: {
           imageUrl: uploadedUrls[0] || "",
           image2: uploadedUrls[1] || "",
@@ -681,6 +551,10 @@ const TaskDetail = () => {
       const products = await fetchProducts();
       setAllProducts(products);
 
+      // Lấy danh sách tất cả danh mục sản phẩm
+      const categories = await fetchCategories();
+      setAllCategories(categories);
+
       // Khởi tạo danh sách sản phẩm đã chọn từ serviceOrderDetails
       const initialSelectedProducts = task.serviceOrder.serviceOrderDetails.map(detail => ({
         productId: detail.productId,
@@ -690,6 +564,10 @@ const TaskDetail = () => {
       // Set danh sách tạm thời từ serviceOrderDetails
       setTempServiceOrderDetails(initialSelectedProducts);
       setSelectedProducts([]); // Reset selected products
+      
+      // Initialize material requirements from task data
+      setMaterialRequirements(task.serviceOrder.reportAccoutant || "");
+      
       setIsProductModalVisible(true);
     } catch (error) {
       message.error("Không thể tải danh sách sản phẩm");
@@ -774,7 +652,7 @@ const TaskDetail = () => {
       )
     );
   };
-
+  console.log("tempServiceOrderDetails", tempServiceOrderDetails);
   // Hàm lưu danh sách sản phẩm đã tùy chỉnh
   const handleSaveProducts = async () => {
     try {
@@ -811,29 +689,32 @@ const TaskDetail = () => {
         status: 4, // AssignToDesigner
         report: task.serviceOrder.report || "",
         reportManger: task.serviceOrder.reportManger || "",
-        reportAccoutant: task.serviceOrder.reportAccoutant || "",
-        // image: task.serviceOrder.image,
+        reportAccoutant: materialRequirements, // Include material requirements
         serviceOrderDetails: updatedServiceOrderDetails // Sử dụng danh sách đã được cập nhật
       };
 
+      console.log("Sending data to API:", JSON.stringify(serviceOrderUpdateData));
+
       try {
         const response = await updateProductOrder(task.serviceOrder.id, serviceOrderUpdateData);
+        console.log("API response:", response);
 
-        // Thay vào đó, chỉ cập nhật chi tiết sản phẩm
+        // Làm mới dữ liệu sau khi cập nhật
         await loadProductDetails(updatedServiceOrderDetails);
 
-        message.success("Cập nhật danh sách sản phẩm thành công");
+        message.success("Cập nhật danh sách sản phẩm và yêu cầu vật liệu thành công");
         setIsProductModalVisible(false); // Tự động tắt modal sau khi cập nhật thành công
 
         // Làm mới dữ liệu task sau khi cập nhật
         fetchTaskDetail(id);
       } catch (apiError) {
         console.error("API Error:", apiError);
+        console.error("API Error Response:", apiError.response?.data);
         // Xử lý các trường hợp lỗi cụ thể
         if (apiError.response?.data?.error?.includes("maximum number of edits")) {
           message.error("Bạn đã đạt giới hạn số lần chỉnh sửa cho phép. Không thể cập nhật thêm.");
         } else {
-          message.error("Cập nhật danh sách sản phẩm thất bại: " + (apiError.message || "Lỗi không xác định"));
+          message.error("Cập nhật danh sách sản phẩm thất bại: " + (apiError.response?.data?.message || apiError.message || "Lỗi không xác định"));
         }
       }
     } catch (error) {
@@ -850,7 +731,10 @@ const TaskDetail = () => {
       // Step 1: Update service order status to DoneDesign (6)
       const response = await api.put(`/api/serviceorder/status/${task.serviceOrder.id}`, {
         status: 5, // DoneDesign
-        deliveryCode: ""
+        deliveryCode: "",
+        reportAccoutant: task.serviceOrder.reportAccoutant || "",
+        report: task.serviceOrder.report || "",
+        reportManger: task.serviceOrder.reportManger || "",
       });
 
       // Check if the response has data property or is directly the success message
@@ -1604,7 +1488,7 @@ const TaskDetail = () => {
 
             {/* Description - show after customer images */}
             {task.serviceOrder.description && (
-              <Collapse defaultActiveKey={['description']} bordered={false} className="mt-4 pt-4 border-t border-green-500">
+              <Collapse defaultActiveKey={task.serviceOrder?.status === 'ConsultingAndSketching' ? ['description'] : []} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small">
                 <Collapse.Panel
                   key="description"
                   header={<Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>}
@@ -1616,7 +1500,7 @@ const TaskDetail = () => {
               </Collapse>
             )}
             {task.note && (
-              <Collapse defaultActiveKey={[]} bordered={false} className="mt-4 pt-4 border-t border-green-500">
+              <Collapse defaultActiveKey={task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign' ? ['note'] : []} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small">
                 <Collapse.Panel
                   key="note"
                   header={
@@ -1626,13 +1510,13 @@ const TaskDetail = () => {
                         color:
                           task.serviceOrder.status === 'ConsultingAndSketching'
                             ? '#1890ff'
-                            : task.serviceOrder.status === 'ReConsultingAndSketching'
+                            : (task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign')
                               ? '#faad14'
                               : 'default'
                       }}
                     >
                       <FileTextOutlined />{' '}
-                      {task.serviceOrder.status === 'ReConsultingAndSketching'
+                      {(task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign')
                         ? 'Yêu cầu chỉnh sửa từ khách hàng'
                         : 'Ghi chú về đơn thiết kế'}
                     </Title>
@@ -1647,9 +1531,10 @@ const TaskDetail = () => {
 
             {/* Report Section - Modified */}
             <Collapse
-              defaultActiveKey={['sketchReport']}
+              defaultActiveKey={task.serviceOrder?.status === 'ConsultingAndSketching' ? ['sketchReport'] : []}
               bordered={false}
-              className="mt-4 pt-4 border-t border-gray-200"
+              className="mt-4 pt-2 border-l border-green-500"
+              size="small"
             >
               <Collapse.Panel
                 key="sketchReport"
@@ -1933,7 +1818,7 @@ const TaskDetail = () => {
         className="mb-6 shadow-sm"
         extra={
           <Space>
-            {task.status === "Design" && (task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
+            {(task.status === "Design" || task.status === "DoneDesign") && (task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
               <Button
                 type="primary"
                 icon={<EditOutlined />}
@@ -1962,6 +1847,7 @@ const TaskDetail = () => {
           />
         )}
       </Card>
+
       {(task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
         <Button
           type="primary"
@@ -2111,137 +1997,210 @@ const TaskDetail = () => {
         open={isProductModalVisible}
         onOk={handleSaveProducts}
         onCancel={() => setIsProductModalVisible(false)}
-        width={800}
+        width={1200}
       >
-        <div className="mb-4">
-          <Space>
-            <Select
-              style={{ width: 300 }}
-              placeholder="Chọn sản phẩm"
-              value={selectedProducts}
-              onChange={(value) => {
-                setSelectedProducts(value ? [value] : []);
-              }}
-              mode="single"
-              optionFilterProp="children"
-            >
-              {allProducts.map((product) => (
-                <Select.Option key={product.id} value={product.id}>
-                  {product.name}
-                </Select.Option>
-              ))}
-            </Select>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAddProduct}
-            >
-              Thêm
-            </Button>
-          </Space>
-        </div>
-
-        <Table
-          dataSource={tempServiceOrderDetails.map((item, index) => {
-            const product = allProducts.find(p => p.id === item.productId);
-            return {
-              key: index,
-              productId: item.productId,
-              productName: product ? product.name : "Sản phẩm không tồn tại",
-              productImage: product?.image?.imageUrl || "",
-              productPrice: product?.price || 0,
-              quantity: item.quantity,
-            };
-          })}
-          columns={[
-            {
-              title: "Sản phẩm",
-              dataIndex: "productName",
-              key: "productName",
-              render: (_, record) => {
-                const product = allProducts.find(p => p.id === record.productId);
-                return (
-                  <div className="flex items-center">
-                    {product?.image?.imageUrl ? (
-                      <Image
-                        src={product.image.imageUrl}
-                        alt={product.name}
-                        width={50}
-                        height={50}
-                        className="object-cover rounded mr-3"
-                        style={{ marginRight: "10px", borderRadius: "8px" }}
-                      />
-                    ) : (
-                      <div className="w-[50px] h-[50px] bg-gray-200 rounded mr-3 flex items-center justify-center">
-                        <ShoppingOutlined className="text-gray-400 text-xl" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-medium">{product ? product.name : "Sản phẩm không tồn tại"}</div>
-                      <div className="text-xs text-gray-500">ID: {record.productId}</div>
+        <div className="flex flex-col">
+          <div className="flex mb-4">
+            <div className="w-1/2 pr-4">
+              <Typography.Title level={5}>Sản phẩm có sẵn</Typography.Title>
+              <div className="border rounded p-2" style={{ height: 400, overflow: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#aaa transparent' }}>
+                <Tree
+                  treeData={(categories || []).map(category => ({
+                    key: category.id,
+                    title: category.name,
+                    selectable: false,
+                    children: allProducts
+                      .filter(product => product.categoryId === category.id)
+                      .map(product => ({
+                        key: product.id,
+                        title: (
+                          <div className="flex items-center py-1">
+                            {product.image?.imageUrl ? (
+                              <Image
+                                src={product.image.imageUrl}
+                                alt={product.name}
+                                width={40}
+                                height={40}
+                                className="object-cover rounded mr-2"
+                                style={{ borderRadius: "4px", marginRight: "8px" }}
+                              />
+                            ) : (
+                              <div className="w-[40px] h-[40px] bg-gray-200 rounded mr-2 flex items-center justify-center">
+                                <ShoppingOutlined className="text-gray-400 text-lg" />
+                              </div>
+                            )}
+                            <div style={{ marginLeft: "8px" }}>
+                              <div className="font-medium text-sm">{product.name}</div>
+                              <div className="text-xs text-gray-500">{product.price?.toLocaleString("vi-VN")} đ</div>
+                            </div>
+                          </div>
+                        ),
+                        isLeaf: true,
+                      })),
+                  }))}
+                  checkable
+                  checkedKeys={tempServiceOrderDetails.map(item => item.productId)}
+                  onCheck={(checkedKeys) => {
+                    // Convert checked keys to service order details
+                    const newDetails = checkedKeys.map(key => {
+                      // Skip if key is a category
+                      if (categories.some(cat => cat.id === key)) return null;
+                      
+                      // Find if item already exists to preserve quantity
+                      const existingItem = tempServiceOrderDetails.find(item => item.productId === key);
+                      return {
+                        productId: key,
+                        quantity: existingItem?.quantity || 1
+                      };
+                    }).filter(Boolean); // Remove null entries
+                    
+                    setTempServiceOrderDetails(newDetails);
+                  }}
+                  showLine
+                  defaultExpandAll
+                />
+              </div>
+            </div>
+            
+            <div className="w-1/2 pl-4">
+              <Typography.Title level={5}>Sản phẩm đã chọn</Typography.Title>
+              <div className="border rounded p-2" style={{ height: 400, overflow: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#aaa transparent' }}>
+                {tempServiceOrderDetails.length > 0 ? (
+                  <Table
+                    dataSource={tempServiceOrderDetails.map((item) => {
+                      const product = allProducts.find(p => p.id === item.productId);
+                      return {
+                        key: item.productId,
+                        productId: item.productId,
+                        productName: product ? product.name : "Sản phẩm không tồn tại",
+                        productImage: product?.image?.imageUrl || "",
+                        productPrice: product?.price || 0,
+                        quantity: item.quantity,
+                      };
+                    })}
+                    columns={[
+                      {
+                        title: "Sản phẩm",
+                        dataIndex: "productName",
+                        key: "productName",
+                        render: (_, record) => {
+                          const product = allProducts.find(p => p.id === record.productId);
+                          return (
+                            <div className="flex items-center">
+                              {product?.image?.imageUrl ? (
+                                <Image
+                                  src={product.image.imageUrl}
+                                  alt={product.name}
+                                  width={40}
+                                  height={40}
+                                  style={{ objectFit: "cover", borderRadius: "4px", marginRight: "8px" }}
+                                  // width={40}
+                                  // height={40}
+                                  // className="object-cover rounded mr-2"
+                                  // style={{ borderRadius: "4px", marginRight: "8px" }}
+                                />
+                              ) : (
+                                <div className="w-[40px] h-[40px] bg-gray-200 rounded mr-2 flex items-center justify-center">
+                                  <ShoppingOutlined className="text-gray-400 text-lg" />
+                                </div>
+                              )}
+                              <div className="font-medium" style={{ marginLeft: "8px" }}>{product ? product.name : "Sản phẩm không tồn tại"}</div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
+                        title: "Đơn giá",
+                        dataIndex: "productPrice",
+                        key: "productPrice",
+                        render: (_, record) => {
+                          const product = allProducts.find(p => p.id === record.productId);
+                          return product ? product.price?.toLocaleString("vi-VN") + " đ" : "0 đ";
+                        },
+                      },
+                      {
+                        title: "Số lượng",
+                        dataIndex: "quantity",
+                        key: "quantity",
+                        render: (_, record) => (
+                          <InputNumber
+                            min={1}
+                            value={record.quantity}
+                            onChange={(value) => handleUpdateQuantity(record.productId, value)}
+                            style={{ width: 80 }}
+                          />
+                        ),
+                      },
+                      {
+                        title: "Thành tiền",
+                        key: "totalPrice",
+                        render: (_, record) => {
+                          const product = allProducts.find(p => p.id === record.productId);
+                          const price = product?.price || 0;
+                          return (
+                            <Text strong>
+                              {(price * record.quantity).toLocaleString("vi-VN")} đ
+                            </Text>
+                          );
+                        },
+                      },
+                      {
+                        title: "Thao tác",
+                        key: "action",
+                        render: (_, record) => (
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => {
+                              setTempServiceOrderDetails(prev => 
+                                prev.filter(item => item.productId !== record.productId)
+                              );
+                            }}
+                          >
+                            Xóa
+                          </Button>
+                        ),
+                      },
+                    ]}
+                    pagination={false}
+                    size="small"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <ShoppingOutlined style={{ fontSize: 32 }} />
+                      <p>Chưa có sản phẩm nào được chọn</p>
                     </div>
                   </div>
-                );
-              },
-            },
-            {
-              title: "Đơn giá",
-              dataIndex: "productPrice",
-              key: "productPrice",
-              render: (_, record) => {
-                const product = allProducts.find(p => p.id === record.productId);
-                return product ? product.price?.toLocaleString("vi-VN") + " đ" : "0 đ";
-              },
-            },
-            {
-              title: "Số lượng",
-              dataIndex: "quantity",
-              key: "quantity",
-              render: (_, record) => (
-                <InputNumber
-                  min={1}
-                  value={record.quantity}
-                  onChange={(value) => handleUpdateQuantity(record.productId, value)}
-                  style={{ width: 100 }}
-                />
-              ),
-            },
-            {
-              title: "Thành tiền",
-              key: "totalPrice",
-              render: (_, record) => {
-                const product = allProducts.find(p => p.id === record.productId);
-                const price = product?.price || 0;
-                return (
-                  <Text strong>
-                    {(price * record.quantity).toLocaleString("vi-VN")} đ
-                  </Text>
-                );
-              },
-            },
-            {
-              title: "Thao tác",
-              key: "action",
-              render: (_, record) => (
-                <Popconfirm
-                  title="Bạn có chắc chắn muốn xóa sản phẩm này?"
-                  onConfirm={() => handleRemoveProduct(record.productId)}
-                  okText="Có"
-                  cancelText="Không"
-                >
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                  >
-                    Xóa
-                  </Button>
-                </Popconfirm>
-              ),
-            },
-          ]}
-          pagination={false}
-        />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Material Requirements Section */}
+          <div className="mt-4">
+            <Card title={
+              <div className="flex items-center">
+                <FileTextOutlined style={{ marginRight: '8px' }} />
+                <span>Yêu cầu vật liệu theo thiết kế</span>
+              </div>
+            }>
+              <Alert
+                message="Thông tin về vật liệu"
+                description="Mô tả chi tiết các yêu cầu về loại vật liệu, số lượng, kích thước và các thông số kỹ thuật cần thiết cho thiết kế."
+                type="info"
+                showIcon
+                style={{ marginBottom: '16px' }}
+              />
+              <EditorComponent
+                value={materialRequirements}
+                onChange={(value) => setMaterialRequirements(value)}
+                height={300}
+              />
+            </Card>
+          </div>
+        </div>
       </Modal>
 
       {/* Modal mới cho việc điều chỉnh phác thảo/giá */}

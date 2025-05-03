@@ -75,7 +75,7 @@ const ProductsList = ({
           gap: '8px'
         }}>
           <TagsOutlined />
-          Danh sách vật liệu đã chọn
+          Danh sách vật liệu theo thiết kế
         </span>
       }
       style={{
