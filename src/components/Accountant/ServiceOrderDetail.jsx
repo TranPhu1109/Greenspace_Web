@@ -351,6 +351,16 @@ const ServiceOrderDetail = () => {
           </Card>
         </Col>
 
+        {selectedOrder.reportAccoutant && (
+          <Col span={24}>
+            <Card title="Yêu cầu vật liệu">
+              <div
+              dangerouslySetInnerHTML={{ __html: selectedOrder.reportAccoutant }}
+            />
+            </Card>
+          </Col>
+        )}
+
         <Col span={24}>
           <Card title="Chi tiết vật liệu">
             <Table
@@ -382,13 +392,7 @@ const ServiceOrderDetail = () => {
           </Card>
         </Col>
 
-        <Col span={24}>
-          <Card title="Report">
-            <div
-              dangerouslySetInnerHTML={{ __html: selectedOrder.report }}
-            />
-          </Card>
-        </Col>
+        
       </Row>
 
       <Modal

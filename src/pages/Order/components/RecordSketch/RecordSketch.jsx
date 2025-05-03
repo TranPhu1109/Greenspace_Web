@@ -153,7 +153,7 @@ const RecordSketch = ({
           sketchRecords: updatedSketchRecords
         });
       }
-
+      console.log("order", order);
       // Second step: Update status to WaitDeposit (status code 21)
       await updateStatus(order.id, 21);
 
