@@ -831,6 +831,7 @@ const ServiceOrderDetail = () => {
               formatPrice={formatPrice}
               sketchRecords={sketchRecords}
               updateTaskOrder={updateTaskOrder}
+              data={data}
             />
 
             {/* Products List Component */}

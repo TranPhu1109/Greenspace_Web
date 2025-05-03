@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Card, Image, Row, Col, Empty, Button, Tag, Typography, Modal, Input, message, notification } from "antd";
+import { Card, Image, Row, Col, Empty, Button, Tag, Typography, Modal, Input, message, notification, Alert, Space } from "antd";
 import { PictureOutlined, CheckCircleOutlined, EditOutlined, StopOutlined } from "@ant-design/icons";
 import EditorComponent from "@/components/Common/EditorComponent";
 
@@ -19,7 +19,8 @@ const RecordDesign = ({
   api,
   formatPrice,
   sketchRecords,
-  updateTaskOrder
+  updateTaskOrder,
+  data
 }) => {
   const [selectedDesignId, setSelectedDesignId] = useState(null);
   const [isConfirmDesignModalVisible, setIsConfirmDesignModalVisible] = useState(false);
@@ -29,7 +30,7 @@ const RecordDesign = ({
   const [cancelDesignNote, setCancelDesignNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localOrder, setLocalOrder] = useState(order);
-  
+
   // Cập nhật localOrder khi order prop thay đổi
   useEffect(() => {
     if (order) {
@@ -41,7 +42,7 @@ const RecordDesign = ({
   const shouldShowDesignRecords = useMemo(() => {
     // Sử dụng localOrder thay vì order để có thể cập nhật UI mượt mà hơn
     const orderToCheck = localOrder || order;
-    
+
     // Các trạng thái mà nên hiển thị design records
     const designViewableStatuses = [
       'DoneDesign', 'PaymentSuccess', 'Processing',
@@ -124,13 +125,13 @@ const RecordDesign = ({
 
   const handleSubmitRedesign = async () => {
     if (!redesignNote.trim()) {
-      notification.warning({ 
-        message: "Vui lòng nhập lý do yêu cầu thiết kế lại.", 
+      notification.warning({
+        message: "Vui lòng nhập lý do yêu cầu thiết kế lại.",
         showProgress: true,
         pauseOnHover: true,
         duration: 3,
         placement: 'topRight',
-        });
+      });
       return;
     }
     setIsSubmitting(true);
@@ -139,13 +140,16 @@ const RecordDesign = ({
       designPrice: order?.designPrice,
       description: order?.description,
       status: 20, // ReDesign
-      report: redesignNote // Add note to report field
+      report: order?.report, // Add note to report field
+      reportManger: order?.reportManager,
+      reportAccoutant: order?.reportAccoutant,
+      skecthReport: order?.skecthReport
     };
-    
+
     try {
       // 1. Đóng modal trước để trải nghiệm tốt hơn
       setIsRedesignModalVisible(false);
-      
+
       // 2. Hiển thị trạng thái loading trực tiếp tại component 
       // notification.info({
       //   key: 'redesign-processing',
@@ -154,14 +158,14 @@ const RecordDesign = ({
       //   duration: 0, // Không tự động đóng
       //   placement: 'bottomRight',
       // });
-      
+
       // 3. Gọi API cập nhật service order 
       await updateServiceForCus(order.id, payload);
-      
+
       // 4. Nếu có workTasks, cập nhật task status  
       if (order?.workTasks && Array.isArray(order.workTasks) && order.workTasks.length > 0) {
         const workTask = order.workTasks[0];
-        
+
         try {
           await updateTaskOrder(workTask.id, {
             serviceOrderId: order.id,
@@ -174,13 +178,13 @@ const RecordDesign = ({
           // Tiếp tục xử lý ngay cả khi lỗi cập nhật task
         }
       }
-      
+
       // 5. Lấy dữ liệu đơn hàng đã cập nhật
       const updatedOrder = await getServiceOrderById(order.id);
-      
+
       // Cập nhật localOrder để UI tự động cập nhật
       setLocalOrder(updatedOrder);
-      
+
       // 6. Cập nhật lại thông báo processing thành thành công
       // notification.close('redesign-processing');
       notification.success({
@@ -188,12 +192,12 @@ const RecordDesign = ({
         // description: "Trạng thái đơn hàng: " + updatedOrder.status,
         duration: 4,
       });
-      
+
       // 7. Cập nhật UI nhẹ nhàng thông qua order và designRecords mới
       try {
         // Lấy record thiết kế mới (nếu có)
         await getRecordDesign(order.id);
-        
+
         // Sử dụng một hàm riêng biệt để cập nhật state trong component cha
         // mà không làm mới toàn bộ component
         if (typeof window.softUpdateOrderData === 'function') {
@@ -208,13 +212,13 @@ const RecordDesign = ({
     } catch (err) {
       // Đóng thông báo processing nếu có lỗi
       notification.close('redesign-processing');
-      
+
       notification.error({
         message: "Gửi yêu cầu thiết kế lại thất bại",
         description: err.response?.data?.message || err.message,
         duration: 4,
       });
-      
+
       // Mở lại modal nếu có lỗi để người dùng có thể sửa
       setIsRedesignModalVisible(true);
     } finally {
@@ -239,7 +243,7 @@ const RecordDesign = ({
     }
 
     setIsSubmitting(true);
-    
+
     // Đóng modal trước và hiển thị thông báo đang xử lý
     setIsCancelWithFeeModalVisible(false);
     notification.info({
@@ -248,7 +252,7 @@ const RecordDesign = ({
       description: "Hệ thống đang thực hiện thanh toán và cập nhật trạng thái",
       duration: 0,
     });
-    
+
     try {
       // Calculate 50% of the design price
       const cancelFee = order?.designPrice ? order.designPrice * 0.5 : 0;
@@ -282,23 +286,23 @@ const RecordDesign = ({
           };
 
           await updateServiceForCus(order.id, payload);
-          
+
           // Lấy dữ liệu order mới đã cập nhật
           const updatedOrder = await getServiceOrderById(order.id);
-          
+
           // Cập nhật localOrder để UI tự động cập nhật
           setLocalOrder(updatedOrder);
-          
+
           // Đóng thông báo đang xử lý
           notification.close('cancel-processing');
-          
+
           // Hiển thị thông báo thành công
           notification.success({
             message: "Đã hủy đơn hàng thành công",
             description: "Đã thanh toán phí hủy đơn hàng",
             duration: 4,
           });
-          
+
           // Cập nhật UI qua softUpdateOrderData nếu có
           if (typeof window.softUpdateOrderData === 'function') {
             window.softUpdateOrderData(updatedOrder);
@@ -318,7 +322,7 @@ const RecordDesign = ({
         description: err.response?.data?.message || err.message,
         duration: 5,
       });
-      
+
       // Mở lại modal nếu có lỗi
       setIsCancelWithFeeModalVisible(true);
     } finally {
@@ -353,7 +357,7 @@ const RecordDesign = ({
   //    order?.status === 'DeterminingMaterialPrice') && 
   //   !designRecords.some(r => r.isSelected);
   const isSelectionAllowed =
-    (order?.status === 'DoneDesign') &&
+    (order?.status === 'DoneDeterminingMaterialPrice') &&
     !designRecords.some(r => r.isSelected);
 
   return (
@@ -447,9 +451,60 @@ const RecordDesign = ({
         })}
 
         {/* Action buttons for design records */}
-        {(order?.status === 'DoneDesign') && (
+        {order?.status === 'DoneDeterminingMaterialPrice' && (
+          <Row
+            gutter={[16, 16]}
+            style={{
+              marginTop: 24,
+              paddingTop: 16,
+              borderTop: '1px solid #f0f0f0',
+            }}
+          >
+            {/* Thông báo hướng dẫn */}
+            <Col xs={24} sm={16}>
+              <Alert
+                type="info"
+                showIcon
+                message={
+                  designRecords.some(r => r.phase === 3)
+                    ? `Hiện đã có 3 phiên bản thiết kế. Vui lòng chọn một bản hoặc hủy đơn (phải thanh toán thêm ${100 - (data?.depositPercentage ?? 0)}% phí thiết kế).`
+                    : 'Vui lòng chọn một bản thiết kế để tiếp tục.'
+                }
+              />
+            </Col>
+
+            {/* Các nút hành động */}
+            <Col xs={24} sm={8} style={{ textAlign: 'right' }}>
+              <Space wrap>
+                {/* Nút “Yêu cầu thiết kế lại” */}
+                {!designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
+                  <Button
+                    icon={<EditOutlined />}
+                    onClick={handleOpenRedesignModal}
+                    disabled={isSubmitting || loadingDesignRecords}
+                  >
+                    Yêu cầu thiết kế lại
+                  </Button>
+                )}
+
+                {/* Nút “Hủy đơn và thanh toán” */}
+                {designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
+                  <Button
+                    danger
+                    icon={<StopOutlined />}
+                    onClick={handleOpenCancelWithFeeModal}
+                    disabled={isSubmitting || loadingDesignRecords}
+                  >
+                    Hủy & Thanh toán {(100 - (data?.depositPercentage ?? 0))}% còn lại
+                  </Button>
+                )}
+              </Space>
+            </Col>
+          </Row>
+        )}
+
+        {/* {(order?.status === 'DoneDeterminingMaterialPrice') && (
           <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Only show redesign button if less than 3 design phases */}
             {!designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
               <Button
                 icon={<EditOutlined />}
@@ -460,7 +515,6 @@ const RecordDesign = ({
               </Button>
             )}
 
-            {/* Only show cancel with fee button if all 3 design phases are present */}
             {designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
               <Button
                 danger
@@ -468,19 +522,20 @@ const RecordDesign = ({
                 onClick={handleOpenCancelWithFeeModal}
                 disabled={isSubmitting || loadingDesignRecords}
               >
-                Hủy đơn và thanh toán 50% còn lại
+                Hủy đơn và thanh toán {(100 - data?.depositPercentage)}% còn lại
               </Button>
             )}
 
             {!designRecords.some(r => r.isSelected) && (
               <Text type="secondary" style={{ alignSelf: 'center' }}>
                 {designRecords.some(r => r.phase === 3)
-                  ? "Vui lòng chọn một bản thiết kế hoặc hủy đơn hàng (sẽ phải thanh toán 50% phí thiết kế còn lại)."
-                  : "Vui lòng chọn một bản thiết kế để tiếp tục."}
+                  ? `Vui lòng chọn một bản thiết kế hoặc hủy đơn hàng (sẽ phải thanh toán ${100 - (data?.depositPercentage ?? 0)}% phí thiết kế còn lại).`
+                  : `Vui lòng chọn một bản thiết kế để tiếp tục.`
+                }
               </Text>
             )}
           </div>
-        )}
+        )} */}
       </Card>
 
       {/* Design Confirmation Modal */}

@@ -81,12 +81,14 @@ const useAccountantStore = create((set, get) => ({
     }
   },
 
-  updateOrderStatus: async (id, status, deliveryCode = "") => {
+  updateOrderStatus: async (id, status, deliveryCode = "", reportAccoutant = "", reportManger = "") => {
     set({ isLoading: true, error: null });
     try {
       const response = await api.put(`/api/serviceorder/status/${id}`, {
         status,
         deliveryCode,
+        reportAccoutant,
+        reportManger,
       });
       if (response.data) {
         // Update local state
@@ -98,6 +100,48 @@ const useAccountantStore = create((set, get) => ({
     } catch (error) {
       set({ error: error.message, isLoading: false });
       throw error;
+    }
+  },
+
+  updateServiceOrderDetails: async (orderId, details) => {
+    set({ isLoading: true, error: null });
+    const { selectedOrder } = get(); // Get current order state
+
+    if (!selectedOrder || selectedOrder.id !== orderId) {
+      set({ isLoading: false, error: "Selected order not found or ID mismatch." });
+      throw new Error("Selected order not found or ID mismatch.");
+    }
+
+    // Prepare the payload, preserving existing data and updating details
+    const payload = {
+      serviceType: selectedOrder.serviceType === "UsingDesignIdea" ? 0 : 1, // Assuming 0 for UsingDesignIdea, 1 otherwise - adjust if needed
+      designPrice: selectedOrder.designPrice || 0,
+      skecthReport: selectedOrder.skecthReport || "",
+      description: selectedOrder.description || "",
+      status: 5, // Keep current status or update if needed? Using current for now.
+      report: selectedOrder.report || "",
+      reportManger: selectedOrder.reportManger || "",
+      reportAccoutant: selectedOrder.reportAccoutant || "",
+      serviceOrderDetails: details.map(detail => ({
+        productId: detail.productId,
+        quantity: detail.quantity,
+      })),
+    };
+
+    try {
+      const response = await api.put(`/api/serviceorder/${orderId}`, payload);
+      if (response.status === 200 || response.status === 201 || response.status === 204) {
+        set({ isLoading: false });
+        // No need to update selectedOrder here, getServiceOrderById will be called after this
+        return response.data; // Or handle success as needed
+      } else {
+        throw new Error(`Failed to update service order details: Status ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error updating service order details:", error);
+      const errorMessage = error.response?.data?.message || error.message || "An unknown error occurred";
+      set({ error: errorMessage, isLoading: false });
+      throw new Error(errorMessage);
     }
   },
 
