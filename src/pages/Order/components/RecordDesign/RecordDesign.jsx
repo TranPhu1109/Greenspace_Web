@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Card, Image, Row, Col, Empty, Button, Tag, Typography, Modal, Input, message, notification, Alert, Space } from "antd";
-import { PictureOutlined, CheckCircleOutlined, EditOutlined, StopOutlined } from "@ant-design/icons";
+import { PictureOutlined, CheckCircleOutlined, EditOutlined, StopOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import EditorComponent from "@/components/Common/EditorComponent";
+import Paragraph from "antd/es/typography/Paragraph";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -80,17 +81,35 @@ const RecordDesign = ({
 
       // First step: Confirm the design selection
       await confirmDesignRecord(selectedDesignId);
-      Modal.success({ content: 'Đã chọn bản thiết kế chi tiết thành công!' });
+      // Modal.success({ content: 'Đã chọn bản thiết kế chi tiết thành công!' });
+      notification.open({
+        message: 'Thành công',
+        description: 'Đã chọn bản thiết kế chi tiết thành công!',
+        icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+        placement: 'topRight',
+        duration: 2,
+      });
+
       setIsConfirmDesignModalVisible(false);
 
       // Second step: Update status to DoneDesign (status code 6)
       try {
         await updateStatus(order.id, 6);
-        Modal.success({ content: 'Đã cập nhật trạng thái đơn hàng' });
+        // Modal.success({ content: 'Đã cập nhật trạng thái đơn hàng' });
 
         // Third step: Refresh order data
         const updatedOrder = await getServiceOrderById(order.id);
         console.log('Updated order status after design selection:', updatedOrder?.status);
+
+        // Update parent component's state for immediate UI refresh
+        if (typeof window.softUpdateOrderData === 'function') {
+          window.softUpdateOrderData(updatedOrder);
+        } else if (typeof window.refreshOrderData === 'function') {
+          window.refreshOrderData(order.id);
+        }
+
+        // Update local state as well for immediate UI updates in this component
+        setLocalOrder(updatedOrder);
 
         // Refresh design records
         await getRecordDesign(order.id);
@@ -371,11 +390,7 @@ const RecordDesign = ({
         style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
         loading={loadingDesignRecords}
       >
-        {console.log('Debug: designRecords =', designRecords)}
-        {console.log('Debug: Has phase 3 records =', designRecords.some(r => r.phase === 3))}
-        {console.log('Debug: Has selected records =', designRecords.some(r => r.isSelected))}
-        {console.log('Debug: Order status =', order?.status)}
-        {[1, 2, 3].map(phase => {
+        {[1, 2, 3, 4].map(phase => {
           const phaseRecords = designRecords.filter(record => record.phase === phase);
           if (phaseRecords.length === 0) return null;
 
@@ -466,9 +481,9 @@ const RecordDesign = ({
                 type="info"
                 showIcon
                 message={
-                  designRecords.some(r => r.phase === 3)
-                    ? `Hiện đã có 3 phiên bản thiết kế. Vui lòng chọn một bản hoặc hủy đơn (phải thanh toán thêm ${100 - (data?.depositPercentage ?? 0)}% phí thiết kế).`
-                    : 'Vui lòng chọn một bản thiết kế để tiếp tục.'
+                  designRecords.some(r => r.phase === 4)
+                    ? `Bạn đã đạt giới hạn tối đa yêu cầu thiết kế lại. Vui lòng chọn một bản hoặc hủy đơn (phải thanh toán thêm ${100 - (data?.depositPercentage ?? 0)}% phí thiết kế còn lại).`
+                    : 'Vui lòng chọn một bản thiết kế để tiếp tục. Hoặc bạn có thể yêu cầu thiết kế lại.'
                 }
               />
             </Col>
@@ -476,8 +491,8 @@ const RecordDesign = ({
             {/* Các nút hành động */}
             <Col xs={24} sm={8} style={{ textAlign: 'right' }}>
               <Space wrap>
-                {/* Nút “Yêu cầu thiết kế lại” */}
-                {!designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
+                {/* Nút "Yêu cầu thiết kế lại" */}
+                {!designRecords.some(r => r.phase === 4) && !designRecords.some(r => r.isSelected) && (
                   <Button
                     icon={<EditOutlined />}
                     onClick={handleOpenRedesignModal}
@@ -487,8 +502,8 @@ const RecordDesign = ({
                   </Button>
                 )}
 
-                {/* Nút “Hủy đơn và thanh toán” */}
-                {designRecords.some(r => r.phase === 3) && !designRecords.some(r => r.isSelected) && (
+                {/* Nút "Hủy đơn và thanh toán" */}
+                {designRecords.some(r => r.phase === 1 || r.phase === 2 || r.phase === 3 || r.phase === 4) && !designRecords.some(r => r.isSelected) && (
                   <Button
                     danger
                     icon={<StopOutlined />}
@@ -540,7 +555,36 @@ const RecordDesign = ({
 
       {/* Design Confirmation Modal */}
       <Modal
-        title="Xác nhận chọn bản thiết kế chi tiết"
+        title={
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ExclamationCircleOutlined style={{ color: "#faad14" }} />
+            Xác nhận chọn bản thiết kế
+          </span>
+        }
+        centered
+        open={isConfirmDesignModalVisible}
+        onOk={handleDesignSelection}
+        onCancel={handleCancelDesignSelection}
+        okText={<span><CheckCircleOutlined style={{ marginRight: 4 }} /> Xác nhận</span>}
+        cancelText={<span><CloseCircleOutlined style={{ marginRight: 4, color:"red" }} /> Hủy bỏ</span>}
+        confirmLoading={isSubmitting}
+        width={520}
+      >
+        <Paragraph style={{ fontSize: 16, textAlign: "center", marginBottom: 24 }}>
+          🎨 Bạn có chắc chắn muốn chọn bản thiết kế chi tiết này?
+        </Paragraph>
+        <Paragraph style={{ lineHeight: 1.6 }}>
+          🔒 <strong>Sau khi chọn, bạn sẽ không thể hoàn tác.</strong><br />
+          💸 Bạn cần thanh toán phần còn lại (bao gồm phí thiết kế còn lại và giá vật liệu) để chúng tôi tiến hành giao hàng.
+        </Paragraph>
+      </Modal>
+      {/* <Modal
+        title={
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ExclamationCircleOutlined style={{ color: "#faad14" }} />
+            Xác nhận chọn bản thiết kế
+          </span>
+        }
         open={isConfirmDesignModalVisible}
         onOk={handleDesignSelection}
         onCancel={handleCancelDesignSelection}
@@ -550,7 +594,7 @@ const RecordDesign = ({
       >
         <p>Bạn có chắc chắn muốn chọn bản thiết kế chi tiết này không?</p>
         <p>Sau khi chọn, thiết kế này sẽ được sử dụng để xác định giá vật liệu và tiến hành các bước tiếp theo.</p>
-      </Modal>
+      </Modal> */}
 
       {/* Redesign Request Modal */}
       <Modal

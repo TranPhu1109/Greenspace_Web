@@ -508,8 +508,8 @@ const TaskDetail = () => {
       // Cập nhật maxPhaseInDesignRecords với phase mới
       setMaxPhaseInDesignRecords(newPhase);
 
-      // Kiểm tra nếu đã đến phase 3 (lần thiết kế cuối)
-      if (newPhase >= 3) {
+      // Kiểm tra nếu đã đến phase 4 (lần thiết kế cuối)
+      if (newPhase >= 4) {
         message.info("Đây là lần cập nhật thiết kế cuối cùng. Sau lần này, khách hàng sẽ chọn một trong các thiết kế hoặc hủy đơn hàng.");
       }
 
@@ -563,10 +563,10 @@ const TaskDetail = () => {
       // Set danh sách tạm thời từ serviceOrderDetails
       setTempServiceOrderDetails(initialSelectedProducts);
       setSelectedProducts([]); // Reset selected products
-      
+
       // Initialize material requirements from task data
       setMaterialRequirements(task.serviceOrder.reportAccoutant || "");
-      
+
       setIsProductModalVisible(true);
     } catch (error) {
       message.error("Không thể tải danh sách sản phẩm");
@@ -1487,7 +1487,7 @@ const TaskDetail = () => {
 
             {/* Description - show after customer images */}
             {task.serviceOrder.description && (
-              <Collapse defaultActiveKey={task.serviceOrder?.status === 'ConsultingAndSketching' ? ['description'] : []} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small">
+              <Collapse defaultActiveKey={task.serviceOrder?.status === 'ConsultingAndSketching' ? ['description'] : []} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small" style={{ maxHeight: 'none', overflow: 'visible' }}>
                 <Collapse.Panel
                   key="description"
                   header={<Title level={5}><FileTextOutlined /> Mô tả yêu cầu của khách hàng</Title>}
@@ -1499,7 +1499,15 @@ const TaskDetail = () => {
               </Collapse>
             )}
             {task.note && (
-              <Collapse defaultActiveKey={task.serviceOrder.status === 'ReConsultingAndSketching' || task.serviceOrder.status === 'ReDesign' ? ['note'] : []} bordered={false} className="mt-4 pt-2 border-l border-green-500" size="small">
+              <Collapse
+                // defaultActiveKey={
+                //   task.serviceOrder.status === 'ReConsultingAndSketching' ||
+                //     task.serviceOrder.status === 'ReDesign' ? ['note'] : []}
+                defaultActiveKey={['note']}
+                bordered={false}
+                className="mt-4 pt-2 border-l border-green-500"
+                size="small"
+              >
                 <Collapse.Panel
                   key="note"
                   header={
@@ -1520,9 +1528,10 @@ const TaskDetail = () => {
                         : 'Ghi chú về đơn thiết kế'}
                     </Title>
                   }
+                  forceRender
                 >
                   <div className="p-4 bg-gray-50 rounded border">
-                    <div className="html-preview" dangerouslySetInnerHTML={{ __html: task.note }} />
+                    <div className="html-preview" style={{ maxHeight: 'none', overflow: 'visible' }} dangerouslySetInnerHTML={{ __html: task.note }} />
                   </div>
                 </Collapse.Panel>
               </Collapse>
@@ -1690,7 +1699,7 @@ const TaskDetail = () => {
                 <Title level={5}><PictureOutlined /> Bản vẽ thiết kế chi tiết</Title>
                 {showDesignRecords ? (
                   <div>
-                    {[1, 2, 3].map(phase => {
+                    {[1, 2, 3, 4].map(phase => {
                       const recordsInPhase = designRecords.filter(record => record.phase === phase);
 
                       // Skip if no records in this phase
@@ -1793,14 +1802,14 @@ const TaskDetail = () => {
                 // - Chưa có bản thiết kế nào (tạo phase 1)
                 // - Có phase 1 nhưng chưa có phase 2 (tạo phase 2)
                 // - Đã có phase 2 nhưng chưa có phase 3 (tạo phase 3)
-                (task.serviceOrder.status === "ReDesign" && maxPhaseInDesignRecords < 3)
+                (task.serviceOrder.status === "ReDesign" && maxPhaseInDesignRecords < 4)
               ) && (
                 <Button
                   type="primary"
                   icon={<UploadOutlined />}
                   onClick={showModalDesign}
                 >
-                  Cập nhật bản vẽ thiết kế chi tiết {maxPhaseInDesignRecords < 3 ? `(Lần ${maxPhaseInDesignRecords + 1})` : ""}
+                  Cập nhật bản vẽ thiết kế chi tiết {maxPhaseInDesignRecords < 4 ? `(Lần ${maxPhaseInDesignRecords + 1})` : ""}
                 </Button>
               )}
           </Card>
@@ -2044,7 +2053,7 @@ const TaskDetail = () => {
                     const newDetails = checkedKeys.map(key => {
                       // Skip if key is a category
                       if (categories.some(cat => cat.id === key)) return null;
-                      
+
                       // Find if item already exists to preserve quantity
                       const existingItem = tempServiceOrderDetails.find(item => item.productId === key);
                       return {
@@ -2052,7 +2061,7 @@ const TaskDetail = () => {
                         quantity: existingItem?.quantity || 1
                       };
                     }).filter(Boolean); // Remove null entries
-                    
+
                     setTempServiceOrderDetails(newDetails);
                   }}
                   showLine
@@ -2060,7 +2069,7 @@ const TaskDetail = () => {
                 />
               </div>
             </div>
-            
+
             <div className="w-1/2 pl-4">
               <Typography.Title level={5}>Sản phẩm đã chọn</Typography.Title>
               <div className="border rounded p-2" style={{ height: 400, overflow: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#aaa transparent' }}>
@@ -2093,10 +2102,10 @@ const TaskDetail = () => {
                                   width={40}
                                   height={40}
                                   style={{ objectFit: "cover", borderRadius: "4px", marginRight: "8px" }}
-                                  // width={40}
-                                  // height={40}
-                                  // className="object-cover rounded mr-2"
-                                  // style={{ borderRadius: "4px", marginRight: "8px" }}
+                                // width={40}
+                                // height={40}
+                                // className="object-cover rounded mr-2"
+                                // style={{ borderRadius: "4px", marginRight: "8px" }}
                                 />
                               ) : (
                                 <div className="w-[40px] h-[40px] bg-gray-200 rounded mr-2 flex items-center justify-center">
@@ -2152,7 +2161,7 @@ const TaskDetail = () => {
                             danger
                             icon={<DeleteOutlined />}
                             onClick={() => {
-                              setTempServiceOrderDetails(prev => 
+                              setTempServiceOrderDetails(prev =>
                                 prev.filter(item => item.productId !== record.productId)
                               );
                             }}
