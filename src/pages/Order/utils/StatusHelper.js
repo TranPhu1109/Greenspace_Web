@@ -23,6 +23,8 @@ export const getStatusText = (status) => {
     'DeterminingMaterialPrice': "Đang thiết kế",
     20: "Đang thiết kế", // Hide ReDesign
     'ReDesign': "Đang thiết kế",
+    33: "Đang thiết kế",
+    'MaterialPriceConfirmed': "Đang thiết kế",
     6: "Thanh toán phí thiết kế còn lại",
     'DoneDesign': "Thanh toán phí thiết kế còn lại",
     23: "Chọn bản thiết kế",
@@ -51,6 +53,7 @@ export const getStatusText = (status) => {
     'Refund': "Đang hoàn tiền",
     17: "Đã hoàn tiền",
     'DoneRefund': "Đã hoàn tiền",
+    
   };
   
   // Return mapped text or the original status if not found
@@ -82,6 +85,8 @@ export const getStatusColor = (status) => {
     'DeterminingMaterialPrice': "cyan",
     20: "cyan", // Hide ReDesign
     'ReDesign': "cyan",
+    33: "cyan",
+    'MaterialPriceConfirmed': "cyan",
     6: "gold",
     'DoneDesign': "gold",
     23: "purple",
@@ -143,6 +148,7 @@ export const showOnlyPhase0Statuses = [
   'DoneDeterminingMaterialPrice',   // 23
   'ReDeterminingDesignPrice',       // 24
   'ExchangeProduct',                // 25
+  'MaterialPriceConfirmed',         // 33
 ];
 
 // Define statuses where ALL sketch phases are shown
@@ -164,6 +170,7 @@ export const showAllPhasesStatuses = [
   'Warning',                    // 15
   "ReConsultingAndSketching",   // 19
   "ReDesign",                   // 20
+  'MaterialPriceConfirmed',     // 33
 ];
 
 // Define statuses where design records should be shown
@@ -181,6 +188,7 @@ export const showDesignRecordsStatuses = [
   'CompleteOrder',              // 13
   'Warning',                    // 15
   'ReDesign',                   // 20
+  'MaterialPriceConfirmed',     // 33
 ];
 
 // Define statuses where contract should be visible
@@ -199,6 +207,7 @@ export const contractVisibleStatuses = [
   'DeliveredSuccessfully',      // 12
   'CompleteOrder',              // 13
   'Warning',                    // 15
+  'MaterialPriceConfirmed',     // 33
 ];
 
 // Define numeric status codes where contract should be visible
@@ -235,4 +244,5 @@ export const approvedDesignPriceStatuses = [
   'CompleteOrder',              // 13
   'Warning',                    // 15
   'ReDesign',                   // 20
+  'MaterialPriceConfirmed',     // 33
 ]; 

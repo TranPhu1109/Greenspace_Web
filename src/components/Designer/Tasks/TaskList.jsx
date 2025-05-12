@@ -1,19 +1,72 @@
-import React, { useEffect } from "react";
-import { Table, Tag, Space, Tooltip, Popover } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { Table, Tag, Space, Tooltip, Popover, Input, DatePicker, Select, Row, Col } from "antd";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
 import useDesignerTask from "@/stores/useDesignerTask";
 import useAuthStore from "@/stores/useAuthStore";
 
+dayjs.extend(isBetween);
+
 const TaskList = () => {
-  const { tasks, isLoading, fetchTasks } = useDesignerTask();
+  const { tasks: rawTasks, isLoading, fetchTasks } = useDesignerTask();
   const { user } = useAuthStore();
+
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [selectedOrderStatuses, setSelectedOrderStatuses] = useState([]);
+  const [selectedTaskStatuses, setSelectedTaskStatuses] = useState([]);
+  const [appointmentDateRange, setAppointmentDateRange] = useState(null);
+  const [creationDateRange, setCreationDateRange] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
       fetchTasks(user.id);
     }
   }, [user]);
+
+  const allTasks = useMemo(() => rawTasks ?? [], [rawTasks]);
+
+  // Giữ riêng dữ liệu đã filter search chung
+  const tasks = useMemo(() => {
+    let filteredTasks = allTasks;
+
+    if (globalSearch) {
+      const lower = globalSearch.toLowerCase();
+      filteredTasks = filteredTasks.filter(t =>
+        (t.userName && t.userName.toLowerCase().includes(lower)) ||
+        (t.serviceOrder?.userName && t.serviceOrder.userName.toLowerCase().includes(lower)) ||
+        (t.status && t.status.toLowerCase().includes(lower))
+      );
+    }
+
+    if (selectedOrderStatuses.length > 0) {
+      filteredTasks = filteredTasks.filter(t => t.serviceOrder && selectedOrderStatuses.includes(t.serviceOrder.status));
+    }
+
+    if (selectedTaskStatuses.length > 0) {
+      filteredTasks = filteredTasks.filter(t => selectedTaskStatuses.includes(t.status));
+    }
+
+    if (appointmentDateRange && appointmentDateRange[0] && appointmentDateRange[1]) {
+      filteredTasks = filteredTasks.filter(t => {
+        if (!t.dateAppointment || !t.timeAppointment) return false;
+        const appointmentDate = dayjs(`${t.dateAppointment} ${t.timeAppointment}`);
+        return appointmentDate.isBetween(appointmentDateRange[0], appointmentDateRange[1], 'day', '[]');
+      });
+    }
+
+    if (creationDateRange && creationDateRange[0] && creationDateRange[1]) {
+      filteredTasks = filteredTasks.filter(t => {
+        if (!t.creationDate) return false;
+        const creationDate = dayjs(t.creationDate);
+        return creationDate.isBetween(creationDateRange[0], creationDateRange[1], 'day', '[]');
+      });
+    }
+
+    return filteredTasks;
+  }, [allTasks, globalSearch, selectedOrderStatuses, selectedTaskStatuses, appointmentDateRange, creationDateRange]);
+
+  
 
   // --- Màu và Text cho TRẠNG THÁI ĐƠN HÀNG ---
   const serviceOrderStatusColors = {
@@ -91,6 +144,38 @@ const TaskList = () => {
   const getTaskStatusColor = (status) => taskStatusColors[status] || "default";
   const getTaskStatusText = (status) => taskStatusTexts[status] || status;
 
+
+  // Tạo filters động
+  const customerFilters = useMemo(() => {
+    return Array.from(
+      new Set(
+        allTasks
+          .map(t => t.serviceOrder?.userName)
+          .filter(Boolean)
+      )
+    ).map(u => ({ text: u, value: u }));
+  }, [allTasks]);
+
+  const orderStatusFilterOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        allTasks
+          .map(t => t.serviceOrder?.status)
+          .filter(Boolean)
+      )
+    ).map(s => ({ label: getOrderStatusText(s), value: s }));
+  }, [allTasks]);
+
+  const taskStatusFilterOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        allTasks
+          .map(t => t.status)
+          .filter(Boolean)
+      )
+    ).map(s => ({ label: getTaskStatusText(s), value: s }));
+  }, [allTasks]);
+
   const columns = [
     {
       title: "ID",
@@ -104,16 +189,19 @@ const TaskList = () => {
       title: "Khách hàng",
       dataIndex: ["serviceOrder", "userName"],
       key: "customerName",
+      filters: customerFilters,
+      onFilter: (value, record) => record.serviceOrder?.userName === value,
+      filterSearch: true
     },
-    {
-      title: "Loại dịch vụ",
-      dataIndex: ["serviceOrder", "serviceType"],
-      key: "serviceType",
-      render: (text) =>
-        text === "UsingDesignIdea"
-          ? "Sử dụng mẫu thiết kế"
-          : "Thiết kế tùy chỉnh",
-    },
+    // {
+    //   title: "Loại dịch vụ",
+    //   dataIndex: ["serviceOrder", "serviceType"],
+    //   key: "serviceType",
+    //   render: (text) =>
+    //     text === "UsingDesignIdea"
+    //       ? "Sử dụng mẫu thiết kế"
+    //       : "Thiết kế tùy chỉnh",
+    // },
     {
       title: "Ghi chú",
       dataIndex: "note",
@@ -201,6 +289,57 @@ const TaskList = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-6">Danh sách công việc</h1>
+      <Row gutter={[16, 16]} className="mb-4" align="bottom">
+        <Col>
+          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Tìm kiếm:</div>
+          <Input.Search
+            placeholder="Tìm kiếm theo khách, task, status…"
+            allowClear
+            onSearch={setGlobalSearch}
+            style={{ width: 300 }}
+          />
+        </Col>
+        <Col>
+          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Trạng thái đơn hàng:</div>
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: 200 }}
+            placeholder="Trạng thái đơn hàng"
+            onChange={setSelectedOrderStatuses}
+            options={orderStatusFilterOptions}
+            maxTagCount="responsive"
+          />
+        </Col>
+        <Col>
+          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Trạng thái công việc:</div>
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: 200 }}
+            placeholder="Trạng thái công việc"
+            onChange={setSelectedTaskStatuses}
+            options={taskStatusFilterOptions}
+            maxTagCount="responsive"
+          />
+        </Col>
+        <Col>
+          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Lịch hẹn:</div> 
+          <DatePicker.RangePicker
+            style={{ width: 240 }}
+            placeholder={['Từ ngày', 'Đến ngày']}
+            onChange={setAppointmentDateRange}
+          />
+        </Col>
+        <Col>
+          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Ngày tạo:</div>
+          <DatePicker.RangePicker
+            style={{ width: 240 }}
+            placeholder={['Từ ngày', 'Đến ngày']}
+            onChange={setCreationDateRange}
+          />
+        </Col>
+      </Row>
       <Table
         columns={columns}
         dataSource={tasks}

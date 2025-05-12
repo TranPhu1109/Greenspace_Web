@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import parse from 'html-react-parser';
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Typography,
@@ -110,6 +111,23 @@ const ServiceOrderDetail = () => {
   // Loading and submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDesignRecords, setLoadingDesignRecords] = useState(false);
+
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [reportExpanded, setReportExpanded] = useState(false);
+
+  const clampStyle = {
+    display: '-webkit-box',
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 5,
+    overflow: 'hidden',
+    maxHeight: 'calc(1.8em * 5)',    // 1.8 = line-height của bạn
+    transition: 'max-height 0.3s ease',
+  };
+  const expandStyle = {
+    WebkitLineClamp: 'unset',
+    overflow: 'visible',
+    maxHeight: 'none',
+  };
 
   const componentId = useRef("service-order");
 
@@ -691,18 +709,24 @@ const ServiceOrderDetail = () => {
                       borderRadius: '16px',
                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                     }}
-                    bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                    styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                   >
                     <div
                       className="html-preview"
+                      style={descExpanded
+                        ? { ...clampStyle, ...expandStyle }
+                        : clampStyle
+                      }
                       dangerouslySetInnerHTML={{ __html: order.description }}
-                      style={{
-                        fontSize: '15px',
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                        flex: 1
-                      }}
                     />
+                    <Button
+                      type="link"
+                      onClick={() => setDescExpanded(!descExpanded)}
+                      style={{ alignSelf: 'flex-end', padding: 0 }}
+                    >
+                      {descExpanded ? 'Ẩn bớt' : 'Xem thêm'}
+                    </Button>
+
                   </Card>
                 )}
               </Col>
@@ -728,14 +752,25 @@ const ServiceOrderDetail = () => {
                     borderRadius: '16px',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                   }}
-                  bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                 >
                   {order?.skecthReport ? (
-                    <div
-                      className="html-preview"
-                      dangerouslySetInnerHTML={{ __html: order.skecthReport }}
-                      style={{ flex: 1 }}
-                    />
+                    <>
+                      <div className="html-preview"
+                        style={reportExpanded
+                          ? { ...clampStyle, ...expandStyle }
+                          : clampStyle
+                        }
+                        dangerouslySetInnerHTML={{ __html: order.skecthReport }}
+                      />
+                      <Button
+                        type="link"
+                        onClick={() => setReportExpanded(!reportExpanded)}
+                        style={{ alignSelf: 'flex-end', padding: 0 }}
+                      >
+                        {reportExpanded ? 'Ẩn bớt' : 'Xem thêm'}
+                      </Button>
+                    </>
                   ) : (
                     <div style={{
                       flex: 1,

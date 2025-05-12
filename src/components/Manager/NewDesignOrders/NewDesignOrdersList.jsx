@@ -44,17 +44,96 @@ const NewDesignOrdersList = () => {
 
   const getStatusColor = (status) => {
     const statusColors = {
+      // Đang chờ xử lý
       Pending: "orange",
-      ConsultingAndSketching: "blue",
-      // Thêm các màu khác nếu cần
+      WaitDeposit: "orange",
+      WaitForScheduling: "orange",
+  
+      // Quá trình tư vấn / thiết kế
+      ConsultingAndSketching: "processing",
+      ReConsultingAndSketching: "processing",
+      DeterminingDesignPrice: "processing",
+      ReDeterminingDesignPrice: "processing",
+      DoneDeterminingDesignPrice: "cyan",
+      AssignToDesigner: "processing",
+      ReDesign: "processing",
+      DoneDesign: "cyan",
+  
+      // Quá trình đặt cọc và thanh toán
+      DepositSuccessful: "cyan",
+      PaymentSuccess: "cyan",
+  
+      // Quá trình xác định vật liệu
+      DeterminingMaterialPrice: "processing",
+      DoneDeterminingMaterialPrice: "cyan",
+  
+      // Giao hàng, lắp đặt
+      Processing: "processing",
+      PickedPackageAndDelivery: "blue",
+      DeliveryFail: "red",
+      ReDelivery: "orange",
+      DeliveredSuccessfully: "green",
+  
+      Installing: "blue",
+      ReInstall: "orange",
+      DoneInstalling: "green",
+  
+      // Xác nhận và hoàn thành
+      CustomerConfirm: "cyan",
+      Successfully: "green",
+      CompleteOrder: "green",
+  
+      // Hủy và cảnh báo
+      OrderCancelled: "red",
+      Warning: "volcano",
+      StopService: "red",
+  
+      // Hoàn tiền
+      Refund: "purple",
+      DoneRefund: "purple",
+  
+      // Đổi sản phẩm
+      ExchangeProduct: "geekblue",
     };
+  
     return statusColors[status] || "default";
   };
+  
 
   const getStatusText = (status) => {
     const statusTexts = {
       Pending: "Chờ xử lý",
       ConsultingAndSketching: "Đang tư vấn & phác thảo",
+      DeterminingDesignPrice: "Xác định giá bản vẽ",
+      DepositSuccessful: "Đã đặt cọc thành công",
+      ReDesign: "Thiết kế lại",
+      AssignToDesigner: "Đã giao cho designer",
+      DeterminingMaterialPrice: "Xác định giá vật liệu",
+      DoneDesign: "Đã hoàn thành thiết kế",
+      PaymentSuccess: "Đã thanh toán thành công",
+      Processing: "Đang xử lý",
+      PickedPackageAndDelivery: "Đã lấy hàng & giao hàng",
+      DeliveryFail: "Giao hàng thất bại",
+      ReDelivery: "Đang giao hàng lại",
+      DeliveredSuccessfully: "Đã giao hàng thành công",
+      CompleteOrder: "Đã hoàn thành đơn hàng",
+      OrderCancelled: "Đơn hàng đã bị hủy",
+      Warning: "Cảnh báo",
+      Refund: "Hoàn tiền",
+      DoneRefund: "Đã hoàn tiền",
+      StopService: "Đã dừng dịch vụ",
+      ReConsultingAndSketching: "Đang tư vấn & phác thảo lại",
+      WaitDeposit: "Chờ đặt cọc",
+      DoneDeterminingDesignPrice: "Đã xác định giá bản vẽ",
+      DoneDeterminingMaterialPrice: "Đã xác định giá vật liệu",
+      ReDeterminingDesignPrice: "Đang xác định lại giá bản vẽ",
+      ExchangeProduct: "Đang đổi sản phẩm",
+      WaitForScheduling : "Chờ lên lịch",
+      Installing : "Đang lắp đặt",
+      DoneInstalling : "Đã lắp đặt",
+      ReInstall : "Đang lắp đặt lại",
+      CustomerConfirm : "Khách hàng xác nhận",
+      Successfully : "Thành công",
       // Thêm các text khác nếu cần
     };
     return statusTexts[status] || status;

@@ -874,10 +874,11 @@ const NewDesignOrderDetail = () => {
                           </Space>
                         )}
                       />
-                      <Table.Column title="Số lượng" dataIndex="quantity" />
+                      <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
                       <Table.Column
                         title="Đơn giá"
                         dataIndex="price"
+                        align="right"
                         render={(price) => (
                           <span>{price.toLocaleString("vi-VN")} đ</span>
                         )}
@@ -885,6 +886,7 @@ const NewDesignOrderDetail = () => {
                       <Table.Column
                         title="Thành tiền"
                         dataIndex="totalPrice"
+                        align="right"
                         render={(totalPrice) => (
                           <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
                         )}
@@ -893,6 +895,84 @@ const NewDesignOrderDetail = () => {
                   </div>
                 </div>
               )}
+              
+            {/* External Products Section */}
+            {selectedOrder.externalProducts && selectedOrder.externalProducts.length > 0 && (
+              <div className="external-products">
+                <h4 style={{ marginTop: "20px" }}>Sản phẩm thêm mới (ngoài hệ thống):</h4>
+                <div style={{ marginBottom: "10px" }}>
+                  <Table
+                    dataSource={selectedOrder.externalProducts}
+                    pagination={false}
+                    size="small"
+                    bordered
+                    rowKey="id"
+                  >
+                    <Table.Column
+                      title="Sản phẩm"
+                      key="name"
+                      render={(record) => (
+                        <Space>
+                          {record.imageURL && (
+                            <img
+                              src={record.imageURL}
+                              alt={record.name}
+                              style={{
+                                width: 50,
+                                height: 50,
+                                borderRadius: "5px",
+                                objectFit: "cover",
+                              }}
+                            />
+                          )}
+                          <div>
+                            <div>{record.name}</div>
+                            {record.description && (
+                              <Tooltip 
+                                title={record.description}
+                                styles={{
+                                  body: {
+                                    backgroundColor: '#ffffff',
+                                    color: '#000000',
+                                    fontSize: 13,
+                                    padding: 10,
+                                    maxWidth: 300,
+                                    borderRadius: 4,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                  }
+                                }}
+                              >
+                                <div style={{ fontSize: '12px', color: '#666', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {record.description}
+                                </div>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </Space>
+                      )}
+                    />
+                    <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
+                    <Table.Column
+                      title="Đơn giá"
+                      dataIndex="price"
+                      align="right"
+                      render={(price) => (
+                        <span>{price?.toLocaleString("vi-VN")} đ</span>
+                      )}
+                    />
+                    <Table.Column
+                      title="Thành tiền"
+                      dataIndex="totalPrice"
+                      align="right"
+                      render={(totalPrice) => (
+                        <span>{totalPrice?.toLocaleString("vi-VN")} đ</span>
+                      )}
+                    />
+                  </Table>
+                </div>
+              </div>
+            )}
+            
             {selectedOrder.status === "DeterminingMaterialPrice" && (
               <Button
                 type="primary"
@@ -1024,7 +1104,7 @@ const NewDesignOrderDetail = () => {
                   </Space>
                 }
               >
-                {selectedOrder.address}
+                {selectedOrder.address?.replace(/\|/g, ', ')}
               </Descriptions.Item>
               <Descriptions.Item
                 label={
