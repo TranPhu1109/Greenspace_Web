@@ -20,6 +20,7 @@ import EditBlog from "@/components/Staff/Blog/EditBlog";
 import BlogDetail from "@/components/Staff/Blog/BlogDetail";
 import DesignerScheduleManager from "@/components/Staff/DesignerSchedule/DesignerScheduleManager";
 import ComplaintsList from "@/components/Staff/Complaints/ComplaintsList";
+import ContractorSchedule from "@/components/Staff/ContractorSchedule/ContractorSchedule";
 
 export const staffRoutes = {
   path: "/staff",
@@ -148,6 +149,10 @@ export const staffRoutes = {
           element: <BlogDetail />,
         },
       ]
-    }
+    },
+    {
+      path: "/staff/schedule-contructor",
+      element: <ContractorSchedule />,
+    },
   ],
 };

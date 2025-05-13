@@ -19,6 +19,9 @@ import {
   Splitter,
   Tree,
   Typography,
+  Popconfirm,
+  Tooltip,
+  Alert
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -27,14 +30,15 @@ import {
   MailOutlined,
   HomeOutlined,
   EditOutlined,
-  PlusOutlined,
   ShoppingOutlined,
   DeleteOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import useAccountantStore from "../../stores/useAccountantStore";
 import useProductStore from "../../stores/useProductStore";
 import dayjs from "dayjs";
 import CreateProductModal from "@/components/Staff/Products/components/CreateProductModal";
+import api from "@/api/api";
 
 const { Title } = Typography;
 
@@ -52,6 +56,17 @@ const ServiceOrderDetail = () => {
   const [isProductCustomizeModalVisible, setIsProductCustomizeModalVisible] = useState(false);
   const [tempServiceOrderDetails, setTempServiceOrderDetails] = useState([]);
   const [customizeModalLoading, setCustomizeModalLoading] = useState(false);
+
+  const [externalProducts, setExternalProducts] = useState([]);
+  const [updatingPriceId, setUpdatingPriceId] = useState(null);
+  const [editPriceForm] = Form.useForm();
+  const [selectedExternalProductIds, setSelectedExternalProductIds] = useState([]);
+  const [isBulkPriceModalVisible, setIsBulkPriceModalVisible] = useState(false);
+  const [bulkPriceForm] = Form.useForm();
+  const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
+  const [bulkPriceValues, setBulkPriceValues] = useState({});
+
+  const [confirmingPrices, setConfirmingPrices] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,30 +111,13 @@ const ServiceOrderDetail = () => {
     }
   }, [selectedOrder, products]);
 
-  const handleUpdateDesignPrice = async (values) => {
-    try {
-      await updateDesignPrice(id, values.designPrice);
-      await updateOrderStatus(id, 21);
-      message.success("Cập nhật giá thiết kế thành công");
-      setIsModalVisible(false);
-      form.resetFields();
-      getServiceOrderById(id);
-    } catch (error) {
-      message.error("Không thể cập nhật giá thiết kế: " + (error.message || "Lỗi không xác định"));
+  useEffect(() => {
+    if (selectedOrder?.externalProducts) {
+      setExternalProducts(selectedOrder.externalProducts);
+    } else {
+      setExternalProducts([]);
     }
-  };
-
-  const handleConfirmMaterialPrice = async () => {
-    try {
-      const reportAccoutant = selectedOrder.reportAccoutant || "";
-      const reportManger = selectedOrder.reportManger || "";
-      await updateOrderStatus(id, 23, "", reportAccoutant, reportManger);
-      message.success("Xác nhận giá vật liệu thành công");
-      getServiceOrderById(id);
-    } catch (error) {
-      message.error("Không thể xác nhận giá vật liệu: " + (error.message || "Lỗi không xác định"));
-    }
-  };
+  }, [selectedOrder]);
 
   const showModal = () => {
     form.setFieldsValue({ designPrice: selectedOrder?.designPrice || null });
@@ -164,7 +162,9 @@ const ServiceOrderDetail = () => {
       DoneInstalling: "success",
       ReInstall: "warning",
       CustomerConfirm: "blue",
-      Successfully: "success"
+      Successfully: "success",
+      MaterialPriceConfirmed: "success",
+      ReDetermineMaterialPrice: "volcano"
     };
     return statusColors[status] || "default";
   };
@@ -202,7 +202,9 @@ const ServiceOrderDetail = () => {
       DoneInstalling: "Đã thi công xong",
       ReInstall: "Thi công lại",
       CustomerConfirm: "Chờ khách hàng xác nhận",
-      Successfully: "Hoàn thành"
+      Successfully: "Hoàn thành",
+      MaterialPriceConfirmed: "Đã xác nhận giá sản phẩm",
+      ReDetermineMaterialPrice: "Yêu cầu điều chỉnh giá sản phẩm"
     };
     return statusTexts[status] || status;
   };
@@ -353,6 +355,333 @@ const ServiceOrderDetail = () => {
     }
   };
 
+  const updateExternalProductPrice = async (productId, price) => {
+    setUpdatingPriceId(productId);
+    try {
+      await api.put(`/api/externalproduct/price/${productId}`, { price });
+      message.success(`Cập nhật giá thành công cho sản phẩm ${externalProducts.find(p => p.id === productId)?.name}`);
+      
+      // Update local state
+      setExternalProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === productId 
+            ? { ...product, price, totalPrice: price * product.quantity } 
+            : product
+        )
+      );
+      
+      // Refresh order data to get updated totalPrice calculations
+      await getServiceOrderById(id);
+    } catch (error) {
+      console.error("Error updating price:", error);
+      message.error("Không thể cập nhật giá: " + (error.response?.data?.error || error.message));
+    } finally {
+      setUpdatingPriceId(null);
+    }
+  };
+
+  const showPriceEditModal = (product) => {
+    // Initialize with empty value if price is 0 or undefined, not with 0
+    editPriceForm.setFieldsValue({ price: (!product.price || product.price === 0) ? null : product.price });
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.querySelector('.ant-modal-confirm-btns .ant-btn-primary')?.click();
+      } else if (e.key === 'Escape') {
+        document.querySelector('.ant-modal-confirm-btns .ant-btn-default')?.click();
+      }
+    };
+
+    Modal.confirm({
+      title: null,
+      icon: null,
+      width: 500,
+      content: (
+        <div style={{ paddingTop: 8 }}>
+          <Card
+            bordered={false}
+            style={{
+              backgroundColor: '#f6ffed',
+              border: '1px solid #b7eb8f',
+              borderRadius: '8px',
+              marginBottom: 16,
+            }}
+            bodyStyle={{ padding: '12px 16px' }}
+          >
+            <Space align="start">
+              <InfoCircleOutlined style={{ fontSize: 20, color: '#52c41a', marginTop: 4 }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: '#389e0d' }}>
+                  Cập nhật giá cho sản phẩm
+                </div>
+                <div style={{ color: '#595959', marginTop: 2 }}>
+                  Bạn đang chỉnh giá cho: <strong>{product.name}</strong>
+                </div>
+              </div>
+            </Space>
+          </Card>
+
+          <Form form={editPriceForm} layout="vertical">
+            <Form.Item 
+              name="price" 
+              label="Giá sản phẩm (VNĐ)"
+              rules={[
+                { required: true, message: "Vui lòng nhập giá" },
+                { type: "number", min: 0, message: "Giá phải là số không âm" }
+              ]}
+            >
+              <InputNumber
+                style={{ width: '100%' }}
+                placeholder="Nhập giá sản phẩm"
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                }
+                parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+                onKeyDown={handleKeyDown}
+                autoFocus
+              />
+            </Form.Item>
+          </Form>
+        </div>
+      ),
+      okText: "Lưu giá",
+      cancelText: "Hủy",
+      okButtonProps: { style: { backgroundColor: '#52c41a', borderColor: '#52c41a' } },
+      onOk: () => {
+        return editPriceForm
+          .validateFields()
+          .then((values) => updateExternalProductPrice(product.id, values.price))
+          .catch((info) => {
+            console.log("Validate Failed:", info);
+          });
+      }
+    });
+  };
+
+  const calculateExternalProductsTotal = () => {
+    return externalProducts.reduce((total, product) => {
+      return total + (product.price || 0) * (product.quantity || 0);
+    }, 0);
+  };
+
+  const externalProductsColumns = [
+    {
+      title: "Sản phẩm",
+      dataIndex: "name",
+      key: "name",
+      render: (text, record) => (
+        <Space>
+          {record.imageURL && (
+            <Image
+              src={record.imageURL}
+              alt={text}
+              width={50}
+              height={50}
+              style={{ objectFit: "cover", borderRadius: '4px' }}
+            />
+          )}
+          <div>
+            <div style={{ fontWeight: 500 }}>{text}</div>
+            {record.description && (
+              <Tooltip title={record.description} styles={{
+                body: {
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  fontSize: 13,
+                  padding: 10,
+                  maxWidth: 300,
+                  borderRadius: 4,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }
+              }}>
+                <div style={{ fontSize: '12px', color: '#666', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {record.description}
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: "Số lượng",
+      dataIndex: "quantity",
+      key: "quantity",
+      align: 'center',
+      width: 100,
+    },
+    {
+      title: "Đơn giá",
+      dataIndex: "price",
+      key: "price",
+      align: 'right',
+      width: 150,
+      render: (text, record) => {
+        if (updatingPriceId === record.id) {
+          return <Spin size="small" />;
+        }
+        
+        if (!text || text === 0) {
+          return (
+            <Button 
+              type="dashed" 
+              size="small"
+              onClick={() => showPriceEditModal(record)}
+              style={{ padding: '5px 10px', color: '#ff4d4f' }}
+            >
+              Cập nhật giá
+            </Button>
+          );
+        }
+        
+        return (
+          <Space>
+            <span>{text.toLocaleString("vi-VN")} đ</span>
+            <Button 
+              type="link" 
+              size="small" 
+              onClick={() => showPriceEditModal(record)}
+              style={{ padding: '0' }}
+            >
+              <EditOutlined />
+            </Button>
+          </Space>
+        );
+      },
+    },
+    {
+      title: "Thành tiền",
+      key: "totalAmount",
+      align: 'right',
+      width: 150,
+      render: (_, record) => {
+        const totalPrice = (record.price || 0) * (record.quantity || 0);
+        if (totalPrice === 0) return <span>-</span>;
+        return <span style={{ fontWeight: 'bold' }}>{totalPrice.toLocaleString("vi-VN")} đ</span>;
+      },
+    },
+  ];
+
+  const showBulkPriceModal = () => {
+    // Initialize form with current prices
+    const initialValues = {};
+    selectedExternalProductIds.forEach(id => {
+      const product = externalProducts.find(p => p.id === id);
+      // Use null instead of 0 for empty values
+      initialValues[`price_${id}`] = (!product?.price || product?.price === 0) ? null : product.price;
+    });
+    
+    setBulkPriceValues(initialValues);
+    bulkPriceForm.resetFields();
+    setIsBulkPriceModalVisible(true);
+  };
+
+  const handleBulkPriceUpdate = async () => {
+    try {
+      const values = await bulkPriceForm.validateFields();
+      setBulkPriceLoading(true);
+      
+      if (!selectedExternalProductIds.length) {
+        message.warning("Vui lòng chọn ít nhất một sản phẩm để cập nhật giá");
+        setBulkPriceLoading(false);
+        return;
+      }
+
+      // Process each product with its own price
+      const updatePromises = [];
+      const updatedProducts = [];
+
+      for (const productId of selectedExternalProductIds) {
+        const fieldName = `price_${productId}`;
+        const price = values[fieldName];
+        
+        if (price !== undefined) {
+          updatePromises.push(
+            api.put(`/api/externalproduct/price/${productId}`, { price })
+              .then(() => {
+                // Store successful updates to apply to local state later
+                updatedProducts.push({ id: productId, price });
+              })
+              .catch(error => {
+                console.error(`Error updating product ${productId}:`, error);
+                // Don't throw error to allow other products to update
+                return null;
+              })
+          );
+        }
+      }
+
+      await Promise.all(updatePromises);
+      
+      // Update local state for successfully updated products
+      if (updatedProducts.length > 0) {
+        setExternalProducts(prevProducts => 
+          prevProducts.map(product => {
+            const updatedProduct = updatedProducts.find(p => p.id === product.id);
+            if (updatedProduct) {
+              return { 
+                ...product, 
+                price: updatedProduct.price, 
+                totalPrice: updatedProduct.price * product.quantity 
+              };
+            }
+            return product;
+          })
+        );
+        
+        message.success(`Đã cập nhật giá cho ${updatedProducts.length} sản phẩm`);
+        
+        // Refresh order data to get updated totalPrice calculations
+        await getServiceOrderById(id);
+      } else {
+        message.error("Không thể cập nhật giá cho bất kỳ sản phẩm nào");
+      }
+      
+      setIsBulkPriceModalVisible(false);
+      setSelectedExternalProductIds([]);
+      
+    } catch (error) {
+      console.error("Validation error:", error);
+    } finally {
+      setBulkPriceLoading(false);
+    }
+  };
+
+  const rowSelection = {
+    selectedRowKeys: selectedExternalProductIds,
+    onChange: (selectedRowKeys) => {
+      setSelectedExternalProductIds(selectedRowKeys);
+    }
+  };
+
+  const handleConfirmMaterialPrices = async () => {
+    if (externalProducts.some(p => !p.price || p.price === 0)) {
+      message.error("Vui lòng nhập giá cho tất cả sản phẩm!");
+      return;
+    }
+
+    try {
+      setConfirmingPrices(true);
+      // Update order status to MaterialPriceConfirmed (33)
+      await updateOrderStatus(selectedOrder.id, 33);
+      
+      message.success(
+        selectedOrder.status === 'DeterminingMaterialPrice'
+          ? "Đã xác nhận thành công tất cả giá sản phẩm!"
+          : "Đã xác nhận thành công điều chỉnh giá sản phẩm!"
+      );
+      
+      // Refresh the order data
+      await getServiceOrderById(selectedOrder.id);
+    } catch (error) {
+      console.error("Error confirming material prices:", error);
+      message.error("Không thể cập nhật trạng thái: " + (error.message || "Lỗi không xác định"));
+    } finally {
+      setConfirmingPrices(false);
+    }
+  };
+
   if (isLoading && !selectedOrder) {
     return (
       <div style={{ textAlign: "center", padding: "50px" }}>
@@ -411,7 +740,7 @@ const ServiceOrderDetail = () => {
                       {dayjs(selectedOrder.creationDate).format("DD/MM/YYYY HH:mm")}
                     </Descriptions.Item>
                     <Descriptions.Item label="Trạng thái" span={1}>
-                      <Tag color={getStatusColor(selectedOrder.status)} style={{ fontWeight: 'bold' }}>
+                      <Tag color={getStatusColor(selectedOrder.status)} style={{ fontWeight: 'bold', whiteSpace: 'normal', height: 'auto', padding: '2px 7px' }}>
                         {getStatusText(selectedOrder.status)}
                       </Tag>
                     </Descriptions.Item>
@@ -530,8 +859,8 @@ const ServiceOrderDetail = () => {
               <Card
                 title={
                   <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <span>Yêu cầu vật liệu từ NTK</span>
-                    {selectedOrder?.status === "DeterminingMaterialPrice" && (
+                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>Yêu cầu vật liệu từ NTK</span>
+                    {/* {selectedOrder?.status === "DeterminingMaterialPrice" && (
                       <Button
                         type="dashed"
                         icon={<PlusOutlined />}
@@ -540,13 +869,13 @@ const ServiceOrderDetail = () => {
                       >
                         Thêm vật liệu mới vào hệ thống
                       </Button>
-                    )}
+                    )} */}
                   </Space>
                 }
               >
-                <div
+                <div className="html-preview"
                   dangerouslySetInnerHTML={{ __html: selectedOrder.reportAccoutant }}
-                  style={{ background: '#f5f5f5', padding: '15px', borderRadius: '4px', border: '1px solid #e8e8e8' }}
+                  style={{ background: '#f5f5f5', padding: '0 15px 0', borderRadius: '4px', border: '1px solid #e8e8e8' }}
                 />
               </Card>
             </Col>
@@ -556,17 +885,7 @@ const ServiceOrderDetail = () => {
             <Card
               title={
                 <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <span>Chi tiết vật liệu</span>
-                  {(selectedOrder?.status === "DeterminingMaterialPrice" || selectedOrder?.status === "AssignToDesigner") && (
-                    <Button
-                      type="default"
-                      icon={<EditOutlined />}
-                      onClick={showProductCustomizeModal}
-                      size="small"
-                    >
-                      Tùy chỉnh danh sách vật liệu
-                    </Button>
-                  )}
+                  <span>Danh sách vật liệu đã chọn từ hệ thống</span>
                 </Space>
               }
             >
@@ -587,56 +906,72 @@ const ServiceOrderDetail = () => {
                 )}
                 locale={{ emptyText: <Empty description="Chưa có vật liệu nào được chọn cho đơn hàng này." /> }}
               />
-              {selectedOrder?.status === "DeterminingMaterialPrice" && (
-                <div style={{ marginTop: 16, textAlign: "right" }}>
-                  <Button type="primary" onClick={handleConfirmMaterialPrice}>
-                    Xác nhận giá vật liệu
-                  </Button>
-                </div>
-              )}
             </Card>
           </Col>
-        </Row>
 
-        <Modal
-          title="Nhập giá thiết kế"
-          open={isModalVisible}
-          onCancel={handleCancel}
-          footer={null}
-        >
-          <Form
-            form={form}
-            onFinish={handleUpdateDesignPrice}
-            layout="vertical"
-            initialValues={{ designPrice: selectedOrder?.designPrice }}
-          >
-            <Form.Item
-              name="designPrice"
-              label="Giá thiết kế (VNĐ)"
-              rules={[
-                { required: true, message: "Vui lòng nhập giá thiết kế" },
-                { type: "number", min: 0, message: "Giá thiết kế phải là số không âm" },
-              ]}
-            >
-              <InputNumber
-                style={{ width: "100%" }}
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-                placeholder="Nhập giá thiết kế"
-              />
-            </Form.Item>
-            <Form.Item style={{ textAlign: "right", marginTop: 24 }}>
-              <Space>
-                <Button onClick={handleCancel}>
-                  Hủy
-                </Button>
-                <Button type="primary" htmlType="submit">
-                  Xác nhận giá & Chờ đặt cọc
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Modal>
+          {externalProducts.length > 0 && (
+            <Col span={24}>
+              <Card
+                title={
+                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <span>Sản phẩm thêm mới (ngoài hệ thống)</span>
+                    {selectedExternalProductIds.length > 0 ? (
+                      <Button
+                        type="primary"
+                        onClick={showBulkPriceModal}
+                        style={{ backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+                      >
+                        Cập nhật giá cho {selectedExternalProductIds.length} sản phẩm đã chọn
+                      </Button>
+                    ) : (
+                      <>
+                        {selectedOrder.status === 'DeterminingMaterialPrice' && (
+                          <Tag color="volcano">Yêu cầu xác định giá</Tag>
+                        )}
+                        {selectedOrder.status === 'ReDetermineMaterialPrice' && (
+                          <Tag color="volcano">Yêu cầu điều chỉnh giá</Tag>
+                        )}
+                      </>
+                    )}
+                  </Space>
+                }
+              >
+                <Table
+                  rowSelection={rowSelection}
+                  columns={externalProductsColumns}
+                  dataSource={externalProducts.map(item => ({ ...item, key: item.id }))}
+                  pagination={false}
+                  rowClassName={record => (!record.price || record.price === 0) ? 'ant-table-row-error' : ''}
+                  summary={() => (
+                    <Table.Summary.Row style={{ background: '#fafafa' }}>
+                      <Table.Summary.Cell index={0} colSpan={3} align="right">
+                        <strong>Tổng giá sản phẩm thêm mới:</strong>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={1} align="right">
+                        <strong style={{ color: '#1890ff' }}>{calculateExternalProductsTotal().toLocaleString("vi-VN")} đ</strong>
+                      </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  )}
+                  locale={{ emptyText: <Empty description="Không có sản phẩm thêm mới nào." /> }}
+                />
+                <div style={{ marginTop: 16, textAlign: 'right' }}>
+                  {(selectedOrder.status === 'DeterminingMaterialPrice' || selectedOrder.status === 'ReDetermineMaterialPrice') && (
+                    <Button 
+                      type="primary" 
+                      disabled={externalProducts.some(p => !p.price || p.price === 0)}
+                      onClick={handleConfirmMaterialPrices}
+                      loading={confirmingPrices}
+                    >
+                      {selectedOrder.status === 'DeterminingMaterialPrice' 
+                        ? "Xác nhận tất cả giá sản phẩm" 
+                        : "Xác nhận điều chỉnh giá sản phẩm"}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            </Col>
+          )}
+        </Row>
 
         <CreateProductModal
           visible={isCreateProductModalVisible}
@@ -713,7 +1048,7 @@ const ServiceOrderDetail = () => {
                                   </span>
                                 </div>
                         
-                                {/* 3. Tag “Mới” */}
+                                {/* 3. Tag "Mới" */}
                                 {isNew && (
                                   <Tag
                                     color="green"
@@ -732,26 +1067,6 @@ const ServiceOrderDetail = () => {
                             isLeaf: true,
                           };
                         }),
-                      // .map(product => ({
-                      //   key: product.id,
-                      //   title: (
-                      //     <div style={{ display: 'flex', alignItems: 'center', padding: '2px 0' }}>
-                      //       <Image
-                      //         src={product.image?.imageUrl || '/placeholder.png'}
-                      //         alt={product.name}
-                      //         width={32}
-                      //         height={32}
-                      //         style={{ objectFit: "cover", borderRadius: "4px", marginRight: "8px" }}
-                      //         preview={false}
-                      //       />
-                      //       <div>
-                      //         <div style={{ fontSize: '13px' }}>{product.name}</div>
-                      //         <div style={{ fontSize: '11px', color: '#888' }}>{product.price?.toLocaleString("vi-VN")} đ</div>
-                      //       </div>
-                      //     </div>
-                      //   ),
-                      //   isLeaf: true,
-                      // })),
                     }))}
                     showLine={{ showLeafIcon: false }}
                     defaultExpandAll
@@ -863,6 +1178,114 @@ const ServiceOrderDetail = () => {
           </Spin>
         </Modal>
 
+        <Modal
+          title="Cập nhật giá hàng loạt"
+          open={isBulkPriceModalVisible}
+          onOk={handleBulkPriceUpdate}
+          onCancel={() => setIsBulkPriceModalVisible(false)}
+          confirmLoading={bulkPriceLoading}
+          okText="Lưu tất cả"
+          cancelText="Hủy"
+          width={650}
+          bodyStyle={{ maxHeight: '70vh', overflow: 'auto' }}
+        >
+          <Alert
+            message={`Cập nhật giá cho ${selectedExternalProductIds.length} sản phẩm đã chọn`}
+            description="Nhập giá cho từng sản phẩm và nhấn Lưu tất cả để cập nhật. Nhấn Enter để đi tới ô tiếp theo."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          
+          <Form
+            form={bulkPriceForm}
+            layout="vertical"
+            initialValues={bulkPriceValues}
+          >
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={externalProducts
+                .filter(product => selectedExternalProductIds.includes(product.id))
+                .map(product => ({ ...product, key: product.id }))
+              }
+              columns={[
+                {
+                  title: "Sản phẩm",
+                  dataIndex: "name",
+                  key: "name",
+                  width: '50%',
+                  render: (text, record) => (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {record.imageURL && (
+                        <Image
+                          src={record.imageURL}
+                          alt={text}
+                          width={40}
+                          height={40}
+                          style={{ objectFit: "cover", borderRadius: '4px', marginRight: 8 }}
+                        />
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{text}</div>
+                        {record.description && (
+                          <div style={{ fontSize: '12px', color: '#666', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {record.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                },
+                {
+                  title: "Số lượng",
+                  dataIndex: "quantity",
+                  key: "quantity",
+                  width: '15%',
+                  align: 'center'
+                },
+                {
+                  title: "Giá sản phẩm (VNĐ)",
+                  key: "price",
+                  width: '35%',
+                  render: (_, record) => (
+                    <Form.Item
+                      name={`price_${record.id}`}
+                      rules={[
+                        { required: true, message: "Vui lòng nhập giá" },
+                        { type: "number", min: 0, message: "Giá phải là số không âm" }
+                      ]}
+                      style={{ margin: 0 }}
+                    >
+                      <InputNumber
+                        style={{ width: '100%' }}
+                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
+                        placeholder="Nhập giá sản phẩm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            // Find the next input and focus it
+                            const inputs = document.querySelectorAll('.ant-input-number-input');
+                            const currentIndex = Array.from(inputs).findIndex(input => input === e.target);
+                            if (currentIndex < inputs.length - 1) {
+                              inputs[currentIndex + 1].focus();
+                            } else {
+                              // If it's the last input, submit the form
+                              handleBulkPriceUpdate();
+                            }
+                          } else if (e.key === 'Escape') {
+                            setIsBulkPriceModalVisible(false);
+                          }
+                        }}
+                      />
+                    </Form.Item>
+                  )
+                }
+              ]}
+              locale={{ emptyText: "Không có sản phẩm nào được chọn" }}
+            />
+          </Form>
+        </Modal>
       </div>
     </Spin>
   );
