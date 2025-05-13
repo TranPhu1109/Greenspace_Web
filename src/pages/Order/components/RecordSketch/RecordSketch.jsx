@@ -1,8 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { Card, Image, Row, Col, Empty, Tag, Button, Popconfirm, Typography, Modal, Input, message, notification } from "antd";
-import { PictureOutlined, CheckCircleOutlined, EditOutlined, StopOutlined } from "@ant-design/icons";
+import {
+  Card,
+  Image,
+  Row,
+  Col,
+  Empty,
+  Tag,
+  Button,
+  Popconfirm,
+  Typography,
+  Modal,
+  Input,
+  message,
+  notification,
+} from "antd";
+import {
+  PictureOutlined,
+  CheckCircleOutlined,
+  EditOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
 import api from "@/api/api";
-import EditorComponent from '@/components/Common/EditorComponent';
+import EditorComponent from "@/components/Common/EditorComponent";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -19,7 +38,7 @@ const RecordSketch = ({
   confirmRecord,
   getRecordSketch,
   updateServiceOrderStatus,
-  data
+  data,
 }) => {
   const [selectedSketchId, setSelectedSketchId] = useState(null);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
@@ -29,48 +48,86 @@ const RecordSketch = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check if the current status is DoneDesign or later
-  const isDoneDesign = order?.status === 'DoneDesign' || order?.status === 6;
+  const isDoneDesign = order?.status === "DoneDesign" || order?.status === 6;
 
   // Check which statuses allow viewing phase 1 sketches
   const canViewPhase1Sketches = () => {
     const phase1Statuses = [
-      'DoneDesign', 'PaymentSuccess', 'Processing', 'PickedPackageAndDelivery',
-      'DeliveryFail', 'ReDelivery', 'DeliveredSuccessfully', 'CompleteOrder',
-      'WaitDeposit', 'DoneDeterminingDesignPrice', 'ReConsultingAndSketching',
-      'DepositSuccessful', 'DeterminingMaterialPrice', 'ReDesign', 'DoneDeterminingMaterialPrice'
+      "DoneDesign",
+      "PaymentSuccess",
+      "Processing",
+      "PickedPackageAndDelivery",
+      "DeliveryFail",
+      "ReDelivery",
+      "DeliveredSuccessfully",
+      "CompleteOrder",
+      "WaitDeposit",
+      "DoneDeterminingDesignPrice",
+      "ReConsultingAndSketching",
+      "DepositSuccessful",
+      "DeterminingMaterialPrice",
+      "ReDesign",
+      "DoneDeterminingMaterialPrice",
     ];
 
     const phase1StatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23];
 
     // Special case: Check if there's a record with phase 2 or higher and status is DeterminingDesignPrice
-    const hasPhase2OrHigherRecord = sketchRecords?.some(record => record.phase >= 2);
+    const hasPhase2OrHigherRecord = sketchRecords?.some(
+      (record) => record.phase >= 2
+    );
 
-    if (hasPhase2OrHigherRecord && (order?.status === 'DeterminingDesignPrice' || order?.status === 2)) {
+    if (
+      hasPhase2OrHigherRecord &&
+      (order?.status === "DeterminingDesignPrice" || order?.status === 2)
+    ) {
       return true;
     }
 
-    return phase1Statuses.includes(order?.status) || phase1StatusCodes.includes(order?.status);
+    return (
+      phase1Statuses.includes(order?.status) ||
+      phase1StatusCodes.includes(order?.status)
+    );
   };
 
   // Check which statuses allow viewing phase 2 sketches
   const canViewPhase2Sketches = () => {
     const phase2Statuses = [
-      'DoneDesign', 'PaymentSuccess', 'Processing', 'PickedPackageAndDelivery',
-      'DeliveryFail', 'ReDelivery', 'DeliveredSuccessfully', 'CompleteOrder',
-      'WaitDeposit', 'DoneDeterminingDesignPrice', 'ReConsultingAndSketching',
-      'DepositSuccessful', 'DeterminingMaterialPrice', 'ReDesign', 'DoneDeterminingMaterialPrice'
+      "DoneDesign",
+      "PaymentSuccess",
+      "Processing",
+      "PickedPackageAndDelivery",
+      "DeliveryFail",
+      "ReDelivery",
+      "DeliveredSuccessfully",
+      "CompleteOrder",
+      "WaitDeposit",
+      "DoneDeterminingDesignPrice",
+      "ReConsultingAndSketching",
+      "DepositSuccessful",
+      "DeterminingMaterialPrice",
+      "ReDesign",
+      "DoneDeterminingMaterialPrice",
       // 'DeterminingDesignPrice' is NOT included for phase 2 by default
     ];
-    const phase2StatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23, 24];  // Status code 2 is NOT included by default
+    const phase2StatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23, 24]; // Status code 2 is NOT included by default
 
     // Special case: If there's a phase 3 record and status is DeterminingDesignPrice, allow viewing phase 2
-    const hasPhase3OrHigherRecord = sketchRecords?.some(record => record.phase >= 3);
+    const hasPhase3OrHigherRecord = sketchRecords?.some(
+      (record) => record.phase >= 3
+    );
 
-    if (hasPhase3OrHigherRecord && (order?.status === 'DeterminingDesignPrice' || order?.status === 2)) {
+    if (
+      hasPhase3OrHigherRecord &&
+      (order?.status === "DeterminingDesignPrice" || order?.status === 2)
+    ) {
       return true;
     }
 
-    return phase2Statuses.includes(order?.status) || phase2StatusCodes.includes(order?.status);
+    return (
+      phase2Statuses.includes(order?.status) ||
+      phase2StatusCodes.includes(order?.status)
+    );
   };
 
   // Function to check if a specific phase (3 or higher) should be visible
@@ -78,26 +135,45 @@ const RecordSketch = ({
     // For phase 3+, only show when status is DoneDeterminingDesignPrice or later
     if (phase >= 3) {
       // Don't show phase 3+ during DeterminingDesignPrice regardless of other conditions
-      if (order?.status === 'DeterminingDesignPrice' || order?.status === 2) {
-        console.log(`DEBUG: Hiding phase ${phase} because status is DeterminingDesignPrice`);
+      if (order?.status === "DeterminingDesignPrice" || order?.status === 2) {
+        console.log(
+          `DEBUG: Hiding phase ${phase} because status is DeterminingDesignPrice`
+        );
         return false;
       }
 
       // Don't show phase 3+ during ReConsultingAndSketching
-      if (order?.status === 'ReConsultingAndSketching' || order?.status === 19) {
-        console.log(`DEBUG: Hiding phase ${phase} because status is ReConsultingAndSketching`);
+      if (
+        order?.status === "ReConsultingAndSketching" ||
+        order?.status === 19
+      ) {
+        console.log(
+          `DEBUG: Hiding phase ${phase} because status is ReConsultingAndSketching`
+        );
         return false;
       }
 
       const allowedStatuses = [
-        'DoneDesign', 'PaymentSuccess', 'Processing', 'PickedPackageAndDelivery',
-        'DeliveryFail', 'ReDelivery', 'DeliveredSuccessfully', 'CompleteOrder',
-        'WaitDeposit', 'DoneDeterminingDesignPrice', 'DepositSuccessful',
-        'DeterminingMaterialPrice', 'DoneDeterminingMaterialPrice'
+        "DoneDesign",
+        "PaymentSuccess",
+        "Processing",
+        "PickedPackageAndDelivery",
+        "DeliveryFail",
+        "ReDelivery",
+        "DeliveredSuccessfully",
+        "CompleteOrder",
+        "WaitDeposit",
+        "DoneDeterminingDesignPrice",
+        "DepositSuccessful",
+        "DeterminingMaterialPrice",
+        "DoneDeterminingMaterialPrice",
       ];
       const allowedStatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23];
 
-      return allowedStatuses.includes(order?.status) || allowedStatusCodes.includes(order?.status);
+      return (
+        allowedStatuses.includes(order?.status) ||
+        allowedStatusCodes.includes(order?.status)
+      );
     }
 
     return true; // For phases below 3, use the standard checks
@@ -124,13 +200,13 @@ const RecordSketch = ({
       message.loading({
         content: "Đang xác nhận bản phác thảo...",
         key: messageKey,
-        duration: 0
+        duration: 0,
       });
 
       // Create modified copy of sketch records for optimistic update
-      const updatedSketchRecords = sketchRecords.map(record => ({
+      const updatedSketchRecords = sketchRecords.map((record) => ({
         ...record,
-        isSelected: record.id === selectedSketchId
+        isSelected: record.id === selectedSketchId,
       }));
 
       // First step: Confirm the sketch selection
@@ -143,14 +219,14 @@ const RecordSketch = ({
       message.success({
         content: "Đã chọn bản phác thảo thành công!",
         key: messageKey,
-        duration: 2
+        duration: 2,
       });
 
       // Create optimistic update with both order status and sketch selection
       if (window && window.useRecordStore) {
         // This directly updates the store without triggering a fetch
         window.useRecordStore.setState({
-          sketchRecords: updatedSketchRecords
+          sketchRecords: updatedSketchRecords,
         });
       }
       console.log("order", order);
@@ -160,7 +236,7 @@ const RecordSketch = ({
       // Optimistically update the order status locally
       const localOrderUpdate = {
         ...order,
-        status: 21 // WaitDeposit status code
+        status: 21, // WaitDeposit status code
       };
 
       // Use the global soft update - this prevents re-renders
@@ -170,23 +246,24 @@ const RecordSketch = ({
 
       // Don't trigger any data refreshing at all
       // Let parent components handle data refreshing when needed
-
     } catch (err) {
       console.error("Error confirming sketch:", err);
       message.error({
-        content: 'Không thể chọn bản phác thảo: ' + err.message,
-        key: "confirmSketch"
+        content: "Không thể chọn bản phác thảo: " + err.message,
+        key: "confirmSketch",
       });
 
       // If error occurs, we need to refresh data to ensure consistency
       if (window.silentRefreshData) {
         setTimeout(() => {
-          window.silentRefreshData(order.id, {
-            refreshSketch: true,
-            refreshOrder: true,
-            showLoading: false,
-            showSuccess: false
-          }).catch(() => { });
+          window
+            .silentRefreshData(order.id, {
+              refreshSketch: true,
+              refreshOrder: true,
+              showLoading: false,
+              showSuccess: false,
+            })
+            .catch(() => {});
         }, 1000);
       }
     } finally {
@@ -229,13 +306,13 @@ const RecordSketch = ({
   };
 
   const handleSubmitRevision = async () => {
-    // Kiểm tra nội dung rich text có trống không 
+    // Kiểm tra nội dung rich text có trống không
     // (loại bỏ các thẻ HTML trống và khoảng trắng)
-    const isEmptyContent = !revisionNote ||
-      revisionNote.replace(/<[^>]*>/g, '').trim() === '';
+    const isEmptyContent =
+      !revisionNote || revisionNote.replace(/<[^>]*>/g, "").trim() === "";
 
     if (isEmptyContent) {
-      message.error('Vui lòng nhập lý do bạn muốn phác thảo lại');
+      message.error("Vui lòng nhập lý do bạn muốn phác thảo lại");
       return;
     }
 
@@ -247,7 +324,7 @@ const RecordSketch = ({
       message.loading({
         content: "Đang gửi yêu cầu phác thảo lại...",
         key: messageKey,
-        duration: 0
+        duration: 0,
       });
 
       // 1. Update the order status to ReConsultingAndSketching (19)
@@ -265,7 +342,7 @@ const RecordSketch = ({
           dateAppointment: latestTask.dateAppointment,
           timeAppointment: latestTask.timeAppointment,
           status: 0, // ConsultingAndSket status code
-          note: revisionNote // Add customer's note to the task
+          note: revisionNote, // Add customer's note to the task
         });
       } else {
         console.warn("No work tasks found for this order");
@@ -275,7 +352,7 @@ const RecordSketch = ({
       message.success({
         content: "Đã gửi yêu cầu phác thảo lại thành công!",
         key: messageKey,
-        duration: 2
+        duration: 2,
       });
 
       // Close modal immediately
@@ -284,7 +361,7 @@ const RecordSketch = ({
       // Optimistically update the order status locally
       const localOrderUpdate = {
         ...order,
-        status: 19 // ReConsultingAndSketching status code
+        status: 19, // ReConsultingAndSketching status code
       };
 
       // Use the global soft update if available
@@ -297,18 +374,20 @@ const RecordSketch = ({
       console.error("Error requesting revision:", error);
       Modal.error({
         title: "Lỗi khi gửi yêu cầu phác thảo lại",
-        content: error.message || "Vui lòng thử lại sau"
+        content: error.message || "Vui lòng thử lại sau",
       });
 
       // Only in case of error, do a background refresh
       if (window.silentRefreshData) {
         setTimeout(() => {
-          window.silentRefreshData(order.id, {
-            refreshOrder: true,
-            refreshSketch: false,
-            showLoading: false,
-            showSuccess: false
-          }).catch(() => { });
+          window
+            .silentRefreshData(order.id, {
+              refreshOrder: true,
+              refreshSketch: false,
+              showLoading: false,
+              showSuccess: false,
+            })
+            .catch(() => {});
         }, 1000);
       }
     } finally {
@@ -326,26 +405,26 @@ const RecordSketch = ({
       message.loading({
         content: "Đang hủy đơn hàng...",
         key: messageKey,
-        duration: 0
+        duration: 0,
       });
 
       // Use cancelServiceOrder from useServiceOrderStore (passed from parent)
       await updateServiceForCus(order.id, {
         serviceType: 1,
-        status: "OrderCancelled"
+        status: "OrderCancelled",
       });
 
       // Show success notification
       message.success({
         content: "Đã hủy đơn hàng thành công!",
         key: messageKey,
-        duration: 2
+        duration: 2,
       });
 
       // Optimistically update the order status locally
       const localOrderUpdate = {
         ...order,
-        status: "OrderCancelled"
+        status: "OrderCancelled",
       };
 
       // Use the global soft update if available
@@ -356,18 +435,22 @@ const RecordSketch = ({
       // No need for background updates, UI is already updated optimistically
     } catch (err) {
       message.error({
-        content: "Hủy đơn hàng thất bại: " + (err.response?.data?.message || err.message),
-        key: "cancelOrder"
+        content:
+          "Hủy đơn hàng thất bại: " +
+          (err.response?.data?.message || err.message),
+        key: "cancelOrder",
       });
 
       // Only in case of error, do a background refresh
       if (window.silentRefreshData) {
         setTimeout(() => {
-          window.silentRefreshData(order.id, {
-            refreshOrder: true,
-            showLoading: false,
-            showSuccess: false
-          }).catch(() => { });
+          window
+            .silentRefreshData(order.id, {
+              refreshOrder: true,
+              showLoading: false,
+              showSuccess: false,
+            })
+            .catch(() => {});
         }, 1000);
       }
     } finally {
@@ -376,35 +459,61 @@ const RecordSketch = ({
   };
 
   if (recordLoading && !sketchRecords) {
-    return <Card title="Bản phác thảo & Hình ảnh gốc" loading={true} style={{ marginBottom: '24px' }} />;
+    return (
+      <Card
+        title="Bản phác thảo & Hình ảnh gốc"
+        loading={true}
+        style={{ marginBottom: "24px" }}
+      />
+    );
   }
 
   // Different title based on whether we're showing sketches
-  const cardTitle = canViewDesignSketches() && maxPhase > 0
-    ? "Bản vẽ phác thảo & Hình ảnh gốc"
-    : "Hình ảnh khách hàng cung cấp (Ban đầu)";
+  const cardTitle =
+    canViewDesignSketches() && maxPhase > 0
+      ? "Bản vẽ phác thảo & Hình ảnh gốc"
+      : "Hình ảnh khách hàng cung cấp (Ban đầu)";
 
   if (!sketchRecords || sketchRecords.length === 0) {
     return (
       <Card
         title={
-          <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              color: "#4caf50",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
             <PictureOutlined /> {cardTitle}
           </span>
         }
-        style={{ marginBottom: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}
+        style={{
+          marginBottom: "24px",
+          borderRadius: "16px",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+        }}
       >
-        <Empty description={recordLoading ? "Đang tải bản phác thảo..." : "Chưa có bản phác thảo hoặc hình ảnh gốc nào."} />
+        <Empty
+          description={
+            recordLoading
+              ? "Đang tải bản phác thảo..."
+              : "Chưa có bản phác thảo hoặc hình ảnh gốc nào."
+          }
+        />
       </Card>
     );
   }
 
   // Get original images (phase 0)
-  const originalImages = sketchRecords.filter(record => record.phase === 0);
+  const originalImages = sketchRecords.filter((record) => record.phase === 0);
 
   // Get design sketches (phase > 0) only if status permits
   const designSketches = canViewDesignSketches()
-    ? sketchRecords.filter(record => record.phase > 0)
+    ? sketchRecords.filter((record) => record.phase > 0)
     : [];
 
   // Determine phases to display based on status permissions
@@ -418,13 +527,19 @@ const RecordSketch = ({
     }
 
     // Special case: For DeterminingDesignPrice with phase 3 sketches, forcibly include phase 2
-    const hasPhase3 = sketchRecords?.some(record => record.phase >= 3);
-    const isDeterminingPrice = order?.status === 'DeterminingDesignPrice' || order?.status === 2;
-    const isReConsulting = order?.status === 'ReConsultingAndSketching' || order?.status === 19;
+    const hasPhase3 = sketchRecords?.some((record) => record.phase >= 3);
+    const isDeterminingPrice =
+      order?.status === "DeterminingDesignPrice" || order?.status === 2;
+    const isReConsulting =
+      order?.status === "ReConsultingAndSketching" || order?.status === 19;
 
     // Add phase 2 if status permits and it exists
-    if ((canViewPhase2Sketches() && maxPhase >= 2) ||
-      ((hasPhase3 || maxPhase >= 3) && (isDeterminingPrice || isReConsulting) && maxPhase >= 2)) {
+    if (
+      (canViewPhase2Sketches() && maxPhase >= 2) ||
+      ((hasPhase3 || maxPhase >= 3) &&
+        (isDeterminingPrice || isReConsulting) &&
+        maxPhase >= 2)
+    ) {
       phases.push(2);
     }
 
@@ -447,42 +562,77 @@ const RecordSketch = ({
     <>
       <Card
         title={
-          <span style={{ fontSize: '18px', fontWeight: '600', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              color: "#4caf50",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
             <PictureOutlined /> {cardTitle}
           </span>
         }
-        style={{ borderRadius: '16px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '24px' }}
+        style={{
+          borderRadius: "16px",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+          marginBottom: "24px",
+        }}
         loading={recordLoading && sketchRecords.length > 0}
       >
-        {phasesToDisplay.map(phase => {
-          const phaseRecords = sketchRecords.filter(record => record.phase === phase);
+        {phasesToDisplay.map((phase) => {
+          const phaseRecords = sketchRecords.filter(
+            (record) => record.phase === phase
+          );
           if (phaseRecords.length === 0) return null;
 
-          const phaseTitle = phase === 0
-            ? "Hình ảnh khách hàng cung cấp (Ban đầu)"
-            : `Bản phác thảo lần ${phase}`;
+          const phaseTitle =
+            phase === 0
+              ? "Hình ảnh khách hàng cung cấp (Ban đầu)"
+              : `Bản phác thảo lần ${phase}`;
 
-          const isAnySelectedInPhase = phaseRecords.some(record => record.isSelected);
+          const isAnySelectedInPhase = phaseRecords.some(
+            (record) => record.isSelected
+          );
 
           // Determine if selection is allowed for this record
           // Only allow selection when status is DoneDeterminingDesignPrice or 22 AND it's not phase 0
           const isSelectionAllowed =
-            (order?.status === 'DoneDeterminingDesignPrice' || order?.status === 22) &&
+            (order?.status === "DoneDeterminingDesignPrice" ||
+              order?.status === 22) &&
             phase > 0 &&
-            !sketchRecords.some(r => r.isSelected);
+            !sketchRecords.some((r) => r.isSelected);
 
           return (
-            <div key={phase} style={{ marginBottom: '24px' }}>
-              <Title level={5} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '6px' }}>
+            <div key={phase} style={{ marginBottom: "24px" }}>
+              <Title
+                level={5}
+                style={{
+                  marginBottom: "12px",
+                  borderBottom: "1px solid #eee",
+                  paddingBottom: "6px",
+                }}
+              >
                 {phaseTitle}
-                {isAnySelectedInPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                {isAnySelectedInPhase && (
+                  <Tag color="green" style={{ marginLeft: 8 }}>
+                    Đã chọn
+                  </Tag>
+                )}
               </Title>
-              {phaseRecords.map(record => (
-                <div key={record.id} style={{ marginBottom: '16px' }}>
+              {phaseRecords.map((record) => (
+                <div key={record.id} style={{ marginBottom: "16px" }}>
                   <Card
                     hoverable
-                    bodyStyle={{ padding: '12px' }}
-                    style={{ border: record.isSelected ? '2px solid #52c41a' : '1px solid #f0f0f0', borderRadius: '8px' }}
+                    bodyStyle={{ padding: "12px" }}
+                    style={{
+                      border: record.isSelected
+                        ? "2px solid #52c41a"
+                        : "1px solid #f0f0f0",
+                      borderRadius: "8px",
+                    }}
                   >
                     <Image.PreviewGroup>
                       <Row gutter={[12, 12]}>
@@ -490,8 +640,15 @@ const RecordSketch = ({
                           <Col xs={24} sm={12} md={8}>
                             <Image
                               src={record.image.imageUrl}
-                              alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 1`}
-                              style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                              alt={`${
+                                phase === 0 ? "Ảnh gốc" : `Phác thảo ${phase}`
+                              } 1`}
+                              style={{
+                                width: "100%",
+                                height: "180px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                              }}
                             />
                           </Col>
                         )}
@@ -499,8 +656,15 @@ const RecordSketch = ({
                           <Col xs={24} sm={12} md={8}>
                             <Image
                               src={record.image.image2}
-                              alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 2`}
-                              style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                              alt={`${
+                                phase === 0 ? "Ảnh gốc" : `Phác thảo ${phase}`
+                              } 2`}
+                              style={{
+                                width: "100%",
+                                height: "180px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                              }}
                             />
                           </Col>
                         )}
@@ -508,16 +672,28 @@ const RecordSketch = ({
                           <Col xs={24} sm={12} md={8}>
                             <Image
                               src={record.image.image3}
-                              alt={`${phase === 0 ? 'Ảnh gốc' : `Phác thảo ${phase}`} 3`}
-                              style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '6px' }}
+                              alt={`${
+                                phase === 0 ? "Ảnh gốc" : `Phác thảo ${phase}`
+                              } 3`}
+                              style={{
+                                width: "100%",
+                                height: "180px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                              }}
                             />
                           </Col>
                         )}
-                        {!record.image?.imageUrl && !record.image?.image2 && !record.image?.image3 && (
-                          <Col span={24}>
-                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có ảnh trong bản ghi này" />
-                          </Col>
-                        )}
+                        {!record.image?.imageUrl &&
+                          !record.image?.image2 &&
+                          !record.image?.image3 && (
+                            <Col span={24}>
+                              <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description="Không có ảnh trong bản ghi này"
+                              />
+                            </Col>
+                          )}
                       </Row>
                     </Image.PreviewGroup>
                   </Card>
@@ -526,7 +702,7 @@ const RecordSketch = ({
                     <Button
                       type="primary"
                       icon={<CheckCircleOutlined />}
-                      style={{ marginTop: '10px', width: '100%' }}
+                      style={{ marginTop: "10px", width: "100%" }}
                       loading={isSubmitting || externalIsSubmitting}
                       onClick={() => handleConfirmSketch(record.id)}
                     >
@@ -540,59 +716,109 @@ const RecordSketch = ({
         })}
 
         {/* Action buttons for sketch selection - only show when in DoneDeterminingDesignPrice status */}
-        {(order?.status === 'DoneDeterminingDesignPrice' || order?.status === 22) && (
-          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-
+        {(order?.status === "DoneDeterminingDesignPrice" ||
+          order?.status === 22) && (
+          <div
+            style={{
+              marginTop: "24px",
+              paddingTop: "16px",
+              borderTop: "1px solid #f0f0f0",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "16px",
+              }}
+            >
               {/* Warning Card nếu đã tới Phase 3 mà chưa chọn */}
-              {!sketchRecords.some(r => r.isSelected) && maxPhase >= 3 && (
+              {!sketchRecords.some((r) => r.isSelected) && maxPhase >= 3 && (
                 <Card
                   bordered={false}
                   style={{
-                    background: '#fffef0', // Màu vàng nhẹ hơn chút cho sáng
-                    border: '1px solid #ffd666', // Viền vàng cam nhẹ
-                    borderRadius: '12px', // Bo tròn mềm mại hơn
-                    padding: '24px 32px',
-                    width: '100%',
-                    maxWidth: '635px',
-                    textAlign: 'center',
-                    boxShadow: '0 2px 8px rgba(255, 215, 0, 0.2)', // Đổ bóng vàng nhẹ
+                    background: "#fffef0", // Màu vàng nhẹ hơn chút cho sáng
+                    border: "1px solid #ffd666", // Viền vàng cam nhẹ
+                    borderRadius: "12px", // Bo tròn mềm mại hơn
+                    padding: "24px 32px",
+                    width: "100%",
+                    maxWidth: "635px",
+                    textAlign: "center",
+                    boxShadow: "0 2px 8px rgba(255, 215, 0, 0.2)", // Đổ bóng vàng nhẹ
                   }}
                 >
                   {/* Header Warning */}
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '24px' }}>⚠️</span>
-                    <Text strong style={{ fontSize: '18px', color: '#d48806' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <span style={{ fontSize: "24px" }}>⚠️</span>
+                    <Text strong style={{ fontSize: "18px", color: "#d48806" }}>
                       Vui lòng chọn 1 trong 3 bản phác thảo ✏️
                     </Text>
                   </div>
 
                   {/* Nội dung hướng dẫn */}
-                  <div style={{ color: '#8c6d1f', fontSize: '15px', textAlign: 'left', lineHeight: 1.6 }}>
-                    <p>📄 Bạn đã yêu cầu tối đa <strong>3 lần phác thảo</strong>.</p>
-                    <p>✅ Hãy chọn <strong>1 bản phác thảo</strong> mà bạn yêu thích để tiếp tục quy trình thiết kế.</p>
-                    <p>❌ Nếu không hài lòng với các phương án, bạn có thể <strong>hủy đơn thiết kế</strong> này.</p>
+                  <div
+                    style={{
+                      color: "#8c6d1f",
+                      fontSize: "15px",
+                      textAlign: "left",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <p>
+                      📄 Bạn đã yêu cầu tối đa <strong>3 lần phác thảo</strong>.
+                    </p>
+                    <p>
+                      ✅ Hãy chọn <strong>1 bản phác thảo</strong> mà bạn yêu
+                      thích để tiếp tục quy trình thiết kế.
+                    </p>
+                    <p>
+                      ❌ Nếu không hài lòng với các phương án, bạn có thể{" "}
+                      <strong>hủy đơn thiết kế</strong> này.
+                    </p>
                   </div>
                 </Card>
-
               )}
 
               {/* Nếu chưa chọn mà chưa tới phase 3 */}
-              {!sketchRecords.some(r => r.isSelected) && maxPhase < 3 && (
-                <Text type="secondary" style={{ fontSize: '14px', textAlign: 'center' }}>
+              {!sketchRecords.some((r) => r.isSelected) && maxPhase < 3 && (
+                <Text
+                  type="secondary"
+                  style={{ fontSize: "14px", textAlign: "center" }}
+                >
                   Vui lòng chọn một bản phác thảo hoặc thực hiện hành động khác.
                 </Text>
               )}
 
               {/* Các nút hành động */}
-              {!sketchRecords.some(r => r.isSelected) && (
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {!sketchRecords.some((r) => r.isSelected) && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
+                >
                   {/* Nút yêu cầu phác thảo lại */}
                   {(maxPhase === 1 || maxPhase === 2) && (
                     <Button
                       icon={<EditOutlined />}
                       onClick={handleShowRevisionModal}
-                      disabled={isSubmitting || externalIsSubmitting || recordLoading || submitting}
+                      disabled={
+                        isSubmitting ||
+                        externalIsSubmitting ||
+                        recordLoading ||
+                        submitting
+                      }
                       loading={submitting}
                       type="primary"
                     >
@@ -607,13 +833,19 @@ const RecordSketch = ({
                     okText="Xác nhận hủy"
                     cancelText="Không"
                     okButtonProps={{ danger: true }}
-                    disabled={isSubmitting || externalIsSubmitting || recordLoading}
+                    disabled={
+                      isSubmitting || externalIsSubmitting || recordLoading
+                    }
                   >
                     <Button
                       danger
                       icon={<StopOutlined />}
-                      loading={isSubmitting && order?.status === 'OrderCancelled'}
-                      disabled={isSubmitting || externalIsSubmitting || recordLoading}
+                      loading={
+                        isSubmitting && order?.status === "OrderCancelled"
+                      }
+                      disabled={
+                        isSubmitting || externalIsSubmitting || recordLoading
+                      }
                     >
                       Hủy đơn thiết kế
                     </Button>
@@ -694,9 +926,13 @@ const RecordSketch = ({
       {/* Add Confirmation Modal */}
       <Modal
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <CheckCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-            <span style={{ fontSize: '18px', fontWeight: 600 }}>Xác nhận chọn bản phác thảo</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <CheckCircleOutlined
+              style={{ fontSize: "24px", color: "#52c41a" }}
+            />
+            <span style={{ fontSize: "18px", fontWeight: 600 }}>
+              Xác nhận chọn bản phác thảo
+            </span>
           </div>
         }
         open={isConfirmModalVisible}
@@ -705,25 +941,41 @@ const RecordSketch = ({
         okText="Xác nhận"
         cancelText="Hủy"
         confirmLoading={isSubmitting || externalIsSubmitting}
-        bodyStyle={{ paddingTop: '16px' }}
+        bodyStyle={{ paddingTop: "16px" }}
       >
-        <div style={{ fontSize: '15px', lineHeight: '1.7', color: '#595959' }}>
-          <p>🎯 Bạn có chắc chắn muốn <strong>chọn bản phác thảo</strong> này không?</p>
+        <div style={{ fontSize: "15px", lineHeight: "1.7", color: "#595959" }}>
+          <p>
+            🎯 Bạn có chắc chắn muốn <strong>chọn bản phác thảo</strong> này
+            không?
+          </p>
           <p>📝 Sau khi chọn:</p>
-          <ul style={{ paddingLeft: '20px', marginTop: '8px' }}>
-            <li>Hệ thống sẽ <strong>tự động tạo hợp đồng thiết kế</strong>.</li>
-            <li>Bạn cần thanh toán <strong style={{ color: '#fa541c' }}>{data?.depositPercentage}% phí thiết kế</strong> để tiếp tục.</li>
+          <ul style={{ paddingLeft: "20px", marginTop: "8px" }}>
+            <li>
+              Hệ thống sẽ <strong>tự động tạo hợp đồng thiết kế</strong>.
+            </li>
+            <li>
+              Bạn cần thanh toán{" "}
+              <strong style={{ color: "#fa541c" }}>
+                {data?.depositPercentage}% phí thiết kế
+              </strong>{" "}
+              để tiếp tục.
+            </li>
           </ul>
-          <p style={{ marginTop: '16px' }}>💡 Hãy chắc chắn rằng bạn đã xem kỹ bản phác thảo trước khi xác nhận nhé!</p>
+          <p style={{ marginTop: "16px" }}>
+            💡 Hãy chắc chắn rằng bạn đã xem kỹ bản phác thảo trước khi xác nhận
+            nhé!
+          </p>
         </div>
       </Modal>
 
       {/* Add Revision Request Modal */}
       <Modal
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <EditOutlined style={{ fontSize: '24px' }} />
-            <span style={{ fontSize: '18px', fontWeight: 600, }}>Yêu cầu phác thảo lại</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <EditOutlined style={{ fontSize: "24px" }} />
+            <span style={{ fontSize: "18px", fontWeight: 600 }}>
+              Yêu cầu phác thảo lại
+            </span>
           </div>
         }
         open={isRevisionModalVisible}
@@ -735,20 +987,35 @@ const RecordSketch = ({
         width={800}
       >
         {/* Hướng dẫn */}
-        <div style={{
-          backgroundColor: '#f6ffed',
-          border: '1px solid #b7eb8f',
-          padding: '16px',
-          borderRadius: '8px',
-          marginBottom: '24px'
-        }}>
-          <Typography.Title level={5} style={{ color: '#52c41a', marginTop: 0, marginBottom: '8px' }}>
-          🌿 Hướng dẫn chi tiết
+        <div
+          style={{
+            backgroundColor: "#f6ffed",
+            border: "1px solid #b7eb8f",
+            padding: "16px",
+            borderRadius: "8px",
+            marginBottom: "24px",
+          }}
+        >
+          <Typography.Title
+            level={5}
+            style={{ color: "#52c41a", marginTop: 0, marginBottom: "8px" }}
+          >
+            🌿 Hướng dẫn chi tiết
           </Typography.Title>
-          <Typography.Paragraph style={{ fontSize: '14px', color: '#595959' }}>
-            Vui lòng cung cấp chi tiết về các điều chỉnh bạn mong muốn cho bản phác thảo:
+          <Typography.Paragraph style={{ fontSize: "14px", color: "#595959" }}>
+            Vui lòng cung cấp chi tiết về các điều chỉnh bạn mong muốn cho bản
+            phác thảo:
           </Typography.Paragraph>
-          <ul style={{ paddingLeft: '20px', fontSize: '14px', color: '#595959', marginBottom: 0,listStyleType: 'disc', listStylePosition: 'inside' }}>
+          <ul
+            style={{
+              paddingLeft: "20px",
+              fontSize: "14px",
+              color: "#595959",
+              marginBottom: 0,
+              listStyleType: "disc",
+              listStylePosition: "inside",
+            }}
+          >
             <li>Mô tả cụ thể các phần cần thay đổi hoặc chỉnh sửa</li>
             <li>Phong cách mới hoặc ý tưởng bạn muốn đề xuất</li>
             <li>Các chi tiết bạn muốn giữ lại từ bản phác thảo hiện tại</li>
@@ -766,4 +1033,4 @@ const RecordSketch = ({
   );
 };
 
-export default RecordSketch; 
+export default RecordSketch;
