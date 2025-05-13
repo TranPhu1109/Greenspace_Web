@@ -69,7 +69,12 @@ const useServiceOrderStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       console.log('Fetching service orders with no idea...');
-      const response = await api.get('/api/serviceorder/noidea');
+      const response = await api.get('/api/serviceorder/noidea', {
+        params: {
+          pageNumber: 0,
+          pageSize: 100
+        }
+      });
       
       // Check if response exists and has data property
       if (!response || !response.data) {
