@@ -53,7 +53,12 @@ export const getStatusText = (status) => {
     'Refund': "Đang hoàn tiền",
     17: "Đã hoàn tiền",
     'DoneRefund': "Đã hoàn tiền",
-    
+    27: "Đang lắp đặt",
+    'Installing': "Đang lắp đặt",
+    28: "Đã lắp đặt xong",
+    'DoneInstalling': "Đã lắp đặt xong",
+    29: "Yêu cầu lắp đặt lại",
+    'ReInstall': "Yêu cầu lắp đặt lại",
   };
   
   // Return mapped text or the original status if not found
@@ -115,6 +120,12 @@ export const getStatusColor = (status) => {
     'Refund': "orange",
     17: "default",
     'DoneRefund': "default",
+    27: "blue",
+    'Installing': "blue",
+    28: "green",
+    'DoneInstalling': "green",
+    29: "red",
+    'ReInstall': "red",
   };
   
   // Return mapped color or 'default'

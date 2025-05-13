@@ -49,7 +49,7 @@ const RecordDesign = ({
       'DoneDesign', 'PaymentSuccess', 'Processing',
       'PickedPackageAndDelivery', 'DeliveryFail', 'ReDelivery',
       'DeliveredSuccessfully', 'CompleteOrder',
-      'DoneDeterminingDesignPrice', 'DoneDeterminingMaterialPrice', 'ReDesign' 
+      'DoneDeterminingDesignPrice', 'DoneDeterminingMaterialPrice', 'ReDesign', 'Installing', 'DoneInstalling', 'ReInstall' 
     ];
     const designViewableStatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23, 33];
 

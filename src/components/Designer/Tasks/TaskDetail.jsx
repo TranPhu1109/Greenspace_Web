@@ -2435,13 +2435,13 @@ const TaskDetail = () => {
                 >
                   Tùy chỉnh sản phẩm
                 </Button>
-                {/* <Button
+                <Button
                   type="dashed"
                   icon={<PlusOutlined />}
                   onClick={showExternalProductModal}
                 >
                   Thêm sản phẩm mới
-                </Button> */}
+                </Button>
               </>
             )}
           </Space>
@@ -2524,41 +2524,63 @@ const TaskDetail = () => {
           />
         </Card>
       )}
-
-      {(task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
-        <Tooltip title={
-          maxPhaseInDesignRecords === 0
-            ? "Bạn cần tải lên ít nhất một bản vẽ thiết kế chi tiết trước khi hoàn tất"
-            : task.serviceOrder.status === "ReDesign"
-              ? maxPhaseInDesignRecords <= 1
-                ? "Đây là yêu cầu thiết kế lại. Bạn cần tải lên ít nhất một bản vẽ thiết kế chi tiết mới (lần 2) trước khi hoàn tất"
-                : ""
-              : maxPhaseInDesignRecords < 4
-                ? `Bạn mới hoàn thành ${maxPhaseInDesignRecords}/4 lần thiết kế chi tiết. Vui lòng tải đủ các lần thiết kế.`
-                : ""
-        }>
-          <Button
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            onClick={() => {
-              console.log("Is button supposed to be disabled:",
-                maxPhaseInDesignRecords === 0 ||
-                (task.serviceOrder.status === "ReDesign" && maxPhaseInDesignRecords <= 1) ||
-                (task.serviceOrder.status !== "ReDesign" && maxPhaseInDesignRecords < 4));
-              handleCompleteDesign();
-            }}
-            disabled={
-              maxPhaseInDesignRecords === 0 ||
-              (task.serviceOrder.status === "ReDesign" && maxPhaseInDesignRecords <= 1) ||
-              (task.serviceOrder.status !== "ReDesign" && maxPhaseInDesignRecords < 4)
-            }
-          >
-            Hoàn tất cập nhật thiết kế chi tiết
-            {/* {maxPhaseInDesignRecords}/
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        {(task.status === "Design" || task.status === "DoneDesign") && (task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
+          <div>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={showProductModal}
+              style={{ marginRight: 8 }}
+            >
+              Tùy chỉnh sản phẩm
+            </Button>
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={showExternalProductModal}
+            >
+              Thêm sản phẩm mới
+            </Button>
+          </div>
+        )}
+        <div>
+          {(task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
+            <Tooltip title={
+              maxPhaseInDesignRecords === 0
+                ? "Bạn cần tải lên ít nhất một bản vẽ thiết kế chi tiết trước khi hoàn tất"
+                : task.serviceOrder.status === "ReDesign"
+                  ? maxPhaseInDesignRecords <= 1
+                    ? "Đây là yêu cầu thiết kế lại. Bạn cần tải lên ít nhất một bản vẽ thiết kế chi tiết mới (lần 2) trước khi hoàn tất"
+                    : ""
+                  : maxPhaseInDesignRecords < 4
+                    ? `Bạn mới hoàn thành ${maxPhaseInDesignRecords}/4 lần thiết kế chi tiết. Vui lòng tải đủ các lần thiết kế.`
+                    : ""
+            }>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={() => {
+                  console.log("Is button supposed to be disabled:",
+                    maxPhaseInDesignRecords === 0 ||
+                    (task.serviceOrder.status === "ReDesign" && maxPhaseInDesignRecords <= 1) ||
+                    (task.serviceOrder.status !== "ReDesign" && maxPhaseInDesignRecords < 4));
+                  handleCompleteDesign();
+                }}
+              // disabled={
+              //   maxPhaseInDesignRecords === 0 ||
+              //   (task.serviceOrder.status === "ReDesign" && maxPhaseInDesignRecords <= 1) ||
+              //   (task.serviceOrder.status !== "ReDesign" && maxPhaseInDesignRecords < 4)
+              // }
+              >
+                Hoàn tất cập nhật thiết kế chi tiết
+                {/* {maxPhaseInDesignRecords}/
             {task.serviceOrder.status === "ReDesign" ? "4" : "4"} */}
-          </Button>
-        </Tooltip>
-      )}
+              </Button>
+            </Tooltip>
+          )}
+        </div>
+      </div>
       {/* {task.status === "Design" && (
         <Button
           type="primary"
@@ -3093,7 +3115,7 @@ const TaskDetail = () => {
             border: '1px solid #b7eb8f',
             borderRadius: '8px',
           }}
-          styles={{body: { padding: '12px 16px' }}}
+          styles={{ body: { padding: '12px 16px' } }}
         >
           <Space align="start">
             <InfoCircleOutlined style={{ fontSize: '20px', color: '#52c41a', marginTop: 4 }} />

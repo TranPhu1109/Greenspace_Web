@@ -78,11 +78,11 @@ const StaffSidebar = ({ collapsed }) => {
                 </Link>
               </Menu.Item>
 
-              <Menu.Item key="/staff/design-orders/custom-template-orders">
+              {/* <Menu.Item key="/staff/design-orders/custom-template-orders">
                 <Link to="/staff/design-orders/custom-template-orders">
                   Đơn tùy chỉnh từ mẫu
                 </Link>
-              </Menu.Item>
+              </Menu.Item> */}
 
               <Menu.Item key="/staff/design-orders/new-design-orders">
                 <Link to="/staff/design-orders/new-design-orders">
@@ -103,12 +103,13 @@ const StaffSidebar = ({ collapsed }) => {
             <Menu.Item key="/staff/products" icon={<AppstoreOutlined />}>
               <Link to="/staff/products">Sản phẩm</Link>
             </Menu.Item>
-            {/* <Menu.Item key="/staff/schedule-new" icon={<CalendarOutlined />}>
-              <Link to="/staff/schedule-new">Lịch làm việc mới</Link>
-            </Menu.Item> */}
 
             <Menu.Item key="/staff/schedule" icon={<CalendarOutlined />}>
-              <Link to="/staff/schedule">Lịch làm việc</Link>
+              <Link to="/staff/schedule">Lịch làm việc designer</Link>
+            </Menu.Item>
+
+            <Menu.Item key="/staff/schedule-contructor" icon={<CalendarOutlined />}>
+              <Link to="/staff/schedule-contructor">Lịch làm việc đội lắp đặt</Link>
             </Menu.Item>
 
             <Menu.Item key="/staff/feedback" icon={<MdOutlineFeedback />}>

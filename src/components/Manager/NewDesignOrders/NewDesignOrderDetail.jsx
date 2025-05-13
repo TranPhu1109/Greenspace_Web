@@ -1603,7 +1603,10 @@ ${externalProductsTable}
           </Card>
         )}
 
-        {currentOrder?.status === 'MaterialPriceConfirmed' && (
+        {(currentOrder?.status === 'MaterialPriceConfirmed' || 
+          (currentOrder?.status === 'DeterminingMaterialPrice' && 
+           (!currentOrder.externalProducts || currentOrder.externalProducts.length === 0))
+        ) && (
           <Card
             title="Xác nhận giá vật liệu"
             style={{

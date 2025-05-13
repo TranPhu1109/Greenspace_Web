@@ -11,6 +11,7 @@ export const useRoleBasedPath = () => {
     if (path.includes("staff")) return "/staff";
     if (path.includes("accountant")) return "/accountant";
     if (path.includes("designer")) return "/designer";
+    if (path.includes("contructor")) return "/contructor";
     return "/staff"; // default path
   };
 
