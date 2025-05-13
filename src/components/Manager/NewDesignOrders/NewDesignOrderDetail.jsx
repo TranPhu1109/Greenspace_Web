@@ -5,6 +5,7 @@ import useProductStore from "@/stores/useProductStore";
 import useRecordStore from "@/stores/useRecordStore";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import EditorComponent from "@/components/Common/EditorComponent";
+import signalRService from '@/services/signalRService';
 import {
   Typography,
   Spin,
@@ -93,6 +94,31 @@ const NewDesignOrderDetail = () => {
     fetchPercentage();
   }, [fetchPercentage]);
 
+  // Set up SignalR connection
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+        signalRService.on("messageReceived", () => {
+          if (id) {
+            getServiceOrderById(id, true);
+            // getRecordSketch(id, true);
+            // getRecordDesign(id, true);
+          }
+        });
+      } catch (error) {
+        console.error("Failed to connect to SignalR hub:", error);
+      }
+    };
+
+    setupSignalR();
+
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [id, getServiceOrderById]); // ❌ không thêm selectedOrder vào đây
+
+
   useEffect(() => {
     const fetchOrderDetailAndRelatedData = async () => {
       if (!id) return;
@@ -118,15 +144,11 @@ const NewDesignOrderDetail = () => {
 
           // Fetch sketch records for most statuses (EXCEPT Pending/Consulting)
           if (currentStatus !== 'Pending' && currentStatus !== 0 && currentStatus !== 'ConsultingAndSketching' && currentStatus !== 1) {
-            console.log('[Effect] Status is past initial phase, fetching sketch records...');
             getRecordSketch(id);
-          } else {
-            console.log('[Effect] Status is Pending or Consulting, skipping sketch record fetch.');
           }
 
           // Fetch design records specifically when design is done
-          if (currentStatus === 'DoneDesign' || currentStatus === 6) { // Check for both string and potential number
-            console.log('[Effect] Fetching design records...');
+          if (currentStatus !== 'Pending' && currentStatus !== 0 && currentStatus !== 'ConsultingAndSketching' && currentStatus !== 1) { // Check for both string and potential number
             getRecordDesign(id);
           }
 
@@ -618,26 +640,26 @@ ${externalProductsTable}
     );
   }
 
-  const displayError = orderError || localError;
-  if (displayError) {
-    console.error("Render: Error state", { displayError, orderError, localError });
-    return (
-      <div className="container mx-auto px-4 py-8" style={{ paddingTop: "20px" }}>
-        <Alert
-          type="error"
-          message="Lỗi"
-          description={displayError || "Không thể tải thông tin đơn hàng. Vui lòng thử lại."}
-          className="mb-4"
-        />
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/manager/new-design-orders")}
-        >
-          Quay lại danh sách
-        </Button>
-      </div>
-    );
-  }
+  // const displayError = orderError || localError;
+  // if (displayError) {
+  //   console.error("Render: Error state", { displayError, orderError, localError });
+  //   return (
+  //     <div className="container mx-auto px-4 py-8" style={{ paddingTop: "20px" }}>
+  //       <Alert
+  //         type="error"
+  //         message="Lỗi"
+  //         description={displayError || "Không thể tải thông tin đơn hàng. Vui lòng thử lại."}
+  //         className="mb-4"
+  //       />
+  //       <Button
+  //         icon={<ArrowLeftOutlined />}
+  //         onClick={() => navigate("/manager/new-design-orders")}
+  //       >
+  //         Quay lại danh sách
+  //       </Button>
+  //     </div>
+  //   );
+  // }
 
   if (!selectedOrder || selectedOrder.id !== id) {
     console.warn(`Render: Data not ready or mismatch. URL ID: ${id}, selectedOrder ID: ${selectedOrder?.id}. Showing loading/wait state.`);
@@ -1322,8 +1344,7 @@ ${externalProductsTable}
           </Card>
         )}
 
-        {(currentOrder.status !== 'Pending' && sketchRecords.length > 0) ||
-          (currentOrder.status !== 'Pending' && designRecords.length > 0) ? (
+        {(currentOrder.status !== 'Pending' && sketchRecords.length > 0) && (
           <Card
             title={
               <span style={{
@@ -1335,7 +1356,7 @@ ${externalProductsTable}
                 gap: '8px'
               }}>
                 <PictureOutlined />
-                {currentOrder.status !== 'Pending' ? 'Bản vẽ phác thảo' : 'Bản vẽ thiết kế'}
+                Bản vẽ phác thảo
               </span>
             }
             style={{
@@ -1345,136 +1366,263 @@ ${externalProductsTable}
             }}
             loading={recordLoading}
           >
+            {(() => {
+              // Check if any phase has selected records
+              const hasSelectedRecords = sketchRecords.some(record => record.isSelected);
+              // Generate default active keys based on selection status
+              const defaultActiveKeys = hasSelectedRecords 
+                ? [0, 1, 2, 3]
+                  .filter(phase => sketchRecords.some(record => record.phase === phase && record.isSelected))
+                  .map(phase => `sketch-phase-${phase}`)
+                : [0, 1, 2, 3]
+                  .filter(phase => sketchRecords.some(record => record.phase === phase))
+                  .map(phase => `sketch-phase-${phase}`);
+              
+              return [0, 1, 2, 3].map(phase => {
+                const recordsInPhase = sketchRecords.filter(record => record.phase === phase);
+                if (recordsInPhase.length === 0) return null;
 
-            {[0, 1, 2, 3].map(phase => {
-              const recordsInPhase = (currentOrder.status !== 'Pending' ? sketchRecords : designRecords)
-                .filter(record => record.phase === phase);
-              if (recordsInPhase.length === 0) return null;
+                const phaseTitle = phase === 0
+                  ? "Ảnh khách hàng cung cấp"
+                  : `Bản phác thảo lần ${phase}`;
+                const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
 
-              const phaseTitle = phase === 0
-                ? "Ảnh khách hàng cung cấp"
-                : `${currentOrder.status !== 'Pending' ? 'Bản phác thảo' : 'Bản thiết kế'} lần ${phase}`;
-              const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
-
-              return (
-                <Collapse
-                  key={phase}
-                  bordered={false}
-                  defaultActiveKey={phase === 0 ? [] : [`phase-${phase}`]} // Default mở tất cả, muốn đóng mặc định thì để []
-                  style={{ background: 'transparent', marginBottom: '16px' }}
-                >
-                  <Collapse.Panel
-                    key={`phase-${phase}`}
-                    header={
-                      <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                        {phaseTitle}
-                        {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                      </span>
-                    }
+                return (
+                  <Collapse
+                    key={`sketch-${phase}`}
+                    bordered={false}
+                    defaultActiveKey={defaultActiveKeys}
+                    style={{ background: 'transparent', marginBottom: '16px' }}
                   >
-                    <Row gutter={[16, 16]}>
-                      {recordsInPhase.map(record => (
-                        <>
-                          {record.image?.imageUrl && (
-                            <Col xs={24} sm={12} md={8} key={`${record.id}-1`}>
-                              <Card hoverable styles={{
-                                body: {
-                                  padding: 0
-                                }
-                              }}>
-                                <Image
-                                  src={record.image.imageUrl}
-                                  alt={`Ảnh ${phaseTitle} 1`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                                />
-                              </Card>
-                            </Col>
-                          )}
-                          {record.image?.image2 && (
-                            <Col xs={24} sm={12} md={8} key={`${record.id}-2`}>
-                              <Card hoverable styles={{
-                                body: {
-                                  padding: 0
-                                }
-                              }}>
-                                <Image
-                                  src={record.image.image2}
-                                  alt={`Ảnh ${phaseTitle} 2`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                                />
-                              </Card>
-                            </Col>
-                          )}
-                          {record.image?.image3 && (
-                            <Col xs={24} sm={12} md={8} key={`${record.id}-3`}>
-                              <Card hoverable styles={{
-                                body: {
-                                  padding: 0
-                                }
-                              }}>
-                                <Image
-                                  src={record.image.image3}
-                                  alt={`Ảnh ${phaseTitle} 3`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                                />
-                              </Card>
-                            </Col>
-                          )}
-                        </>
-                      ))}
-                    </Row>
-
-                  </Collapse.Panel>
-                </Collapse>
-              );
-            })}
+                    <Collapse.Panel
+                      key={`sketch-phase-${phase}`}
+                      header={
+                        <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                          {phaseTitle}
+                          {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                        </span>
+                      }
+                    >
+                      <Row gutter={[16, 16]}>
+                        {recordsInPhase.map(record => (
+                          <React.Fragment key={record.id}>
+                            {record.image?.imageUrl && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Ảnh ${phaseTitle} 1`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image2 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Ảnh ${phaseTitle} 2`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image3 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Ảnh ${phaseTitle} 3`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </Row>
+                    </Collapse.Panel>
+                  </Collapse>
+                );
+              });
+            })()}
           </Card>
-        ) : (
-          hasImages && (
-            <Card
-              title={
-                <span style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#4caf50',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <PictureOutlined />
-                  Ảnh khách hàng cung cấp
-                </span>
-              }
-              style={{
-                borderRadius: '8px',
-                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-                marginBottom: '24px'
-              }}
-            >
-              <Row gutter={[16, 16]}>
-                {currentOrder.image.imageUrl && (
-                  <Col xs={24} sm={8}>
-                    <Image src={currentOrder.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                  </Col>
-                )}
-                {currentOrder.image.image2 && (
-                  <Col xs={24} sm={8}>
-                    <Image src={currentOrder.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                  </Col>
-                )}
-                {currentOrder.image.image3 && (
-                  <Col xs={24} sm={8}>
-                    <Image src={currentOrder.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                  </Col>
-                )}
-                {!currentOrder.image.imageUrl && !currentOrder.image.image2 && !currentOrder.image.image3 && (
-                  <Col span={24}>
-                    <Empty description="Khách hàng không cung cấp hình ảnh." />
-                  </Col>
-                )}
-              </Row>
-            </Card>
-          )
+        )}
+
+        {/* Add a separate card for design records */}
+        {(currentOrder.status !== 'Pending' && designRecords.length > 0) && (
+          <Card
+            title={
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#4caf50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <PictureOutlined />
+                Bản vẽ thiết kế
+              </span>
+            }
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+              marginBottom: '24px'
+            }}
+            loading={recordLoading}
+          >
+            {(() => {
+              // Check if any phase has selected records
+              const hasSelectedRecords = designRecords.some(record => record.isSelected);
+              // Generate default active keys based on selection status
+              const defaultActiveKeys = hasSelectedRecords 
+                ? [1, 2, 3, 4]
+                  .filter(phase => designRecords.some(record => record.phase === phase && record.isSelected))
+                  .map(phase => `design-phase-${phase}`)
+                : [1, 2, 3, 4]
+                  .filter(phase => designRecords.some(record => record.phase === phase))
+                  .map(phase => `design-phase-${phase}`);
+              
+              return [1, 2, 3, 4].map(phase => {
+                const recordsInPhase = designRecords.filter(record => record.phase === phase);
+                if (recordsInPhase.length === 0) return null;
+
+                const phaseTitle = `Bản thiết kế lần ${phase}`;
+                const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
+
+                return (
+                  <Collapse
+                    key={`design-${phase}`}
+                    bordered={false}
+                    defaultActiveKey={defaultActiveKeys}
+                    style={{ background: 'transparent', marginBottom: '16px' }}
+                  >
+                    <Collapse.Panel
+                      key={`design-phase-${phase}`}
+                      header={
+                        <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                          {phaseTitle}
+                          {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                        </span>
+                      }
+                    >
+                      <Row gutter={[16, 16]}>
+                        {recordsInPhase.map(record => (
+                          <React.Fragment key={record.id}>
+                            {record.image?.imageUrl && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Ảnh ${phaseTitle} 1`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image2 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Ảnh ${phaseTitle} 2`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image3 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Ảnh ${phaseTitle} 3`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </Row>
+                    </Collapse.Panel>
+                  </Collapse>
+                );
+              });
+            })()}
+          </Card>
+        )}
+
+        {hasImages && !sketchRecords.length && !designRecords.length && (
+          <Card
+            title={
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#4caf50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <PictureOutlined />
+                Ảnh khách hàng cung cấp
+              </span>
+            }
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+              marginBottom: '24px'
+            }}
+          >
+            <Row gutter={[16, 16]}>
+              {currentOrder.image.imageUrl && (
+                <Col xs={24} sm={8}>
+                  <Image src={currentOrder.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+                </Col>
+              )}
+              {currentOrder.image.image2 && (
+                <Col xs={24} sm={8}>
+                  <Image src={currentOrder.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+                </Col>
+              )}
+              {currentOrder.image.image3 && (
+                <Col xs={24} sm={8}>
+                  <Image src={currentOrder.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+                </Col>
+              )}
+              {!currentOrder.image.imageUrl && !currentOrder.image.image2 && !currentOrder.image.image3 && (
+                <Col span={24}>
+                  <Empty description="Khách hàng không cung cấp hình ảnh." />
+                </Col>
+              )}
+            </Row>
+          </Card>
         )}
 
         {currentOrder.report && (
@@ -1603,82 +1751,82 @@ ${externalProductsTable}
           </Card>
         )}
 
-        {(currentOrder?.status === 'MaterialPriceConfirmed' || 
-          (currentOrder?.status === 'DeterminingMaterialPrice' && 
-           (!currentOrder.externalProducts || currentOrder.externalProducts.length === 0))
+        {(currentOrder?.status === 'MaterialPriceConfirmed' ||
+          (currentOrder?.status === 'DeterminingMaterialPrice' &&
+            (!currentOrder.externalProducts || currentOrder.externalProducts.length === 0))
         ) && (
-          <Card
-            title="Xác nhận giá vật liệu"
-            style={{
-              borderRadius: '8px',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-              marginTop: '24px',
-              borderLeft: '5px solid #52c41a'
-            }}
-            styles={{ body: { textAlign: 'right' } }}
-          >
-            <Alert
-              message="Xác nhận giá vật liệu"
-              description={
-                <div>
-                  <p>
-                    Bạn sắp xác nhận giá vật liệu với tổng chi phí:
-                    <Text strong style={{ fontSize: '18px', color: '#f5222d', marginLeft: '8px' }}>
-                      {formatPrice(
-                        // Calculate total of regular products
-                        (currentOrder.serviceOrderDetails || []).reduce(
-                          (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
-                          0
-                        ) +
-                        // Add total of external products
-                        (currentOrder.externalProducts || []).reduce(
-                          (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
-                          0
-                        )
-                      )}
-                    </Text>
-                  </p>
-                  <p>
-                    Sau khi xác nhận, hệ thống sẽ gửi báo giá cho khách hàng và chuyển trạng thái đơn hàng sang "Đã xác định giá vật liệu".
-                  </p>
-                </div>
-              }
-              type="info"
-              showIcon
-              style={{ marginBottom: '16px', textAlign: 'left' }}
-            />
-            <Space size="middle">
-              <Button
-                danger
-                icon={<CloseCircleOutlined />}
-                onClick={handleRejectMaterialPrice}
-                size="middle"
-              >
-                Yêu cầu điều chỉnh giá vật liệu
-              </Button>
-              <Popconfirm
-                title={
+            <Card
+              title="Xác nhận giá vật liệu"
+              style={{
+                borderRadius: '8px',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+                marginTop: '24px',
+                borderLeft: '5px solid #52c41a'
+              }}
+              styles={{ body: { textAlign: 'right' } }}
+            >
+              <Alert
+                message="Xác nhận giá vật liệu"
+                description={
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                      Bạn có chắc chắn muốn <span style={{ color: '#52c41a' }}>DUYỆT mức giá vật liệu</span>?
-                    </div>
-                    <div style={{ fontSize: 13, color: '#595959' }}>
-                      Hành động này sẽ xác nhận giá vật liệu đã đúng và không thể hoàn tác.
-                    </div>
+                    <p>
+                      Bạn sắp xác nhận giá vật liệu với tổng chi phí:
+                      <Text strong style={{ fontSize: '18px', color: '#f5222d', marginLeft: '8px' }}>
+                        {formatPrice(
+                          // Calculate total of regular products
+                          (currentOrder.serviceOrderDetails || []).reduce(
+                            (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+                            0
+                          ) +
+                          // Add total of external products
+                          (currentOrder.externalProducts || []).reduce(
+                            (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+                            0
+                          )
+                        )}
+                      </Text>
+                    </p>
+                    <p>
+                      Sau khi xác nhận, hệ thống sẽ gửi báo giá cho khách hàng và chuyển trạng thái đơn hàng sang "Đã xác định giá vật liệu".
+                    </p>
                   </div>
                 }
-                onConfirm={handleApproveMaterialPrice}
-                okText="Xác nhận"
-                cancelText="Hủy"
-                placement="topRight"
-              >
-                <Button type="primary" icon={<CheckCircleOutlined />} size="middle">
-                  Duyệt giá vật liệu
+                type="info"
+                showIcon
+                style={{ marginBottom: '16px', textAlign: 'left' }}
+              />
+              <Space size="middle">
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  onClick={handleRejectMaterialPrice}
+                  size="middle"
+                >
+                  Yêu cầu điều chỉnh giá vật liệu
                 </Button>
-              </Popconfirm>
-            </Space>
-          </Card>
-        )}
+                <Popconfirm
+                  title={
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
+                        Bạn có chắc chắn muốn <span style={{ color: '#52c41a' }}>DUYỆT mức giá vật liệu</span>?
+                      </div>
+                      <div style={{ fontSize: 13, color: '#595959' }}>
+                        Hành động này sẽ xác nhận giá vật liệu đã đúng và không thể hoàn tác.
+                      </div>
+                    </div>
+                  }
+                  onConfirm={handleApproveMaterialPrice}
+                  okText="Xác nhận"
+                  cancelText="Hủy"
+                  placement="topRight"
+                >
+                  <Button type="primary" icon={<CheckCircleOutlined />} size="middle">
+                    Duyệt giá vật liệu
+                  </Button>
+                </Popconfirm>
+              </Space>
+            </Card>
+          )}
       </Card>
 
       <Modal

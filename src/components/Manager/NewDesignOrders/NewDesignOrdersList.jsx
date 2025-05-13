@@ -5,6 +5,7 @@ import useServiceOrderStore from '@/stores/useServiceOrderStore';
 import { format } from 'date-fns';
 import { EyeOutlined, ReloadOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import signalRService from '@/services/signalRService';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -41,21 +42,36 @@ const NewDesignOrdersList = () => {
     fetchData();
   }, [getServiceOrdersNoIdea]);
 
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+  
+        signalRService.on("messageReceived", (message) => {
+          console.log("SignalR message received:", message);
+          // Gọi lại API để cập nhật danh sách
+          getServiceOrdersNoIdea(true);
+        });
+      } catch (error) {
+        console.error("Failed to connect to SignalR hub:", error);
+      }
+    };
+  
+    setupSignalR();
+  
+    // Cleanup khi component unmount
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [getServiceOrdersNoIdea]);
+  
+
   // Apply filters and sorting whenever serviceOrders, searchText, statusFilter, or dateRange changes
   useEffect(() => {
     if (!serviceOrders) return;
 
     let filtered = [...serviceOrders];
     
-    // Debug output to see what data we're working with
-    console.log('Original service orders:', serviceOrders);
-    
-    // Check if modificationDate exists on the objects
-    if (serviceOrders.length > 0) {
-      console.log('Sample order modificationDate:', serviceOrders[0].modificationDate);
-      console.log('Sample order creationDate:', serviceOrders[0].creationDate);
-    }
-
     // Apply search filter (for ID or customer name)
     if (searchText) {
       const searchLower = searchText.toLowerCase();
@@ -87,21 +103,9 @@ const NewDesignOrdersList = () => {
       const dateA = a.modificationDate ? new Date(a.modificationDate) : new Date(a.creationDate);
       const dateB = b.modificationDate ? new Date(b.modificationDate) : new Date(b.creationDate);
       
-      // Debug the date comparison
-      if (filtered.length < 10) {
-        console.log(`Comparing: ${dateA} with ${dateB}, result: ${dateB - dateA}`);
-      }
-      
       return dateB - dateA; // Newest first
     });
     
-    // Debug the sorted results
-    console.log('Filtered and sorted orders:', filtered.slice(0, 3).map(order => ({
-      id: order.id,
-      modificationDate: order.modificationDate,
-      creationDate: order.creationDate
-    })));
-
     setFilteredOrders(filtered);
   }, [serviceOrders, searchText, statusFilter, dateRange]);
 
