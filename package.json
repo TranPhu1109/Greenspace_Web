@@ -62,7 +62,7 @@
     "lucide-react": "^0.479.0",
     "markdown-it": "^14.1.0",
     "moment": "^2.30.1",
-    "pdfjs-dist": "^5.1.91",
+    "pdfjs-dist": "^3.11.174",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
