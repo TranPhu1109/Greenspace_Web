@@ -18,11 +18,12 @@ import signalRService from "@/services/signalRService";
 import "./AdminLayout.scss";
 import useAuthStore from "@/stores/useAuthStore";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
+import ContructorSidebar from "./ContructorSidebar";
 
 const { Header, Content } = Layout;
 
 // List of roles allowed to access the admin layout
-const ALLOWED_ROLES = ["admin", "accountant", "staff", "designer", "manager"];
+const ALLOWED_ROLES = ["admin", "accountant", "staff", "designer", "manager", "contructor"];
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -198,6 +199,8 @@ const AdminLayout = () => {
         return <DesignerSidebar collapsed={collapsed} />;
       case "manager":
         return <ManagerSidebar collapsed={collapsed} />;
+      case "contructor":
+        return <ContructorSidebar collapsed={collapsed} />;
       default:
         // Redirect to home if role is not allowed
         navigate('/');

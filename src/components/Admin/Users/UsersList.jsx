@@ -91,19 +91,23 @@ const UsersList = () => {
       key: "phone",
     },
     {
-      title: "Địa chỉ",
+      title: "Địa chỉ", 
       dataIndex: "address",
       key: "address",
+      render: (address) => {
+        if (!address) return null;
+        return address.replace(/\|/g, ', ');
+      }
     },
-    {
-      title: "Vai trò",
-      dataIndex: "roleName",
-      key: "roleName",
-      render: (_, record) => {
-        const roleName = record.roleName || "Khách hàng";
-        return <Tag color="blue">{roleName}</Tag>;
-      },
-    },
+    // {
+    //   title: "Vai trò",
+    //   dataIndex: "roleName",
+    //   key: "roleName",
+    //   render: (_, record) => {
+    //     const roleName = record.roleName || "Khách hàng";
+    //     return <Tag color="blue">{roleName}</Tag>;
+    //   },
+    // },
     {
       title: "Hành động",
       key: "action",

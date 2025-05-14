@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Card, Descriptions, Tag, Button, Modal, Typography, Spin } from "antd";
-import { HomeOutlined, DollarOutlined } from "@ant-design/icons";
+import { Card, Descriptions, Tag, Button, Modal, Typography, Spin, notification } from "antd";
+import { HomeOutlined, DollarOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 
 const { Text } = Typography;
@@ -13,10 +13,21 @@ const DesignDetails = ({
   finalMaterialPriceStatuses,
   updateStatus,
   getServiceOrderById,
-  api
+  api,
+  data
 }) => {
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get deposit percentage safely with fallback to 50 if data is null or undefined
+  const getDepositPercentage = () => {
+    return data?.depositPercentage ?? 50;
+  };
+
+  // Calculate remaining percentage safely
+  const getRemainingPercentage = () => {
+    return 100 - getDepositPercentage();
+  };
 
   // Format function for displaying prices nicely
   const formatPriceDisplay = (price) => {
@@ -31,6 +42,12 @@ const DesignDetails = ({
     setIsPaymentModalVisible(true);
   };
 
+  // Check if deposit information should be shown
+  const shouldShowDepositInfo = () => {
+    const initialStatuses = ['Pending', 'ConsultingAndSketching', 'DeterminingDesignPrice', 'ReDeterminingDesignPrice', 'WaitDeposit'];
+    return order?.status && !initialStatuses.includes(order.status);
+  };
+
   const handleFinalPayment = async () => {
     if (!order) {
       Modal.error({ content: "Không tìm thấy thông tin đơn hàng. Vui lòng làm mới trang." });
@@ -39,8 +56,9 @@ const DesignDetails = ({
 
     setIsSubmitting(true);
     try {
-      // Calculate remaining payment amount (50% of design price + material price)
-      const remainingDesignFee = order.designPrice * 0.5; // 50% of design price
+      // Calculate remaining payment amount (remaining % of design price + material price)
+      const remainingPercent = getRemainingPercentage();
+      const remainingDesignFee = (order.designPrice || 0) * (remainingPercent / 100); 
       const materialPrice = order.materialPrice || 0;
       const totalPayment = remainingDesignFee + materialPrice;
 
@@ -61,7 +79,7 @@ const DesignDetails = ({
           walletId: walletId,
           serviceOrderId: order.id,
           amount: totalPayment,
-          description: `Thanh toán 50% phí thiết kế còn lại và giá vật liệu cho đơn hàng #${order.id.slice(0, 8)}`,
+          description: `Thanh toán ${getRemainingPercentage()}% phí thiết kế còn lại và giá vật liệu cho đơn hàng #${order.id.slice(0, 8)}`,
         });
 
         if (response.data) {
@@ -72,7 +90,14 @@ const DesignDetails = ({
             throw new Error("Cập nhật trạng thái không thành công");
           }
           
-          Modal.success({ content: "Thanh toán thành công! Đơn hàng của bạn đang được xử lý." });
+          // Modal.success({ content: "Thanh toán thành công! Đơn hàng của bạn đang được xử lý." });
+          notification.open({
+            message: 'Thành công',
+            description: 'Thanh toán thành công! Đơn hàng của bạn đang được xử lý.',
+            icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+            placement: 'topRight',
+            duration: 2,
+          });
           setIsPaymentModalVisible(false);
 
           // Fetch updated order data
@@ -103,6 +128,36 @@ const DesignDetails = ({
       setIsSubmitting(false);
     }
   };
+
+  // If order is null or undefined, render a loading state
+  if (!order) {
+    return (
+      <Card
+        title={
+          <span style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#4caf50',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <HomeOutlined />
+            Thông tin thiết kế
+          </span>
+        }
+        style={{
+          height: '100%',
+          borderRadius: '16px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <Spin tip="Đang tải thông tin thiết kế..." />
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -153,6 +208,17 @@ const DesignDetails = ({
               </span>
             )}
           </Descriptions.Item>
+          
+          {/* Display deposit amount when appropriate */}
+          {shouldShowDepositInfo() && order?.designPrice > 0 && (
+            <Descriptions.Item label="Đã thanh toán cọc giá thiết kế">
+              <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {formatPriceDisplay((order?.designPrice || 0) * (getDepositPercentage() / 100))}
+                <Tag color="blue" style={{ marginLeft: '8px' }}>{getDepositPercentage()}%</Tag>
+              </span>
+            </Descriptions.Item>
+          )}
+          
           <Descriptions.Item
             label={
               order?.status === 'DoneDesign' || order?.status === 6
@@ -176,16 +242,16 @@ const DesignDetails = ({
               || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
               || order?.status === "DeliveredSuccessfully"
               ? (
-                <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
-                  {formatPriceDisplay((order.designPrice || 0) + (order.materialPrice || 0))}
-                </span>
-              ) : (
                 order?.totalCost === undefined ? 'Đang tải...' :
                   order.totalCost === 0 ? (
                     <Tag color="gold">Chưa xác định tổng</Tag>
                   ) : (
                     <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPriceDisplay(order.totalCost)}</span>
                   )
+              ) : (
+                <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
+                  {formatPriceDisplay((order?.designPrice || 0) + (order?.materialPrice || 0))}
+                </span>
               )}
           </Descriptions.Item>
           <Descriptions.Item label="Ngày tạo">
@@ -193,7 +259,7 @@ const DesignDetails = ({
           </Descriptions.Item>
 
           {/* Payment Reminder for DoneDesign status */}
-          {(order?.status === 'DoneDesign') && (
+          {(order?.status === 'DoneDesign' || order?.status === 6) && (
             <Descriptions.Item label="">
               <Card 
                 style={{
@@ -205,7 +271,7 @@ const DesignDetails = ({
                 }}
               >
                 <Text type="warning" style={{ fontSize: '16px', fontWeight: '500' }}>
-                  Vui lòng thanh toán 50% phí thiết kế còn lại và giá vật liệu để tiếp tục.
+                  Vui lòng thanh toán {getRemainingPercentage()}% phí thiết kế còn lại và giá vật liệu để tiếp tục.
                 </Text>
                 <Button
                   type="primary"
@@ -213,7 +279,7 @@ const DesignDetails = ({
                   onClick={handleOpenPaymentModal}
                   style={{ width: '100%', marginTop: '12px', borderRadius: '4px' }}
                 >
-                  Thanh toán ngay: {formatPriceDisplay((order.designPrice || 0) * 0.5 + (order.materialPrice || 0))}
+                  Thanh toán ngay: {formatPriceDisplay(((order?.designPrice || 0) * (getRemainingPercentage() / 100)) + (order?.materialPrice || 0))}
                 </Button>
               </Card>
             </Descriptions.Item>
@@ -242,7 +308,7 @@ const DesignDetails = ({
 
       {/* Payment Modal */}
       <Modal
-        title="Thanh toán 50% phí thiết kế còn lại và giá vật liệu"
+        title={`Thanh toán ${getRemainingPercentage()}% phí thiết kế còn lại và giá vật liệu`}
         open={isPaymentModalVisible}
         onOk={handleFinalPayment}
         onCancel={() => setIsPaymentModalVisible(false)}
@@ -254,12 +320,12 @@ const DesignDetails = ({
           <>
             <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #f0f0f0', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <Text>Phí thiết kế đã thanh toán (50%):</Text>
-                <Text>{formatPrice((order?.designPrice || 0) * 0.5)}</Text>
+                <Text>Phí thiết kế đã thanh toán ({getDepositPercentage()}%):</Text>
+                <Text>{formatPrice((order?.designPrice || 0) * (getDepositPercentage() / 100))}</Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <Text>Phí thiết kế còn lại (50%):</Text>
-                <Text strong style={{ color: '#1890ff' }}>{formatPrice((order?.designPrice || 0) * 0.5)}</Text>
+                <Text>Phí thiết kế còn lại ({getRemainingPercentage()}%):</Text>
+                <Text strong style={{ color: '#1890ff' }}>{formatPrice((order?.designPrice || 0) * (getRemainingPercentage() / 100))}</Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <Text>Giá vật liệu:</Text>
@@ -268,7 +334,7 @@ const DesignDetails = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #f0f0f0' }}>
                 <Text strong>Tổng thanh toán:</Text>
                 <Text strong style={{ color: '#f5222d', fontSize: '16px' }}>
-                  {formatPrice((order?.designPrice || 0) * 0.5 + (order?.materialPrice || 0))}
+                  {formatPrice((order?.designPrice || 0) * (getRemainingPercentage() / 100) + (order?.materialPrice || 0))}
                 </Text>
               </div>
             </div>
@@ -281,11 +347,11 @@ const DesignDetails = ({
             }}>
               <p style={{ margin: 0 }}>
                 <span style={{ color: '#52c41a', marginRight: '8px' }}>✓</span>
-                Thanh toán này bao gồm 50% phí thiết kế còn lại và toàn bộ giá vật liệu
+                Thanh toán này bao gồm {getRemainingPercentage()}% phí thiết kế còn lại và toàn bộ giá vật liệu
               </p>
               <p style={{ margin: '8px 0 0 0' }}>
                 <span style={{ color: '#52c41a', marginRight: '8px' }}>✓</span>
-                Sau khi thanh toán, đơn hàng của bạn sẽ được xử lý và chuyển sang giai đoạn sản xuất
+                Sau khi thanh toán, đơn hàng của bạn sẽ được xử lý và giao đến bạn trong thời gian sớm nhất
               </p>
             </div>
           </>

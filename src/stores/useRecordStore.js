@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import api from '@/api/api';
+import { create } from "zustand";
+import api from "@/api/api";
 
 const useRecordStore = create((set) => ({
   sketchRecords: [],
@@ -8,39 +8,59 @@ const useRecordStore = create((set) => ({
   designRecords: [],
 
   // Get sketch records for a service order
-  getRecordSketch: async (orderServiceId) => {
-    set({ isLoading: true, error: null });
+  getRecordSketch: async (orderServiceId, silent = false) => {
+    if (!silent) set({ isLoading: true, error: null });
     try {
       set({ sketchRecords: [] });
-      const response = await api.get(`/api/recordsketch/${orderServiceId}/orderservice`);
-      set({ 
+      const response = await api.get(
+        `/api/recordsketch/${orderServiceId}/orderservice`
+      );
+      set({
         sketchRecords: response.data,
-        isLoading: false 
+        ...(silent ? {} : { isLoading: false }),
       });
+
+      // const existing = get().sketchRecords;
+      // const isSame = JSON.stringify(existing) === JSON.stringify(response.data);
+      // if (!isSame) {
+      //   set({
+      //     sketchRecords: response.data,
+      //     ...(silent ? {} : { isLoading: false }),
+      //   });
+      // }
+
       return response.data;
     } catch (error) {
-      set({ 
+      set({
         error: error.message,
-        isLoading: false 
+        ...(silent ? {} : { isLoading: false }),
       });
       throw error;
     }
   },
 
   // Get design records for a service order
-  getRecordDesign: async (orderServiceId) => {
-    set({ isLoading: true, error: null });
+  getRecordDesign: async (orderServiceId, silent = false) => {
+    if (!silent) set({ isLoading: true, error: null });
     try {
-      const response = await api.get(`/api/recorddesign/${orderServiceId}/orderservice`);
-      set({ 
+      const response = await api.get(
+        `/api/recorddesign/${orderServiceId}/orderservice`
+      );
+      set({
         designRecords: response.data,
-        isLoading: false 
+        ...(silent ? {} : { isLoading: false }),
       });
+        // const existing = get().designRecords;
+        // const isSame = JSON.stringify(existing) === JSON.stringify(response.data);
+        // if (!isSame) {
+        //   set({ designRecords: response.data, ...(silent ? {} : { isLoading: false }) });
+        // }
+
       return response.data;
     } catch (error) {
-      set({ 
+      set({
         error: error.message,
-        isLoading: false 
+        ...(silent ? {} : { isLoading: false }),
       });
       throw error;
     }
@@ -51,24 +71,24 @@ const useRecordStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await api.put(`/api/recordsketch/${recordId}`, {
-        isSelected: true
+        isSelected: true,
       });
-      
+
       // Update the local state to reflect the change
       set((state) => ({
-        sketchRecords: state.sketchRecords.map(record => 
-          record.id === recordId 
+        sketchRecords: state.sketchRecords.map((record) =>
+          record.id === recordId
             ? { ...record, isSelected: true }
             : { ...record, isSelected: false }
         ),
-        isLoading: false
+        isLoading: false,
       }));
-      
+
       return response.data;
     } catch (error) {
-      set({ 
+      set({
         error: error.message,
-        isLoading: false 
+        isLoading: false,
       });
       throw error;
     }
@@ -79,24 +99,24 @@ const useRecordStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await api.put(`/api/recorddesign/${recordId}`, {
-        isSelected: true
+        isSelected: true,
       });
-      
+
       // Update the local state to reflect the change
       set((state) => ({
-        designRecords: state.designRecords.map(record => 
-          record.id === recordId 
+        designRecords: state.designRecords.map((record) =>
+          record.id === recordId
             ? { ...record, isSelected: true }
             : { ...record, isSelected: false }
         ),
-        isLoading: false
+        isLoading: false,
       }));
-      
+
       return response.data;
     } catch (error) {
-      set({ 
+      set({
         error: error.message,
-        isLoading: false 
+        isLoading: false,
       });
       throw error;
     }
@@ -108,9 +128,9 @@ const useRecordStore = create((set) => ({
       sketchRecords: [],
       designRecords: [],
       isLoading: false,
-      error: null
+      error: null,
     });
-  }
+  },
 }));
 
 export default useRecordStore;

@@ -21,6 +21,7 @@ import {
   Statistic,
   Empty,
   Tooltip,
+  Alert,
 } from "antd";
 import {
   UserOutlined,
@@ -34,6 +35,8 @@ import {
   SyncOutlined,
   UserAddOutlined,
   ShoppingOutlined,
+  CalendarOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from 'react-router-dom';
 import useServiceOrderStore from '@/stores/useServiceOrderStore';
@@ -48,6 +51,7 @@ import useContractStore from "@/stores/useContractStore";
 import useShippingStore from "@/stores/useShippingStore";
 import useUserStore from "@/stores/useUserStore";
 import signalRService from "@/services/signalRService";
+import dayjs from "dayjs";
 
 const { TextArea } = Input;
 const { Step } = Steps;
@@ -672,6 +676,57 @@ const NewDesignOrderDetail = () => {
             </div>
           </Card>
         </Col>
+
+        {/* Add prominent delivery schedule notification when available */}
+        {selectedOrder.contructionDate && selectedOrder.contructionTime && selectedOrder.status === "PaymentSuccess" && (
+          <Col span={24}>
+            <Alert
+              type="info"
+              showIcon
+              icon={<CalendarOutlined style={{ fontSize: '24px', color: '#1890ff' }} />}
+              message={
+                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                  Khách hàng đã đặt lịch giao hàng
+                </div>
+              }
+              description={
+                <div style={{ 
+                  padding: '10px', 
+                  backgroundColor: '#f0f7ff', 
+                  borderRadius: '8px',
+                  marginTop: '8px'
+                }}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Badge status="processing" />
+                      <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                        Ngày giao hàng: {dayjs(selectedOrder.contructionDate).format('DD/MM/YYYY')}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Badge status="processing" />
+                      <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                        Thời gian: {selectedOrder.contructionTime}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Badge status="warning" />
+                      <span style={{ fontSize: '15px' }}>
+                        Địa chỉ giao hàng: {selectedOrder.address?.replace(/\|/g, ', ')}
+                      </span>
+                    </div>
+                  </Space>
+                </div>
+              }
+              style={{ 
+                border: '1px solid #91d5ff',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+            />
+          </Col>
+        )}
+        
         <Col span={16}>
           <Card
             title="Thông tin đơn hàng"
@@ -751,77 +806,7 @@ const NewDesignOrderDetail = () => {
                   </ul>
                 </div>
               )}
-            {/* {selectedOrder.image && (
-              <div className="customer-images">
-                <h4>Hình ảnh từ khách hàng:</h4>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {[
-                    selectedOrder.image.imageUrl,
-                    selectedOrder.image.image2,
-                    selectedOrder.image.image3,
-                  ]
-                    .filter((img) => img) // Filter out undefined/null images
-                    .map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          width: "150px",
-                          height: "150px",
-                          position: "relative",
-                          border: "1px solid #e8e8e8",
-                          borderRadius: "8px",
-                          overflow: "hidden",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <img
-                          src={imageUrl}
-                          alt={`Customer image ${index + 1}`}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                          onClick={() => {
-                            const modal = Modal.info({
-                              icon: null,
-                              content: (
-                                <img
-                                  src={imageUrl}
-                                  alt={`Enlarged customer image ${index + 1}`}
-                                  style={{
-                                    width: "100%",
-                                    maxHeight: "80vh",
-                                    objectFit: "contain",
-                                  }}
-                                />
-                              ),
-                              okText: "Đóng",
-                              maskClosable: true,
-                              width: "80%",
-                            });
-                          }}
-                        />
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            padding: "4px",
-                            background: "rgba(0,0,0,0.5)",
-                            color: "white",
-                            fontSize: "12px",
-                            textAlign: "center",
-                          }}
-                        >
-                          Hình ảnh thiết kế {index + 1}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )} */}
+            
             <Divider />
             {selectedOrder.serviceOrderDetails &&
               selectedOrder.serviceOrderDetails.length > 0 && (
@@ -874,10 +859,11 @@ const NewDesignOrderDetail = () => {
                           </Space>
                         )}
                       />
-                      <Table.Column title="Số lượng" dataIndex="quantity" />
+                      <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
                       <Table.Column
                         title="Đơn giá"
                         dataIndex="price"
+                        align="right"
                         render={(price) => (
                           <span>{price.toLocaleString("vi-VN")} đ</span>
                         )}
@@ -885,6 +871,7 @@ const NewDesignOrderDetail = () => {
                       <Table.Column
                         title="Thành tiền"
                         dataIndex="totalPrice"
+                        align="right"
                         render={(totalPrice) => (
                           <span>{totalPrice.toLocaleString("vi-VN")} đ</span>
                         )}
@@ -893,6 +880,84 @@ const NewDesignOrderDetail = () => {
                   </div>
                 </div>
               )}
+              
+            {/* External Products Section */}
+            {selectedOrder.externalProducts && selectedOrder.externalProducts.length > 0 && (
+              <div className="external-products">
+                <h4 style={{ marginTop: "20px" }}>Sản phẩm thêm mới (ngoài hệ thống):</h4>
+                <div style={{ marginBottom: "10px" }}>
+                  <Table
+                    dataSource={selectedOrder.externalProducts}
+                    pagination={false}
+                    size="small"
+                    bordered
+                    rowKey="id"
+                  >
+                    <Table.Column
+                      title="Sản phẩm"
+                      key="name"
+                      render={(record) => (
+                        <Space>
+                          {record.imageURL && (
+                            <img
+                              src={record.imageURL}
+                              alt={record.name}
+                              style={{
+                                width: 50,
+                                height: 50,
+                                borderRadius: "5px",
+                                objectFit: "cover",
+                              }}
+                            />
+                          )}
+                          <div>
+                            <div>{record.name}</div>
+                            {record.description && (
+                              <Tooltip 
+                                title={record.description}
+                                styles={{
+                                  body: {
+                                    backgroundColor: '#ffffff',
+                                    color: '#000000',
+                                    fontSize: 13,
+                                    padding: 10,
+                                    maxWidth: 300,
+                                    borderRadius: 4,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                  }
+                                }}
+                              >
+                                <div style={{ fontSize: '12px', color: '#666', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {record.description}
+                                </div>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </Space>
+                      )}
+                    />
+                    <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
+                    <Table.Column
+                      title="Đơn giá"
+                      dataIndex="price"
+                      align="right"
+                      render={(price) => (
+                        <span>{price?.toLocaleString("vi-VN")} đ</span>
+                      )}
+                    />
+                    <Table.Column
+                      title="Thành tiền"
+                      dataIndex="totalPrice"
+                      align="right"
+                      render={(totalPrice) => (
+                        <span>{totalPrice?.toLocaleString("vi-VN")} đ</span>
+                      )}
+                    />
+                  </Table>
+                </div>
+              </div>
+            )}
+            
             {selectedOrder.status === "DeterminingMaterialPrice" && (
               <Button
                 type="primary"
@@ -1024,7 +1089,7 @@ const NewDesignOrderDetail = () => {
                   </Space>
                 }
               >
-                {selectedOrder.address}
+                {selectedOrder.address?.replace(/\|/g, ', ')}
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -1052,6 +1117,36 @@ const NewDesignOrderDetail = () => {
                   {getStatusDisplay(selectedOrder.status)}
                 </Tag>
               </Descriptions.Item>
+              
+              {/* Add construction date and time if available */}
+              {/* {selectedOrder.contructionDate && selectedOrder.contructionTime && (
+                <Descriptions.Item
+                  label={
+                    <Space>
+                      <CalendarOutlined
+                        style={{
+                          color: "#4caf50",
+                          fontSize: "18px",
+                          backgroundColor: "#f0f7f0",
+                          padding: "10px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      />
+                      <span style={{ color: "#666", fontSize: "15px" }}>
+                        Lịch giao hàng
+                      </span>
+                    </Space>
+                  }
+                >
+                  <div>
+                    <div><strong>Ngày:</strong> {dayjs(selectedOrder.contructionDate).format('DD/MM/YYYY')}</div>
+                    <div><strong>Giờ:</strong> {selectedOrder.contructionTime}</div>
+                  </div>
+                </Descriptions.Item>
+              )} */}
               
               <Descriptions.Item
                 label={
@@ -1165,6 +1260,7 @@ const NewDesignOrderDetail = () => {
                     backgroundColor: "#4CAF50",
                     borderColor: "#4CAF50",
                     width: "100%",
+                    marginBottom: "8px"
                   }}
                   onClick={() => {
                     Modal.confirm({
@@ -1177,6 +1273,34 @@ const NewDesignOrderDetail = () => {
                   }}
                 >
                   Xác nhận đơn hàng
+                </Button>
+              )}
+
+              {/* Add Assign to Contractor Button */}
+              {selectedOrder.status === "PaymentSuccess" && (
+                <Button
+                  type="primary"
+                  icon={<TeamOutlined />}
+                  style={{
+                    width: "100%",
+                    marginBottom: "8px",
+                    backgroundColor: "#1890ff",
+                    borderColor: "#1890ff"
+                  }}
+                  onClick={() => {
+                    navigate("/staff/schedule-contructor", { 
+                      state: { 
+                        serviceOrderId: selectedOrder.id,
+                        customerName: selectedOrder.userName,
+                        address: selectedOrder.address,
+                        contructionDate: selectedOrder.contructionDate,
+                        contructionTime: selectedOrder.contructionTime,
+                        // autoOpenModal: true 
+                      } 
+                    });
+                  }}
+                >
+                  Chọn đội thi công giao hàng
                 </Button>
               )}
 

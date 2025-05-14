@@ -23,10 +23,12 @@ export const getStatusText = (status) => {
     'DeterminingMaterialPrice': "Đang thiết kế",
     20: "Đang thiết kế", // Hide ReDesign
     'ReDesign': "Đang thiết kế",
-    6: "Thiết kế hoàn tất",
-    'DoneDesign': "Thiết kế hoàn tất",
-    23: "Chờ thanh toán chi phí còn lại",
-    'DoneDeterminingMaterialPrice': "Chờ thanh toán chi phí còn lại",
+    33: "Đang thiết kế",
+    'MaterialPriceConfirmed': "Đang thiết kế",
+    6: "Thanh toán phí thiết kế còn lại",
+    'DoneDesign': "Thanh toán phí thiết kế còn lại",
+    23: "Chọn bản thiết kế",
+    'DoneDeterminingMaterialPrice': "Chọn bản thiết kế",
     7: "Thanh toán thành công & chờ xác nhận hàng",
     'PaymentSuccess': "Thanh toán thành công & chờ xác nhận hàng",
     8: "Đang chuẩn bị hàng",
@@ -51,6 +53,12 @@ export const getStatusText = (status) => {
     'Refund': "Đang hoàn tiền",
     17: "Đã hoàn tiền",
     'DoneRefund': "Đã hoàn tiền",
+    27: "Đang lắp đặt",
+    'Installing': "Đang lắp đặt",
+    28: "Đã lắp đặt xong",
+    'DoneInstalling': "Đã lắp đặt xong",
+    29: "Yêu cầu lắp đặt lại",
+    'ReInstall': "Yêu cầu lắp đặt lại",
   };
   
   // Return mapped text or the original status if not found
@@ -82,6 +90,8 @@ export const getStatusColor = (status) => {
     'DeterminingMaterialPrice': "cyan",
     20: "cyan", // Hide ReDesign
     'ReDesign': "cyan",
+    33: "cyan",
+    'MaterialPriceConfirmed': "cyan",
     6: "gold",
     'DoneDesign': "gold",
     23: "purple",
@@ -110,6 +120,12 @@ export const getStatusColor = (status) => {
     'Refund': "orange",
     17: "default",
     'DoneRefund': "default",
+    27: "blue",
+    'Installing': "blue",
+    28: "green",
+    'DoneInstalling': "green",
+    29: "red",
+    'ReInstall': "red",
   };
   
   // Return mapped color or 'default'
@@ -143,6 +159,7 @@ export const showOnlyPhase0Statuses = [
   'DoneDeterminingMaterialPrice',   // 23
   'ReDeterminingDesignPrice',       // 24
   'ExchangeProduct',                // 25
+  'MaterialPriceConfirmed',         // 33
 ];
 
 // Define statuses where ALL sketch phases are shown
@@ -164,6 +181,7 @@ export const showAllPhasesStatuses = [
   'Warning',                    // 15
   "ReConsultingAndSketching",   // 19
   "ReDesign",                   // 20
+  'MaterialPriceConfirmed',     // 33
 ];
 
 // Define statuses where design records should be shown
@@ -181,6 +199,7 @@ export const showDesignRecordsStatuses = [
   'CompleteOrder',              // 13
   'Warning',                    // 15
   'ReDesign',                   // 20
+  'MaterialPriceConfirmed',     // 33
 ];
 
 // Define statuses where contract should be visible
@@ -199,6 +218,7 @@ export const contractVisibleStatuses = [
   'DeliveredSuccessfully',      // 12
   'CompleteOrder',              // 13
   'Warning',                    // 15
+  'MaterialPriceConfirmed',     // 33
 ];
 
 // Define numeric status codes where contract should be visible
@@ -235,4 +255,5 @@ export const approvedDesignPriceStatuses = [
   'CompleteOrder',              // 13
   'Warning',                    // 15
   'ReDesign',                   // 20
+  'MaterialPriceConfirmed',     // 33
 ]; 

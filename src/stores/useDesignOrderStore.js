@@ -85,7 +85,7 @@ const useDesignOrderStore = create((set, get) => ({
     }
   },
 
-  updateStatus: async (orderId, newStatus, deliveryCode = "") => {
+  updateStatus: async (orderId, newStatus, deliveryCode = "", reportManger = "", reportAccoutant = "") => {
     try {
       set({ isLoading: true, error: null });
       
@@ -123,7 +123,9 @@ const useDesignOrderStore = create((set, get) => ({
       
       const response = await axios.put(`/api/serviceorder/status/${orderId}`, { 
         status: numericStatus,
-        deliveryCode: deliveryCode || "" 
+        deliveryCode: deliveryCode || "",
+        reportManger: reportManger || "",
+        reportAccoutant: reportAccoutant || "",
       });
       
       // Update the order in the store

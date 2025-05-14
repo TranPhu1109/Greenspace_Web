@@ -327,7 +327,7 @@ const NewDesignOrdersList = () => {
         <div className="requirements-preview">
           <Tooltip
             title={<span className="html-preview" dangerouslySetInnerHTML={{ __html: text }}></span>}
-            color="orange"
+            color="#fff"
             placement="topLeft"
           >
             <span

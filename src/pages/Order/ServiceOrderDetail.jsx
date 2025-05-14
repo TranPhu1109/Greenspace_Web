@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import parse from 'html-react-parser';
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Typography,
@@ -17,7 +18,10 @@ import {
   Descriptions,
   Space,
   Image,
-  Divider
+  Divider,
+  DatePicker,
+  TimePicker,
+  Form
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -27,8 +31,13 @@ import {
   UploadOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  CalendarOutlined,
+  ToolOutlined,
+  CheckOutlined,
+  ExclamationCircleOutlined
 } from "@ant-design/icons";
+import dayjs from "dayjs";
 
 // Import custom components
 import CustomerInfo from "./components/OrderInfo/CustomerInfo";
@@ -39,6 +48,7 @@ import ContractSection from "./components/ContractSection/ContractSection";
 import OrderTimeline from "./components/Timeline/OrderTimeline";
 import ProductsList from "./components/ProductsList/ProductsList";
 import OriginalImages from "./components/OriginalImages/OriginalImages";
+import DeliveryScheduler from "./components/DeliveryScheduler/DeliveryScheduler";
 
 // Import stores
 import useServiceOrderStore from "@/stores/useServiceOrderStore";
@@ -110,6 +120,27 @@ const ServiceOrderDetail = () => {
   // Loading and submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingDesignRecords, setLoadingDesignRecords] = useState(false);
+
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [reportExpanded, setReportExpanded] = useState(false);
+
+  const [reinstallModalVisible, setReinstallModalVisible] = useState(false);
+  const [reinstallForm] = Form.useForm();
+  const [reinstallLoading, setReinstallLoading] = useState(false);
+
+  const clampStyle = {
+    display: '-webkit-box',
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 5,
+    overflow: 'hidden',
+    maxHeight: 'calc(1.8em * 5)',    // 1.8 = line-height của bạn
+    transition: 'max-height 0.3s ease',
+  };
+  const expandStyle = {
+    WebkitLineClamp: 'unset',
+    overflow: 'visible',
+    maxHeight: 'none',
+  };
 
   const componentId = useRef("service-order");
 
@@ -516,7 +547,7 @@ const ServiceOrderDetail = () => {
       setLocalError(null);
 
       // Use a loading state to prevent flickering
-      message.loading({ content: "Đang cập nhật dữ liệu...", key: "refreshData", duration: 0 });
+      // message.loading({ content: "Đang cập nhật dữ liệu...", key: "refreshData", duration: 0 });
 
       // Use the silentRefreshData function with loading indicator
       const result = await window.silentRefreshData(orderId, {
@@ -549,27 +580,168 @@ const ServiceOrderDetail = () => {
     }
   };
 
-  // Update handleCompleteOrder to use refreshAllData
-  const handleCompleteOrder = async () => {
+  // Function to handle completing the order successfully
+  const handleCompleteInstallation = async () => {
     try {
-      const response = await updateStatus(
-        order.id,
-        "CompleteOrder",
-        order.deliveryCode
-      );
+      Modal.confirm({
+        title: 'Xác nhận hoàn thành đơn hàng',
+        content: 'Bạn có chắc chắn muốn xác nhận đơn hàng đã được lắp đặt hoàn tất và hài lòng?',
+        icon: <CheckOutlined style={{ color: '#52c41a' }} />,
+        okText: 'Xác nhận',
+        cancelText: 'Hủy',
+        onOk: async () => {
+          message.loading({ content: 'Đang xử lý...', key: 'completeInstallation' });
+          
+          // First update order status to Successfully (31)
+          const orderResponse = await api.put(`/api/serviceorder/status/${id}`, {
+            status: 31, // Successfully
+            reportManger: "",
+            reportAccoutant: ""
+          });
 
-      if (response === "Update Successfully!") {
-        message.success("Đã xác nhận hoàn thành đơn hàng");
+          // Find most recent workTask and update it to Completed (6)
+          if (order?.workTasks && order.workTasks.length > 0) {
+            // Sort by creationDate (newest first)
+            const sortedTasks = [...order.workTasks].sort((a, b) => 
+              new Date(b.creationDate) - new Date(a.creationDate)
+            );
+            
+            const latestTask = sortedTasks[0];
+            
+            const taskResponse = await api.put(`/api/worktask/${latestTask.id}`, {
+              serviceOrderId: order.id,
+              userId: latestTask.userId,
+              dateAppointment: order.contructionDate,
+              timeAppointment: order.contructionTime,
+              status: 6, // Completed
+              note: "Khách hàng đã xác nhận hoàn thành lắp đặt và hài lòng với sản phẩm"
+            });
+          } 
+          // Fallback to using worktaskId if workTasks not available
+          else if (order?.worktaskId) {
+            const taskResponse = await api.put(`/api/worktask/${order.worktaskId}`, {
+              serviceOrderId: order.id,
+              userId: order.userId,
+              dateAppointment: order.contructionDate,
+              timeAppointment: order.contructionTime,
+              status: 6, // Completed
+              note: "Khách hàng đã xác nhận hoàn thành lắp đặt và hài lòng với sản phẩm"
+            });
+          }
 
-        // Use refreshAllData instead of multiple separate fetch calls
-        await refreshAllData(order.id);
-      } else {
-        message.error("Cập nhật trạng thái không thành công");
-      }
+          message.success({ content: 'Xác nhận hoàn thành đơn hàng thành công', key: 'completeInstallation' });
+          
+          // Refresh order data
+          await refreshAllData(id);
+        }
+      });
     } catch (error) {
-      console.error("Error completing order:", error);
-      message.error("Không thể xác nhận hoàn thành đơn hàng");
+      console.error("Error completing installation:", error);
+      message.error("Không thể hoàn thành đơn hàng: " + error.message);
     }
+  };
+
+  // Function to request reinstallation with time selection
+  const showReinstallModal = () => {
+    reinstallForm.resetFields();
+    
+    // Set default date/time values based on current time
+    const today = dayjs();
+    const defaultDate = today.add(2, 'day'); // Mặc định là 2 ngày sau ngày hiện tại
+    const defaultTime = dayjs('09:00', 'HH:mm');
+    
+    reinstallForm.setFieldsValue({
+      date: defaultDate,
+      time: defaultTime
+    });
+    
+    setReinstallModalVisible(true);
+  };
+
+  const handleReinstallCancel = () => {
+    setReinstallModalVisible(false);
+  };
+
+  const handleReinstallSubmit = async () => {
+    try {
+      const values = await reinstallForm.validateFields();
+      setReinstallLoading(true);
+      
+      // Format the date and time for API
+      const contructionDate = values.date.format('YYYY-MM-DD');
+      const contructionTime = values.time.format('HH:mm:00'); // Đảm bảo format giống với DeliveryScheduler
+      const reason = values.reason; // Get reason from form
+      
+      // Step 1: Set construction date and time
+      const contructorResponse = await api.put(`/api/serviceorder/contructor/${id}`, {
+        contructionDate: contructionDate,
+        contructionTime: contructionTime,
+        contructionPrice: 0
+      });
+      
+      if (contructorResponse.status !== 200) {
+        throw new Error('Không thể cập nhật thời gian lắp đặt lại');
+      }
+      
+      // Step 2: Update order status to ReInstall (29)
+      const orderResponse = await api.put(`/api/serviceorder/status/${id}`, {
+        status: 29, // ReInstall
+        reportManger: "",
+        reportAccoutant: ""
+      });
+
+      // Step 3: Find most recent workTask and update it to ReInstall (10)
+      if (order?.workTasks && order.workTasks.length > 0) {
+        // Sort by creationDate (newest first)
+        const sortedTasks = [...order.workTasks].sort((a, b) => 
+          new Date(b.creationDate) - new Date(a.creationDate)
+        );
+        
+        const latestTask = sortedTasks[0];
+        
+        const taskResponse = await api.put(`/api/worktask/${latestTask.id}`, {
+          serviceOrderId: order.id,
+          userId: latestTask.userId,
+          dateAppointment: contructionDate,
+          timeAppointment: contructionTime,
+          status: 10, // ReInstall
+          note: reason // Use the reason provided in the form
+        });
+      } 
+      // Fallback to using worktaskId if workTasks not available
+      else if (order?.worktaskId) {
+        const taskResponse = await api.put(`/api/worktask/${order.worktaskId}`, {
+          serviceOrderId: order.id,
+          userId: order.userId,
+          dateAppointment: contructionDate,
+          timeAppointment: contructionTime,
+          status: 10, // ReInstall
+          note: reason // Use the reason provided in the form
+        });
+      }
+
+      message.success('Đã gửi yêu cầu lắp đặt lại thành công');
+      setReinstallModalVisible(false);
+      
+      // Refresh order data
+      await refreshAllData(id);
+    } catch (error) {
+      console.error("Error requesting reinstallation:", error);
+      message.error("Không thể gửi yêu cầu lắp đặt lại: " + error.message);
+    } finally {
+      setReinstallLoading(false);
+    }
+  };
+
+  // Disable dates before today + 2 days (match DeliveryScheduler logic)
+  const disabledDate = (current) => {
+    const minAllowedDate = dayjs().add(2, 'day');
+    return current && current < minAllowedDate.startOf('day');
+  };
+
+  // Modify the original handleRequestReinstall to show modal instead
+  const handleRequestReinstall = () => {
+    showReinstallModal();
   };
 
   // Main content render
@@ -641,9 +813,11 @@ const ServiceOrderDetail = () => {
               </div>
             }
             extra={
-              <Tag color={getStatusColor(order?.status)} size="large">
-                {getStatusText(order?.status)}
-              </Tag>
+              <div>
+                <Tag color={getStatusColor(order?.status)} size="large">
+                  {getStatusText(order?.status)}
+                </Tag>
+              </div>
             }
           >
             {/* Customer and Design Information */}
@@ -656,15 +830,79 @@ const ServiceOrderDetail = () => {
                 <DesignDetails
                   order={order}
                   formatPrice={formatPrice}
-                  handleCompleteOrder={handleCompleteOrder}
+                  handleCompleteOrder={handleCompleteInstallation}
                   approvedDesignPriceStatuses={approvedDesignPriceStatuses}
                   finalMaterialPriceStatuses={finalMaterialPriceStatuses}
                   updateStatus={updateStatus}
                   getServiceOrderById={getServiceOrderById}
                   api={api}
+                  data={data}
                 />
               </Col>
             </Row>
+
+            {/* Delivery Scheduler Component - show only in PaymentSuccess status */}
+            {(order?.status === "PaymentSuccess" || (order?.contructionDate && order?.contructionTime)) && (
+              <DeliveryScheduler
+                order={order}
+                refreshAllData={refreshAllData}
+                api={api}
+              />
+            )}
+
+            {/* Installation Action Buttons - Only show when status is DoneInstalling (28) */}
+            {(order?.status === "DoneInstalling" || order?.status === 28) && (
+              <Card 
+                title={
+                  <span style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#4caf50',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <ToolOutlined />
+                    Thao tác lắp đặt
+                  </span>
+                }
+                style={{
+                  borderRadius: '16px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                  marginBottom: '16px'
+                }}
+              >
+                <div style={{  display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <Alert
+                    message="Thông báo"
+                    description="Cửa hàng đã hoàn thành lắp đặt sản phẩm. Vui lòng xác nhận nếu bạn hài lòng với kết quả lắp đặt hoặc yêu cầu lắp đặt lại nếu có vấn đề."
+                    type="info"
+                    showIcon
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+                    <Button 
+                      type="primary" 
+                      danger
+                      icon={<ToolOutlined />}
+                      onClick={handleRequestReinstall}
+                      size="large"
+                    >
+                      Yêu cầu lắp đặt lại
+                    </Button>
+                    <Button 
+                      type="primary" 
+                      icon={<CheckOutlined />}
+                      style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                      onClick={handleCompleteInstallation}
+                      size="large"
+                    >
+                      Xác nhận hoàn thành
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {/* Description Section */}
             <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
               <Col xs={24} md={12} style={{ display: 'flex' }}>
@@ -690,18 +928,24 @@ const ServiceOrderDetail = () => {
                       borderRadius: '16px',
                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                     }}
-                    bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                    styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                   >
                     <div
                       className="html-preview"
+                      style={descExpanded
+                        ? { ...clampStyle, ...expandStyle }
+                        : clampStyle
+                      }
                       dangerouslySetInnerHTML={{ __html: order.description }}
-                      style={{
-                        fontSize: '15px',
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                        flex: 1
-                      }}
                     />
+                    <Button
+                      type="link"
+                      onClick={() => setDescExpanded(!descExpanded)}
+                      style={{ alignSelf: 'flex-end', padding: 0 }}
+                    >
+                      {descExpanded ? 'Ẩn bớt' : 'Xem thêm'}
+                    </Button>
+
                   </Card>
                 )}
               </Col>
@@ -727,14 +971,25 @@ const ServiceOrderDetail = () => {
                     borderRadius: '16px',
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                   }}
-                  bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                  styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column' } }}
                 >
                   {order?.skecthReport ? (
-                    <div
-                      className="html-preview"
-                      dangerouslySetInnerHTML={{ __html: order.skecthReport }}
-                      style={{ flex: 1 }}
-                    />
+                    <>
+                      <div className="html-preview"
+                        style={reportExpanded
+                          ? { ...clampStyle, ...expandStyle }
+                          : clampStyle
+                        }
+                        dangerouslySetInnerHTML={{ __html: order.skecthReport }}
+                      />
+                      <Button
+                        type="link"
+                        onClick={() => setReportExpanded(!reportExpanded)}
+                        style={{ alignSelf: 'flex-end', padding: 0 }}
+                      >
+                        {reportExpanded ? 'Ẩn bớt' : 'Xem thêm'}
+                      </Button>
+                    </>
                   ) : (
                     <div style={{
                       flex: 1,
@@ -792,6 +1047,7 @@ const ServiceOrderDetail = () => {
               formatPrice={formatPrice}
               sketchRecords={sketchRecords}
               updateTaskOrder={updateTaskOrder}
+              data={data}
             />
 
             {/* Products List Component */}
@@ -839,8 +1095,82 @@ const ServiceOrderDetail = () => {
                   data={data}
                 />
               )}
+            
           </Card>
         </div>
+        {/* Modal for selecting reinstallation time */}
+        <Modal
+          title="Chọn thời gian lắp đặt lại"
+          open={reinstallModalVisible}
+          onCancel={handleReinstallCancel}
+          footer={null}
+          destroyOnClose={true}
+        >
+          <Form
+            form={reinstallForm}
+            layout="vertical"
+            onFinish={handleReinstallSubmit}
+          >
+            <Alert
+              message="Lưu ý về thời gian lắp đặt lại"
+              description={
+                <Text>
+                  Để chuẩn bị sản phẩm và sắp xếp đội thi công, thời gian lắp đặt sớm nhất là sau 2 ngày kể từ ngày yêu cầu.
+                </Text>
+              }
+              type="info"
+              showIcon
+              style={{ marginBottom: '20px' }}
+            />
+            <Form.Item
+              name="date"
+              label="Ngày lắp đặt lại"
+              rules={[{ required: true, message: 'Vui lòng chọn ngày lắp đặt lại!' }]}
+            >
+              <DatePicker 
+                format="DD/MM/YYYY" 
+                style={{ width: '100%' }} 
+                placeholder="Chọn ngày"
+                disabledDate={disabledDate}
+              />
+            </Form.Item>
+            <Form.Item
+              name="time"
+              label="Giờ lắp đặt lại"
+              rules={[{ required: true, message: 'Vui lòng chọn giờ lắp đặt lại!' }]}
+            >
+              <TimePicker 
+                format="HH:mm" 
+                style={{ width: '100%' }} 
+                placeholder="Chọn giờ"
+                minuteStep={15}
+              />
+            </Form.Item>
+            <Form.Item
+              name="reason"
+              label="Lý do lắp đặt lại"
+              rules={[{ required: true, message: 'Vui lòng nhập lý do lắp đặt lại!' }]}
+            >
+              <TextArea 
+                rows={4} 
+                placeholder="Vui lòng nhập lý do cần lắp đặt lại"
+              />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+              <Space>
+                <Button onClick={handleReinstallCancel}>Hủy</Button>
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  loading={reinstallLoading}
+                  danger
+                >
+                  Xác nhận
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
       </Content>
       <Footer />
     </Layout>

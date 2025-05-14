@@ -10,6 +10,7 @@ import { managerRoutes } from "./managerRoutes";
 import { accountantRoutes } from "./accountantRoutes";
 import { staffRoutes } from "./staffRoutes";
 import { designerRoutes } from "./designerRoutes";
+import { contructorRoutes } from "./contructorRoutes";
 import LandingPage from "@/pages/LandingPage";
 import Home from "@/pages/Home/index";
 import DesignsPage from "@/pages/Designs";
@@ -75,7 +76,7 @@ const router = createBrowserRouter([
   },
   {
     element: (
-      <RouteGuard allowedRoles={["admin", "accountant", "staff", "designer", "manager"]}>
+      <RouteGuard allowedRoles={["admin", "accountant", "staff", "designer", "manager", "contructor"]}>
         <AdminLayout />
       </RouteGuard>
     ),
@@ -86,6 +87,7 @@ const router = createBrowserRouter([
       accountantRoutes,
       staffRoutes,
       designerRoutes,
+      contructorRoutes,
     ],
   },
   {
