@@ -22,7 +22,7 @@ const Register = () => {
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [termsContent, setTermsContent] = useState('');
   const [loadingTerms, setLoadingTerms] = useState(false);
-  
+
   // Lấy returnUrl và actionType từ state (nếu có)
   const returnUrl = location.state?.returnUrl || "/home";
   const actionType = location.state?.actionType;
@@ -35,13 +35,13 @@ const Register = () => {
         const response = await axios.get('/api/policy');
         if (response.data && response.data.length > 0) {
           // Tìm policy có documentName chứa "ĐIỀU KHOẢN VÀ ĐIỀU KIỆN"
-          const termsPolicy = response.data.find(policy => 
-            policy.documentName.includes('ĐIỀU KHOẢN VÀ ĐIỀU KIỆN'));
-          
+          const termsPolicy = response.data.find(policy =>
+            policy.documentName.includes('Điều Khoản & Điều Kiện Sử Dụng'));
+
           if (termsPolicy) {
             setTermsContent(termsPolicy.document1 || '');
           }
-          
+
           // Có thể thêm logic để tìm privacy policy nếu cần
           // const privacyPolicy = response.data.find(policy => 
           //   policy.documentName.includes('CHÍNH SÁCH BẢO MẬT'));
@@ -65,7 +65,7 @@ const Register = () => {
       message.error('Bạn phải đồng ý với điều khoản và điều kiện');
       return;
     }
-    
+
     setLoading(true);
     try {
       await register({
@@ -77,18 +77,18 @@ const Register = () => {
         avatarUrl: ''
       });
       message.success('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.');
-      
+
       // Chuyển đến trang đăng nhập với returnUrl để sau khi đăng nhập có thể quay lại
-      navigate('/login', { 
-        state: { 
-          returnUrl, 
+      navigate('/login', {
+        state: {
+          returnUrl,
           actionType,
-          fromRegister: true 
-        } 
+          fromRegister: true
+        }
       });
     } catch (error) {
       const errorMessage = error.response?.data?.error || '';
-      
+
       if (errorMessage.includes('EMAIL_EXISTS') || errorMessage === 'Error: RegisterUserCommand_email is duplicate!') {
         // Hiển thị lỗi trực tiếp trên trường email
         form.setFields([
@@ -152,7 +152,7 @@ const Register = () => {
           <div className="auth-content">
             <div className="auth-form-section">
               <div className="auth-header">
-                <Button 
+                <Button
                   type="dashed"
                   icon={<ArrowLeftOutlined />}
                   onClick={() => navigate('/')}
@@ -160,12 +160,12 @@ const Register = () => {
                 >
                   Trang chủ
                 </Button>
-                
+
                 {/* <img src={logoImage} alt="GreenSpace Logo" className="auth-logo-small" /> */}
               </div>
               <div style={{ textAlign: 'center' }}>
-              <Title level={2} className="auth-title">Đăng ký</Title>
-              <Text className="auth-subtitle">Tạo tài khoản để trải nghiệm dịch vụ của GreenSpace</Text>
+                <Title level={2} className="auth-title">Đăng ký</Title>
+                <Text className="auth-subtitle">Tạo tài khoản để trải nghiệm dịch vụ của GreenSpace</Text>
               </div>
               <Form
                 form={form}
@@ -180,14 +180,14 @@ const Register = () => {
                   label="Họ và tên"
                   rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
                 >
-                  <Input 
-                    prefix={<UserOutlined className="site-form-item-icon" />} 
-                    placeholder="Nhập họ và tên" 
+                  <Input
+                    prefix={<UserOutlined className="site-form-item-icon" />}
+                    placeholder="Nhập họ và tên"
                     size="large"
                     className="auth-input"
                   />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="email"
                   label="Email"
@@ -196,9 +196,9 @@ const Register = () => {
                     { type: 'email', message: 'Email không hợp lệ!' }
                   ]}
                 >
-                  <Input 
-                    prefix={<MailOutlined className="site-form-item-icon" />} 
-                    placeholder="Nhập email" 
+                  <Input
+                    prefix={<MailOutlined className="site-form-item-icon" />}
+                    placeholder="Nhập email"
                     size="large"
                     className="auth-input"
                   />
@@ -209,33 +209,35 @@ const Register = () => {
                   label="Số điện thoại"
                   rules={[
                     { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                    { pattern: /^(0|\+84)(\s|\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\d)(\s|\.)?(\d{3})(\s|\.)?(\d{3})$/, 
-                      message: 'Số điện thoại không hợp lệ! Vui lòng nhập đúng định dạng số điện thoại Việt Nam' }
+                    {
+                      pattern: /^(0|\+84)(\s|\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\d)(\s|\.)?(\d{3})(\s|\.)?(\d{3})$/,
+                      message: 'Số điện thoại không hợp lệ! Vui lòng nhập đúng định dạng số điện thoại Việt Nam'
+                    }
                   ]}
                 >
-                  <Input 
-                    prefix={<PhoneOutlined className="site-form-item-icon" />} 
-                    placeholder="Ví dụ: 0912345678 hoặc +84912345678" 
+                  <Input
+                    prefix={<PhoneOutlined className="site-form-item-icon" />}
+                    placeholder="Ví dụ: 0912345678 hoặc +84912345678"
                     size="large"
                     className="auth-input"
                   />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="password"
                   label="Mật khẩu"
                   rules={[
                     { required: true, message: 'Vui lòng nhập mật khẩu!' },
                     { min: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự!' },
-                    { 
+                    {
                       pattern: /^(?=.*[!@#$%^&*(),.?":{}|<>])/,
                       message: 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt!'
                     }
                   ]}
                 >
-                  <Input.Password 
-                    prefix={<LockOutlined className="site-form-item-icon" />} 
-                    placeholder="Nhập mật khẩu" 
+                  <Input.Password
+                    prefix={<LockOutlined className="site-form-item-icon" />}
+                    placeholder="Nhập mật khẩu"
                     size="large"
                     className="auth-input"
                     onChange={(e) => {
@@ -245,7 +247,7 @@ const Register = () => {
                       const hasNumber = /\d/.test(password);
                       const hasUpperCase = /[A-Z]/.test(password);
                       const hasLowerCase = /[a-z]/.test(password);
-                      
+
                       const strength = [
                         hasMinLength,
                         hasSpecialChar,
@@ -253,15 +255,15 @@ const Register = () => {
                         hasUpperCase,
                         hasLowerCase
                       ].filter(Boolean).length;
-                      
+
                       setPasswordStrength(strength);
                     }}
                   />
                 </Form.Item>
                 {passwordStrength > 0 && (
                   <div style={{ marginTop: -20, marginBottom: 20 }}>
-                    <Progress 
-                      percent={passwordStrength * 20} 
+                    <Progress
+                      percent={passwordStrength * 20}
                       size="small"
                       status={passwordStrength < 3 ? "exception" : passwordStrength < 5 ? "normal" : "success"}
                       format={() => {
@@ -278,7 +280,7 @@ const Register = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <Form.Item
                   name="confirmPassword"
                   label="Nhập lại mật khẩu"
@@ -295,33 +297,33 @@ const Register = () => {
                     }),
                   ]}
                 >
-                  <Input.Password 
-                    prefix={<LockOutlined className="site-form-item-icon" />} 
-                    placeholder="Nhập lại mật khẩu" 
+                  <Input.Password
+                    prefix={<LockOutlined className="site-form-item-icon" />}
+                    placeholder="Nhập lại mật khẩu"
                     size="large"
                     className="auth-input"
                   />
                 </Form.Item>
-                
+
                 <Form.Item name="agreeTerms" valuePropName="checked" style={{ marginBottom: '10px' }}>
                   <Checkbox className="terms-checkbox">
                     Tôi đồng ý với <a href="#" onClick={handleViewTerms}>điều khoản</a> và <a href="#" onClick={handleViewPrivacy}>điều kiện</a>
                   </Checkbox>
                 </Form.Item>
-                
+
                 <Form.Item>
-                  <Button 
-                    type="primary" 
-                    htmlType="submit" 
-                    className="register-button" 
-                    block 
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    className="register-button"
+                    block
                     size="large"
                     loading={loading}
                   >
                     Đăng ký
                   </Button>
                 </Form.Item>
-{/*                 
+                {/*                 
                 <div className="divider-container">
                   <div className="divider-line"></div>
                   <span className="divider-text">Hoặc</span>
@@ -337,14 +339,14 @@ const Register = () => {
                 >
                   Đăng ký với Google
                 </Button> */}
-                
+
                 <div className="auth-footer">
                   <Text>Bạn đã có tài khoản? </Text>
                   <Link to="/login" className="register-link">Đăng nhập ngay</Link>
                 </div>
               </Form>
             </div>
-            
+
             <div className="auth-image-section">
               <img src={logoImage} alt="GreenSpace Logo" className="auth-logo" />
               <div className="leaf-background" style={{ backgroundImage: `url(${loginBg})` }}></div>
@@ -365,16 +367,25 @@ const Register = () => {
         ]}
         width={800}
         style={{ top: 20 }}
-        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+        styles={{
+          body: {
+            maxHeight: '70vh',
+            overflowY: 'auto',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d4d4d4 #f5f5f5'
+          }
+        }}
       >
         {loadingTerms ? (
           <div style={{ textAlign: 'center', padding: '30px' }}>
             Đang tải nội dung...
           </div>
         ) : (
-          <div className="terms-content">
-            {termsContent ? parse(termsContent) : 'Không có dữ liệu điều khoản.'}
-          </div>
+          <div
+            className="html-preview"
+
+            dangerouslySetInnerHTML={{ __html: termsContent }}
+          />
         )}
       </Modal>
 
@@ -390,16 +401,24 @@ const Register = () => {
         ]}
         width={800}
         style={{ top: 20 }}
-        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+        styles={{
+          body: {
+            maxHeight: '70vh',
+            overflowY: 'auto',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d4d4d4 #f5f5f5'
+          }
+        }}
       >
         {loadingTerms ? (
           <div style={{ textAlign: 'center', padding: '30px' }}>
             Đang tải nội dung...
           </div>
         ) : (
-          <div className="terms-content">
-            {termsContent ? parse(termsContent) : 'Không có dữ liệu điều kiện.'}
-          </div>
+          <div
+            className="html-preview"
+            dangerouslySetInnerHTML={{ __html: termsContent }}
+          />
         )}
       </Modal>
     </div>

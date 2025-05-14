@@ -183,7 +183,7 @@ const ManagerSidebar = ({ collapsed }) => {
             theme="light"
             mode="inline"
             selectedKeys={[getSelectedKey(location.pathname)]}
-            defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales", "webmanage"]}
+            defaultOpenKeys={collapsed ? [] : ["staff", "reports", "sales", "webmanage", "designOrders"]}
             items={getItems()}
           />
         </div>

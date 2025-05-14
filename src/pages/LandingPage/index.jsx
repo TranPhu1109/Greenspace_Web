@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import useProductStore from "@/stores/useProductStore";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
 import useAuthStore from '../../stores/useAuthStore';
+import reactLogo from '../../assets/logo.png';
 
 const { Content } = Layout;
 const { Title, Paragraph } = Typography;
@@ -319,9 +320,6 @@ const Navigation = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  // Debug log để kiểm tra user
-  console.log("Current user:", user);
-
   const userMenuItems = [
     {
       key: 'profile',
@@ -352,7 +350,7 @@ const Navigation = () => {
     <div className="navigation">
       <Link to="/home" className="logo-link">
         <img
-          src="../../../src/assets/logo.png"
+          src={reactLogo}
           alt="Logo"
           style={{ width: "120px", height: "auto" }}
         />
