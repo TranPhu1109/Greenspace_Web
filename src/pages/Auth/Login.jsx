@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Input, Checkbox, Button, Form, message, Typography, Card, notification } from "antd";
 import {
-  GoogleOutlined,
   LockOutlined,
   MailOutlined,
   ArrowLeftOutlined,
@@ -50,7 +49,7 @@ const Login = () => {
       // Navigate based on role or return to previous page
       const role = userData.roleName.toLowerCase();
       if (
-        ["admin", "staff", "manager", "accountant", "designer"].includes(role)
+        ["admin", "staff", "manager", "accountant", "designer", "contructor"].includes(role)
       ) {
         navigate(`/${role}/dashboard`);
       } else if (returnUrl !== "/home") {

@@ -71,7 +71,7 @@ const CreateProductModal = ({
         image2: "",
         image3: ""
       };
-      let designImage1URL = "";
+      let designImage1URL = ""; // Initialize as empty string
 
       if (selectedFiles.imageUrl) {
         uploadPromises.push(
@@ -116,7 +116,7 @@ const CreateProductModal = ({
         description: values.description || "",
         size: parseFloat(values.size) || 0,
         image: imageUrls,
-        designImage1URL: designImage1URL
+        designImage1URL: designImage1URL // Will be empty string if no file uploaded
       };
 
       await onSubmit(productData);
@@ -127,7 +127,6 @@ const CreateProductModal = ({
         imageUrl: null,
         image2: null,
         image3: null,
-        designImage1URL: null,
       });
 
       fetchProducts();
@@ -287,9 +286,7 @@ const CreateProductModal = ({
             </Form.Item>
             <Form.Item
               name="designImage1URL"
-              required
               label="File hướng dẫn (PDF)"
-              rules={[{ required: false }]}
             >
               <Upload
                 listType="text"

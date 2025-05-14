@@ -34,6 +34,7 @@ const StaffList = () => {
     { value: 'Accountant', label: 'Accountant' },
     { value: 'Staff', label: 'Staff' },
     { value: 'Designer', label: 'Designer' },
+    { value: 'Contructor', label: 'Contructor' },
   ];
 
   const columns = [
@@ -112,13 +113,20 @@ const StaffList = () => {
       render: (roleName) => (
         <Tag color={
           roleName === 'Admin' ? 'red' :
-          roleName === 'Staff' ? 'green' :
+          roleName === 'Staff' ? 'green' : 
           roleName === 'Designer' ? 'purple' :
           roleName === 'Accountant' ? 'blue' :
           roleName === 'Manager'? 'orange' :
+          roleName === 'Contructor' ? 'lime' :
           'default'
         }>
-          {roleName}
+          {roleName === 'Admin' ? 'Quản trị viên' :
+           roleName === 'Staff' ? 'Nhân viên' :
+           roleName === 'Designer' ? 'Người thiết kế' :
+           roleName === 'Accountant' ? 'Kế toán' :
+           roleName === 'Manager' ? 'Quản lý' :
+           roleName === 'Contructor' ? 'Đội thi công' :
+           roleName}
         </Tag>
       ),
     },

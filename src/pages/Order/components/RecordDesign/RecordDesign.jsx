@@ -48,10 +48,10 @@ const RecordDesign = ({
     const designViewableStatuses = [
       'DoneDesign', 'PaymentSuccess', 'Processing',
       'PickedPackageAndDelivery', 'DeliveryFail', 'ReDelivery',
-      'DeliveredSuccessfully', 'CompleteOrder', 'WaitDeposit',
-      'DoneDeterminingDesignPrice', 'DoneDeterminingMaterialPrice',
+      'DeliveredSuccessfully', 'CompleteOrder',
+      'DoneDeterminingDesignPrice', 'DoneDeterminingMaterialPrice', 'ReDesign', 'Installing', 'DoneInstalling', 'ReInstall' 
     ];
-    const designViewableStatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23];
+    const designViewableStatusCodes = [6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23, 33];
 
     // Special case: Only include DeterminingDesignPrice status if maxPhase >= 2
     const maxPhase = sketchRecords?.reduce((max, record) => Math.max(max, record.phase || 0), 0) || 0;
@@ -503,7 +503,7 @@ const RecordDesign = ({
                 )}
 
                 {/* Nút "Hủy đơn và thanh toán" */}
-                {designRecords.some(r => r.phase === 1 || r.phase === 2 || r.phase === 3 || r.phase === 4) && !designRecords.some(r => r.isSelected) && (
+                {designRecords.some(r => r.phase === 4) && !designRecords.some(r => r.isSelected) && (
                   <Button
                     danger
                     icon={<StopOutlined />}

@@ -21,15 +21,16 @@ const CreateUserModal = ({ visible, onCancel, onSubmit }) => {
   const { users } = useUserStore();
 
   const roles = [
-    { value: "admin", label: "Admin", defaultPassword: "admin123" },
-    { value: "manager", label: "Manager", defaultPassword: "manager123" },
+    { value: "admin", label: "Quản trị viên", defaultPassword: "123456" },
+    { value: "manager", label: "Quản lý", defaultPassword: "123456" },
     {
       value: "accountant",
-      label: "Accountant",
-      defaultPassword: "accountant123",
+      label: "Kế toán",
+      defaultPassword: "123456",
     },
-    { value: "staff", label: "Staff", defaultPassword: "staff123" },
-    { value: "designer", label: "Designer", defaultPassword: "designer123" },
+    { value: "staff", label: "Nhân viên", defaultPassword: "123456" },
+    { value: "designer", label: "Nhà thiết kế", defaultPassword: "123456" },
+    { value: "contructor", label: "Đội thi công", defaultPassword: "123456" },
   ];
 
   const handleSubmit = async (values) => {

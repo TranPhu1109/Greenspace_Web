@@ -5,6 +5,7 @@ import useProductStore from "@/stores/useProductStore";
 import useRecordStore from "@/stores/useRecordStore";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import EditorComponent from "@/components/Common/EditorComponent";
+import signalRService from '@/services/signalRService';
 import {
   Typography,
   Spin,
@@ -51,8 +52,11 @@ import {
   CloseCircleOutlined,
   ArrowRightOutlined,
   CaretRightOutlined,
+  FileSearchOutlined,
+  FileProtectOutlined,
 } from "@ant-design/icons";
 import usePercentageStore from "@/stores/usePercentageStore";
+import useContractStore from "@/stores/useContractStore";
 
 const { Title, Text, TextArea } = Typography;
 
@@ -79,10 +83,41 @@ const NewDesignOrderDetail = () => {
   const [refundPercentage, setRefundPercentage] = useState(0);
   const [depositForm] = Form.useForm();
   const [activeKeys, setActiveKeys] = useState([]);
+  const { getContractByServiceOrder, getContractUrl, loading: contractLoading } = useContractStore();
+  const [contract, setContract] = useState(null);
+  const [contractError, setContractError] = useState(null);
+  const [isContractModalVisible, setIsContractModalVisible] = useState(false);
+  const [reportMaterialModalVisible, setReportMaterialModalVisible] = useState(false);
+  const [reportMaterialText, setReportMaterialText] = useState('');
 
   useEffect(() => {
     fetchPercentage();
   }, [fetchPercentage]);
+
+  // Set up SignalR connection
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+        signalRService.on("messageReceived", () => {
+          if (id) {
+            getServiceOrderById(id, true);
+            // getRecordSketch(id, true);
+            // getRecordDesign(id, true);
+          }
+        });
+      } catch (error) {
+        console.error("Failed to connect to SignalR hub:", error);
+      }
+    };
+
+    setupSignalR();
+
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [id, getServiceOrderById]); // ❌ không thêm selectedOrder vào đây
+
 
   useEffect(() => {
     const fetchOrderDetailAndRelatedData = async () => {
@@ -109,15 +144,11 @@ const NewDesignOrderDetail = () => {
 
           // Fetch sketch records for most statuses (EXCEPT Pending/Consulting)
           if (currentStatus !== 'Pending' && currentStatus !== 0 && currentStatus !== 'ConsultingAndSketching' && currentStatus !== 1) {
-            console.log('[Effect] Status is past initial phase, fetching sketch records...');
             getRecordSketch(id);
-          } else {
-            console.log('[Effect] Status is Pending or Consulting, skipping sketch record fetch.');
           }
 
           // Fetch design records specifically when design is done
-          if (currentStatus === 'DoneDesign' || currentStatus === 6) { // Check for both string and potential number
-            console.log('[Effect] Fetching design records...');
+          if (currentStatus !== 'Pending' && currentStatus !== 0 && currentStatus !== 'ConsultingAndSketching' && currentStatus !== 1) { // Check for both string and potential number
             getRecordDesign(id);
           }
 
@@ -264,22 +295,112 @@ const NewDesignOrderDetail = () => {
 
   const getStatusColor = (status) => {
     const statusColors = {
+      // Trạng thái chờ xử lý ban đầu
       Pending: "orange",
-      ConsultingAndSketching: "blue",
-      DeterminingDesignPrice: "purple",
-      DoneDeterminingDesignPrice: "green",
-      ReDeterminingDesignPrice: "red",
+      WaitDeposit: "orange",
+      WaitForScheduling: "orange",
+
+      // Trạng thái đang xử lý
+      ConsultingAndSketching: "processing",
+      ReConsultingAndSketching: "processing",
+      DeterminingDesignPrice: "processing",
+      ReDeterminingDesignPrice: "processing",
+      AssignToDesigner: "processing",
+      ReDesign: "processing",
+      DeterminingMaterialPrice: "processing",
+      Processing: "processing",
+      Installing: "processing",
+      ReInstall: "processing",
+      // Trạng thái hoàn thành từng bước
+      DoneDeterminingDesignPrice: "cyan",
+      DoneDesign: "cyan",
+      DoneDeterminingMaterialPrice: "cyan",
+      DoneInstalling: "cyan",
+      MaterialPriceConfirmed: "cyan",
+
+      // Trạng thái thanh toán
+      DepositSuccessful: "cyan",
+      PaymentSuccess: "cyan",
+
+      // Trạng thái giao hàng
+      PickedPackageAndDelivery: "blue",
+      ReDelivery: "orange",
+      ReDetermineMaterialPrice: "orange",
+      DeliveredSuccessfully: "green",
+
+      // Trạng thái hoàn thành
+      CustomerConfirm: "cyan",
+      Successfully: "green",
+      CompleteOrder: "green",
+
+      // Trạng thái lỗi/cảnh báo
+      DeliveryFail: "red",
+      Warning: "volcano",
+      OrderCancelled: "red",
+      StopService: "red",
+
+      // Trạng thái hoàn tiền
+      Refund: "purple",
+      DoneRefund: "purple",
+
+      // Trạng thái đổi sản phẩm
+      ExchangeProduct: "geekblue",
     };
     return statusColors[status] || "default";
   };
 
   const getStatusText = (status) => {
     const statusTexts = {
+      // Trạng thái chờ xử lý ban đầu
       Pending: "Chờ xử lý",
+      WaitDeposit: "Chờ đặt cọc",
+      WaitForScheduling: "Chờ lên lịch",
+
+      // Trạng thái đang xử lý
       ConsultingAndSketching: "Đang tư vấn & phác thảo",
-      DeterminingDesignPrice: "Chờ xác định giá",
-      DoneDeterminingDesignPrice: "Đã duyệt giá thiết kế",
-      ReDeterminingDesignPrice: "Yêu cầu sửa giá TK",
+      ReConsultingAndSketching: "Đang tư vấn & phác thảo lại",
+      DeterminingDesignPrice: "Xác định giá thiết kế",
+      ReDeterminingDesignPrice: "Xác định lại giá thiết kế",
+      AssignToDesigner: "Đã giao cho nhà thiết kế",
+      ReDesign: "Đang thiết kế lại",
+      DeterminingMaterialPrice: "Xác định giá vật liệu",
+      Processing: "Đang xử lý",
+      Installing: "Đang lắp đặt",
+      ReInstall: "Đang lắp đặt lại",
+      ReDetermineMaterialPrice: "Xác định lại giá vật liệu",
+
+      // Trạng thái hoàn thành từng bước
+      DoneDeterminingDesignPrice: "Đã xác định giá thiết kế",
+      DoneDesign: "Đã hoàn thành thiết kế",
+      DoneDeterminingMaterialPrice: "Đã xác định giá vật liệu",
+      DoneInstalling: "Đã hoàn thành lắp đặt",
+
+      // Trạng thái thanh toán
+      DepositSuccessful: "Đã đặt cọc thành công",
+      PaymentSuccess: "Đã thanh toán thành công",
+
+      // Trạng thái giao hàng
+      PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
+      ReDelivery: "Đang giao hàng lại",
+      DeliveredSuccessfully: "Đã giao hàng thành công",
+
+      // Trạng thái hoàn thành
+      CustomerConfirm: "Khách hàng đã xác nhận",
+      Successfully: "Đơn hàng thành công",
+      CompleteOrder: "Đã hoàn thành đơn hàng",
+      MaterialPriceConfirmed: "Đã điều chỉnh giá vật liệu từ kế toán",
+      // Trạng thái lỗi/cảnh báo
+      DeliveryFail: "Giao hàng thất bại",
+      Warning: "Cảnh báo vượt 30%",
+      OrderCancelled: "Đơn hàng đã bị hủy",
+      StopService: "Đã dừng dịch vụ",
+
+      // Trạng thái hoàn tiền
+      Refund: "Đang hoàn tiền",
+      DoneRefund: "Đã hoàn tiền xong",
+
+      // Trạng thái đổi sản phẩm
+      ExchangeProduct: "Đổi sản phẩm",
     };
     return statusTexts[status] || status;
   };
@@ -372,6 +493,144 @@ const NewDesignOrderDetail = () => {
     }
   };
 
+  const fetchContract = async () => {
+    console.log('Fetching contract for order ID:', id);
+    try {
+      setContractError(null);
+      const contractData = await getContractByServiceOrder(id);
+      console.log('Contract data received:', contractData);
+
+      // Handle array response format
+      const contractDoc = Array.isArray(contractData) ? contractData[0] : contractData;
+
+      setContract(contractDoc);
+      if (contractDoc) {
+        setIsContractModalVisible(true);
+      } else {
+        message.info('Không tìm thấy hợp đồng cho đơn hàng này');
+      }
+    } catch (error) {
+      console.error('Error fetching contract:', error);
+      setContractError(error.message || 'Không thể tải hợp đồng');
+      message.error('Không thể tải thông tin hợp đồng');
+    }
+  };
+
+  // Add a new function for approving material prices after handleApprovePrice
+  const handleApproveMaterialPrice = () => {
+    handleStatusUpdate(
+      selectedOrder?.id,
+      23, // DoneDeterminingMaterialPrice
+      'Đã duyệt giá vật liệu thành công.',
+      'Lỗi duyệt giá vật liệu'
+    );
+  };
+
+  // Update the function for rejecting material price / requesting redetermination
+  const handleRejectMaterialPrice = () => {
+    // Generate formatted list of external products
+    const externalProductsTable = (currentOrder.externalProducts || []).length > 0
+      ? `<h4>Danh sách vật liệu thêm mới cần điều chỉnh:</h4>
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr style="background-color: #f0f0f0;">
+      <th style="text-align: left;">Tên sản phẩm</th>
+      <th style="text-align: center;">Số lượng</th>
+      <th style="text-align: right;">Đơn giá (VNĐ)</th>
+      <th style="text-align: right;">Thành tiền (VNĐ)</th>
+      <th style="text-align: left;">Yêu cầu điều chỉnh</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${currentOrder.externalProducts.map(product => `
+    <tr>
+      <td style="text-align: left;">${product.name}</td>
+      <td style="text-align: center;">${product.quantity}</td>
+      <td style="text-align: right;">${product.price ? product.price.toLocaleString('vi-VN') : 0}</td>
+      <td style="text-align: right;">${product.totalPrice ? product.totalPrice.toLocaleString('vi-VN') : 0}</td>
+      <td style="text-align: left;"></td>
+    </tr>
+    `).join('')}
+  </tbody>
+</table>`
+      : '<p>Không có vật liệu thêm mới nào cần điều chỉnh.</p>';
+
+    // Format the list of regular products
+    const regularProductsTable = (currentOrder.serviceOrderDetails || []).length > 0
+      ? `<h4>Danh sách vật liệu từ cửa hàng cần điều chỉnh:</h4>
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr style="background-color: #f0f0f0;">
+      <th style="text-align: left;">ID sản phẩm</th>
+      <th style="text-align: center;">Số lượng</th>
+      <th style="text-align: right;">Đơn giá (VNĐ)</th>
+      <th style="text-align: right;">Thành tiền (VNĐ)</th>
+      <th style="text-align: left;">Yêu cầu điều chỉnh</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${currentOrder.serviceOrderDetails.map(product => `
+    <tr>
+      <td style="text-align: left;">${product.productId}</td>
+      <td style="text-align: center;">${product.quantity}</td>
+      <td style="text-align: right;">${product.price ? product.price.toLocaleString('vi-VN') : 0}</td>
+      <td style="text-align: right;">${product.totalPrice ? product.totalPrice.toLocaleString('vi-VN') : 0}</td>
+      <td style="text-align: left;"></td>
+    </tr>
+    `).join('')}
+  </tbody>
+</table>`
+      : '<p>Không có vật liệu từ cửa hàng nào cần điều chỉnh.</p>';
+
+    // Create a template with current products
+    const initialTemplate = `<h3>Yêu cầu điều chỉnh giá vật liệu</h3>
+<p>Sau khi xem xét danh sách vật liệu và giá, chúng tôi yêu cầu điều chỉnh các nội dung sau:</p>
+
+${externalProductsTable}
+
+
+<h4>Yêu cầu chung về giá vật liệu:</h4>
+<ul>
+    <li>...</li>
+    <li>...</li>
+</ul>
+
+<p>Vui lòng cập nhật và gửi lại để chúng tôi xem xét.</p>`;
+
+    setReportMaterialText(initialTemplate);
+    setReportMaterialModalVisible(true);
+  };
+
+  // Add a function to submit material price redetermination request
+  const handleRejectMaterialPriceSubmit = async () => {
+    // Kiểm tra nội dung rich text có trống không 
+    // (loại bỏ các thẻ HTML trống và khoảng trắng)
+    const isEmptyContent = !reportMaterialText ||
+      reportMaterialText.replace(/<[^>]*>/g, '').trim() === '';
+
+    if (isEmptyContent) {
+      message.error('Vui lòng nhập lý do yêu cầu điều chỉnh giá vật liệu');
+      return;
+    }
+
+    // Call the store's updateReport method to update status and report
+    try {
+      await useDesignOrderStore.getState().updateReport(
+        selectedOrder?.id,
+        32, // Back to DeterminingMaterialPrice status
+        "",  // Don't change design report
+        reportMaterialText // Set material report
+      );
+      message.success('Đã gửi yêu cầu điều chỉnh giá vật liệu thành công.');
+      // Refresh order data
+      await getServiceOrderById(selectedOrder?.id);
+    } catch (err) {
+      message.error(`Lỗi yêu cầu điều chỉnh giá vật liệu: ${err.message}`);
+    }
+
+    setReportMaterialModalVisible(false);
+  };
+
   if (orderLoading) {
     console.log("Render: Loading state (orderLoading is true)");
     return (
@@ -381,26 +640,26 @@ const NewDesignOrderDetail = () => {
     );
   }
 
-  const displayError = orderError || localError;
-  if (displayError) {
-    console.error("Render: Error state", { displayError, orderError, localError });
-    return (
-      <div className="container mx-auto px-4 py-8" style={{ paddingTop: "20px" }}>
-        <Alert
-          type="error"
-          message="Lỗi"
-          description={displayError || "Không thể tải thông tin đơn hàng. Vui lòng thử lại."}
-          className="mb-4"
-        />
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/manager/new-design-orders")}
-        >
-          Quay lại danh sách
-        </Button>
-      </div>
-    );
-  }
+  // const displayError = orderError || localError;
+  // if (displayError) {
+  //   console.error("Render: Error state", { displayError, orderError, localError });
+  //   return (
+  //     <div className="container mx-auto px-4 py-8" style={{ paddingTop: "20px" }}>
+  //       <Alert
+  //         type="error"
+  //         message="Lỗi"
+  //         description={displayError || "Không thể tải thông tin đơn hàng. Vui lòng thử lại."}
+  //         className="mb-4"
+  //       />
+  //       <Button
+  //         icon={<ArrowLeftOutlined />}
+  //         onClick={() => navigate("/manager/new-design-orders")}
+  //       >
+  //         Quay lại danh sách
+  //       </Button>
+  //     </div>
+  //   );
+  // }
 
   if (!selectedOrder || selectedOrder.id !== id) {
     console.warn(`Render: Data not ready or mismatch. URL ID: ${id}, selectedOrder ID: ${selectedOrder?.id}. Showing loading/wait state.`);
@@ -504,6 +763,22 @@ const NewDesignOrderDetail = () => {
     if (!currentOrder?.designPrice && !currentOrder?.materialPrice) return null;
     if (!data) return null;
 
+    // Calculate actual material price from all products
+    const calculatedMaterialPrice =
+      // Calculate total of regular products
+      (currentOrder.serviceOrderDetails || []).reduce(
+        (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+        0
+      ) +
+      // Add total of external products
+      (currentOrder.externalProducts || []).reduce(
+        (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+        0
+      );
+
+    // Calculate total cost as design price + calculated material price
+    const calculatedTotalCost = (currentOrder.designPrice || 0) + calculatedMaterialPrice;
+
     return (
       <Card
         title={
@@ -551,12 +826,10 @@ const NewDesignOrderDetail = () => {
               {formatPrice(currentOrder.designPrice * data.depositPercentage / 100)}
             </Text>
           </Descriptions.Item>
-          {typeof currentOrder.materialPrice === 'number' && (
-            <Descriptions.Item label="Giá vật liệu">{formatPrice(currentOrder.materialPrice)}</Descriptions.Item>
-          )}
-          <Descriptions.Item label="Tổng chi phí (tạm tính)">
+          <Descriptions.Item label="Giá vật liệu">{formatPrice(calculatedMaterialPrice)}</Descriptions.Item>
+          <Descriptions.Item label="Tổng chi phí">
             <Text strong style={{ fontSize: '1.1em', color: '#cf1322' }}>
-              {formatPrice(currentOrder.totalCost || (currentOrder.designPrice + currentOrder.materialPrice))}
+              {formatPrice(calculatedTotalCost)}
             </Text>
           </Descriptions.Item>
         </Descriptions>
@@ -564,11 +837,261 @@ const NewDesignOrderDetail = () => {
     );
   };
 
+  // After renderCostCard() function, add a new function to render products
+  const renderProductsCollapse = () => {
+    // Auto-expand when status is DeterminingMaterialPrice
+    const isAutoExpand = currentOrder.status === 'DeterminingMaterialPrice' || currentOrder.status === 'MaterialPriceConfirmed';
+
+    return (
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          marginBottom: '24px',
+          background: '#ffffff',
+        }}
+        styles={{
+          body: {
+            padding: 0
+          }
+        }}
+      >
+        <Collapse
+          bordered={false}
+          style={{
+            borderRadius: '8px',
+            backgroundColor: 'transparent',
+          }}
+          expandIconPosition="end"
+          defaultActiveKey={isAutoExpand ? ['products'] : []}
+          expandIcon={({ isActive }) => (
+            <CaretRightOutlined
+              rotate={isActive ? 90 : 0}
+              style={{ fontSize: '16px', color: '#4caf50' }}
+            />
+          )}
+        >
+          <Collapse.Panel
+            key="products"
+            header={
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#4caf50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <ShoppingOutlined />
+                Danh sách sản phẩm ({(currentOrder.serviceOrderDetails?.length || 0) + (currentOrder.externalProducts?.length || 0)} sản phẩm)
+              </span>
+            }
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+            }}
+          >
+            {/* Regular products section */}
+            {currentOrder.serviceOrderDetails && currentOrder.serviceOrderDetails.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <Title level={5} style={{ marginBottom: '16px', color: '#1890ff' }}>
+                  <TagsOutlined /> Sản phẩm từ cửa hàng ({currentOrder.serviceOrderDetails.length})
+                </Title>
+                <Table
+                  columns={productColumns}
+                  dataSource={currentOrder.serviceOrderDetails.map((detail, index) => ({
+                    ...detail,
+                    key: detail.productId || `regular-${index}`
+                  }))}
+                  pagination={false}
+                  size="middle"
+                />
+              </div>
+            )}
+
+            {/* External products section */}
+            {currentOrder.externalProducts && currentOrder.externalProducts.length > 0 && (
+              <div>
+                <Title level={5} style={{ marginBottom: '16px', color: '#1890ff' }}>
+                  <ShoppingOutlined /> Sản phẩm thêm mới ({currentOrder.externalProducts.length})
+                  {/* {isAutoExpand && (
+                    <Tag color="orange" style={{ marginLeft: '8px' }}>Đang xác định giá vật liệu</Tag>
+                  )} */}
+                  {currentOrder.status === 'MaterialPriceConfirmed' && (
+                    <Tag color="green" style={{ marginLeft: '8px' }}>Vui lòng kiểm tra và xác nhận giá sản phẩm</Tag>
+                  )}
+                  {currentOrder.status === 'ReDetermineMaterialPrice' && (
+                    <Tag color="orange" style={{ marginLeft: '8px' }}>Đang xác định lại giá vật liệu</Tag>
+                  )}
+                </Title>
+                <Table
+                  columns={[
+                    {
+                      title: 'Sản phẩm',
+                      key: 'product',
+                      render: (_, record) => (
+                        <Space>
+                          <Image
+                            src={record.imageURL || '/placeholder.png'}
+                            alt={record.name}
+                            width={50}
+                            height={50}
+                            style={{ objectFit: 'cover', borderRadius: '4px' }}
+                            preview={true}
+                          />
+                          <div>
+                            <Text strong>{record.name}</Text>
+                            {record.description && (
+                              <Tooltip
+                                title={record.description}
+                                placement="top"
+                                styles={{
+                                  body: {
+                                    backgroundColor: '#ffffff',
+                                    color: '#000000',
+                                    maxWidth: 300,
+                                    fontSize: 14,
+                                    padding: 10,
+                                    borderRadius: 4,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                  }
+                                }}
+                              >
+                                <div style={{
+                                  fontSize: 12,
+                                  color: '#888',
+                                  marginTop: 2,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  lineHeight: '1.4em',
+                                  maxHeight: '2.8em'
+                                }}>
+                                  {record.description}
+                                </div>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </Space>
+                      ),
+                    },
+                    {
+                      title: 'Số lượng',
+                      dataIndex: 'quantity',
+                      key: 'quantity',
+                      align: 'center',
+                      width: 100,
+                    },
+                    {
+                      title: 'Đơn giá',
+                      dataIndex: 'price',
+                      key: 'price',
+                      align: 'right',
+                      width: 120,
+                      render: (price) => price === 0 ? (
+                        <Tag color="orange" style={{ whiteSpace: 'normal', height: 'auto', lineHeight: '1.5' }}>
+                          Chờ kế toán nhập giá
+                        </Tag>
+                      ) : formatPrice(price),
+                    },
+                    {
+                      title: 'Thành tiền',
+                      dataIndex: 'totalPrice',
+                      key: 'totalPrice',
+                      align: 'right',
+                      width: 150,
+                      render: (totalPrice) => (
+                        <Text strong style={{ color: '#4caf50' }}>
+                          {formatPrice(totalPrice)}
+                        </Text>
+                      ),
+                    },
+                  ]}
+                  dataSource={currentOrder.externalProducts.map((product) => ({
+                    ...product,
+                    key: product.id,
+                  }))}
+                  pagination={false}
+                  size="middle"
+                />
+              </div>
+            )}
+
+            {/* Total price for all products */}
+            {(currentOrder.serviceOrderDetails?.length > 0 || currentOrder.externalProducts?.length > 0) && (
+              <div style={{
+                marginTop: '24px',
+                textAlign: 'right',
+                borderTop: '1px dashed #d9d9d9',
+                paddingTop: '16px'
+              }}>
+                <Text strong style={{ fontSize: '16px' }}>
+                  Tổng chi phí vật liệu:
+                  <Text strong style={{ fontSize: '18px', color: '#f5222d', marginLeft: '8px' }}>
+                    {formatPrice(
+                      // Calculate total of regular products
+                      (currentOrder.serviceOrderDetails || []).reduce(
+                        (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+                        0
+                      ) +
+                      // Add total of external products
+                      (currentOrder.externalProducts || []).reduce(
+                        (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+                        0
+                      )
+                    )}
+                  </Text>
+                </Text>
+              </div>
+            )}
+          </Collapse.Panel>
+        </Collapse>
+      </Card>
+    );
+  };
+
+  const renderContractSection = () => {
+    console.log('Rendering contract section');
+    return (
+      <Card
+        style={{
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          marginBottom: '16px',
+          // marginTop: '16px',
+          borderLeft: '5px solid #52c41a',
+        }}
+      >
+        <Row align="middle" justify="space-between">
+          <Col>
+            <Space>
+              <FileProtectOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+              <div>
+                <Title level={5} style={{ margin: 0 }}>Hợp đồng dịch vụ</Title>
+                <Text type="secondary">Xem hợp đồng thiết kế</Text>
+              </div>
+            </Space>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              icon={<FileSearchOutlined />}
+              onClick={fetchContract}
+              loading={contractLoading}
+            >
+              Xem hợp đồng
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
+
   return (
-    <div
-    // className="container mx-auto px-4 py-8" 
-    // style={{ paddingTop: "0px" }}
-    >
+    <div>
       <Breadcrumb
         items={[
           {
@@ -611,11 +1134,7 @@ const NewDesignOrderDetail = () => {
 
       <Card
         className="shadow-md mb-6"
-        style={{
-          marginBottom: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}
+        style={{ marginBottom: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Button
@@ -632,11 +1151,21 @@ const NewDesignOrderDetail = () => {
           </div>
         }
         extra={
-          <Tag color={getStatusColor(currentOrder.status)} size="large">
-            {getStatusText(currentOrder.status)}
-          </Tag>
+          <Space>
+            <Tag color={getStatusColor(currentOrder.status)} size="large">
+              {getStatusText(currentOrder.status)}
+            </Tag>
+            {/* <Button
+              type="primary"
+              icon={<FileSearchOutlined />}
+              onClick={fetchContract}
+            >
+              Xem hợp đồng
+            </Button> */}
+          </Space>
         }
       >
+
         <Row gutter={[24, 24]} style={{ marginBottom: '15px' }}>
           <Col xs={24} md={12}>
             <Card
@@ -688,6 +1217,7 @@ const NewDesignOrderDetail = () => {
             </Card>
           </Col>
         </Row>
+        {renderContractSection()}
 
         {currentOrder.description && (
           <Card
@@ -814,8 +1344,7 @@ const NewDesignOrderDetail = () => {
           </Card>
         )}
 
-        {(currentOrder.status !== 'Pending' && sketchRecords.length > 0) ||
-          (currentOrder.status !== 'Pending' && designRecords.length > 0) ? (
+        {(currentOrder.status !== 'Pending' && sketchRecords.length > 0) && (
           <Card
             title={
               <span style={{
@@ -827,7 +1356,7 @@ const NewDesignOrderDetail = () => {
                 gap: '8px'
               }}>
                 <PictureOutlined />
-                {currentOrder.status !== 'Pending' ? 'Bản vẽ phác thảo' : 'Bản vẽ thiết kế'}
+                Bản vẽ phác thảo
               </span>
             }
             style={{
@@ -837,149 +1366,264 @@ const NewDesignOrderDetail = () => {
             }}
             loading={recordLoading}
           >
+            {(() => {
+              // Check if any phase has selected records
+              const hasSelectedRecords = sketchRecords.some(record => record.isSelected);
+              // Generate default active keys based on selection status
+              const defaultActiveKeys = hasSelectedRecords 
+                ? [0, 1, 2, 3]
+                  .filter(phase => sketchRecords.some(record => record.phase === phase && record.isSelected))
+                  .map(phase => `sketch-phase-${phase}`)
+                : [0, 1, 2, 3]
+                  .filter(phase => sketchRecords.some(record => record.phase === phase))
+                  .map(phase => `sketch-phase-${phase}`);
+              
+              return [0, 1, 2, 3].map(phase => {
+                const recordsInPhase = sketchRecords.filter(record => record.phase === phase);
+                if (recordsInPhase.length === 0) return null;
 
-            {[0, 1, 2, 3].map(phase => {
-              const recordsInPhase = (currentOrder.status !== 'Pending' ? sketchRecords : designRecords)
-                .filter(record => record.phase === phase);
-              if (recordsInPhase.length === 0) return null;
+                const phaseTitle = phase === 0
+                  ? "Ảnh khách hàng cung cấp"
+                  : `Bản phác thảo lần ${phase}`;
+                const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
 
-              const phaseTitle = phase === 0
-                ? "Ảnh khách hàng cung cấp"
-                : `${currentOrder.status !== 'Pending' ? 'Bản phác thảo' : 'Bản thiết kế'} lần ${phase}`;
-              const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
-
-              return (
-                // <div key={phase} style={{ marginBottom: '20px' }}>
-                //   <Title level={5} style={{ marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-                //     {phaseTitle}
-                //     {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                //   </Title>
-                <Collapse
-                  key={phase}
-                  bordered={false}
-                  defaultActiveKey={phase === 0 ? [] : [`phase-${phase}`]} // Default mở tất cả, muốn đóng mặc định thì để []
-                  style={{ background: 'transparent', marginBottom: '16px' }}
-                >
-                  <Collapse.Panel
-                    key={`phase-${phase}`}
-                    header={
-                      <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                        {phaseTitle}
-                        {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
-                      </span>
-                    }
+                return (
+                  <Collapse
+                    key={`sketch-${phase}`}
+                    bordered={false}
+                    defaultActiveKey={defaultActiveKeys}
+                    style={{ background: 'transparent', marginBottom: '16px' }}
                   >
-                    <Row gutter={[16, 16]}>
-                      {recordsInPhase.map(record => (
-                        <>
-                          {record.image?.imageUrl && (
-                            <Col xs={24} sm={12} md={8} key={`${record.id}-1`}>
-                              <Card hoverable styles={{
-                                body: {
-                                  padding: 0
-                                }
-                              }}>
-                                <Image
-                                  src={record.image.imageUrl}
-                                  alt={`Ảnh ${phaseTitle} 1`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                                />
-                              </Card>
-                            </Col>
-                          )}
-                          {record.image?.image2 && (
-                            <Col xs={24} sm={12} md={8} key={`${record.id}-2`}>
-                              <Card hoverable styles={{
-                                body: {
-                                  padding: 0
-                                }
-                              }}>
-                                <Image
-                                  src={record.image.image2}
-                                  alt={`Ảnh ${phaseTitle} 2`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                                />
-                              </Card>
-                            </Col>
-                          )}
-                          {record.image?.image3 && (
-                            <Col xs={24} sm={12} md={8} key={`${record.id}-3`}>
-                              <Card hoverable styles={{
-                                body: {
-                                  padding: 0
-                                }
-                              }}>
-                                <Image
-                                  src={record.image.image3}
-                                  alt={`Ảnh ${phaseTitle} 3`}
-                                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
-                                />
-                              </Card>
-                            </Col>
-                          )}
-                        </>
-                      ))}
-                    </Row>
-
-                  </Collapse.Panel>
-                </Collapse>
-                // </div>
-              );
-            })}
-            {/* {(currentOrder.status !== 'Pending' && sketchRecords.length === 0 && !recordLoading) ||
-              (currentOrder.status !== 'Pending' && designRecords.length === 0 && !recordLoading) ? (
-              <Empty description={`Chưa có ${currentOrder.status !== 'Pending' ? 'bản phác thảo' : 'bản thiết kế'} nào được tải lên.`} />
-            ) : null} */}
+                    <Collapse.Panel
+                      key={`sketch-phase-${phase}`}
+                      header={
+                        <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                          {phaseTitle}
+                          {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                        </span>
+                      }
+                    >
+                      <Row gutter={[16, 16]}>
+                        {recordsInPhase.map(record => (
+                          <React.Fragment key={record.id}>
+                            {record.image?.imageUrl && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Ảnh ${phaseTitle} 1`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image2 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Ảnh ${phaseTitle} 2`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image3 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Ảnh ${phaseTitle} 3`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </Row>
+                    </Collapse.Panel>
+                  </Collapse>
+                );
+              });
+            })()}
           </Card>
-        ) : (
-          hasImages && (
-            <Card
-              title={
-                <span style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#4caf50',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <PictureOutlined />
-                  Ảnh khách hàng cung cấp
-                </span>
-              }
-              style={{
-                borderRadius: '8px',
-                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-                marginBottom: '24px'
-              }}
-            >
-              <Row gutter={[16, 16]}>
-                {currentOrder.image.imageUrl && (
-                  <Col xs={24} sm={8}>
-                    <Image src={currentOrder.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                  </Col>
-                )}
-                {currentOrder.image.image2 && (
-                  <Col xs={24} sm={8}>
-                    <Image src={currentOrder.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                  </Col>
-                )}
-                {currentOrder.image.image3 && (
-                  <Col xs={24} sm={8}>
-                    <Image src={currentOrder.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                  </Col>
-                )}
-                {!currentOrder.image.imageUrl && !currentOrder.image.image2 && !currentOrder.image.image3 && (
-                  <Col span={24}>
-                    <Empty description="Khách hàng không cung cấp hình ảnh." />
-                  </Col>
-                )}
-              </Row>
-            </Card>
-          )
         )}
 
+        {/* Add a separate card for design records */}
+        {(currentOrder.status !== 'Pending' && designRecords.length > 0) && (
+          <Card
+            title={
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#4caf50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <PictureOutlined />
+                Bản vẽ thiết kế
+              </span>
+            }
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+              marginBottom: '24px'
+            }}
+            loading={recordLoading}
+          >
+            {(() => {
+              // Check if any phase has selected records
+              const hasSelectedRecords = designRecords.some(record => record.isSelected);
+              // Generate default active keys based on selection status
+              const defaultActiveKeys = hasSelectedRecords 
+                ? [1, 2, 3, 4]
+                  .filter(phase => designRecords.some(record => record.phase === phase && record.isSelected))
+                  .map(phase => `design-phase-${phase}`)
+                : [1, 2, 3, 4]
+                  .filter(phase => designRecords.some(record => record.phase === phase))
+                  .map(phase => `design-phase-${phase}`);
+              
+              return [1, 2, 3, 4].map(phase => {
+                const recordsInPhase = designRecords.filter(record => record.phase === phase);
+                if (recordsInPhase.length === 0) return null;
 
+                const phaseTitle = `Bản thiết kế lần ${phase}`;
+                const isSelectedPhase = recordsInPhase.some(record => record.isSelected);
+
+                return (
+                  <Collapse
+                    key={`design-${phase}`}
+                    bordered={false}
+                    defaultActiveKey={defaultActiveKeys}
+                    style={{ background: 'transparent', marginBottom: '16px' }}
+                  >
+                    <Collapse.Panel
+                      key={`design-phase-${phase}`}
+                      header={
+                        <span style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                          {phaseTitle}
+                          {isSelectedPhase && <Tag color="green" style={{ marginLeft: 8 }}>Đã chọn</Tag>}
+                        </span>
+                      }
+                    >
+                      <Row gutter={[16, 16]}>
+                        {recordsInPhase.map(record => (
+                          <React.Fragment key={record.id}>
+                            {record.image?.imageUrl && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.imageUrl}
+                                    alt={`Ảnh ${phaseTitle} 1`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image2 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image2}
+                                    alt={`Ảnh ${phaseTitle} 2`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                            {record.image?.image3 && (
+                              <Col xs={24} sm={12} md={8}>
+                                <Card hoverable styles={{
+                                  body: {
+                                    padding: 0
+                                  }
+                                }}>
+                                  <Image
+                                    src={record.image.image3}
+                                    alt={`Ảnh ${phaseTitle} 3`}
+                                    style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                                  />
+                                </Card>
+                              </Col>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </Row>
+                    </Collapse.Panel>
+                  </Collapse>
+                );
+              });
+            })()}
+          </Card>
+        )}
+
+        {hasImages && !sketchRecords.length && !designRecords.length && (
+          <Card
+            title={
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#4caf50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <PictureOutlined />
+                Ảnh khách hàng cung cấp
+              </span>
+            }
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+              marginBottom: '24px'
+            }}
+          >
+            <Row gutter={[16, 16]}>
+              {currentOrder.image.imageUrl && (
+                <Col xs={24} sm={8}>
+                  <Image src={currentOrder.image.imageUrl} alt="Hình ảnh 1" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+                </Col>
+              )}
+              {currentOrder.image.image2 && (
+                <Col xs={24} sm={8}>
+                  <Image src={currentOrder.image.image2} alt="Hình ảnh 2" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+                </Col>
+              )}
+              {currentOrder.image.image3 && (
+                <Col xs={24} sm={8}>
+                  <Image src={currentOrder.image.image3} alt="Hình ảnh 3" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} />
+                </Col>
+              )}
+              {!currentOrder.image.imageUrl && !currentOrder.image.image2 && !currentOrder.image.image3 && (
+                <Col span={24}>
+                  <Empty description="Khách hàng không cung cấp hình ảnh." />
+                </Col>
+              )}
+            </Row>
+          </Card>
+        )}
 
         {currentOrder.report && (
           <Card
@@ -1044,6 +1688,8 @@ const NewDesignOrderDetail = () => {
           </Card>
         )}
 
+        {renderProductsCollapse()}
+
         {renderCostCard()}
 
         {currentOrder?.status === 'DeterminingDesignPrice' && currentOrder?.designPrice > 0 && (
@@ -1082,7 +1728,6 @@ const NewDesignOrderDetail = () => {
                   </div>
                 }
                 type="warning"
-                // showIcon
                 style={{ marginBottom: '16px', textAlign: 'left' }}
               />
             )}
@@ -1106,6 +1751,82 @@ const NewDesignOrderDetail = () => {
           </Card>
         )}
 
+        {(currentOrder?.status === 'MaterialPriceConfirmed' ||
+          (currentOrder?.status === 'DeterminingMaterialPrice' &&
+            (!currentOrder.externalProducts || currentOrder.externalProducts.length === 0))
+        ) && (
+            <Card
+              title="Xác nhận giá vật liệu"
+              style={{
+                borderRadius: '8px',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+                marginTop: '24px',
+                borderLeft: '5px solid #52c41a'
+              }}
+              styles={{ body: { textAlign: 'right' } }}
+            >
+              <Alert
+                message="Xác nhận giá vật liệu"
+                description={
+                  <div>
+                    <p>
+                      Bạn sắp xác nhận giá vật liệu với tổng chi phí:
+                      <Text strong style={{ fontSize: '18px', color: '#f5222d', marginLeft: '8px' }}>
+                        {formatPrice(
+                          // Calculate total of regular products
+                          (currentOrder.serviceOrderDetails || []).reduce(
+                            (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+                            0
+                          ) +
+                          // Add total of external products
+                          (currentOrder.externalProducts || []).reduce(
+                            (sum, item) => sum + (item.totalPrice || item.price * item.quantity || 0),
+                            0
+                          )
+                        )}
+                      </Text>
+                    </p>
+                    <p>
+                      Sau khi xác nhận, hệ thống sẽ gửi báo giá cho khách hàng và chuyển trạng thái đơn hàng sang "Đã xác định giá vật liệu".
+                    </p>
+                  </div>
+                }
+                type="info"
+                showIcon
+                style={{ marginBottom: '16px', textAlign: 'left' }}
+              />
+              <Space size="middle">
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  onClick={handleRejectMaterialPrice}
+                  size="middle"
+                >
+                  Yêu cầu điều chỉnh giá vật liệu
+                </Button>
+                <Popconfirm
+                  title={
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
+                        Bạn có chắc chắn muốn <span style={{ color: '#52c41a' }}>DUYỆT mức giá vật liệu</span>?
+                      </div>
+                      <div style={{ fontSize: 13, color: '#595959' }}>
+                        Hành động này sẽ xác nhận giá vật liệu đã đúng và không thể hoàn tác.
+                      </div>
+                    </div>
+                  }
+                  onConfirm={handleApproveMaterialPrice}
+                  okText="Xác nhận"
+                  cancelText="Hủy"
+                  placement="topRight"
+                >
+                  <Button type="primary" icon={<CheckCircleOutlined />} size="middle">
+                    Duyệt giá vật liệu
+                  </Button>
+                </Popconfirm>
+              </Space>
+            </Card>
+          )}
       </Card>
 
       <Modal
@@ -1151,240 +1872,126 @@ const NewDesignOrderDetail = () => {
       </Modal>
 
       <Modal
-        title={
-          <div>
-            Tùy chỉnh tỷ lệ tiền đặt cọc và hoàn cọc cho đơn <strong>#{currentOrder?.id.substring(0, 8)}</strong>
-          </div>
-        }
-        open={isDepositModalVisible}
-        onOk={handleDepositSettingsSubmit}
-        onCancel={() => setIsDepositModalVisible(false)}
-        okText="Cập nhật"
+        title="Yêu cầu điều chỉnh giá vật liệu"
+        open={reportMaterialModalVisible}
+        onOk={handleRejectMaterialPriceSubmit}
+        onCancel={() => setReportMaterialModalVisible(false)}
+        okText="Gửi yêu cầu"
         cancelText="Hủy"
         width={800}
       >
-        <Alert
-          message={<Text strong style={{ fontSize: 16 }}>⚙️ Hướng dẫn thiết lập</Text>}
-          description={(
-            <div style={{ paddingTop: 4 }}>
-              <Typography.Paragraph style={{ marginBottom: 8 }}>
-                <Text>📌 Bạn có thể điều chỉnh <b>tỷ lệ tiền đặt cọc</b> và <b>tỷ lệ hoàn trả</b> cho đơn hàng thiết kế. Vui lòng tuân thủ:</Text>
-              </Typography.Paragraph>
-              <ul style={{ paddingLeft: 20, margin: 0 }}>
-                <li>
-                  <Text strong>💰 Tỷ lệ tiền đặt cọc:</Text>{' '}
-                  <Text type="secondary" style={{ color: '#1890ff' }}>30% - 80%</Text> so với giá thiết kế.
-                </li>
-                <li>
-                  <Text strong>🔁 Tỷ lệ hoàn tiền cọc:</Text>{' '}
-                  <Text type="secondary" style={{ color: '#1890ff' }}>10% - 50%</Text> so với số tiền đã cọc.
-                </li>
-              </ul>
-            </div>
-          )}
-          type="info"
-          style={{ marginBottom: '16px' }}
+        <div className="instruction-container" style={{ marginBottom: '16px' }}>
+          <div style={{
+            backgroundColor: '#f6ffed',
+            border: '1px solid #b7eb8f',
+            padding: '12px 16px',
+            borderRadius: '4px',
+            marginBottom: '16px'
+          }}>
+            <Typography.Title level={5} style={{ color: '#52c41a', marginTop: 0 }}>
+              Yêu cầu điều chỉnh giá vật liệu
+            </Typography.Title>
+            <Typography.Paragraph>
+              Vui lòng nhập chi tiết lý do yêu cầu điều chỉnh danh sách hoặc giá vật liệu.
+              Thông tin này sẽ được gửi trực tiếp đến designer để thực hiện chỉnh sửa.
+            </Typography.Paragraph>
+            <Typography.Paragraph strong>
+              Hãy cung cấp các thông tin cụ thể:
+            </Typography.Paragraph>
+            <ul style={{ paddingLeft: '20px', marginBottom: '8px' }}>
+              <li>Vật liệu nào cần điều chỉnh số lượng hoặc loại bỏ?</li>
+              <li>Vật liệu nào cần điều chỉnh giá?</li>
+              <li>Cần bổ sung vật liệu gì thêm?</li>
+              <li>Các yêu cầu khác về vật liệu</li>
+            </ul>
+          </div>
+        </div>
+
+        <EditorComponent
+          value={reportMaterialText}
+          onChange={(content) => setReportMaterialText(content)}
+          height={500}
         />
+      </Modal>
 
-        <Form
-          form={depositForm}
-          layout="vertical"
-          initialValues={{
-            depositPercentage,
-            refundPercentage
-          }}
-          onValuesChange={(changedValues) => {
-            if ('depositPercentage' in changedValues) {
-              const v = changedValues.depositPercentage;
-              if (!isNaN(v)) setDepositPercentage(v);
-            }
-            if ('refundPercentage' in changedValues) {
-              const v = changedValues.refundPercentage;
-              if (!isNaN(v)) setRefundPercentage(v);
-            }
-          }}
-        >
-          <Tabs defaultActiveKey="deposit">
-            {/* Tab Tiền đặt cọc */}
-            <Tabs.TabPane tab="💰 Tiền đặt cọc" key="deposit">
-              <Form.Item
-                name="depositPercentage"
-                label="Tỷ lệ tiền đặt cọc (%)"
-                extra={`Khách hàng sẽ phải đặt cọc ${isNaN(depositPercentage) ? '0' : depositPercentage.toFixed(1)}% giá thiết kế (${formatPrice((currentOrder?.designPrice || 0) * (depositPercentage / 100 || 0))})`}
-                rules={[
-                  { required: true, message: 'Vui lòng nhập tỷ lệ tiền đặt cọc' },
-                  { type: 'number', min: 30, max: 80, message: 'Tỷ lệ phải từ 30 đến 80%' }
-                ]}
-              >
-                <Space style={{ width: '100%' }} direction="vertical">
-                  <Slider
-                    min={30}
-                    max={80}
-                    step={1}
-                    value={depositForm.getFieldValue('depositPercentage')}
-                    onChange={(value) => {
-                      depositForm.setFieldsValue({ depositPercentage: value });
-                      depositForm.validateFields(['depositPercentage']);
-                      setDepositPercentage(value);
-                    }}
-                    marks={{
-                      30: '30%',
-                      40: '40%',
-                      50: '50%',
-                      60: '60%',
-                      70: '70%',
-                      80: '80%'
-                    }}
-                    tooltip={{
-                      formatter: (value) =>
-                        isNaN(value) ? '0%' : `${Number(value).toFixed(1)}%`
-                    }}
-                  />
-
-                  <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
-                    <Col span={24}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        {[30, 40, 50, 60, 70, 80].map(percent => (
-                          <Button
-                            key={percent}
-                            type={depositPercentage === percent ? 'primary' : 'default'}
-                            style={{ width: '18%', margin: '0 1%' }}
-                            onClick={() => {
-                              depositForm.setFieldsValue({ depositPercentage: percent });
-                              setDepositPercentage(percent);
-                            }}
-                          >
-                            {percent}%
-                          </Button>
-                        ))}
-                      </div>
-                    </Col>
-
-                    <Col span={24}>
-                      <Card size="small" style={{ textAlign: 'center', background: '#f5f5f5' }}>
-                        <Space align="center">
-                          <Text>Giá trị hiện tại:</Text>
-                          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-                            {depositForm.getFieldValue('depositPercentage')}%
-                          </Text>
-                          <Button
-                            icon={<ArrowLeftOutlined />}
-                            onClick={() => {
-                              const current = depositForm.getFieldValue('depositPercentage') || 0;
-                              const newValue = Math.max(current - 1, 30);
-                              depositForm.setFieldsValue({ depositPercentage: newValue });
-                              setDepositPercentage(newValue);
-                            }}
-                            disabled={depositForm.getFieldValue('depositPercentage') <= 30}
-                          />
-                          <Button
-                            icon={<ArrowRightOutlined />}
-                            onClick={() => {
-                              const current = depositForm.getFieldValue('depositPercentage') || 0;
-                              const newValue = Math.min(current + 1, 80);
-                              depositForm.setFieldsValue({ depositPercentage: newValue });
-                              setDepositPercentage(newValue);
-                            }}
-                            disabled={depositForm.getFieldValue('depositPercentage') >= 80}
-                          />
-                        </Space>
-                      </Card>
-                    </Col>
-                  </Row>
-                </Space>
-              </Form.Item>
-            </Tabs.TabPane>
-
-            {/* Tab Tiền hoàn cọc */}
-            <Tabs.TabPane tab="🔁 Tiền hoàn cọc" key="refund">
-              <Form.Item
-                name="refundPercentage"
-                label="Tỷ lệ hoàn tiền cọc (%)"
-                extra="Tỷ lệ phải từ 10 đến 50%."
-                rules={[
-                  { required: true, message: 'Vui lòng nhập tỷ lệ hoàn tiền cọc' },
-                  { type: 'number', min: 10, max: 50, message: 'Tỷ lệ phải từ 10 đến 50%' }
-                ]}
-              >
-                <Space style={{ width: '100%' }} direction="vertical">
-                  <Slider
-                    min={10}
-                    max={50}
-                    step={1}
-                    value={depositForm.getFieldValue('refundPercentage')}
-                    onChange={(value) => {
-                      depositForm.setFieldsValue({ refundPercentage: value });
-                      depositForm.validateFields(['refundPercentage']);
-                      setRefundPercentage(value);
-                    }}
-                    marks={{
-                      10: '10%',
-                      20: '20%',
-                      30: '30%',
-                      40: '40%',
-                      50: '50%'
-                    }}
-                    tooltip={{
-                      formatter: (value) =>
-                        isNaN(value) ? '0%' : `${Number(value).toFixed(1)}%`
-                    }}
-                  />
-
-                  <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
-                    <Col span={24}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        {[10, 20, 30, 40, 50].map(percent => (
-                          <Button
-                            key={percent}
-                            type={refundPercentage === percent ? 'primary' : 'default'}
-                            style={{ width: '18%', margin: '0 1%' }}
-                            onClick={() => {
-                              depositForm.setFieldsValue({ refundPercentage: percent });
-                              setRefundPercentage(percent);
-                            }}
-                          >
-                            {percent}%
-                          </Button>
-                        ))}
-                      </div>
-                    </Col>
-
-                    <Col span={24}>
-                      <Card size="small" style={{ textAlign: 'center', background: '#f5f5f5' }}>
-                        <Space align="center">
-                          <Text>Giá trị hiện tại:</Text>
-                          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
-                            {depositForm.getFieldValue('refundPercentage')}%
-                          </Text>
-                          <Button
-                            icon={<ArrowLeftOutlined />}
-                            onClick={() => {
-                              const current = depositForm.getFieldValue('refundPercentage') || 0;
-                              const newValue = Math.max(current - 1, 10);
-                              depositForm.setFieldsValue({ refundPercentage: newValue });
-                              setRefundPercentage(newValue);
-                            }}
-                            disabled={depositForm.getFieldValue('refundPercentage') <= 10}
-                          />
-                          <Button
-                            icon={<ArrowRightOutlined />}
-                            onClick={() => {
-                              const current = depositForm.getFieldValue('refundPercentage') || 0;
-                              const newValue = Math.min(current + 1, 50);
-                              depositForm.setFieldsValue({ refundPercentage: newValue });
-                              setRefundPercentage(newValue);
-                            }}
-                            disabled={depositForm.getFieldValue('refundPercentage') >= 50}
-                          />
-                        </Space>
-                      </Card>
-                    </Col>
-                  </Row>
-                </Space>
-              </Form.Item>
-            </Tabs.TabPane>
-          </Tabs>
-        </Form>
+      <Modal
+        title={
+          <Space>
+            <FileProtectOutlined />
+            <span>Hợp đồng dịch vụ</span>
+          </Space>
+        }
+        open={isContractModalVisible}
+        onCancel={() => setIsContractModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsContractModalVisible(false)}>
+            Đóng
+          </Button>,
+          // contract?.description && (
+          //   <Button 
+          //     key="view" 
+          //     type="primary" 
+          //     href={contract.description} 
+          //     target="_blank" 
+          //     rel="noopener noreferrer"
+          //     icon={<FilePdfOutlined />}
+          //   >
+          //     Mở hợp đồng
+          //   </Button>
+          // )
+        ]}
+        width={800}
+      >
+        {contractLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <Spin tip="Đang tải hợp đồng..." />
+          </div>
+        ) : contractError ? (
+          <Alert type="error" message="Lỗi" description={contractError} />
+        ) : contract ? (
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="Mã hợp đồng">{contract.id}</Descriptions.Item>
+            <Descriptions.Item label="Khách hàng">{contract.name}</Descriptions.Item>
+            <Descriptions.Item label="Liên hệ">
+              <div>{contract.phone}</div>
+              <div>{contract.email}</div>
+            </Descriptions.Item>
+            <Descriptions.Item label="Địa chỉ">
+              {contract.address?.replace(/\|/g, ', ') || contract.address}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ngày tạo">
+              {format(new Date(contract.creationDate || Date.now()), "dd/MM/yyyy HH:mm")}
+            </Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              <Tag color={contract.modificationDate ? "success" : "processing"}>
+                {contract.modificationDate ? "Đã ký" : "Chưa ký"}
+              </Tag>
+            </Descriptions.Item>
+            {contract.modificationDate && (
+              <Descriptions.Item label="Ngày ký">
+                {format(new Date(contract.modificationDate), "dd/MM/yyyy HH:mm")}
+              </Descriptions.Item>
+            )}
+            <Descriptions.Item label="Xem hợp đồng">
+              {contract.description ? (
+                <Button
+                  type="primary"
+                  href={contract.description}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  icon={<FilePdfOutlined />}
+                  size="large"
+                >
+                  Mở hợp đồng PDF
+                </Button>
+              ) : (
+                <Text type="secondary">Không có tệp hợp đồng</Text>
+              )}
+            </Descriptions.Item>
+          </Descriptions>
+        ) : (
+          <Empty description="Không tìm thấy thông tin hợp đồng" />
+        )}
       </Modal>
 
     </div>

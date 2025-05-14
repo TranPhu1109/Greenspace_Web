@@ -1,7 +1,25 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import './styles.scss';
+import usePolicyStore from '@/stores/usePolicyStore';
 
 const Footer = () => {
+  const { fetchPolicies } = usePolicyStore();
+  const [policies, setPolicies] = useState([]);
+
+  useEffect(() => {
+    const loadPolicies = async () => {
+      try {
+        const data = await fetchPolicies();
+        setPolicies(data || []);
+      } catch (err) {
+        console.error('Error loading policies:', err);
+      }
+    };
+
+    loadPolicies();
+  }, [fetchPolicies]);
+
   return (
     <footer className="footer">
       <div className="container mx-auto px-4">
@@ -26,45 +44,6 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Newsletter */}
-            <div className="footer-section">
-              <h3 className="footer-title">Đăng ký nhận tin</h3>
-              <p className="footer-text">
-                Đăng ký để nhận thông tin mới nhất về sản phẩm và khuyến mãi.
-              </p>
-              <div className="footer-newsletter">
-                <input
-                  type="email"
-                  placeholder="Email của bạn"
-                  className="footer-input"
-                />
-                <button className="footer-button">
-                  Đăng ký
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Column 2 - Right Side */}
-          <div className="footer-column">
-            {/* Map Section */}
-            <div className="footer-section">
-              <h3 className="footer-title">Vị trí cửa hàng</h3>
-              <div className="footer-map-container">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4241674197667!2d106.69173407486698!3d10.780260089362!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3a9d8d1bb3%3A0xd7ab182b35e0765d!2sNguy%E1%BB%85n%20Hu%E1%BB%87%20Walking%20Street!5e0!3m2!1sen!2s!4v1716204301121!5m2!1sen!2s"
-                  width="100%"
-                  height="200"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="GreenSpace Location"
-                  className="footer-map"
-                ></iframe>
-              </div>
-            </div>
-
             {/* Quick Links */}
             <div className="footer-section">
               <h3 className="footer-title">Liên kết nhanh</h3>
@@ -77,14 +56,44 @@ const Footer = () => {
                 <li><Link to="/blog" className="footer-link">Blog</Link></li>
               </ul>
             </div>
+          </div>
+
+          {/* Column 2 - Right Side */}
+          <div className="footer-column">
+            {/* Map Section */}
+            <div className="footer-section">
+              <h3 className="footer-title">Vị trí cửa hàng</h3>
+              <div className="footer-map-container" style={{height: "230px"}}>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4241674197667!2d106.69173407486698!3d10.780260089362!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3a9d8d1bb3%3A0xd7ab182b35e0765d!2sNguy%E1%BB%85n%20Hu%E1%BB%87%20Walking%20Street!5e0!3m2!1sen!2s!4v1716204301121!5m2!1sen!2s"
+                  width="100%"
+                  height="230"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="GreenSpace Location"
+                  className="footer-map"
+                ></iframe>
+              </div>
+            </div>
+
             <div className="footer-section">
               <h3 className="footer-title">Chính sách</h3>
               <ul className="footer-links">
-                <li><Link to="/home" className="footer-link">Điều khoản và điều kiện</Link></li>
-                <li><Link to="/designs" className="footer-link">Chính sách bảo mật</Link></li>
-                <li><Link to="/about" className="footer-link">Chính sách đổi trả</Link></li>
-                <li><Link to="/support" className="footer-link">Chính sách thanh toán</Link></li>
-                <li><Link to="/blog" className="footer-link">Chính sách bảo hành</Link></li>
+                {policies.length > 0 ? (
+                  policies.map((policy) => (
+                    <li key={policy.id}>
+                      <Link to={`/policy/${policy.id}`} className="footer-link">
+                        {policy.documentName}
+                      </Link>
+                    </li>
+                  ))
+                ) : (
+                  <>
+                    <li><Link to="/policy" className="footer-link">Xem tất cả chính sách</Link></li>
+                  </>
+                )}
               </ul>
             </div>
           </div>

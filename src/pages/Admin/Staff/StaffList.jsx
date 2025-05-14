@@ -255,7 +255,8 @@ const StaffList = () => {
       support: 'green',
       shipper: 'purple',
       accountant: 'cyan',
-      designer: 'magenta'
+      designer: 'magenta',
+      contractor: 'lime'
     };
     return roleColors[role] || 'default';
   };
@@ -269,7 +270,8 @@ const StaffList = () => {
       // support: 'Hỗ trợ khách hàng',
       // shipper: 'Nhân viên giao hàng',
       designer: 'Designer',
-      accountant: 'Accountant'
+      accountant: 'Accountant',
+      contractor: 'Contractor'
     };
     return roleNames[role] || role;
   };
@@ -308,6 +310,7 @@ const StaffList = () => {
         { text: 'Hỗ trợ khách hàng', value: 'support' },
         { text: 'Nhân viên giao hàng', value: 'shipper' },
         { text: 'Kế toán', value: 'accountant' },
+        { text: 'Đội thi công', value: 'contractor' },
       ],
       onFilter: (value, record) => record.role === value,
     },
@@ -430,6 +433,7 @@ const StaffList = () => {
               <Option value="staff">Nhân viên</Option>
               <Option value="designer">Nhà thiết kế</Option>
               <Option value="accountant">Kế toán</Option>
+              <Option value="contractor">Đội thi công</Option>
             </Select>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
@@ -534,6 +538,7 @@ const StaffList = () => {
               <Option value="staff">Nhân viên</Option>
               <Option value="designer">Nhà thiết kế</Option>
               <Option value="accountant">Kế toán</Option>
+              <Option value="contractor">Đội thi công</Option>
             </Select>
           </Form.Item>
           

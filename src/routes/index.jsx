@@ -10,6 +10,7 @@ import { managerRoutes } from "./managerRoutes";
 import { accountantRoutes } from "./accountantRoutes";
 import { staffRoutes } from "./staffRoutes";
 import { designerRoutes } from "./designerRoutes";
+import { contructorRoutes } from "./contructorRoutes";
 import LandingPage from "@/pages/LandingPage";
 import Home from "@/pages/Home/index";
 import DesignsPage from "@/pages/Designs";
@@ -34,6 +35,7 @@ import OrderServiceCustomize from "@/pages/ServiceOrder/OrderServiceCustomize";
 import StandardOrderDetail from "@/pages/ServiceOrder/StandardOrderDetail";
 import BookDesign from "@/pages/ServiceOrder/BookingServicesDesign/BookDesign";
 import RouteGuard from "@/components/RouteGuard";
+import { PolicyListPage, PolicyView } from "@/pages/Policy";
 // import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 
 const router = createBrowserRouter([
@@ -75,7 +77,7 @@ const router = createBrowserRouter([
   },
   {
     element: (
-      <RouteGuard allowedRoles={["admin", "accountant", "staff", "designer", "manager"]}>
+      <RouteGuard allowedRoles={["admin", "accountant", "staff", "designer", "manager", "contructor"]}>
         <AdminLayout />
       </RouteGuard>
     ),
@@ -86,6 +88,7 @@ const router = createBrowserRouter([
       accountantRoutes,
       staffRoutes,
       designerRoutes,
+      contructorRoutes,
     ],
   },
   {
@@ -251,6 +254,24 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <ProfilePage />
+      </>
+    ),
+  },
+  {
+    path: "/policy",
+    element: (
+      <>
+        <ScrollToTop />
+        <PolicyListPage />
+      </>
+    ),
+  },
+  {
+    path: "/policy/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <PolicyView />
       </>
     ),
   },

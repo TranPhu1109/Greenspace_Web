@@ -42,6 +42,12 @@ const DesignDetails = ({
     setIsPaymentModalVisible(true);
   };
 
+  // Check if deposit information should be shown
+  const shouldShowDepositInfo = () => {
+    const initialStatuses = ['Pending', 'ConsultingAndSketching', 'DeterminingDesignPrice', 'ReDeterminingDesignPrice', 'WaitDeposit'];
+    return order?.status && !initialStatuses.includes(order.status);
+  };
+
   const handleFinalPayment = async () => {
     if (!order) {
       Modal.error({ content: "Không tìm thấy thông tin đơn hàng. Vui lòng làm mới trang." });
@@ -52,7 +58,7 @@ const DesignDetails = ({
     try {
       // Calculate remaining payment amount (remaining % of design price + material price)
       const remainingPercent = getRemainingPercentage();
-      const remainingDesignFee = order.designPrice * (remainingPercent / 100); 
+      const remainingDesignFee = (order.designPrice || 0) * (remainingPercent / 100); 
       const materialPrice = order.materialPrice || 0;
       const totalPayment = remainingDesignFee + materialPrice;
 
@@ -123,6 +129,36 @@ const DesignDetails = ({
     }
   };
 
+  // If order is null or undefined, render a loading state
+  if (!order) {
+    return (
+      <Card
+        title={
+          <span style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#4caf50',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <HomeOutlined />
+            Thông tin thiết kế
+          </span>
+        }
+        style={{
+          height: '100%',
+          borderRadius: '16px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <Spin tip="Đang tải thông tin thiết kế..." />
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card
@@ -172,6 +208,17 @@ const DesignDetails = ({
               </span>
             )}
           </Descriptions.Item>
+          
+          {/* Display deposit amount when appropriate */}
+          {shouldShowDepositInfo() && order?.designPrice > 0 && (
+            <Descriptions.Item label="Đã thanh toán cọc giá thiết kế">
+              <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                {formatPriceDisplay((order?.designPrice || 0) * (getDepositPercentage() / 100))}
+                <Tag color="blue" style={{ marginLeft: '8px' }}>{getDepositPercentage()}%</Tag>
+              </span>
+            </Descriptions.Item>
+          )}
+          
           <Descriptions.Item
             label={
               order?.status === 'DoneDesign' || order?.status === 6
@@ -195,16 +242,16 @@ const DesignDetails = ({
               || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
               || order?.status === "DeliveredSuccessfully"
               ? (
-                <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
-                  {formatPriceDisplay((order.designPrice || 0) + (order.materialPrice || 0))}
-                </span>
-              ) : (
                 order?.totalCost === undefined ? 'Đang tải...' :
                   order.totalCost === 0 ? (
                     <Tag color="gold">Chưa xác định tổng</Tag>
                   ) : (
                     <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPriceDisplay(order.totalCost)}</span>
                   )
+              ) : (
+                <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
+                  {formatPriceDisplay((order?.designPrice || 0) + (order?.materialPrice || 0))}
+                </span>
               )}
           </Descriptions.Item>
           <Descriptions.Item label="Ngày tạo">
@@ -232,7 +279,7 @@ const DesignDetails = ({
                   onClick={handleOpenPaymentModal}
                   style={{ width: '100%', marginTop: '12px', borderRadius: '4px' }}
                 >
-                  Thanh toán ngay: {formatPriceDisplay((order.designPrice || 0) * (getRemainingPercentage() / 100) + (order.materialPrice || 0))}
+                  Thanh toán ngay: {formatPriceDisplay(((order?.designPrice || 0) * (getRemainingPercentage() / 100)) + (order?.materialPrice || 0))}
                 </Button>
               </Card>
             </Descriptions.Item>
