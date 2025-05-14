@@ -35,6 +35,7 @@ import OrderServiceCustomize from "@/pages/ServiceOrder/OrderServiceCustomize";
 import StandardOrderDetail from "@/pages/ServiceOrder/StandardOrderDetail";
 import BookDesign from "@/pages/ServiceOrder/BookingServicesDesign/BookDesign";
 import RouteGuard from "@/components/RouteGuard";
+import { PolicyListPage, PolicyView } from "@/pages/Policy";
 // import ServiceOrderHistory from "@/pages/Order/ServiceOrderHistory";
 
 const router = createBrowserRouter([
@@ -253,6 +254,24 @@ const router = createBrowserRouter([
       <>
         <ScrollToTop />
         <ProfilePage />
+      </>
+    ),
+  },
+  {
+    path: "/policy",
+    element: (
+      <>
+        <ScrollToTop />
+        <PolicyListPage />
+      </>
+    ),
+  },
+  {
+    path: "/policy/:id",
+    element: (
+      <>
+        <ScrollToTop />
+        <PolicyView />
       </>
     ),
   },
