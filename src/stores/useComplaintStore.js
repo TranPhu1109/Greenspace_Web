@@ -163,6 +163,21 @@ const useComplaintStore = create((set, get) => ({
     }
   },
 
+  fetchUserComplaintsSilent: async (userId) => {
+    try {
+      const response = await axios.get(`/api/complaint/${userId}/users`);
+      set((state) => {
+        // Nếu complaints không thay đổi, không cần set lại
+        if (JSON.stringify(state.complaints) !== JSON.stringify(response.data)) {
+          return { complaints: response.data };
+        }
+        return {};
+      });
+    } catch (error) {
+      console.error("Error silently fetching complaints:", error);
+    }
+  },  
+
   // Process refund for a complaint
   processRefund: async (complaintId) => {
     set({ loading: true, error: null });

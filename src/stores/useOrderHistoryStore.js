@@ -24,6 +24,15 @@ const useOrderHistoryStore = create((set) => ({
     }
   },
 
+  fetchOrderHistorySilent: async () => {
+    try {
+      const response = await axios.get('/api/orderproducts/user?pageNumber=0&pageSize=100');
+      set({ orders: response.data });
+    } catch (error) {
+      console.error("Silent fetch failed:", error);
+    }
+  },
+
   // Confirm delivery
   confirmDelivery: async (orderId, deliveryCode) => {
     set({ loading: true, error: null });
