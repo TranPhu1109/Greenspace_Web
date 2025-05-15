@@ -1,7 +1,7 @@
 .cart-layout {
   min-height: 100vh;
   background-color: #f5f5f5;
-  
+
   .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -65,6 +65,67 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+
+      .summary-left {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    
+        .wallet-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+    
+          .btn-topup {
+            padding: 0 12px;
+            height: 32px;
+            font-size: 13px;
+            background: #faad14;
+            border-color: #faad14;
+    
+            &:hover {
+              background: #d48806;
+              border-color: #d48806;
+            }
+          }
+    
+          .ant-typography-success {
+            font-size: 1rem;
+          }
+        }
+      }
+    
+      .summary-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+    
+        .total-amount {
+          font-size: 1.2rem;
+        }
+    
+        .ant-btn {
+          height: 48px;
+          padding: 0 32px;
+          font-size: 1.1rem;
+          background: #52c41a;
+          border-color: #52c41a;
+    
+          &:hover {
+            background: #49ad18;
+            border-color: #49ad18;
+          }
+    
+          &[disabled] {
+            background: #d9d9d9;
+            border-color: #d9d9d9;
+            color: rgba(0, 0, 0, 0.25);
+          }
+        }
+      }
 
       .wallet-balance {
         .ant-typography {
@@ -125,20 +186,34 @@
       }
     }
   }
-
-
 }
 
 @media (max-width: 768px) {
+  .cart-summary {
+    flex-direction: column;
+    align-items: flex-start !important;
+    .summary-right {
+      width: 100%;
+      align-items: stretch;
+
+      .ant-btn {
+        width: 100%;
+      }
+    }
+  }
+}
+
+
+@media (max-width: 768px) {
   .cart-layout,
-.checkout-layout {
+  .checkout-layout {
     .cart-content,
-  .checkout-content {
+    .checkout-content {
       margin-top: 110px;
       padding: 20px 0;
 
       .cart-summary,
-    .checkout-summary {
+      .checkout-summary {
         flex-direction: column;
         gap: 16px;
         text-align: center;
@@ -154,6 +229,4 @@
       }
     }
   }
-
-
 }

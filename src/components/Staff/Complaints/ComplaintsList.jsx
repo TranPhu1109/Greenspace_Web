@@ -23,10 +23,7 @@ import {
 import {
   SearchOutlined,
   EyeOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   ExclamationCircleOutlined,
-  HistoryOutlined,
   ShoppingOutlined,
   CarOutlined,
 } from "@ant-design/icons";

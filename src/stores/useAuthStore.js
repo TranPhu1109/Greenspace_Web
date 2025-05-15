@@ -206,7 +206,10 @@ const useAuthStore = create(
             throw new Error("Không tìm thấy thông tin người dùng");
           }
           
-          const response = await axios.put(`/api/users/${user.id}`, { address });
+          const response = await axios.put(`/api/users/${user.id}`, { 
+            name: user.name,
+            address: address 
+          });
           
           // Cập nhật thông tin user trong store và localStorage
           const updatedUser = { ...user, address };

@@ -17,6 +17,7 @@ import {
   HomeOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -29,7 +30,7 @@ import "./styles.scss";
 import LoginRequiredModal from "@/components/Auth/LoginRequiredModal";
 
 const { Content } = Layout;
-const { Title, Text } = Typography;
+const { Paragraph, Text } = Typography;
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -308,10 +309,29 @@ const CartPage = () => {
 
     const total = calculateTotal();
     if (total > balance) {
-      notification.error({
-        message: "Số dư không đủ",
-        description: "Vui lòng nạp thêm tiền vào ví để tiếp tục thanh toán.",
-        duration: 3,
+      notification.open({
+        message: (
+          <Space>
+            <Text strong style={{ fontSize: 16 }}>Số dư không đủ</Text>
+          </Space>
+        ),
+        description: (
+          <div style={{ marginTop: 8 }}>
+            <Paragraph>
+              Ví của bạn hiện không đủ để thanh toán. Vui lòng nạp thêm tiền để tiếp tục sử dụng dịch vụ.
+            </Paragraph>
+            <div style={{ textAlign: 'right' }}>
+              <Button
+                type="primary"
+                onClick={() => navigate("/userwallets")}
+              >
+                Nạp ngay
+              </Button>
+            </div>
+          </div>
+        ),
+        icon: <WalletOutlined style={{ color: "#faad14", fontSize: 20 }} />,
+        duration: 5, // Cho người dùng có thời gian đọc và thao tác
       });
       return;
     }
@@ -519,12 +539,12 @@ const CartPage = () => {
         <div className="cart-content">
           <div className="container">
             <Breadcrumb style={{
-                margin: '20px 0 10px',
-                padding: '12px 16px',
-                backgroundColor: '#fff',
-                borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
-              }}>
+              margin: '20px 0 10px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }}>
               <Breadcrumb.Item href="/Home">
                 <HomeOutlined /> Trang chủ
               </Breadcrumb.Item>
@@ -544,12 +564,58 @@ const CartPage = () => {
             </div>
 
             <div className="cart-summary">
+              <div className="summary-left">
+                <Text>Đã chọn {selectedItems.length} / {localCartItems.length} sản phẩm</Text>
+                <div className="wallet-info">
+                  <Text strong>Số dư ví:</Text>
+                  <Text type="success">{balance.toLocaleString("vi-VN")}đ</Text>
+                  {balance === 0 && (
+                    <Button
+                      type="primary"
+                      size="middle"
+                      icon={<WalletOutlined />}
+                      onClick={() => navigate("/userwallets")}
+                      // className="btn-topup"
+                    >
+                      Nạp thêm
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="summary-right">
+                <Text strong className="total-amount">
+                  Tổng tiền: {calculateTotal().toLocaleString("vi-VN")}đ
+                </Text>
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={handleCheckout}
+                  loading={loading}
+                  disabled={!selectedItems.length}
+                >
+                  Thanh toán
+                </Button>
+              </div>
+            </div>
+
+
+            {/* <div className="cart-summary">
               <div className="cart-selection-info">
                 <Text>Đã chọn {selectedItems.length} / {localCartItems.length} sản phẩm</Text>
               </div>
               <div className="wallet-balance">
                 <Text strong>Số dư ví: </Text>
                 <Text type="success">{balance.toLocaleString("vi-VN")}đ</Text>
+                {balance === 0 && (
+                  <Button 
+                    type="primary" 
+                    size="small" 
+                    onClick={() => navigate("/userwallets")}
+                    style={{ marginLeft: 8 }}
+                  >
+                    Nạp tiền
+                  </Button>
+                )}
               </div>
               <div className="checkout-section">
                 <Text strong className="total-amount">
@@ -565,7 +631,7 @@ const CartPage = () => {
                   Thanh toán
                 </Button>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </Content>

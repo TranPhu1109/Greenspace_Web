@@ -51,52 +51,75 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
   const [dataInitialized, setDataInitialized] = useState(false);
   const [policyModalVisible, setPolicyModalVisible] = useState(false);
   const [tempSelectedOrder, setTempSelectedOrder] = useState(null);
-
+  const [ordersWithComplaintsMap, setOrdersWithComplaintsMap] = useState({});
+  const [isDataFullyLoaded, setIsDataFullyLoaded] = useState(false);
 
   // Use complaints from props if available, otherwise fetch them
   useEffect(() => {
     if (propsComplaints) {
       setComplaints(propsComplaints);
+      updateOrderComplaintsMap(propsComplaints);
     }
   }, [propsComplaints]);
 
-  // Kết hợp fetch orders và complaints trong một effect
+  // Update the map of orders with complaints for quick lookup
+  const updateOrderComplaintsMap = (complaintsData) => {
+    if (!complaintsData || !Array.isArray(complaintsData)) return;
+    
+    const newMap = {};
+    complaintsData.forEach(complaint => {
+      if (complaint.orderId) {
+        newMap[complaint.orderId] = true;
+      }
+    });
+    setOrdersWithComplaintsMap(newMap);
+  };
+
+  // Fetch orders and complaints in a synchronized way
   useEffect(() => {
     const initializeData = async () => {
       setDataInitialized(false);
+      setIsDataFullyLoaded(false);
 
-      // Fetch order history
-      await fetchOrderHistory();
-
-      // Fetch complaints if not provided via props and user is logged in
-      if (!propsComplaints && user?.id) {
-        setComplaintsLoading(true);
-        try {
-          const data = await fetchUserComplaints(user.id);
-          setComplaints(data || []);
-        } catch (err) {
-          console.error("Error fetching complaints:", err);
-          setComplaints([]);
-        } finally {
-          setComplaintsLoading(false);
+      try {
+        // Fetch order history first
+        await fetchOrderHistory();
+        
+        // Only fetch complaints if not provided via props and user is logged in
+        let complaintsData = propsComplaints || [];
+        if (!propsComplaints && user?.id) {
+          setComplaintsLoading(true);
+          try {
+            complaintsData = await fetchUserComplaints(user.id) || [];
+            setComplaints(complaintsData);
+          } catch (err) {
+            console.error("Error fetching complaints:", err);
+          } finally {
+            setComplaintsLoading(false);
+          }
         }
+        
+        // Update the map of orders with complaints
+        updateOrderComplaintsMap(complaintsData);
+        
+        setDataInitialized(true);
+      } catch (err) {
+        console.error("Error initializing data:", err);
       }
-
-      setDataInitialized(true);
     };
 
     initializeData();
   }, [fetchOrderHistory, fetchUserComplaints, user?.id, propsComplaints]);
 
-  // Helper function to check if an order has a complaint
+  // Improved helper function to check if an order has a complaint
   const hasComplaint = (orderId) => {
-    if (!complaints || !Array.isArray(complaints) || complaints.length === 0) return false;
-    return complaints.some(complaint => complaint.orderId === orderId);
+    return !!ordersWithComplaintsMap[orderId];
   };
 
+  // Fetch product details after orders are loaded
   useEffect(() => {
     const fetchProductDetails = async () => {
-      if (!orders || orders.length === 0) return;
+      if (!orders || orders.length === 0 || !dataInitialized) return;
 
       const productIds = orders.flatMap(
         (order) => order.orderDetails?.map((detail) => detail.productId) || []
@@ -106,6 +129,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       const missingProductIds = uniqueProductIds.filter(id => !productDetails[id]);
 
       if (missingProductIds.length === 0) {
+        setIsDataFullyLoaded(true);
         return;
       }
 
@@ -120,27 +144,29 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
             hasNewData = true;
           }
         } catch (error) {
+          console.error("Error fetching product details:", error);
         }
       }
 
       if (hasNewData) {
         setProductDetails(newDetails);
       }
+      
+      setIsDataFullyLoaded(true);
     };
 
-    if (dataInitialized) {
-      fetchProductDetails();
-    }
-  }, [orders, getProductById, dataInitialized]);
+    fetchProductDetails();
+  }, [orders, getProductById, dataInitialized, productDetails]);
 
-  // Cập nhật complaints sau khi đóng modal khiếu nại
+  // Refresh complaints after closing the complaint modal
   useEffect(() => {
     if (!complaintModalVisible && user?.id && dataInitialized && !propsComplaints) {
       const refreshComplaints = async () => {
         setComplaintsLoading(true);
         try {
-          const data = await fetchUserComplaints(user.id);
-          setComplaints(data || []);
+          const data = await fetchUserComplaints(user.id) || [];
+          setComplaints(data);
+          updateOrderComplaintsMap(data);
         } catch (err) {
           console.error("Error refreshing complaints:", err);
         } finally {
@@ -266,6 +292,15 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
         const isCompleted = record.status === 9 || record.status === "9";
         const hasExistingComplaint = hasComplaint(record.id);
 
+        if (!isDataFullyLoaded) {
+          return (
+            <Spin 
+              indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} 
+              size="small" 
+            />
+          );
+        }
+
         return (
           <Space direction="vertical">
             {record.status === 0 || record.status === "0" ? (
@@ -326,73 +361,6 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                     setTempSelectedOrder(record);
                     setPolicyModalVisible(true);
                   }}
-
-                // onClick={() => {
-                //   Modal.confirm({
-                //     title: "Chính sách Trả/Đổi hàng",
-                //     content: (
-                //       <div style={{
-                //         maxHeight: '60vh', overflowY: 'auto', paddingRight: 8, scrollbarWidth: 'thin', // Firefox
-                //         scrollbarColor: '#d9d9d9 transparent',
-                //       }}>
-                //         <Card style={{ marginBottom: 16, backgroundColor: '#e6f7ff', borderColor: '#91d5ff' }}>
-                //           <Title level={5}>📜 Chính sách Trả hàng & Hoàn tiền</Title>
-                //           <Text type="secondary">
-                //             • Sản phẩm trả về phải còn nguyên vẹn, chưa sử dụng, còn đủ phụ kiện.<br />
-                //             • Hoàn tiền 100% với sản phẩm lỗi hoặc giao sai.<br />
-                //             • Không hỗ trợ hoàn tiền cho sản phẩm hư hỏng do sử dụng.<br />
-                //             • Xử lý hoàn tiền trong 3-7 ngày sau khi nhận sản phẩm.
-                //           </Text>
-                //         </Card>
-
-                //         <Card style={{ marginBottom: 16, backgroundColor: '#fff0f6', borderColor: '#ffadd2' }}>
-                //           <Title level={5}>🔄 Chính sách Đổi hàng</Title>
-                //           <Text type="secondary">
-                //             • Đổi sản phẩm nếu lỗi kỹ thuật, giao nhầm, hỏng hóc.<br />
-                //             • Đổi sang sản phẩm cùng hoặc cao hơn giá trị.<br />
-                //             • Không đổi sản phẩm đã qua sử dụng hoặc thiếu phụ kiện.
-                //           </Text>
-                //         </Card>
-
-                //         <Card style={{ backgroundColor: '#fefefe', border: '1px solid #d9d9d9', padding: 20 }}>
-                //           <Title level={5}>📦 Hướng dẫn Gửi Trả/Đổi Hàng</Title>
-                //           <Space direction="vertical" size="small">
-                //             <Text>1️⃣ Chuẩn bị sản phẩm còn mới, đủ hộp, phụ kiện.</Text>
-                //             <Text>2️⃣ Đóng gói bằng màng chống sốc, thùng carton chắc chắn.</Text>
-                //             <Text>3️⃣ Viết thông tin đơn hàng rõ ràng vào trong và ngoài gói hàng.</Text>
-                //             <Text>4️⃣ Gửi hàng đến:</Text>
-                //             <div style={{ paddingLeft: 16 }}>
-                //               <Text strong>Bộ phận Kho hàng GreenSpace</Text><br />
-                //               <Text>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, Hồ Chí Minh</Text><br />
-                //               <Text>Số điện thoại: 0909 999 888</Text>
-                //             </div>
-                //             <Text>5️⃣ Gửi hàng trong vòng 2 ngày từ khi gửi yêu cầu.</Text>
-                //             <Text type="danger">* Bắt buộc chụp ảnh sản phẩm trước khi giao hàng *</Text>
-                //           </Space>
-                //         </Card>
-
-                //       </div>
-                //     ),
-                //     okText: "Tôi đã đọc và đồng ý",
-                //     cancelText: "Huỷ",
-                //     centered: true,
-                //     width: 700,
-                //     onOk: () => {
-                //       setSelectedProductForComplaint({
-                //         parentOrder: record,
-                //         orderDetails: record.orderDetails
-                //       });
-                //       setComplaintModalVisible(true);
-                //     },
-                //   });
-                // }}
-                // onClick={() => {
-                //   setSelectedProductForComplaint({
-                //     parentOrder: record,
-                //     orderDetails: record.orderDetails
-                //   });
-                //   setComplaintModalVisible(true);
-                // }}
                 >
                   {hasExistingComplaint ? 'Đã gửi yêu cầu' : 'Yêu cầu trả/đổi hàng'}
                 </Button>
@@ -483,6 +451,10 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
         render: (_, record) => {
           const orderStatus = record?.parentOrder?.status;
           if (orderStatus === 9 || orderStatus === "9") {
+            if (!isDataFullyLoaded) {
+              return <Spin size="small" />;
+            }
+            
             return (
               <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
                 <Button
@@ -582,7 +554,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     }
   };
 
-  const isLoading = ordersLoading || complaintsLoading || !dataInitialized;
+  const isLoading = ordersLoading || complaintsLoading || !dataInitialized || !isDataFullyLoaded;
 
   if (error) {
     return (
@@ -592,6 +564,18 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
         type="error"
         showIcon
       />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "300px" }}>
+        <Spin 
+          size="large" 
+          tip="Đang tải dữ liệu..." 
+          indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} 
+        />
+      </div>
     );
   }
 
@@ -661,6 +645,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
             try {
               const freshComplaints = await fetchUserComplaints(user.id);
               setComplaints(freshComplaints || []);
+              updateOrderComplaintsMap(freshComplaints || []);
             } catch (err) {
               console.error("Error fetching complaints after submission:", err);
             } finally {
