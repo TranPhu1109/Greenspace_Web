@@ -17,4 +17,21 @@
       font-weight: 500;
     }
   }
+}
+
+// Product status styles
+.accepted-product-row {
+  background-color: rgba(82, 196, 26, 0.05);
+  
+  &:hover > td {
+    background-color: rgba(82, 196, 26, 0.1) !important;
+  }
+}
+
+.rejected-product-row {
+  background-color: rgba(255, 77, 79, 0.05);
+  
+  &:hover > td {
+    background-color: rgba(255, 77, 79, 0.1) !important;
+  }
 } 
