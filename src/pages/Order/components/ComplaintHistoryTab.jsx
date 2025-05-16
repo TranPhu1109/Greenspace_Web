@@ -44,7 +44,7 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
 
   // Use complaints from props if available, otherwise fetch them
   useEffect(() => {
-    if (propsComplaints) {
+    if (propsComplaints && propsComplaints.length > 0) {
       setComplaints(propsComplaints);
       setLoading(false);
     } else {
@@ -95,7 +95,7 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
       : 'Bạn đã kiểm tra và xác nhận đã nhận được tiền hoàn về ví của mình?';
     const okText = isProductReturn ? 'Đã nhận được hàng' : 'Đã nhận được tiền';
     const deliveryCode = complaints.find(complaint => complaint.id === complaintId)?.deliveryCode;
-
+    const reason = complaints.find(complaint => complaint.id === complaintId)?.reason;
     confirm({
       title: title,
       icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
@@ -108,7 +108,8 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
             complaintId,
             5, // Status 5 = Complete
             isProductReturn ? 0 : 1, // ComplaintType: 0 for ProductReturn, 1 for Refund
-            deliveryCode
+            deliveryCode,
+            reason
           );
           messageApi.success(isProductReturn
             ? 'Đã xác nhận nhận hàng thành công!'
@@ -277,7 +278,7 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
       render: (date) => format(new Date(date), "dd/MM/yyyy HH:mm"),
     },
     {
-      title: "Thao tác",
+      // title: "Thao tác",
       key: "action",
       width: 100,
       render: (_, record) => (
@@ -295,7 +296,7 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
                 : 'Đã nhận tiền'}
             </Button>
           )}
-          {record.status === "pending" && (
+          {record.status === "Approved" && (
             <Button
               type="dashed"
               size="small"
@@ -451,8 +452,74 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
 
 
   const expandedRowRender = (record) => {
+    // Count accepted and rejected products
+    const acceptedItems = record.status !== 'pending' ? record.complaintDetails.filter(item => item.isCheck).length : 0;
+    const rejectedItems = record.status !== 'pending' ? record.complaintDetails.filter(item => !item.isCheck).length : 0;
+
     return (
       <Card size="small" className="expanded-row-card">
+        {record.status !== 'pending' && record.reason && (
+          <div
+            style={{
+              marginBottom: 20,
+              padding: '16px 20px',
+              background: '#fffbe6',
+              borderRadius: 10,
+              border: '1px solid #ffe58f',
+              boxShadow: '0 2px 6px rgba(255, 215, 0, 0.1)',
+            }}
+          >
+            {record.reason && (
+              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Text strong style={{ fontSize: 16, color: '#d48806' }}>
+                  📋 Kết quả xử lý khiếu nại
+                </Text>
+                <Text style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{record.reason}</Text>
+
+                {acceptedItems > 0 && (
+                  <Alert
+                    message={
+                      <span>
+                        🎯 Vui lòng gửi về <strong>sản phẩm được chấp nhận</strong>. Nếu bạn không đồng ý với kết quả xử lý, vui lòng gọi đến hotline <Text strong type="danger">0909 999 888</Text> để được hỗ trợ.
+                      </span>
+                    }
+                    type="info"
+                    style={{ marginTop: 12 }}
+                  />
+                )}
+
+                {/* Tag tổng kết kết quả nằm dưới lý do */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  {acceptedItems > 0 && (
+                    <Tag
+                      icon={<CheckCircleOutlined />}
+                      color="success"
+                      style={{ fontSize: 14, padding: '5px 10px', borderRadius: 6 }}
+                    >
+                      {acceptedItems} sản phẩm được chấp nhận
+                    </Tag>
+                  )}
+                  {rejectedItems > 0 && (
+                    <Tag
+                      icon={<InfoCircleOutlined />}
+                      color="error"
+                      style={{ fontSize: 14, padding: '5px 10px', borderRadius: 6 }}
+                    >
+                      {rejectedItems} sản phẩm bị từ chối
+                    </Tag>
+                  )}
+                </div>
+              </Space>
+            )}
+          </div>
+        )}
         <Descriptions column={3} bordered>
           <Descriptions.Item label="Tên người dùng" span={2}>
             {record.userName}
@@ -545,7 +612,7 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
               title: "Sản phẩm",
               dataIndex: "productId",
               key: "productId",
-              render: (productId) => {
+              render: (productId, item) => {
                 const product = productDetails[productId];
 
                 // Show loading state if product is being fetched
@@ -569,14 +636,62 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
                 return (
                   <Space>
                     {product?.image?.imageUrl ? (
-                      <img
-                        src={product.image.imageUrl}
-                        alt={product.name}
-                        style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 4 }}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={product.image.imageUrl}
+                          alt={product.name}
+                          style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 4 }}
+                        />
+                        {record.status !== 'pending' && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: -4,
+                              right: -4,
+                              width: 18,
+                              height: 18,
+                              borderRadius: '50%',
+                              background: item.isCheck ? '#52c41a' : '#f5222d',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '2px solid #fff'
+                            }}
+                          >
+                            {item.isCheck ?
+                              <CheckCircleOutlined style={{ color: '#fff', fontSize: 10 }} /> :
+                              <InfoCircleOutlined style={{ color: '#fff', fontSize: 10 }} />
+                            }
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
-                        <ShoppingOutlined style={{ fontSize: 20, color: '#999' }} />
+                      <div style={{ position: 'relative' }}>
+                        <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
+                          <ShoppingOutlined style={{ fontSize: 20, color: '#999' }} />
+                        </div>
+                        {record.status !== 'pending' && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: -4,
+                              right: -4,
+                              width: 18,
+                              height: 18,
+                              borderRadius: '50%',
+                              background: item.isCheck ? '#52c41a' : '#f5222d',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '2px solid #fff'
+                            }}
+                          >
+                            {item.isCheck ?
+                              <CheckCircleOutlined style={{ color: '#fff', fontSize: 10 }} /> :
+                              <InfoCircleOutlined style={{ color: '#fff', fontSize: 10 }} />
+                            }
+                          </div>
+                        )}
                       </div>
                     )}
                     <Space direction="vertical" size={0}>
@@ -610,11 +725,59 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
                 <Text type="success" strong>{price.toLocaleString()}đ</Text>
               ),
             },
+            // Thêm cột trạng thái sản phẩm khi không ở trạng thái pending
+            ...(record.status !== 'pending' ? [{
+              title: "Trạng thái",
+              dataIndex: "isCheck",
+              key: "status",
+              width: 120,
+              render: (isCheck) => (
+                isCheck ?
+                  <Tag color="success" icon={<CheckCircleOutlined />}>Chấp nhận</Tag> :
+                  <Tag color="error" icon={<InfoCircleOutlined />}>Từ chối</Tag>
+              ),
+            }] : []),
           ]}
           dataSource={record.complaintDetails}
           pagination={false}
           rowKey="productId"
+          rowClassName={(recordItem) => record.status !== 'pending' && !recordItem.isCheck ? 'ant-table-row-rejected' : 'ant-table-row-accepted'}
+        // summary={() => {
+        //   // Only show summary when not in pending status
+        //   if (record.status === 'pending') return null;
+
+        //   return (
+        //     <Table.Summary fixed>
+        //       <Table.Summary.Row>
+        //         <Table.Summary.Cell index={0} colSpan={record.status !== 'pending' ? 5 : 4}>
+        //           <Space style={{ justifyContent: 'flex-end', width: '100%' }}>
+        //             {acceptedItems > 0 && (
+        //               <Tag color="success">
+        //                 <CheckCircleOutlined /> {acceptedItems} sản phẩm được chấp nhận
+        //               </Tag>
+        //             )}
+        //             {rejectedItems > 0 && (
+        //               <Tag color="error">
+        //                 {rejectedItems} sản phẩm bị từ chối
+        //               </Tag>
+        //             )}
+        //           </Space>
+        //         </Table.Summary.Cell>
+        //       </Table.Summary.Row>
+        //     </Table.Summary>
+        //   );
+        // }}
         />
+
+        {/* Add CSS for rejected rows */}
+        <style jsx>{`
+          .ant-table-row-rejected {
+            background-color: #fff1f0;
+          }
+          .ant-table-row-accepted {
+            background-color: #f0fff4;
+          }  
+        `}</style>
 
         {/* Show confirmation button in expanded row as well */}
         {

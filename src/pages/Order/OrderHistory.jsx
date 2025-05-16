@@ -69,22 +69,23 @@ const OrderHistory = () => {
       clearTimeout(window.orderHistoryUpdateTimer);
     }
 
-    window.orderHistoryUpdateTimer = setTimeout(() => {
-      // Always refresh order history to ensure we have latest data
-      // fetchOrderHistory();
-      fetchOrderHistorySilent();
-      // Also refresh complaints if user is logged in
-      if (user?.id) {
-        try {
-          // fetchUserComplaints(user.id).then(freshData => {
-            fetchUserComplaintsSilent(user.id).then(freshData => {
-            setComplaints(freshData);
-          });
-        } catch (err) {
-          console.error("Error refreshing complaints after SignalR update:", err);
+    window.orderHistoryUpdateTimer = setTimeout(async () => {
+      try {
+        // Refresh order history data
+        const newOrders = await fetchOrderHistorySilent();
+        
+        // Refresh complaints data if user is logged in
+        if (user?.id) {
+          const freshComplaintsData = await fetchUserComplaintsSilent(user.id);
+          // Only update if we got actual data back
+          if (freshComplaintsData && Array.isArray(freshComplaintsData)) {
+            setComplaints(freshComplaintsData);
+          }
         }
+      } catch (err) {
+        console.error("Error refreshing data after SignalR update:", err);
       }
-    }, 200); // Shorter debounce time to ensure responsiveness
+    }, 1000); // Shorter debounce time to ensure responsiveness
   };
 
   // Set up SignalR connection
