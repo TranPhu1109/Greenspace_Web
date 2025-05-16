@@ -421,6 +421,13 @@ const ComplaintsRefundList = () => {
                 : "Không có lý do"}
             </div>
           </Descriptions.Item>
+          {selectedComplaint.reason && (
+            <Descriptions.Item label="Kết quả xử lý" span={3}>
+              <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                {selectedComplaint.reason}
+              </div>
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="Trạng thái" span={3}>
             <Space>
               <Badge status={getStatusTag(selectedComplaint.status).color} />
@@ -517,39 +524,12 @@ const ComplaintsRefundList = () => {
             </Card>
           )}
 
-        {/* {selectedComplaint.image?.imageUrl && (
-          <Card title="Hình ảnh khiếu nại" style={{ marginBottom: 20 }}>
-            <Space size="large">
-              {selectedComplaint.image.imageUrl && (
-                <Image
-                  width={200}
-                  src={selectedComplaint.image.imageUrl}
-                  alt="Hình ảnh khiếu nại 1"
-                />
-              )}
-              {selectedComplaint.image.image2 && (
-                <Image
-                  width={200}
-                  src={selectedComplaint.image.image2}
-                  alt="Hình ảnh khiếu nại 2"
-                />
-              )}
-              {selectedComplaint.image.image3 && (
-                <Image
-                  width={200}
-                  src={selectedComplaint.image.image3}
-                  alt="Hình ảnh khiếu nại 3"
-                />
-              )}
-            </Space>
-          </Card>
-        )} */}
-
         <Card title="Sản phẩm khiếu nại">
           <Table
             dataSource={selectedComplaint.complaintDetails}
             rowKey="productId"
             pagination={false}
+            rowClassName={(record) => record.isCheck ? "accepted-product-row" : "rejected-product-row"}
             columns={[
               {
                 title: "Sản phẩm",
@@ -603,8 +583,51 @@ const ComplaintsRefundList = () => {
                   <Text type="success" strong>{totalPrice.toLocaleString()}đ</Text>
                 ),
               },
+              {
+                title: "Trạng thái",
+                dataIndex: "isCheck",
+                key: "status",
+                render: (isCheck) => (
+                  isCheck ? 
+                  <Tag color="success">Chấp nhận</Tag> : 
+                  <Tag color="error">Từ chối</Tag>
+                ),
+              },
             ]}
           />
+          
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {selectedComplaint.complaintDetails && (
+              <Descriptions
+              column={1}
+              bordered
+              size="small"
+              style={{ marginBottom: 24, background: '#fafafa', borderRadius: 8 }}
+            >
+              <Descriptions.Item label="Tổng số sản phẩm">
+                <Text strong>{selectedComplaint.complaintDetails.length}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Sản phẩm được chấp nhận">
+                <Text strong style={{ color: '#52c41a' }}>
+                  {selectedComplaint.complaintDetails.filter((item) => item.isCheck).length}
+                </Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Sản phẩm bị từ chối">
+                <Text strong style={{ color: '#ff4d4f' }}>
+                  {selectedComplaint.complaintDetails.filter((item) => !item.isCheck).length}
+                </Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Tổng tiền hoàn trả">
+                <Text strong style={{ color: '#faad14', fontSize: 16 }}>
+                  {selectedComplaint.complaintDetails
+                    .filter((item) => item.isCheck)
+                    .reduce((sum, item) => sum + item.totalPrice, 0)
+                    .toLocaleString()}đ
+                </Text>
+              </Descriptions.Item>
+            </Descriptions>
+            )}
+          </div>
         </Card>
 
         {/* Manager can update status from Processing to Refund */}

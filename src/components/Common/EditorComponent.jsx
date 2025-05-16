@@ -8,6 +8,8 @@ const EditorComponent = ({ value, onChange, height = 600 }) => {
       value={value}
       onEditorChange={onChange}
       init={{
+        selector: "textarea",
+        onboarding: false,
         height,
         menubar: 'file edit view insert format tools table help',
         plugins: [

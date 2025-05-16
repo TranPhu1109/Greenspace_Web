@@ -27,9 +27,17 @@ const useOrderHistoryStore = create((set) => ({
   fetchOrderHistorySilent: async () => {
     try {
       const response = await axios.get('/api/orderproducts/user?pageNumber=0&pageSize=100');
-      set({ orders: response.data });
+      set((state) => {
+        // Chỉ cập nhật nếu dữ liệu thay đổi
+        if (JSON.stringify(state.orders) !== JSON.stringify(response.data)) {
+          return { orders: response.data };
+        }
+        return {};
+      });
+      return response.data;
     } catch (error) {
       console.error("Silent fetch failed:", error);
+      return [];
     }
   },
 
