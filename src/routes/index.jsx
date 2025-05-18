@@ -44,6 +44,17 @@ const router = createBrowserRouter([
     element: (
       <>
         <ScrollToTop />
+        <Home />
+      </>
+    ),
+    // element: <Home />,
+    errorElement: <ErrorPage />,
+  },
+  {
+    path: "/landing",
+    element: (
+      <>
+        <ScrollToTop />
         <LandingPage />
       </>
     ),

@@ -240,7 +240,8 @@ const DesignDetails = ({
             {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" ||
               order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder'
               || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
-              || order?.status === "DeliveredSuccessfully"
+              || order?.status === "DeliveredSuccessfully" || order?.status === "Successfully" || order?.status === "DoneInstalling" || order?.status === "Installing"
+              || order?.status === "ReInstall" || order?.status === "DoneRefund"
               ? (
                 order?.totalCost === undefined ? 'Đang tải...' :
                   order.totalCost === 0 ? (

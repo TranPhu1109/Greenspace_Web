@@ -818,4 +818,34 @@
       display: none;
     }
   }
+}
+
+// Banner navigation dots
+.banner-dots {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+  
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    &.active {
+      background-color: #fff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+      transform: scale(1.2);
+    }
+  }
 } 

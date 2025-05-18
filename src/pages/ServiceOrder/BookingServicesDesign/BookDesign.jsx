@@ -221,7 +221,7 @@ const BookDesign = () => {
       // Kiểm tra response trả về từ API
       if (response && response.message === " created Successfully") {
         message.success("Đặt thiết kế thành công");
-        navigate("/home");
+        navigate("/history-booking-services");
       } else {
         // Ném lỗi cụ thể hơn nếu có
         throw new Error(response?.message || "Đặt thiết kế thất bại");

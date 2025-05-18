@@ -1253,7 +1253,7 @@ const NewDesignOrderDetail = () => {
               </Button>
               )}
 
-              {selectedOrder.status === "PaymentSuccess" && (
+              {/* {selectedOrder.status === "PaymentSuccess" && (
                 <Button
                   type="primary"
                   style={{
@@ -1274,7 +1274,7 @@ const NewDesignOrderDetail = () => {
                 >
                   Xác nhận đơn hàng
                 </Button>
-              )}
+              )} */}
 
               {/* Add Assign to Contractor Button */}
               {selectedOrder.status === "PaymentSuccess" && (

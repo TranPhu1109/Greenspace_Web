@@ -240,7 +240,7 @@ const NewDesignOrderDetail = () => {
       selectedOrder?.id,
       22,
       'Đã duyệt giá thiết kế thành công.',
-      'Lỗi duyệt giá'
+      // 'Lỗi duyệt giá'
     );
   };
 
@@ -488,7 +488,7 @@ const NewDesignOrderDetail = () => {
         message.error('Vui lòng kiểm tra lại thông tin nhập vào');
       } else {
         // API error
-        message.error(`Lỗi khi cập nhật: ${error.message}`);
+        // message.error(`Lỗi khi cập nhật: ${error.message}`);
       }
     }
   };
@@ -512,7 +512,7 @@ const NewDesignOrderDetail = () => {
     } catch (error) {
       console.error('Error fetching contract:', error);
       setContractError(error.message || 'Không thể tải hợp đồng');
-      message.error('Không thể tải thông tin hợp đồng');
+      // message.error('Không thể tải thông tin hợp đồng');
     }
   };
 
@@ -522,7 +522,7 @@ const NewDesignOrderDetail = () => {
       selectedOrder?.id,
       23, // DoneDeterminingMaterialPrice
       'Đã duyệt giá vật liệu thành công.',
-      'Lỗi duyệt giá vật liệu'
+      // 'Lỗi duyệt giá vật liệu'
     );
   };
 

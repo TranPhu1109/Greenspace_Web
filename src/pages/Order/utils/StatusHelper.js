@@ -59,6 +59,8 @@ export const getStatusText = (status) => {
     'DoneInstalling': "Đã lắp đặt xong",
     29: "Yêu cầu lắp đặt lại",
     'ReInstall': "Yêu cầu lắp đặt lại",
+    31: "Đơn hàng hoàn tất",
+    'Successfully': "Đơn hàng hoàn tất",
   };
   
   // Return mapped text or the original status if not found
@@ -126,6 +128,8 @@ export const getStatusColor = (status) => {
     'DoneInstalling': "green",
     29: "red",
     'ReInstall': "red",
+    31: "green",
+    'Successfully': "green",
   };
   
   // Return mapped color or 'default'
@@ -160,6 +164,10 @@ export const showOnlyPhase0Statuses = [
   'ReDeterminingDesignPrice',       // 24
   'ExchangeProduct',                // 25
   'MaterialPriceConfirmed',         // 33
+  'DoneInstalling',                 // 28
+  'Installing',                     // 27
+  'ReInstall',                      // 29
+  'DoneRefund',                     // 17
 ];
 
 // Define statuses where ALL sketch phases are shown
@@ -236,6 +244,11 @@ export const finalMaterialPriceStatuses = [
   'CompleteOrder',              // 13
   'OrderCancelled',             // 14
   'Warning',                    // 15
+  'Successfully',               // 31
+  'DoneInstalling',             // 28
+  'Installing',                 // 27
+  'ReInstall',                  // 29
+  'DoneRefund',                 // 17
 ];
 
 // Define statuses where design price is considered approved for customer view
@@ -256,4 +269,9 @@ export const approvedDesignPriceStatuses = [
   'Warning',                    // 15
   'ReDesign',                   // 20
   'MaterialPriceConfirmed',     // 33
+  'Successfully',               // 31
+  'DoneInstalling',             // 28
+  'Installing',                 // 27
+  'ReInstall',                  // 29
+  'DoneRefund',                 // 17
 ]; 

@@ -412,6 +412,8 @@ const ContractorSchedule = () => {
     switch (status) {
       case 'Pending':
         return <Tag color="default">Chờ xử lý</Tag>;
+      case 'Processing':
+        return <Tag color="blue">Đang xử lý</Tag>;
       case 'Installing':
         return <Tag color="blue">Đang lắp đặt</Tag>;
       case 'ReInstall':

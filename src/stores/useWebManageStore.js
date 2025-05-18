@@ -74,8 +74,10 @@ const useWebManageStore = create((set) => ({
     set({ bannerLoading: true, bannerError: null });
     try {
       const response = await api.get('/api/webmanage/banner');
-      set({ banners: response.data, bannerLoading: false });
-      return response.data;
+      // Filter out banners with null imageBanner
+      const filteredBanners = response.data.filter(banner => banner.imageBanner !== null);
+      set({ banners: filteredBanners, bannerLoading: false });
+      return filteredBanners;
     } catch (error) {
       // Check if it's the expected "no banners" error
       if (error.response?.data?.error === "There are no banners in the database!") {

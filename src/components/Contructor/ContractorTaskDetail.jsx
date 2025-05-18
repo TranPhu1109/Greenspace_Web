@@ -371,18 +371,18 @@ const ContractorTaskDetail = () => {
                         dataIndex: 'quantity',
                         key: 'quantity',
                       },
-                      {
-                        title: 'Giá',
-                        dataIndex: 'price',
-                        key: 'price',
-                        render: (price) => <span>{price.toLocaleString()} đ</span>,
-                      },
-                      {
-                        title: 'Thành tiền',
-                        dataIndex: 'totalPrice',
-                        key: 'totalPrice',
-                        render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
-                      },
+                      // {
+                      //   title: 'Giá',
+                      //   dataIndex: 'price',
+                      //   key: 'price',
+                      //   render: (price) => <span>{price.toLocaleString()} đ</span>,
+                      // },
+                      // {
+                      //   title: 'Thành tiền',
+                      //   dataIndex: 'totalPrice',
+                      //   key: 'totalPrice',
+                      //   render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
+                      // },
                     ]}
                   />
                 ) : (
@@ -419,18 +419,18 @@ const ContractorTaskDetail = () => {
                         dataIndex: 'quantity',
                         key: 'quantity',
                       },
-                      {
-                        title: 'Giá',
-                        dataIndex: 'price',
-                        key: 'price',
-                        render: (price) => <span>{price.toLocaleString()} đ</span>,
-                      },
-                      {
-                        title: 'Thành tiền',
-                        dataIndex: 'totalPrice',
-                        key: 'totalPrice',
-                        render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
-                      },
+                      // {
+                      //   title: 'Giá',
+                      //   dataIndex: 'price',
+                      //   key: 'price',
+                      //   render: (price) => <span>{price.toLocaleString()} đ</span>,
+                      // },
+                      // {
+                      //   title: 'Thành tiền',
+                      //   dataIndex: 'totalPrice',
+                      //   key: 'totalPrice',
+                      //   render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
+                      // },
                     ]}
                   />
                 </Card>
@@ -459,7 +459,7 @@ const ContractorTaskDetail = () => {
 
                 <Divider />
 
-                <Title level={5}>Thông tin đơn hàng</Title>
+                {/* <Title level={5}>Thông tin đơn hàng</Title>
                 <Row gutter={[16, 16]}>
                   <Col span={12}>
                     <Statistic
@@ -489,7 +489,7 @@ const ContractorTaskDetail = () => {
                       groupSeparator=","
                     />
                   </Col>
-                </Row>
+                </Row> */}
               </Card>
 
               <Card title="Hình ảnh đơn hàng" className="order-images-card">

@@ -348,6 +348,52 @@ const ContractSection = ({
       return;
     }
 
+    // Kiểm tra số dư ví trước khi tiến hành
+    try {
+      // Lấy thông tin ví từ local storage
+      const walletStorage = localStorage.getItem("wallet-storage");
+      if (!walletStorage) {
+        message.error("Không tìm thấy thông tin ví.");
+        return;
+      }
+      
+      const walletData = JSON.parse(walletStorage);
+      const walletId = walletData.state?.walletId;
+      
+      if (!walletId) {
+        message.error("Không tìm thấy ID ví.");
+        return;
+      }
+      
+      // Tính số tiền cần thanh toán
+      const depositAmount = selectedOrder.designPrice * (data?.depositPercentage || 50) / 100;
+      
+      // Lấy số dư trực tiếp từ localStorage thay vì gọi API
+      const currentBalance = walletData.state?.balance || 0;
+      
+      console.log("Kiểm tra số dư:", { 
+        currentBalance, 
+        depositAmount, 
+        orderPrice: selectedOrder.designPrice,
+        depositPercent: data?.depositPercentage || 50
+      });
+      
+      // Nếu số dư không đủ
+      if (currentBalance < depositAmount) {
+        notification.error({
+          message: "Số dư không đủ",
+          description: 
+            `Số dư ví của bạn (${formatPrice(currentBalance)}) không đủ để thanh toán khoản đặt cọc ${formatPrice(depositAmount)}. Vui lòng nạp thêm tiền vào ví để tiếp tục.`,
+          duration: 8,
+        });
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking wallet balance:", error);
+      message.error("Không thể kiểm tra số dư ví: " + (error.response?.data?.message || error.message));
+      return;
+    }
+
     setUploading(true);
     setSigningAndPaying(true);
 
@@ -383,8 +429,8 @@ const ContractSection = ({
         const walletId = walletData.state?.walletId;
         if (!walletId) throw new Error("Không tìm thấy ID ví.");
 
-        const amount = selectedOrder.designPrice * selectedOrder.depositPercentage / 100;
-        const paymentDescription = `Thanh toán ${selectedOrder.depositPercentage}% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`;
+        const amount = selectedOrder.designPrice * (data?.depositPercentage || 50) / 100;
+        const paymentDescription = `Thanh toán ${data?.depositPercentage || 50}% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`;
 
         console.log("Processing payment:", { walletId, serviceOrderId: selectedOrder.id, amount, description: paymentDescription });
 
@@ -844,7 +890,12 @@ const ContractSection = ({
                 type="warning"
                 showIcon
                 message="Xác nhận ký và thanh toán"
-                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100)}.`}
+                description={
+                  <>
+                    <p>Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán {formatPrice((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100)}.</p>
+                    <p><strong>Lưu ý:</strong> Vui lòng đảm bảo tài khoản ví của bạn có đủ số dư để thanh toán khoản đặt cọc. Nếu không đủ, quá trình ký hợp đồng sẽ không thể hoàn tất.</p>
+                  </>
+                }
                 style={{ marginBottom: 16 }}
               />
 

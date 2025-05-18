@@ -337,6 +337,7 @@ const ServiceOrderHistory = () => {
       Installing: "blue",
       DoneInstalling: "green",
       ReInstall: "red",
+      Successfully: "green",
     };
     return statusColors[status] || "default";
   };
@@ -374,6 +375,7 @@ const ServiceOrderHistory = () => {
       Installing: "Đang lắp đặt",
       DoneInstalling: "Đã lắp đặt xong",
       ReInstall: "Yêu cầu lắp đặt lại",
+      Successfully: "Đơn hàng hoàn tất",
     };
     return statusTexts[status] || status;
   };
