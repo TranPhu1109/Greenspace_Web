@@ -25,7 +25,8 @@ const ContractSection = ({
   refreshAllData,    // Func to refresh all order data
   updateTaskOrder,    // Func to update workTask status
   getServiceOrderById, // Func to get service order by id
-  data // Func to get service order by id
+  data,
+  fetchBalance
 }) => {
   const [form] = Form.useForm(); // Form instance for user info
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
@@ -440,6 +441,8 @@ const ContractSection = ({
           amount,
           description: paymentDescription,
         });
+
+        await fetchBalance();
 
       } catch (paymentError) {
         console.error("Payment error:", paymentError);

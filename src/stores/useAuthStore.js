@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import axios from "../api/api";
-import { auth, googleProvider } from "../firebase/config";
+import { auth, fetchFCMToken, googleProvider } from "../firebase/config";
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -25,8 +25,11 @@ const useAuthStore = create(
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           console.log('Firebase authentication successful');
 
+          // Fetch FCM token
+          const fcmToken = await fetchFCMToken() || "";
+
           // Then authenticate with backend using Firebase token
-          const userData = await useAuthStore.getState().authenticateWithFirebase(userCredential.user);
+          const userData = await useAuthStore.getState().authenticateWithFirebase(userCredential.user, fcmToken);
           console.log('Backend authentication successful', { 
             userId: userData.id,
             email: userData.email,
@@ -99,16 +102,16 @@ const useAuthStore = create(
         }
       },
 
-      authenticateWithFirebase: async (firebaseUser, role = "string") => {
+      authenticateWithFirebase: async (firebaseUser, fcmToken = "") => {
         try {
           const idToken = await firebaseUser.getIdToken();
           console.log('Firebase ID token obtained');
 
           const requestData = {
             token: idToken,
-            fcmToken: "",
-            role: role,
+            fcmToken: fcmToken,
           };
+
           console.log('Sending authentication request with data:', requestData);
 
           const response = await axios.post("/api/auth", requestData);
@@ -142,6 +145,10 @@ const useAuthStore = create(
 
           // Reset store state
           set({ user: null, isAuthenticated: false });
+
+          // Reset notification store state
+          const notificationStore = (await import('./useNotificationStore')).default;
+          notificationStore.getState().resetNotifications();
 
           // Reset wallet store state
           const walletStore = (await import('./useWalletStore')).default;
@@ -282,53 +289,53 @@ const useAuthStore = create(
       },
 
       // Google registration/login
-      loginWithGoogle: async () => {
-        set({ loading: true, error: null });
-        try {
-          // Sign in with Google
-          const result = await signInWithPopup(auth, googleProvider);
-          const user = result.user;
+      // loginWithGoogle: async () => {
+      //   set({ loading: true, error: null });
+      //   try {
+      //     // Sign in with Google
+      //     const result = await signInWithPopup(auth, googleProvider);
+      //     const user = result.user;
 
-          try {
-            // Try to create user in backend (in case they don't exist)
-            await axios.post("/api/users", {
-              name: user.displayName,
-              email: user.email,
-              password: "", // Empty password for Google users
-              phone: user.phoneNumber || "",
-              avatarUrl: user.photoURL || "",
-              address: "",
-              roleName: "Customer",
-            });
-          } catch (error) {
-            // If user already exists, ignore the error
-            if (!error.response?.status === 409) {
-              throw error;
-            }
-          }
+      //     try {
+      //       // Try to create user in backend (in case they don't exist)
+      //       await axios.post("/api/users", {
+      //         name: user.displayName,
+      //         email: user.email,
+      //         password: "", // Empty password for Google users
+      //         phone: user.phoneNumber || "",
+      //         avatarUrl: user.photoURL || "",
+      //         address: "",
+      //         roleName: "Customer",
+      //       });
+      //     } catch (error) {
+      //       // If user already exists, ignore the error
+      //       if (!error.response?.status === 409) {
+      //         throw error;
+      //       }
+      //     }
 
-          // Authenticate with backend
-          const authenticatedUser = await useAuthStore
-            .getState()
-            .authenticateWithFirebase(user);
+      //     // Authenticate with backend
+      //     const authenticatedUser = await useAuthStore
+      //       .getState()
+      //       .authenticateWithFirebase(user);
 
-          set({ user: authenticatedUser, loading: false });
+      //     set({ user: authenticatedUser, loading: false });
           
-          // Đồng bộ giỏ hàng local lên server sau khi đăng nhập thành công
-          try {
-            const cartStore = (await import('./useCartStore')).default;
-            await cartStore.getState().syncLocalCartToServer();
-            await cartStore.getState().fetchCartItems();
-          } catch (syncError) {
-            console.error('Error syncing local cart:', syncError);
-          }
+      //     // Đồng bộ giỏ hàng local lên server sau khi đăng nhập thành công
+      //     try {
+      //       const cartStore = (await import('./useCartStore')).default;
+      //       await cartStore.getState().syncLocalCartToServer();
+      //       await cartStore.getState().fetchCartItems();
+      //     } catch (syncError) {
+      //       console.error('Error syncing local cart:', syncError);
+      //     }
           
-          return authenticatedUser;
-        } catch (err) {
-          set({ error: err.message, loading: false });
-          throw err;
-        }
-      },
+      //     return authenticatedUser;
+      //   } catch (err) {
+      //     set({ error: err.message, loading: false });
+      //     throw err;
+      //   }
+      // },
     }),
     {
       name: 'auth-storage', // unique name for localStorage key
