@@ -95,6 +95,7 @@ const ServiceOrderList = () => {
       ReConsultingAndSketching: "blue",
       ReDesign: "volcano",
       WaitDeposit: "gold",
+      ReDetermineMaterialPrice: "volcano",
     };
     return statusColors[status] || "default";
   };
@@ -123,6 +124,7 @@ const ServiceOrderList = () => {
       ReConsultingAndSketching: "Phác thảo lại",
       ReDesign: "Thiết kế lại",
       WaitDeposit: "Chờ đặt cọc",
+      ReDetermineMaterialPrice: "Yêu cầu điều chỉnh giá sản phẩm",
     };
     return statusTexts[status] || status;
   };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Input, Checkbox, Button, Form, message, Typography, Card, notification } from "antd";
+import { Input, Checkbox, Button, Form, message, Typography, Card, notification, Modal } from "antd";
 import {
   LockOutlined,
   MailOutlined,
@@ -37,6 +37,8 @@ const Login = () => {
         role: userData.roleName
       });
 
+      await requestNotificationPermission();
+
       notification.success({
         message: "Đăng nhập thành công!",
         description: `Xin chào ${userData.name}`,
@@ -70,6 +72,13 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  const requestNotificationPermission = async () => {
+    const permission = await Notification.requestPermission();
+    console.log("Notification permission:", permission);
+    return permission === 'granted';
+  };
+  
 
   const handleGoogleLogin = async () => {
     try {

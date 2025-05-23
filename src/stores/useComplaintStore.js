@@ -163,6 +163,23 @@ const useComplaintStore = create((set, get) => ({
     }
   },
 
+  fetchUserComplaintsSilent: async (userId) => {
+    try {
+      const response = await axios.get(`/api/complaint/${userId}/users`);
+      set((state) => {
+        // Nếu complaints không thay đổi, không cần set lại
+        if (JSON.stringify(state.complaints) !== JSON.stringify(response.data)) {
+          return { complaints: response.data };
+        }
+        return {};
+      });
+      return response.data; // Always return the fetched data
+    } catch (error) {
+      console.error("Error silently fetching complaints:", error);
+      return []; // Return empty array on error
+    }
+  },
+
   // Process refund for a complaint
   processRefund: async (complaintId) => {
     set({ loading: true, error: null });
@@ -205,7 +222,8 @@ const useComplaintStore = create((set, get) => ({
     statusCode,
     complaintType = 0,
     deliveryCode = "",
-    reason = null
+    reason = null,
+    videoURL = null
   ) => {
     set({ loading: true, error: null });
     try {
@@ -213,7 +231,8 @@ const useComplaintStore = create((set, get) => ({
         status: statusCode,
         complaintType: complaintType,
         deliveryCode: deliveryCode,
-        reason: reason || ''
+        reason: reason || '',
+        videoURL: videoURL
       });
 
       set({ loading: false });
@@ -224,6 +243,28 @@ const useComplaintStore = create((set, get) => ({
           error.response?.data?.message ||
           error.message ||
           "Cập nhật trạng thái thất bại",
+        loading: false,
+      });
+      throw error;
+    }
+  },
+
+  // Update complaint detail with check status
+  updateComplaintDetail: async (id, productDetails) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await axios.put(`/api/complaint/complaintdetail/${id}`, {
+        complaintDetails: productDetails
+      });
+      
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      set({
+        error: 
+          error.response?.data?.message || 
+          error.message || 
+          "Cập nhật chi tiết khiếu nại thất bại",
         loading: false,
       });
       throw error;

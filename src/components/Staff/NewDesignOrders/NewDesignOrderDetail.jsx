@@ -72,7 +72,6 @@ const NewDesignOrderDetail = () => {
     getProductById,
   } = useProductStore();
   const {
-    generateContract,
     loading: contractLoading,
     getContractByServiceOrder,
     contract,
@@ -135,10 +134,10 @@ const NewDesignOrderDetail = () => {
         console.log(`SignalR connection ready for NewDesignOrderDetail listener (Order ID: ${id}).`);
         signalRService.on("messageReceived", handleOrderUpdate);
       }).catch(err => {
-          console.error(`SignalR connection failed in NewDesignOrderDetail (Order ID: ${id}):`, err);
+        console.error(`SignalR connection failed in NewDesignOrderDetail (Order ID: ${id}):`, err);
       });
     } catch (err) {
-         console.error(`Error initiating SignalR connection for NewDesignOrderDetail (Order ID: ${id}):`, err);
+      console.error(`Error initiating SignalR connection for NewDesignOrderDetail (Order ID: ${id}):`, err);
     }
 
     // Cleanup function
@@ -156,7 +155,7 @@ const NewDesignOrderDetail = () => {
       const designerTask = selectedOrder.workTasks[0];
       const designerId = designerTask.userId;
       const matchedDesigner = designers.find(designer => designer.id === designerId);
-      
+
       if (matchedDesigner) {
         setAssignedDesigner(matchedDesigner);
         console.log("Tìm thấy designer:", matchedDesigner.name);
@@ -269,7 +268,7 @@ const NewDesignOrderDetail = () => {
       console.error("Error confirming order:", error);
       message.error(
         "Không thể xác nhận đơn hàng: " +
-          (error.message || "Lỗi không xác định")
+        (error.message || "Lỗi không xác định")
       );
     }
   };
@@ -411,20 +410,39 @@ const NewDesignOrderDetail = () => {
   const getStatusDisplay = (status) => {
     const statusMap = {
       Pending: "Chờ xử lý",
-      ConsultingAndSketching: "Tư vấn và phác thảo",
+      ConsultingAndSketching: "Tư vấn & phác thảo",
       DeterminingDesignPrice: "Xác định giá thiết kế",
-      DepositSuccessful: "Đã đặt cọc",
-      AssignToDesigner: "Giao cho Designer",
+      DepositSuccessful: "Đặt cọc thành công",
+      AssignToDesigner: "Giao cho NTK",
       DeterminingMaterialPrice: "Xác định giá vật liệu",
       DoneDesign: "Hoàn thành thiết kế",
-      PaymentSuccess: "Đã thanh toán full",
+      PaymentSuccess: "Đã thanh toán đủ",
       Processing: "Đang xử lý",
-      PickedPackageAndDelivery: "Đang giao hàng",
+      PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
       DeliveryFail: "Giao hàng thất bại",
       ReDelivery: "Giao hàng lại",
-      DeliveredSuccessfully: "Đã giao hàng",
-      CompleteOrder: "Hoàn thành",
-      OrderCancelled: "Đã hủy",
+      DeliveredSuccessfully: "Đã giao hàng thành công",
+      CompleteOrder: "Hoàn thành đơn hàng",
+      OrderCancelled: "Đơn hàng bị hủy",
+      Warning: "Cảnh báo vượt 30%",
+      Refund: "Hoàn tiền",
+      DoneRefund: "Đã hoàn tiền",
+      StopService: "Ngừng dịch vụ",
+      ReConsultingAndSketching: "Phác thảo lại",
+      ReDesign: "Thiết kế lại",
+      WaitDeposit: "Chờ đặt cọc",
+      DoneDeterminingDesignPrice: "Đã xác định giá thiết kế",
+      DoneDeterminingMaterialPrice: "Đã xác định giá vật liệu",
+      ReDeterminingDesignPrice: "Điều chỉnh giá thiết kế",
+      ExchangeProdcut: "Đổi sản phẩm",
+      WaitForScheduling: "Chờ lên lịch thi công",
+      Installing: "Đang lắp đặt",
+      DoneInstalling: "Đã lắp đặt xong",
+      ReInstall: "Lắp đặt lại",
+      CustomerConfirm: "Khách hàng xác nhận",
+      Successfully: "Thành công",
+      ReDetermineMaterialPrice: "Điều chỉnh giá vật liệu",
+      MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài"
     };
     return statusMap[status] || status;
   };
@@ -434,19 +452,38 @@ const NewDesignOrderDetail = () => {
     const colorMap = {
       Pending: "gold",
       ConsultingAndSketching: "blue",
-      DeterminingDesignPrice: "blue",
+      ReConsultingAndSketching: "blue",
+      DeterminingDesignPrice: "purple",
+      ReDeterminingDesignPrice: "purple",
+      DoneDeterminingDesignPrice: "geekblue",
       DepositSuccessful: "green",
+      WaitDeposit: "gold",
+      AssignToDesigner: "magenta",
       DeterminingMaterialPrice: "cyan",
-      AssignToDesigner: "purple",
+      DoneDeterminingMaterialPrice: "cyan",
+      ReDetermineMaterialPrice: "volcano",
+      MaterialPriceConfirmed: "success",
       DoneDesign: "orange",
+      ReDesign: "volcano",
       PaymentSuccess: "green",
       Processing: "processing",
       PickedPackageAndDelivery: "processing",
+      DeliveredSuccessfully: "success",
       DeliveryFail: "error",
       ReDelivery: "warning",
-      DeliveredSuccessfully: "success",
-      CompleteOrder: "success",
+      Installing: "cyan",
+      DoneInstalling: "success",
+      ReInstall: "warning",
+      CustomerConfirm: "blue",
+      Successfully: "green",
+      CompleteOrder: "green",
       OrderCancelled: "error",
+      Warning: "orange",
+      Refund: "purple",
+      DoneRefund: "success",
+      StopService: "default",
+      ExchangeProdcut: "lime",
+      WaitForScheduling: "lime"
     };
     return colorMap[status] || "default";
   };
@@ -516,7 +553,7 @@ const NewDesignOrderDetail = () => {
                 current={getCurrentStep(selectedOrder.status)}
                 status={
                   selectedOrder.status === "OrderCancelled" ||
-                  selectedOrder.status === "DeliveryFail"
+                    selectedOrder.status === "DeliveryFail"
                     ? "error"
                     : "process"
                 }
@@ -562,7 +599,7 @@ const NewDesignOrderDetail = () => {
                     flex: "1 1 auto",
                   }}
                 />
-                
+
                 <Step
                   title="Designer"
                   description="Giao cho Designer"
@@ -690,9 +727,9 @@ const NewDesignOrderDetail = () => {
                 </div>
               }
               description={
-                <div style={{ 
-                  padding: '10px', 
-                  backgroundColor: '#f0f7ff', 
+                <div style={{
+                  padding: '10px',
+                  backgroundColor: '#f0f7ff',
                   borderRadius: '8px',
                   marginTop: '8px'
                 }}>
@@ -718,7 +755,7 @@ const NewDesignOrderDetail = () => {
                   </Space>
                 </div>
               }
-              style={{ 
+              style={{
                 border: '1px solid #91d5ff',
                 borderRadius: '8px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
@@ -726,7 +763,7 @@ const NewDesignOrderDetail = () => {
             />
           </Col>
         )}
-        
+
         <Col span={16}>
           <Card
             title="Thông tin đơn hàng"
@@ -806,7 +843,7 @@ const NewDesignOrderDetail = () => {
                   </ul>
                 </div>
               )}
-            
+
             <Divider />
             {selectedOrder.serviceOrderDetails &&
               selectedOrder.serviceOrderDetails.length > 0 && (
@@ -880,7 +917,7 @@ const NewDesignOrderDetail = () => {
                   </div>
                 </div>
               )}
-              
+
             {/* External Products Section */}
             {selectedOrder.externalProducts && selectedOrder.externalProducts.length > 0 && (
               <div className="external-products">
@@ -898,44 +935,35 @@ const NewDesignOrderDetail = () => {
                       key="name"
                       render={(record) => (
                         <Space>
-                          {record.imageURL && (
-                            <img
-                              src={record.imageURL}
-                              alt={record.name}
-                              style={{
-                                width: 50,
-                                height: 50,
-                                borderRadius: "5px",
-                                objectFit: "cover",
-                              }}
-                            />
-                          )}
                           <div>
-                            <div>{record.name}</div>
-                            {record.description && (
-                              <Tooltip 
-                                title={record.description}
-                                styles={{
-                                  body: {
-                                    backgroundColor: '#ffffff',
-                                    color: '#000000',
-                                    fontSize: 13,
-                                    padding: 10,
-                                    maxWidth: 300,
-                                    borderRadius: 4,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                                  }
+                            {record.imageURL && (
+                              <img
+                                src={record.imageURL}
+                                alt={record.name}
+                                style={{
+                                  width: 50,
+                                  height: 50,
+                                  borderRadius: "5px",
+                                  objectFit: "cover",
                                 }}
-                              >
-                                <div style={{ fontSize: '12px', color: '#666', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {record.description}
-                                </div>
-                              </Tooltip>
+                              />
                             )}
+                            <div>{record.name}</div>
                           </div>
                         </Space>
                       )}
                     />
+                    <Table.Column title="Yêu cầu về sản phẩm" dataIndex="description"
+                      render={(description) => (
+                        <Tooltip color="white" title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: description }} />}>
+                          <div 
+                          style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          className="html-preview"
+                          dangerouslySetInnerHTML={{ __html: description }}
+                          >
+                          </div>
+                        </Tooltip>
+                      )} />
                     <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
                     <Table.Column
                       title="Đơn giá"
@@ -957,7 +985,7 @@ const NewDesignOrderDetail = () => {
                 </div>
               </div>
             )}
-            
+
             {selectedOrder.status === "DeterminingMaterialPrice" && (
               <Button
                 type="primary"
@@ -1117,7 +1145,7 @@ const NewDesignOrderDetail = () => {
                   {getStatusDisplay(selectedOrder.status)}
                 </Tag>
               </Descriptions.Item>
-              
+
               {/* Add construction date and time if available */}
               {/* {selectedOrder.contructionDate && selectedOrder.contructionTime && (
                 <Descriptions.Item
@@ -1147,7 +1175,7 @@ const NewDesignOrderDetail = () => {
                   </div>
                 </Descriptions.Item>
               )} */}
-              
+
               <Descriptions.Item
                 label={
                   <Space>
@@ -1216,13 +1244,13 @@ const NewDesignOrderDetail = () => {
                   const designPrice = selectedOrder?.designPrice || 0;
                   const materialPrice = selectedOrder?.materialPrice || 0;
                   const total = designPrice + materialPrice;
-                  
+
                   console.log('Debug total cost:', {
                     designPrice,
                     materialPrice,
                     total
                   });
-                  
+
                   return total > 0 ? `${total.toLocaleString("vi-VN")} đ` : 'Chưa có thông tin';
                 })()}
               </Descriptions.Item>
@@ -1241,19 +1269,19 @@ const NewDesignOrderDetail = () => {
                   type="primary"
                   icon={<UserAddOutlined />}
                   style={{
-                  backgroundColor: "#4CAF50",
-                  borderColor: "#4CAF50",
-                  width: "100%",
-                }}
-                onClick={() => {
-                  navigate("/staff/schedule");
-                }}
-              >
-                Giao task cho designer
-              </Button>
+                    backgroundColor: "#4CAF50",
+                    borderColor: "#4CAF50",
+                    width: "100%",
+                  }}
+                  onClick={() => {
+                    navigate("/staff/schedule");
+                  }}
+                >
+                  Giao task cho designer
+                </Button>
               )}
 
-              {selectedOrder.status === "PaymentSuccess" && (
+              {/* {selectedOrder.status === "PaymentSuccess" && (
                 <Button
                   type="primary"
                   style={{
@@ -1274,7 +1302,7 @@ const NewDesignOrderDetail = () => {
                 >
                   Xác nhận đơn hàng
                 </Button>
-              )}
+              )} */}
 
               {/* Add Assign to Contractor Button */}
               {selectedOrder.status === "PaymentSuccess" && (
@@ -1288,15 +1316,15 @@ const NewDesignOrderDetail = () => {
                     borderColor: "#1890ff"
                   }}
                   onClick={() => {
-                    navigate("/staff/schedule-contructor", { 
-                      state: { 
+                    navigate("/staff/schedule-contructor", {
+                      state: {
                         serviceOrderId: selectedOrder.id,
                         customerName: selectedOrder.userName,
                         address: selectedOrder.address,
                         contructionDate: selectedOrder.contructionDate,
                         contructionTime: selectedOrder.contructionTime,
                         // autoOpenModal: true 
-                      } 
+                      }
                     });
                   }}
                 >

@@ -6,3 +6,8 @@ export const generateRandomCode = (length) => {
   }
   return result;
 };
+
+export const formatPrice = (value) => {
+  if (!value && value !== 0) return "0 đ";
+  return `${value.toLocaleString("vi-VN")} đ`;
+};

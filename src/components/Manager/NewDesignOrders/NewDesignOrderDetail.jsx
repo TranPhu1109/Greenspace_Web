@@ -54,6 +54,8 @@ import {
   CaretRightOutlined,
   FileSearchOutlined,
   FileProtectOutlined,
+  DeleteOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import usePercentageStore from "@/stores/usePercentageStore";
 import useContractStore from "@/stores/useContractStore";
@@ -89,6 +91,8 @@ const NewDesignOrderDetail = () => {
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
   const [reportMaterialModalVisible, setReportMaterialModalVisible] = useState(false);
   const [reportMaterialText, setReportMaterialText] = useState('');
+  const [viewingExternalProduct, setViewingExternalProduct] = useState(null);
+  const [isViewExternalProductModalVisible, setIsViewExternalProductModalVisible] = useState(false);
 
   useEffect(() => {
     fetchPercentage();
@@ -192,6 +196,14 @@ const NewDesignOrderDetail = () => {
     }
   }, [selectedOrder]);
 
+  const handleViewProductExternal = (productId) => {
+    const product = currentOrder.externalProducts.find(p => p.id === productId);
+    if (product) {
+      setViewingExternalProduct(product);
+      setIsViewExternalProductModalVisible(true);
+    }
+  };
+
   const formatPrice = (price) => {
     if (typeof price !== 'number') return 'N/A';
     return price.toLocaleString("vi-VN") + " VNĐ";
@@ -240,7 +252,7 @@ const NewDesignOrderDetail = () => {
       selectedOrder?.id,
       22,
       'Đã duyệt giá thiết kế thành công.',
-      'Lỗi duyệt giá'
+      // 'Lỗi duyệt giá'
     );
   };
 
@@ -488,7 +500,7 @@ const NewDesignOrderDetail = () => {
         message.error('Vui lòng kiểm tra lại thông tin nhập vào');
       } else {
         // API error
-        message.error(`Lỗi khi cập nhật: ${error.message}`);
+        // message.error(`Lỗi khi cập nhật: ${error.message}`);
       }
     }
   };
@@ -512,7 +524,7 @@ const NewDesignOrderDetail = () => {
     } catch (error) {
       console.error('Error fetching contract:', error);
       setContractError(error.message || 'Không thể tải hợp đồng');
-      message.error('Không thể tải thông tin hợp đồng');
+      // message.error('Không thể tải thông tin hợp đồng');
     }
   };
 
@@ -522,7 +534,7 @@ const NewDesignOrderDetail = () => {
       selectedOrder?.id,
       23, // DoneDeterminingMaterialPrice
       'Đã duyệt giá vật liệu thành công.',
-      'Lỗi duyệt giá vật liệu'
+      // 'Lỗi duyệt giá vật liệu'
     );
   };
 
@@ -930,6 +942,7 @@ ${externalProductsTable}
                     {
                       title: 'Sản phẩm',
                       key: 'product',
+                      width: 180,
                       render: (_, record) => (
                         <Space>
                           <Image
@@ -942,40 +955,68 @@ ${externalProductsTable}
                           />
                           <div>
                             <Text strong>{record.name}</Text>
-                            {record.description && (
+                            <div style={{ fontSize: 12, color: '#888' }}>ID: {record.id}</div>
+                            {/* {record.description && (
                               <Tooltip
-                                title={record.description}
+                                title={<div
+                                  className="html-preview"
+                                  dangerouslySetInnerHTML={{ __html: record.description }}
+                                />}
                                 placement="top"
-                                styles={{
-                                  body: {
-                                    backgroundColor: '#ffffff',
-                                    color: '#000000',
-                                    maxWidth: 300,
-                                    fontSize: 14,
-                                    padding: 10,
-                                    borderRadius: 4,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                  }
-                                }}
+                                color="white"
                               >
-                                <div style={{
-                                  fontSize: 12,
-                                  color: '#888',
-                                  marginTop: 2,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  lineHeight: '1.4em',
-                                  maxHeight: '2.8em'
-                                }}>
-                                  {record.description}
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#888',
+                                    marginTop: 2,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    lineHeight: '1.4em',
+                                    maxHeight: '2.8em'
+                                  }}
+                                  dangerouslySetInnerHTML={{ __html: record.description }}
+                                >
                                 </div>
                               </Tooltip>
-                            )}
+                            )} */}
                           </div>
                         </Space>
+                      ),
+                    },
+                    {
+                      title: 'Yêu cầu về sản phẩm',
+                      dataIndex: 'description',
+                      key: 'description',
+                      width: 100,
+                      render: (description) => (
+                        <Tooltip
+                          title={<div
+                            className="html-preview"
+                            dangerouslySetInnerHTML={{ __html: description }}
+                          />}
+                          placement="top"
+                          color="white"
+                        >
+                          <div
+                            style={{
+                              fontSize: 12,
+                              marginTop: 2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              lineHeight: '1.4em',
+                              maxHeight: '2.8em'
+                            }}
+                            dangerouslySetInnerHTML={{ __html: description }}
+                          >
+                          </div>
+                        </Tooltip>
                       ),
                     },
                     {
@@ -1009,6 +1050,19 @@ ${externalProductsTable}
                         </Text>
                       ),
                     },
+                    {
+                      title: 'Thao tác',
+                      key: 'action',
+                      align: 'center',
+                      width: 150,
+                      render: (_, record) => (
+                        <Space>
+                          <Button type="primary" onClick={() => handleViewProductExternal(record.id)}>
+                            <EyeOutlined />
+                          </Button>
+                        </Space>
+                      ),
+                    }
                   ]}
                   dataSource={currentOrder.externalProducts.map((product) => ({
                     ...product,
@@ -1370,14 +1424,14 @@ ${externalProductsTable}
               // Check if any phase has selected records
               const hasSelectedRecords = sketchRecords.some(record => record.isSelected);
               // Generate default active keys based on selection status
-              const defaultActiveKeys = hasSelectedRecords 
+              const defaultActiveKeys = hasSelectedRecords
                 ? [0, 1, 2, 3]
                   .filter(phase => sketchRecords.some(record => record.phase === phase && record.isSelected))
                   .map(phase => `sketch-phase-${phase}`)
                 : [0, 1, 2, 3]
                   .filter(phase => sketchRecords.some(record => record.phase === phase))
                   .map(phase => `sketch-phase-${phase}`);
-              
+
               return [0, 1, 2, 3].map(phase => {
                 const recordsInPhase = sketchRecords.filter(record => record.phase === phase);
                 if (recordsInPhase.length === 0) return null;
@@ -1489,14 +1543,14 @@ ${externalProductsTable}
               // Check if any phase has selected records
               const hasSelectedRecords = designRecords.some(record => record.isSelected);
               // Generate default active keys based on selection status
-              const defaultActiveKeys = hasSelectedRecords 
+              const defaultActiveKeys = hasSelectedRecords
                 ? [1, 2, 3, 4]
                   .filter(phase => designRecords.some(record => record.phase === phase && record.isSelected))
                   .map(phase => `design-phase-${phase}`)
                 : [1, 2, 3, 4]
                   .filter(phase => designRecords.some(record => record.phase === phase))
                   .map(phase => `design-phase-${phase}`);
-              
+
               return [1, 2, 3, 4].map(phase => {
                 const recordsInPhase = designRecords.filter(record => record.phase === phase);
                 if (recordsInPhase.length === 0) return null;
@@ -1692,7 +1746,7 @@ ${externalProductsTable}
 
         {renderCostCard()}
 
-        {currentOrder?.status === 'DeterminingDesignPrice' && currentOrder?.designPrice > 0 && (
+        {(currentOrder?.status === 'DeterminingDesignPrice' || currentOrder?.status === 'ReDeterminingDesignPrice') && currentOrder?.designPrice > 0 && (
           <Card
             title="Xác nhận giá thiết kế"
             style={{
@@ -1700,7 +1754,7 @@ ${externalProductsTable}
               boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
               marginTop: '24px'
             }}
-            bodyStyle={{ textAlign: 'right' }}
+            styles={{ body: { textAlign: 'right' } }}
           >
             {!isDepositSettingsValid() && (
               <Alert
@@ -1994,6 +2048,77 @@ ${externalProductsTable}
         )}
       </Modal>
 
+      <Modal
+        open={isViewExternalProductModalVisible}
+        onCancel={() => {
+          setViewingExternalProduct(null);
+          setIsViewExternalProductModalVisible(false);
+        }}
+        footer={null}
+        title="Chi tiết sản phẩm thêm mới"
+        width={900}
+      >
+        {viewingExternalProduct && (
+          <>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Image
+                  src={viewingExternalProduct.imageURL || '/placeholder.png'}
+                  alt={viewingExternalProduct.name}
+                  width="100%"
+                  style={{ borderRadius: 8, objectFit: 'cover' }}
+                />
+              </Col>
+              <Col span={16}>
+                <Descriptions column={1} size="small" bordered>
+                  <Descriptions.Item label="Tên sản phẩm">
+                    <Text strong>{viewingExternalProduct.name}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Số lượng">
+                    {viewingExternalProduct.quantity}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Đơn giá">
+                    {(viewingExternalProduct.price === 0 && currentOrder.status === "DeterminingMaterialPrice") ? (
+                      <Tag color="orange">Chờ kế toán nhập giá</Tag>
+                    ) : (
+                      formatPrice(viewingExternalProduct.price)
+                    )}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Thành tiền">
+                    {(viewingExternalProduct.totalPrice === 0 && currentOrder.status === "DeterminingMaterialPrice") ? (
+                      <Tag color="orange">Chưa xác định</Tag>
+                    ) : (
+                      <Text strong style={{ color: '#4caf50' }}>
+                        {formatPrice(viewingExternalProduct.totalPrice)}
+                      </Text>
+                    )}
+                  </Descriptions.Item>
+                </Descriptions>
+              </Col>
+            </Row>
+
+            <div style={{ marginTop: 24 }}>
+              <Typography.Title level={5} style={{ marginBottom: 8 }}>
+                Yêu cầu về sản phẩm
+              </Typography.Title>
+              <div
+                className="html-preview"
+                style={{
+                  border: '1px solid #f0f0f0',
+                  padding: 12,
+                  borderRadius: 4,
+                  background: '#fafafa',
+                  maxHeight: 300,
+                  overflowY: 'auto',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#d3d3d3 #f9f9f9'
+                }}
+                dangerouslySetInnerHTML={{ __html: viewingExternalProduct.description }}
+              />
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 };

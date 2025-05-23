@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   Tag,
@@ -43,10 +43,10 @@ const { Option } = Select;
 const { Content } = Layout;
 
 const OrderHistory = () => {
-  const { orders, loading, error, fetchOrderHistory, cancelOrder } = useOrderHistoryStore();
+  const { orders, loading, error, fetchOrderHistory, cancelOrder, fetchOrderHistorySilent } = useOrderHistoryStore();
   const { getProductById, createProductFeedback } = useProductStore();
   const { user } = useAuthStore();
-  const { fetchUserComplaints } = useComplaintStore();
+  const { fetchUserComplaints, fetchUserComplaintsSilent } = useComplaintStore();
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [productDetails, setProductDetails] = React.useState({});
   const [feedbackForm] = Form.useForm();
@@ -61,66 +61,62 @@ const OrderHistory = () => {
 
   // SignalR message handler
   const handleSignalRMessage = async (...args) => {
-    // Log received message details
-    const [type, data] = args.length >= 2 ? [args[0], args[1]] : [args[0]?.type || "unknown", args[0]?.data];
-    console.log(`SignalR message in OrderHistory - Type: ${type}`, data);
-    
+
     if (!user?.id) return;
-    
+
     // Use a timeout to debounce multiple updates that might come in rapid succession
     if (window.orderHistoryUpdateTimer) {
       clearTimeout(window.orderHistoryUpdateTimer);
     }
-    
-    window.orderHistoryUpdateTimer = setTimeout(() => {
-      console.log("Refreshing data after SignalR update");
-      
-      // Always refresh order history to ensure we have latest data
-      fetchOrderHistory();
-      
-      // Also refresh complaints if user is logged in
-      if (user?.id) {
-        try {
-          console.log("Fetching complaints due to SignalR update");
-          fetchUserComplaints(user.id).then(freshData => {
-            setComplaints(freshData);
-          });
-        } catch (err) {
-          console.error("Error refreshing complaints after SignalR update:", err);
+
+    window.orderHistoryUpdateTimer = setTimeout(async () => {
+      try {
+        // Refresh order history data
+        const newOrders = await fetchOrderHistorySilent();
+        
+        // Refresh complaints data if user is logged in
+        if (user?.id) {
+          const freshComplaintsData = await fetchUserComplaintsSilent(user.id);
+          // Only update if we got actual data back
+          if (freshComplaintsData && Array.isArray(freshComplaintsData)) {
+            setComplaints(freshComplaintsData);
+          }
         }
+      } catch (err) {
+        console.error("Error refreshing data after SignalR update:", err);
       }
-    }, 200); // Shorter debounce time to ensure responsiveness
+    }, 1000); // Shorter debounce time to ensure responsiveness
   };
 
   // Set up SignalR connection
-  React.useEffect(() => {
+  useEffect(() => {
     const initializeSignalR = async () => {
       try {
         await signalRService.startConnection();
-        
+
         // Only register for messageReceived - this will catch all events
         signalRService.on("messageReceived", handleSignalRMessage);
       } catch (err) {
         console.error("Error connecting to SignalR:", err);
       }
     };
-    
+
     initializeSignalR();
-    
+
     // Cleanup
     return () => {
       signalRService.off("messageReceived", handleSignalRMessage);
     };
-  }, [user, fetchUserComplaints, fetchOrderHistory]);
+  }, [user, fetchUserComplaintsSilent, fetchOrderHistorySilent]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchOrderHistory();
     if (user?.id) {
       fetchUserComplaints(user.id).then(data => setComplaints(data));
     }
   }, [fetchOrderHistory, user?.id, fetchUserComplaints]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchProductDetails = async () => {
       if (!orders) return;
 
@@ -150,7 +146,7 @@ const OrderHistory = () => {
     }
   }, [orders, getProductById]);
 
-  
+
 
   const items = [
     {
@@ -189,7 +185,7 @@ const OrderHistory = () => {
       <Header />
       <Content style={{ marginTop: 200, marginBottom: 20 }}>
         <div className="container mx-auto px-4">
-          <Breadcrumb style={{ 
+          <Breadcrumb style={{
             marginBottom: '16px',
             padding: '12px 16px',
             backgroundColor: '#fff',

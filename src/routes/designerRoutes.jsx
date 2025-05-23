@@ -34,10 +34,10 @@ export const designerRoutes = {
         },
       ]
     },
-    {
-      path: "schedule",
-      element: <DesignerScheduleView />,
-    },
+    // {
+    //   path: "schedule",
+    //   element: <DesignerScheduleView />,
+    // },
     {
       path: "tasks",
       children: [

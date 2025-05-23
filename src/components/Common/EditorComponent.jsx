@@ -4,10 +4,12 @@ import { Editor } from '@tinymce/tinymce-react';
 const EditorComponent = ({ value, onChange, height = 600 }) => {
   return (
     <Editor
-      apiKey="f1fuj95hvzni9sacm5akywyv4zpnesg0ntwyv1wayqfy9ffs"
+      apiKey={import.meta.env.VITE_TINYMCE_API_KEY}
       value={value}
       onEditorChange={onChange}
       init={{
+        selector: "textarea",
+        onboarding: false,
         height,
         menubar: 'file edit view insert format tools table help',
         plugins: [

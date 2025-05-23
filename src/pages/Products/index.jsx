@@ -13,8 +13,9 @@ import {
   InputNumber,
   Tag,
   notification,
+  Breadcrumb,
 } from "antd";
-import { SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import { SearchOutlined, ShoppingCartOutlined, HomeOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -471,17 +472,23 @@ const ProductsPage = () => {
           returnUrl="/products"
         />
 
-        <div className="products-hero">
-          <div className="container">
-            <Title level={1}>Sản Phẩm</Title>
-            <Paragraph>
-              Khám phá các sản phẩm chất lượng cho không gian xanh của bạn
-            </Paragraph>
-          </div>
-        </div>
-
         <div className="products-content">
           <div className="container">
+            <Breadcrumb style={{
+              marginBottom: '20px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <Breadcrumb.Item href="/Home">
+                <HomeOutlined /> Trang chủ
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>
+                <AppstoreOutlined /> Sản phẩm
+              </Breadcrumb.Item>
+            </Breadcrumb>
+
             <div className="filters-section">
               <Input
                 placeholder="Tìm kiếm sản phẩm..."

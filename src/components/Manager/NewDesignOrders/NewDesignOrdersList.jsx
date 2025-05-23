@@ -1,24 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Spin, Alert, Button, Typography, Space, Input, Select, DatePicker, Row, Col, Card } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useServiceOrderStore from '@/stores/useServiceOrderStore';
 import { format } from 'date-fns';
 import { EyeOutlined, ReloadOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import signalRService from '@/services/signalRService';
+import useNotificationStore from '@/stores/useNotificationStore';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const NewDesignOrdersList = () => {
+  const navigate = useNavigate();
   const {
     serviceOrders,
     loading,
     error,
     getServiceOrdersNoIdea,
   } = useServiceOrderStore();
-
+  const {
+    notifications,
+    markAsRead,
+  } = useNotificationStore();
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
@@ -28,6 +33,15 @@ const NewDesignOrdersList = () => {
     columnKey: 'modificationDate',
     order: 'descend',
   });
+
+  const updatedOrderIds = notifications
+  .filter(n => !n.isSeen)
+  .map(n => {
+    const match = n.content.match(/Mã đơn\s*:\s*([a-f0-9-]{36})/i);
+    return match?.[1];
+  })
+  .filter(Boolean); // loại bỏ undefined
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -184,6 +198,7 @@ const NewDesignOrdersList = () => {
       CustomerConfirm: "cyan",
       Successfully: "green",
       CompleteOrder: "green",
+      MaterialPriceConfirmed: "cyan",
   
       // Hủy và cảnh báo
       OrderCancelled: "red",
@@ -196,6 +211,7 @@ const NewDesignOrdersList = () => {
   
       // Đổi sản phẩm
       ExchangeProduct: "geekblue",
+      ReDetermineMaterialPrice: "volcano",
     };
   
     return statusColors[status] || "default";
@@ -236,6 +252,8 @@ const NewDesignOrdersList = () => {
       ReInstall : "Đang lắp đặt lại",
       CustomerConfirm : "Khách hàng xác nhận",
       Successfully : "Thành công",
+      MaterialPriceConfirmed: "Đã xác định giá vật liệu ngoài",
+      ReDetermineMaterialPrice: "Đang điều chỉnh giá vật liệu",
       // Thêm các text khác nếu cần
     };
     return statusTexts[status] || status;
@@ -253,7 +271,15 @@ const NewDesignOrdersList = () => {
       title: 'Mã Đơn',
       dataIndex: 'id',
       key: 'id',
-      render: (id) => `#${id.substring(0, 8)}`,
+      render: (id) => {
+        const isUpdated = updatedOrderIds.includes(id);
+        return (
+          <Space>
+            {isUpdated && <span className="notification-icon">🛎</span>}
+            <span>{`#${id.substring(0, 8)}`}</span>
+          </Space>
+        );
+      },
     },
     {
       title: 'Khách hàng',
@@ -271,20 +297,20 @@ const NewDesignOrdersList = () => {
       key: 'creationDate',
       render: (date) => format(new Date(date), 'dd/MM/yyyy HH:mm'),
     },
-    {
-      title: 'Cập nhật gần nhất',
-      dataIndex: 'modificationDate',
-      key: 'modificationDate',
-      defaultSortOrder: 'descend', // <- thêm dòng này để sắp xếp mặc định
-      sorter: (a, b) => {
-        const dateA = a.modificationDate ? new Date(a.modificationDate).getTime() : new Date(a.creationDate).getTime();
-        const dateB = b.modificationDate ? new Date(b.modificationDate).getTime() : new Date(b.creationDate).getTime();
-        return dateA - dateB;
-      },
-      sortOrder: sortedInfo.columnKey === 'modificationDate' ? sortedInfo.order : null,
-      render: (date, record) =>
-        date ? format(new Date(date), 'dd/MM/yyyy HH:mm') : format(new Date(record.creationDate), 'dd/MM/yyyy HH:mm'),
-    },    
+    // {
+    //   title: 'Cập nhật gần nhất',
+    //   dataIndex: 'modificationDate',
+    //   key: 'modificationDate',
+    //   defaultSortOrder: 'descend', // <- thêm dòng này để sắp xếp mặc định
+    //   sorter: (a, b) => {
+    //     const dateA = a.modificationDate ? new Date(a.modificationDate).getTime() : new Date(a.creationDate).getTime();
+    //     const dateB = b.modificationDate ? new Date(b.modificationDate).getTime() : new Date(b.creationDate).getTime();
+    //     return dateA - dateB;
+    //   },
+    //   sortOrder: sortedInfo.columnKey === 'modificationDate' ? sortedInfo.order : null,
+    //   render: (date, record) =>
+    //     date ? format(new Date(date), 'dd/MM/yyyy HH:mm') : format(new Date(record.creationDate), 'dd/MM/yyyy HH:mm'),
+    // },    
     {
       title: 'Trạng thái',
       dataIndex: 'status',
@@ -296,14 +322,40 @@ const NewDesignOrdersList = () => {
     {
       title: 'Hành động',
       key: 'action',
-      render: (_, record) => (
-        <Space size="middle">
-          <Link to={`/manager/new-design-orders/${record.id}`}>
-            <Button type="primary" icon={<EyeOutlined />} />
-          </Link>
-        </Space>
-      ),
-    },
+      render: (_, record) => {
+        const relatedNotification = notifications.find((n) => {
+          const match = n.content.match(/Mã đơn\s*:\s*([a-f0-9-]{36})/i);
+          return match?.[1] === record.id;
+        });
+    
+        return (
+          <Space size="middle">
+            <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              onClick={async () => {
+                if (relatedNotification && !relatedNotification.isSeen) {
+                  await markAsRead(relatedNotification.id);
+                }
+                navigate(`/manager/new-design-orders/${record.id}`);
+              }}
+            />
+          </Space>
+        );
+      }
+    }
+    
+    // {
+    //   title: 'Hành động',
+    //   key: 'action',
+    //   render: (_, record) => (
+    //     <Space size="middle">
+    //       <Link to={`/manager/new-design-orders/${record.id}`}>
+    //         <Button type="primary" icon={<EyeOutlined />} />
+    //       </Link>
+    //     </Space>
+    //   ),
+    // },
   ];
 
   return (
@@ -412,9 +464,28 @@ const NewDesignOrdersList = () => {
         }}
         onChange={handleTableChange}
         sortDirections={['descend', 'ascend']}
+        onRow={(record) => {
+          const isUpdated = updatedOrderIds.includes(record.id);
+          return {
+            style: isUpdated
+              ? {
+                  backgroundColor: '#fff7e6', // màu vàng nhạt
+                  transition: 'background-color 0.3s ease',
+                }
+              : {},
+          };
+        }}
       />
     </div>
   );
 };
 
 export default NewDesignOrdersList; 
+
+<style>
+  {`
+    .row-has-noti td {
+      background-color: #fff7e6 !important;
+    }
+  `}
+</style>

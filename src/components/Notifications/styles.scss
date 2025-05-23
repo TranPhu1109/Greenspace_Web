@@ -1,108 +1,169 @@
 .notification-dropdown {
   .ant-dropdown-menu {
-    max-height: 300px;
-    overflow-y: auto;
-    width: 300px; // Adjust width as needed
     padding: 0;
+    width: 350px;
+    max-height: 500px;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   }
-
-  .ant-dropdown-menu-item {
-    padding: 10px 15px;
-    line-height: 1.5;
-    border-bottom: 1px solid #f0f0f0; // Separator line
-
-    &:last-child {
-      border-bottom: none;
+  
+  .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    font-weight: 500;
+    border-bottom: 1px solid #f0f0f0;
+    
+    .mark-all-read {
+      color: #1890ff;
+      cursor: pointer;
+      font-size: 11px;
+      transition: color 0.2s;
+      
+      &:hover {
+        color: #40a9ff;
+        text-decoration: underline;
+      }
     }
-
+  }
+  
+  .notification-list {
+    max-height: 350px;
+    overflow-y: auto;
+    
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f5f5f5;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #d9d9d9;
+      border-radius: 4px;
+      
+      &:hover {
+        background: #bfbfbf;
+      }
+    }
+  }
+  
+  .notification-item {
+    padding: 6px 10px;
+    border-bottom: 1px solid #f5f5f5;
+    transition: all 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    border-radius: 8px;
+    border-left: 4px solid #a0d911;
+    
     &:hover {
-      background-color: #f8f8f8;
+      background-color: #f5f5f5;
     }
-
-    &.ant-dropdown-menu-item-disabled {
-      color: rgba(0, 0, 0, 0.45);
-      cursor: default;
-      background-color: transparent;
+    
+    &.unread {
+      background-color: #fafafa;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: 8px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #1890ff;
+      }
+      
+      .notification-title {
+        padding-left: 10px;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.85);
+      }
+      
+      .notification-content {
+        padding-left: 10px;
+      }
+      
+      .notification-time {
+        padding-left: 10px;
+      }
     }
-  }
-}
-
-.notification-item {
-  display: flex;
-  flex-direction: column;
-
-  &.unread {
-    // Style for unread notifications (e.g., bold text)
-    .notification-title,
+    
+    .notification-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: rgba(0, 0, 0, 0.75);
+      font-size: 13px;
+    }
+    
     .notification-content {
-      font-weight: 600;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.55);
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    
+    .notification-time {
+      font-size: 10px;
+      color: rgba(0, 0, 0, 0.45);
+      text-align: right;
     }
   }
-
-  .notification-title {
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 4px;
-    // white-space: nowrap;
-    // overflow: hidden;
-    // text-overflow: ellipsis;
-  }
-
-  .notification-content {
+  
+  .view-all {
+    color: #1890ff;
     font-size: 12px;
-    color: #666;
-    margin-bottom: 4px;
-    // white-space: nowrap;
-    // overflow: hidden;
-    // text-overflow: ellipsis;
-  }
-
-  .notification-time {
-    font-size: 10px;
-    color: #999;
-    align-self: flex-end;
+    padding: 4px 0;
+    display: block;
+    text-align: center;
+    transition: all 0.2s;
+    
+    &:hover {
+      color: #40a9ff;
+      background-color: #f5f5f5;
+    }
   }
 }
 
-.view-all {
-  font-size: 13px;
-  color: #1890ff; // Ant Design primary color
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-// Style for the trigger (bell icon + badge)
 .notification-trigger {
   cursor: pointer;
-  display: inline-flex;
+  padding: 0 10px;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  height: 100%; // Match header height if needed
-  padding: 0 12px; // Adjust padding as needed
-
+  height: 100%;
+  transition: background-color 0.2s;
+  border-radius: 4px;
+  
   &:hover {
-    background-color: rgba(0, 0, 0, 0.025); // Slight background on hover
+    background-color: rgba(0, 0, 0, 0.025);
   }
-
+  
   .header-icon {
-    font-size: 18px; // Adjust icon size
-    color: inherit; // Inherit color from header
+    font-size: 20px;
+    color: rgba(0, 0, 0, 0.65);
+    transition: color 0.3s;
   }
+  
+  &.has-unread .header-icon {
+    color: #1890ff;
+    animation: bell-shake 3s infinite;
+    animation-delay: 0.5s;
+    transform-origin: top center;
+  }
+}
 
-  // Adjust badge position if necessary
-  .notification-badge {
-    // Example: slightly offset the badge
-    // transform: translate(5px, -5px);
-    .ant-badge-count {
-        // Customize badge appearance (e.g., smaller font)
-        // font-size: 9px;
-        // padding: 0 4px;
-        // height: 16px;
-        // line-height: 16px;
-        // min-width: 16px;
-    }
-  }
+// Animation for notification bell when there are unread notifications
+@keyframes bell-shake {
+  0% { transform: rotate(0); }
+  1% { transform: rotate(12deg); }
+  2% { transform: rotate(-10deg); }
+  3% { transform: rotate(8deg); }
+  4% { transform: rotate(-6deg); }
+  5% { transform: rotate(4deg); }
+  6% { transform: rotate(0); }
+  100% { transform: rotate(0); }
 } 
