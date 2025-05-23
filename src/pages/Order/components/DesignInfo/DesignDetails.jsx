@@ -210,7 +210,7 @@ const DesignDetails = ({
             {order?.designPrice === 0 || !approvedDesignPriceStatuses.includes(order?.status) ? (
               <Tag color="gold">Chưa xác định giá thiết kế</Tag>
             ) : (
-              <Text style={{ color: '#52c41a', fontWeight: 'bold' }}>{formatPriceDisplay(order.designPrice)}</Text>
+              <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>{formatPriceDisplay(order.designPrice)}</Text>
             )}
           </div>
 
@@ -234,29 +234,12 @@ const DesignDetails = ({
               
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                  <Text style={{ color: '#52c41a', fontWeight: 'bold' }}>
                     {formatPriceDisplay((order?.designPrice || 0) * (getDepositPercentage() / 100))}
                   </Text>
                   <Tag color="blue">{getDepositPercentage()}%</Tag>
                 </div>
               </div>
-              {/* {[
-                "DepositSuccessful",
-                "AssignToDesigner",
-                "DeterminingMaterialPrice",
-                "DoneDesign",
-                "PaymentSuccess",
-                "Processing",
-                "PickedPackageAndDelivery",
-                "DeliveredSuccessfully",
-                "Successfully",
-                "DoneInstalling",
-                "Installing",
-                "ReInstall",
-                "DoneRefund"
-              ].includes(order?.status) && (
-                  <Tag color="success" style={{ marginTop: 4 }}>Đã thanh toán</Tag>
-                )} */}
             </div>
           )}
 
@@ -266,8 +249,18 @@ const DesignDetails = ({
               {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
                 <Tag color="gold">Chưa xác định giá vật liệu</Tag>
               ) : (
-                <Text style={{ color: '#52c41a', fontWeight: 'bold' }}>{formatPriceDisplay(order.materialPrice)}</Text>
+                <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>{formatPriceDisplay(order.materialPrice)}</Text>
               )}
+            </div>
+          )}
+
+          {(order?.status === "PaymentSuccess" || order?.status === "Processing" ||
+            order?.status === "PickedPackageAndDelivery" || order?.status === "DeliveredSuccessfully" || order?.status === "Successfully" ||
+            order?.status === "DoneInstalling" || order?.status === "Installing" || order?.status === "ReInstall" ||
+            order?.status === "DoneRefund") && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text strong>Đã thanh toán giá vật liệu và phí thiết kế còn lại:</Text>
+              <Text strong style={{ color: '#52c41a', fontWeight: 'bold', fontSize: 16 }}>{formatPriceDisplay(order.totalCost - (order?.designPrice || 0) * (getDepositPercentage() / 100))}</Text>
             </div>
           )}
 

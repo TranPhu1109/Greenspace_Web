@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Card,
   Table,
@@ -30,6 +30,7 @@ import "./NewDesignOrdersList.scss";
 import { Tooltip } from "antd";
 import { Popover } from "antd";
 import signalRService from "@/services/signalRService";
+import useNotificationStore from "@/stores/useNotificationStore";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -42,6 +43,7 @@ const NewDesignOrdersList = () => {
   const [dateRange, setDateRange] = useState(null);
   const { serviceOrders, loading, getServiceOrdersNoIdea, cancelServiceOrder } =
     useServiceOrderStore();
+  const { markAsRead, notifications } = useNotificationStore();
 
   useEffect(() => {
     fetchOrders();
@@ -49,14 +51,14 @@ const NewDesignOrdersList = () => {
 
   useEffect(() => {
     const handleOrderUpdate = (messageType, messageData) => {
-       // Log all messages received for debugging
+      // Log all messages received for debugging
       console.log(`SignalR received in NewDesignOrdersList - Type: ${messageType}, Data: ${messageData}`);
 
       const relevantUpdateTypes = [
-          "UpdateOrderService", // From previous context
-          "OrderCancelled",     // Example: If cancellation affects this list
-          "CreateOrderService", // When a new order is created
-        ];
+        "UpdateOrderService", // From previous context
+        "OrderCancelled",     // Example: If cancellation affects this list
+        "CreateOrderService", // When a new order is created
+      ];
 
       if (relevantUpdateTypes.includes(messageType)) {
         console.log(`Relevant SignalR message received (${messageType}), refreshing order list.`);
@@ -66,13 +68,13 @@ const NewDesignOrdersList = () => {
 
     try {
       signalRService.startConnection().then(() => { // Ensure connection is attempted
-         console.log("SignalR connection ready for NewDesignOrdersList listener.");
-         signalRService.on("messageReceived", handleOrderUpdate);
+        console.log("SignalR connection ready for NewDesignOrdersList listener.");
+        signalRService.on("messageReceived", handleOrderUpdate);
       }).catch(err => {
-          console.error("SignalR connection failed in NewDesignOrdersList:", err);
+        console.error("SignalR connection failed in NewDesignOrdersList:", err);
       });
     } catch (err) {
-         console.error("Error initiating SignalR connection for NewDesignOrdersList:", err);
+      console.error("Error initiating SignalR connection for NewDesignOrdersList:", err);
     }
     return () => {
       console.log("Removing SignalR listener from NewDesignOrdersList.");
@@ -88,7 +90,33 @@ const NewDesignOrdersList = () => {
     }
   };
 
-  const handleViewDetail = (id) => {
+  const getHighlightedOrderIds = () => {
+    const orderIds = notifications
+      .filter((n) => !n.isSeen)
+      .map((n) => {
+        const match = n.content.match(/Mã đơn:\s([a-z0-9-]+)/i);
+        return match?.[1];
+      })
+      .filter(Boolean);
+    return orderIds;
+  };
+
+  const orderIdToNotiIds = useMemo(() => {
+    const map = {};
+    notifications.forEach(n => {
+      const match = n.content.match(/Mã đơn:\s([a-z0-9-]+)/i);
+      const orderId = match?.[1];
+      if (orderId && !n.isSeen) {
+        map[orderId] = map[orderId] || [];
+        map[orderId].push(n.id);
+      }
+    });
+    return map;
+  }, [notifications]);
+
+  const handleViewDetail = async (id) => {
+    const notiIds = orderIdToNotiIds[id] || [];
+    await Promise.all(notiIds.map(id => markAsRead(id)));
     navigate(`/staff/design-orders/new-design-orders/${id}`);
   };
 
@@ -200,7 +228,7 @@ const NewDesignOrdersList = () => {
       "32": "Điều chỉnh giá vật liệu",
       "33": "Đã xác nhận giá vật liệu ngoài",
     };
-  
+
     const stringStatusMap = {
       Pending: "Chờ xử lý",
       ConsultingAndSketching: "Đang tư vấn & phác thảo",
@@ -237,9 +265,9 @@ const NewDesignOrdersList = () => {
       ReDetermineMaterialPrice: "Điều chỉnh giá vật liệu",
       MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài"
     };
-  
+
     return numericStatusMap[status] || stringStatusMap[status] || status || "Không xác định";
-  };  
+  };
 
   const getStatusColor = (status) => {
     const numericColorMap = {
@@ -278,7 +306,7 @@ const NewDesignOrdersList = () => {
       "32": "volcano",     // Điều chỉnh giá VL
       "33": "success",     // Đã xác nhận giá VL ngoài
     };
-  
+
     const stringColorMap = {
       Pending: "blue",
       ConsultingAndSketching: "cyan",
@@ -315,10 +343,10 @@ const NewDesignOrdersList = () => {
       Successfully: "success",
       MaterialPriceConfirmed: "success"
     };
-  
+
     return numericColorMap[status] || stringColorMap[status] || "default";
   };
-  
+
   const columns = [
     {
       title: "Mã đơn hàng",
@@ -438,7 +466,7 @@ const NewDesignOrdersList = () => {
                 <Option value="all">Tất cả trạng thái</Option>
                 <Option value="0">Chờ xử lý</Option>
                 <Option value="1">Đang tư vấn & phác thảo</Option>
-                <Option value="19">Phác thảo lại</Option> 
+                <Option value="19">Phác thảo lại</Option>
                 <Option value="2">Đang xác định giá TK</Option>
                 <Option value="24">Xác định lại giá TK</Option>
                 <Option value="22">Hoàn thành giá TK</Option>
@@ -483,10 +511,19 @@ const NewDesignOrdersList = () => {
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} đơn hàng`,
           }}
-          onRow={(record) => ({
-            onClick: () => handleViewDetail(record.id),
-            style: { cursor: "pointer" },
-          })}
+          // onRow={(record) => ({
+          //   onClick: () => handleViewDetail(record.id),
+          //   style: { cursor: "pointer" },
+          // })}
+          onRow={(record) => {
+            const highlightedIds = getHighlightedOrderIds();
+            return {
+              onClick: () => handleViewDetail(record.id),
+              style: highlightedIds.includes(record.id)
+                ? { backgroundColor: "#fffbe6", cursor: "pointer" }
+                : { cursor: "pointer" },
+            };
+          }}
         />
       </Card>
     </div>

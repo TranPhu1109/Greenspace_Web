@@ -98,6 +98,9 @@ const ContractorSchedule = () => {
   const [productDetails, setProductDetails] = useState({});
   const [loadingProducts, setLoadingProducts] = useState(false);
 
+  // Thêm state mới để theo dõi contractor được chọn để xem lịch
+  const [viewingContractor, setViewingContractor] = useState(null);
+
   // Log khi selectedTaskDetails thay đổi
   useEffect(() => {
     console.log("selectedTaskDetails changed:", selectedTaskDetails);
@@ -125,6 +128,7 @@ const ContractorSchedule = () => {
           }
         } catch (taskError) {
           console.error('Error fetching all tasks:', taskError);
+          message.error('Không thể tải toàn bộ lịch làm việc của các đội. Dữ liệu có thể không đầy đủ.');
         }
 
         // If a contractor is already selected, fetch their tasks
@@ -377,8 +381,15 @@ const ContractorSchedule = () => {
 
   // Function to get tasks for a specific date
   const getTasksForDate = (date) => {
-    // Nếu đã chọn contractor, chỉ hiển thị task của contractor đó
-    if (selectedContractor && selectedContractor.id) {
+    // Nếu đang xem lịch của contractor cụ thể, chỉ hiển thị task của contractor đó
+    if (viewingContractor && viewingContractor.id) {
+      return contractorTasks && contractorTasks.filter(task => {
+        const taskDate = dayjs(task.dateAppointment);
+        return date.isSame(taskDate, 'day');
+      }) || [];
+    }
+    // Nếu có contractor được chọn cho task, chỉ hiển thị task của contractor đó
+    else if (selectedContractor && selectedContractor.id) {
       return contractorTasks && contractorTasks.filter(task => {
         const taskDate = dayjs(task.dateAppointment);
         return date.isSame(taskDate, 'day');
@@ -396,7 +407,7 @@ const ContractorSchedule = () => {
   const getStatusTag = (status) => {
     switch (status) {
       case 'Pending':
-        return <Tag color="default">Chưa bắt đầu</Tag>;
+        return <Tag color="blue">Đang chuẩn bị hàng</Tag>;
       case 'Installing':
         return <Tag color="processing">Đang thực hiện</Tag>;
       case 'DoneInstalling':
@@ -426,7 +437,7 @@ const ContractorSchedule = () => {
         return <Tag color="red">Không xác định</Tag>;
     }
   };
-  
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -607,113 +618,173 @@ const ContractorSchedule = () => {
               }
               style={{ marginBottom: '20px' }}
             >
-              {isLoading ? (
+              {isLoading || allContractorTasks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <Spin size="large" />
+                  <p>Đang tải dữ liệu lịch làm việc của các đội...</p>
                 </div>
               ) : contractors && contractors.length > 0 ? (
-                <Row gutter={[16, 16]}>
-                  {contractors.map(contractor => {
-                    // Calculate how many tasks this contractor has on the delivery date
-                    const deliveryDate = existingConstructionDate ? dayjs(existingConstructionDate) : dayjs().add(2, 'day');
-                    const tasksOnDeliveryDate = contractorTasks && contractorTasks
-                      .filter(task =>
-                        task.userId === contractor.id &&
-                        dayjs(task.dateAppointment).isSame(deliveryDate, 'day')
-                      ) || [];
+                <>
+                  {existingConstructionDate && (
+                    (() => {
+                      const deliveryDate = dayjs(existingConstructionDate);
+                      const availableContractors = contractors.filter(contractor => {
+                        const tasksOnDeliveryDate = allContractorTasks.filter(task =>
+                          task.userId === contractor.id &&
+                          dayjs(task.dateAppointment).isSame(deliveryDate, 'day')
+                        );
+                        return tasksOnDeliveryDate.length === 0; // Only show contractors with no tasks on this date
+                      });
 
-                    const availability = tasksOnDeliveryDate.length <= 2 ? 'high' :
-                      tasksOnDeliveryDate.length <= 4 ? 'medium' : 'low';
-
-                    const availabilityColor = {
-                      'high': 'green',
-                      'medium': 'orange',
-                      'low': 'red'
-                    }[availability];
-
-                    const availabilityText = {
-                      'high': 'Sẵn sàng (ít công việc)',
-                      'medium': 'Bận vừa phải',
-                      'low': 'Khá bận (nhiều công việc)'
-                    }[availability];
-
-                    return (
-                      <Col xs={24} sm={12} md={8} key={contractor.id}>
-                        <Card
-                          hoverable
-                          style={{
-                            borderRadius: '8px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column'
-                          }}
-                          actions={[
-                            <Button
-                              type="primary"
-                              onClick={() => {
-                                selectContractor(contractor);
-                                fetchContractorTasks(contractor.id).then(() => {
-                                  // After fetching tasks, show the task creation modal
-                                  if (serviceOrderFromNav) {
-                                    showCreateTaskModal(dayjs(), serviceOrderFromNav);
-                                  }
-                                });
-                              }}
-                            >
-                              Chọn đội này
-                            </Button>
-                          ]}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                            <Avatar
-                              size={64}
-                              icon={<UserOutlined />}
-                              src={contractor.avatarUrl}
-                              style={{ marginRight: '16px', backgroundColor: '#1890ff' }}
-                            />
-                            <div>
-                              <Title level={5} style={{ margin: 0 }}>{contractor.name}</Title>
+                      if (availableContractors.length === 0) {
+                        return (
+                          <Alert
+                            message="Không có đội lắp đặt nào rảnh vào ngày này"
+                            description={
                               <div>
-                                <Tag color="blue">Đội lắp đặt</Tag>
-                                <Tag color={availabilityColor}>{availabilityText}</Tag>
+                                <p><strong>Ngày giao hàng yêu cầu:</strong> {deliveryDate.format('DD/MM/YYYY')}</p>
+                                <p>Tất cả các đội lắp đặt đã có lịch làm việc vào ngày này. Vui lòng xem lại lịch của từng đội hoặc liên hệ với khách hàng để hẹn lịch mới.</p>
                               </div>
-                            </div>
-                          </div>
+                            }
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: '16px' }}
+                          />
+                        );
+                      }
+                      return null;
+                    })()
+                  )}
+                  <Row gutter={[16, 16]}>
+                    {contractors
+                      .filter(contractor => {
+                        // If there's a specific date from service order, check availability
+                        if (existingConstructionDate) {
+                          const deliveryDate = dayjs(existingConstructionDate);
+                          const tasksOnDeliveryDate = allContractorTasks.filter(task =>
+                            task.userId === contractor.id &&
+                            dayjs(task.dateAppointment).isSame(deliveryDate, 'day')
+                          );
+                          return tasksOnDeliveryDate.length === 0; // Only show contractors with no tasks on this date
+                        }
+                        // If no specific date, show all contractors
+                        return true;
+                      })
+                      .map(contractor => {
+                        // Calculate how many tasks this contractor has on the delivery date
+                        const deliveryDate = existingConstructionDate ? dayjs(existingConstructionDate) : dayjs().add(2, 'day');
+                        const tasksOnDeliveryDate = allContractorTasks
+                          .filter(task =>
+                            task.userId === contractor.id &&
+                            dayjs(task.dateAppointment).isSame(deliveryDate, 'day')
+                          ) || [];
 
-                          <div style={{ color: '#666', fontSize: '14px' }}>
-                            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
-                              <PhoneOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                              {contractor.phone}
-                            </p>
-                            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
-                              <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                              {contractor.email}
-                            </p>
-                            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
-                              <HomeOutlined style={{ marginRight: '8px', marginTop: '3px', color: '#1890ff' }} />
-                              <span style={{ flex: 1 }}>{contractor.address}</span>
-                            </p>
+                        const availability = tasksOnDeliveryDate.length === 0 ? 'high' :
+                          tasksOnDeliveryDate.length === 1 ? 'medium' : 'low';
 
-                            {/* Show existing tasks if any */}
-                            {tasksOnDeliveryDate.length > 0 && (
-                              <div style={{ marginTop: '10px' }}>
-                                <Text strong>Lịch làm việc {deliveryDate.format('DD/MM/YYYY')}:</Text>
-                                <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
-                                  {tasksOnDeliveryDate.map((task, idx) => (
-                                    <li key={idx}>
-                                      <Text>{task.timeAppointment} - Đơn #{task.serviceOrderId}</Text>
-                                    </li>
-                                  ))}
-                                </ul>
+                        const availabilityColor = {
+                          'high': 'green',
+                          'medium': 'orange',
+                          'low': 'red'
+                        }[availability];
+
+                        const availabilityText = {
+                          'high': 'Sẵn sàng (không có công việc)',
+                          'medium': 'Bận vừa phải',
+                          'low': 'Đã có lịch'
+                        }[availability];
+
+                        return (
+                          <Col xs={24} sm={12} md={8} key={contractor.id}>
+                            <Card
+                              hoverable
+                              style={{
+                                borderRadius: '8px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column'
+                              }}
+                              actions={[
+                                <Button
+                                  type="primary"
+                                  onClick={() => {
+                                    selectContractor(contractor);
+                                    fetchContractorTasks(contractor.id).then(() => {
+                                      // After fetching tasks, show the task creation modal
+                                      if (serviceOrderFromNav) {
+                                        showCreateTaskModal(dayjs(), serviceOrderFromNav);
+                                      }
+                                    });
+                                  }}
+                                >
+                                  Chọn đội này
+                                </Button>
+                              ]}
+                            >
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                marginBottom: '12px',
+                                flexWrap: 'wrap',
+                                gap: '12px'
+                              }}>
+                                <Avatar
+                                  // size={64}
+                                  icon={<UserOutlined />}
+                                  src={contractor.avatarUrl}
+                                  style={{
+                                    width: 64,
+                                    height: 64,
+                                    backgroundColor: !contractor.avatarUrl ? '#1890ff' : undefined,
+                                    flexShrink: 0
+                                  }}
+                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <Title level={5} style={{ margin: 0 }}>{contractor.name}</Title>
+                                  <Tag color={availabilityColor}
+                                    style={{
+                                      maxWidth: 160,
+                                      whiteSpace: 'normal',
+                                      wordBreak: 'break-word',
+                                    }}>{availabilityText}</Tag>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </Card>
-                      </Col>
-                    );
-                  })}
-                </Row>
+
+                              <div style={{ color: '#666', fontSize: '14px' }}>
+                                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                                  <PhoneOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                                  {contractor.phone}
+                                </p>
+                                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                                  <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                                  {contractor.email}
+                                </p>
+                                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
+                                  <HomeOutlined style={{ marginRight: '8px', marginTop: '3px', color: '#1890ff' }} />
+                                  <span style={{ flex: 1 }}>{contractor.address?.replace(/\|/g, ', ')}</span>
+                                </p>
+
+                                {/* Show existing tasks if any */}
+                                {tasksOnDeliveryDate.length > 0 && (
+                                  <div style={{ marginTop: '10px' }}>
+                                    <Text strong>Lịch làm việc {deliveryDate.format('DD/MM/YYYY')}:</Text>
+                                    <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
+                                      {tasksOnDeliveryDate.map((task, idx) => (
+                                        <li key={idx}>
+                                          <Text>{task.timeAppointment} - Đơn #{task.serviceOrderId}</Text>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </Card>
+                          </Col>
+                        );
+                      })}
+                  </Row>
+                </>
               ) : (
                 <Empty description="Không có đội lắp đặt nào" />
               )}
@@ -743,8 +814,14 @@ const ContractorSchedule = () => {
             <Select
               placeholder="Chọn đội lắp đặt"
               style={{ width: 250 }}
-              onChange={handleContractorChange}
-              value={selectedContractor?.id}
+              onChange={(contractorId) => {
+                const contractor = contractors.find(c => c.id === contractorId);
+                setViewingContractor(contractor);
+                if (contractor) {
+                  fetchContractorTasks(contractor.id);
+                }
+              }}
+              value={viewingContractor?.id || selectedContractor?.id}
             >
               {contractors && contractors.map(contractor => (
                 <Option key={contractor.id} value={contractor.id}>
@@ -757,6 +834,8 @@ const ContractorSchedule = () => {
         style={{ marginBottom: '20px' }}
       >
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
+
+
           <TabPane
             tab={
               <span>
@@ -769,7 +848,7 @@ const ContractorSchedule = () => {
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <Spin size="large" />
               </div>
-            ) : !selectedContractor ? (
+            ) : !viewingContractor && !selectedContractor ? (
               <Alert
                 message="Vui lòng chọn đội lắp đặt"
                 description={serviceOrderFromNav ?
@@ -843,14 +922,14 @@ const ContractorSchedule = () => {
                       hoverable
                       style={{
                         borderRadius: '8px',
-                        boxShadow: selectedContractor?.id === contractor.id ? '0 0 8px rgba(24,144,255,0.5)' : 'none',
-                        border: selectedContractor?.id === contractor.id ? '1px solid #1890ff' : '1px solid #e8e8e8'
+                        boxShadow: viewingContractor?.id === contractor.id ? '0 0 8px rgba(24,144,255,0.5)' : 'none',
+                        border: viewingContractor?.id === contractor.id ? '1px solid #1890ff' : '1px solid #e8e8e8'
                       }}
                       actions={[
                         <Button
                           type="primary"
                           onClick={() => {
-                            selectContractor(contractor);
+                            setViewingContractor(contractor);
                             fetchContractorTasks(contractor.id);
                             setActiveTab('calendar');
                           }}

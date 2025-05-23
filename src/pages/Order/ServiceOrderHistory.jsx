@@ -441,7 +441,7 @@ const ServiceOrderHistory = () => {
       DeterminingMaterialPrice: "Đang trong quá trình thiết kế",
       DoneDesign: "Thanh toán phí thiết kế còn lại",
       PaymentSuccess: "Thanh toán thành công",
-      Processing: "Đang xử lý",
+      Processing: "Đang xử lý/Chờ giao hàng",
       PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
       DeliveryFail: "Giao hàng thất bại",
       ReDelivery: "Giao lại",

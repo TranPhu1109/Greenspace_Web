@@ -22,7 +22,7 @@ function UserMenu({ user }) {
   }
 
 
-  const rolesWithDashboard = ["staff", "manager", "designer", "accountant", "contractor", "admin"];
+  const rolesWithDashboard = ["staff", "manager", "designer", "accountant", "contructor", "admin"];
 
   const userMenuItems = React.useMemo(() => {
     const items = [
