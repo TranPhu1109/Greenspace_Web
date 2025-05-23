@@ -222,7 +222,8 @@ const useComplaintStore = create((set, get) => ({
     statusCode,
     complaintType = 0,
     deliveryCode = "",
-    reason = null
+    reason = null,
+    videoURL = null
   ) => {
     set({ loading: true, error: null });
     try {
@@ -230,7 +231,8 @@ const useComplaintStore = create((set, get) => ({
         status: statusCode,
         complaintType: complaintType,
         deliveryCode: deliveryCode,
-        reason: reason || ''
+        reason: reason || '',
+        videoURL: videoURL
       });
 
       set({ loading: false });

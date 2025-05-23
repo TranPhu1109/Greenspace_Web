@@ -603,6 +603,24 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
                   </Space>
                 </div>
               )}
+              {record.videoURL && (
+                <div style={{
+                  backgroundColor: '#fafafa',
+                  padding: 16,
+                  borderRadius: 8,
+                  border: '1px solid #f0f0f0',
+                  flex: '1 1 320px',
+                  maxWidth: 360
+                }}>
+                  <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}> 🎥 Video minh chứng tại kho:</Typography.Text>
+                  <video
+                    src={record.videoURL}
+                    controls
+                    width={320}
+                    style={{ borderRadius: 6, maxHeight: 220 }}
+                  />
+                </div>
+              )}
             </div>
           </Descriptions.Item>
         </Descriptions>
@@ -634,72 +652,79 @@ const ComplaintHistoryTab = ({ complaints: propsComplaints }) => {
 
                 // Normal rendering with product details
                 return (
-                  <Space>
-                    {product?.image?.imageUrl ? (
-                      <div style={{ position: 'relative' }}>
-                        <img
-                          src={product.image.imageUrl}
-                          alt={product.name}
-                          style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 4 }}
-                        />
-                        {record.status !== 'pending' && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: -4,
-                              right: -4,
-                              width: 18,
-                              height: 18,
-                              borderRadius: '50%',
-                              background: item.isCheck ? '#52c41a' : '#f5222d',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '2px solid #fff'
-                            }}
-                          >
-                            {item.isCheck ?
-                              <CheckCircleOutlined style={{ color: '#fff', fontSize: 10 }} /> :
-                              <InfoCircleOutlined style={{ color: '#fff', fontSize: 10 }} />
-                            }
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ position: 'relative' }}>
-                        <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
-                          <ShoppingOutlined style={{ fontSize: 20, color: '#999' }} />
+                  <Space direction="vertical" size={4}>
+                    <Space>
+                      {product?.image?.imageUrl ? (
+                        <div style={{ position: 'relative' }}>
+                          <img
+                            src={product.image.imageUrl}
+                            alt={product.name}
+                            style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 4 }}
+                          />
+                          {record.status !== 'pending' && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: -4,
+                                right: -4,
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                background: item.isCheck ? '#52c41a' : '#f5222d',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '2px solid #fff'
+                              }}
+                            >
+                              {item.isCheck ?
+                                <CheckCircleOutlined style={{ color: '#fff', fontSize: 10 }} /> :
+                                <InfoCircleOutlined style={{ color: '#fff', fontSize: 10 }} />
+                              }
+                            </div>
+                          )}
                         </div>
-                        {record.status !== 'pending' && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: -4,
-                              right: -4,
-                              width: 18,
-                              height: 18,
-                              borderRadius: '50%',
-                              background: item.isCheck ? '#52c41a' : '#f5222d',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '2px solid #fff'
-                            }}
-                          >
-                            {item.isCheck ?
-                              <CheckCircleOutlined style={{ color: '#fff', fontSize: 10 }} /> :
-                              <InfoCircleOutlined style={{ color: '#fff', fontSize: 10 }} />
-                            }
+                      ) : (
+                        <div style={{ position: 'relative' }}>
+                          <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
+                            <ShoppingOutlined style={{ fontSize: 20, color: '#999' }} />
                           </div>
-                        )}
-                      </div>
-                    )}
-                    <Space direction="vertical" size={0}>
-                      <Text strong>{product.name}</Text>
-                      <Text type="secondary" style={{ fontSize: "12px" }}>
-                        {product.categoryName || `#${productId.slice(0, 8)}...`}
-                      </Text>
+                          {record.status !== 'pending' && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: -4,
+                                right: -4,
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                background: item.isCheck ? '#52c41a' : '#f5222d',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '2px solid #fff'
+                              }}
+                            >
+                              {item.isCheck ?
+                                <CheckCircleOutlined style={{ color: '#fff', fontSize: 10 }} /> :
+                                <InfoCircleOutlined style={{ color: '#fff', fontSize: 10 }} />
+                              }
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <Space direction="vertical" size={0}>
+                        <Text strong>{product.name}</Text>
+                        <Text type="secondary" style={{ fontSize: "12px" }}>
+                          {product.categoryName || `#${productId.slice(0, 8)}...`}
+                        </Text>
+                      </Space>
                     </Space>
+                    {record.status !== 'pending' && !item.isCheck && item.description && (
+                      <Text type="danger" style={{ fontSize: "14px", marginTop: 4 }}>
+                        Lý do từ chối: {item.description}
+                      </Text>
+                    )}
                   </Space>
                 );
               },
