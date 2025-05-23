@@ -1211,7 +1211,7 @@ const TaskDetail = () => {
     );
   };
 
-  // Handle external product description change
+  // Update the description change handler to handle the HTML content from EditorComponent
   const handleExternalProductDescriptionChange = (tempId, value) => {
     setTempExternalProducts(prev =>
       prev.map(item =>
@@ -1242,7 +1242,7 @@ const TaskDetail = () => {
     setTempExternalProducts(prev => prev.filter(item => item.tempId !== tempId));
   };
 
-  // Validate external products before saving
+  // Update validateExternalProducts function to check for images
   const validateExternalProducts = () => {
     let isValid = true;
     let errorMessage = '';
@@ -1257,6 +1257,20 @@ const TaskDetail = () => {
       if (!product.quantity || product.quantity <= 0) {
         isValid = false;
         errorMessage = 'Số lượng sản phẩm phải lớn hơn 0';
+        break;
+      }
+
+      // Add validation for image
+      if (!product.tempImageUrl && !product.imageURL) {
+        isValid = false;
+        errorMessage = 'Vui lòng tải lên hình ảnh cho sản phẩm';
+        break;
+      }
+
+      // Add validation for description/requirements
+      if (!product.description || product.description.trim() === '') {
+        isValid = false;
+        errorMessage = 'Vui lòng nhập yêu cầu về sản phẩm';
         break;
       }
     }
@@ -1431,6 +1445,11 @@ const TaskDetail = () => {
       description: product.description || '',
     });
 
+    // Force render after setting form values to ensure EditorComponent gets the value
+    setTimeout(() => {
+      editExternalProductForm.validateFields(['description']);
+    }, 100);
+
     setIsEditExternalProductModalVisible(true);
   };
 
@@ -1539,6 +1558,7 @@ const TaskDetail = () => {
         title: "Sản phẩm",
         dataIndex: "name",
         key: "name",
+        width: 180,
         render: (text, record) => (
           <div className="flex items-center">
             {record.imageURL ? (
@@ -1563,33 +1583,30 @@ const TaskDetail = () => {
         ),
       },
       {
-        title: "Mô tả",
+        title: "Yêu cầu về sản phẩm",
         dataIndex: "description",
         key: "description",
         render: (text) => {
           if (!text) return <Text type="secondary">Không có mô tả</Text>;
 
           return (
-            <Tooltip title={text} styles={{
-              body: {
-                backgroundColor: '#ffffff',
-                color: '#000000',
-                maxWidth: 500,
-                fontSize: 14,
-                padding: 10,
-                borderRadius: 4,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+            <Tooltip
+              overlay={
+                <div
+                  className="html-preview"
+                  dangerouslySetInnerHTML={{ __html: text }}
+                />
               }
-            }}>
+              color="white"
+              >
               <div style={{
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical'
-              }}>
-                {text}
-              </div>
+              }} className="html-preview"
+                dangerouslySetInnerHTML={{ __html: text }} />
             </Tooltip>
           );
         }
@@ -2424,28 +2441,6 @@ const TaskDetail = () => {
           </Space>
         }
         className="mb-6 shadow-sm"
-        extra={
-          <Space>
-            {(task.status === "Design" || task.status === "DoneDesign") && (task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
-              <>
-                <Button
-                  type="primary"
-                  icon={<EditOutlined />}
-                  onClick={showProductModal}
-                >
-                  Tùy chỉnh sản phẩm
-                </Button>
-                <Button
-                  type="dashed"
-                  icon={<PlusOutlined />}
-                  onClick={showExternalProductModal}
-                >
-                  Thêm sản phẩm mới
-                </Button>
-              </>
-            )}
-          </Space>
-        }
       >
         {loadingProducts ? (
           <div className="py-8 text-center">
@@ -2476,10 +2471,10 @@ const TaskDetail = () => {
           className="mb-6 shadow-sm"
           extra={
             (task.status === "Design" || task.status === "DoneDesign") &&
-              (task.serviceOrder.status === "DepositSuccessful" ||
-                task.serviceOrder.status === "ReDesign" ||
-                task.serviceOrder.status === "AssignToDesigner") &&
-              selectedExternalProductIds.length > 0 ? (
+            (task.serviceOrder.status === "DepositSuccessful" ||
+              task.serviceOrder.status === "ReDesign" ||
+              task.serviceOrder.status === "AssignToDesigner") &&
+            selectedExternalProductIds.length > 0 && (
               <Popconfirm
                 title={`Bạn có chắc muốn xóa ${selectedExternalProductIds.length} sản phẩm đã chọn?`}
                 onConfirm={handleBulkDeleteExternalProducts}
@@ -2494,16 +2489,6 @@ const TaskDetail = () => {
                   Xóa {selectedExternalProductIds.length} sản phẩm đã chọn
                 </Button>
               </Popconfirm>
-            ) : (task.status === "Design" || task.status === "DoneDesign") && (task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
-              <>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={showExternalProductModal}
-                >
-                  Thêm sản phẩm mới
-                </Button>
-              </>
             )
           }
         >
@@ -2524,26 +2509,55 @@ const TaskDetail = () => {
           />
         </Card>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        {(task.status === "Design" || task.status === "DoneDesign") && (task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
-          <div>
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={showProductModal}
-              style={{ marginRight: 8 }}
-            >
-              Tùy chỉnh sản phẩm
-            </Button>
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={showExternalProductModal}
-            >
-              Thêm sản phẩm mới
-            </Button>
-          </div>
+      {(task.status === "Design" || task.status === "DoneDesign") &&
+        (["DepositSuccessful", "ReDesign", "AssignToDesigner"].includes(task.serviceOrder.status)) && (
+          <Card
+            title="📌 Hướng dẫn cập nhật sản phẩm cho thiết kế"
+            style={{ marginBottom: 16, backgroundColor: '#f0f5ff', borderColor: '#adc6ff' }}
+            styles={{
+              header: {
+                backgroundColor: '#f0f5ff',
+                borderBottom: '1px solid #adc6ff',
+                padding: '8px 16px'
+              },
+              body: {
+                padding: '12px 16px'
+              }
+            }}
+          >
+            <p>
+              Thiết kế này đã được khách hàng đặt cọc thành công và đang trong giai đoạn cho phép bạn:
+            </p>
+            <ul style={{ paddingLeft: 20, marginTop: 8 }}>
+              <li>
+                <strong>Cập nhật danh sách sản phẩm</strong> để đảm bảo phù hợp với bản thiết kế hiện tại.
+              </li>
+              <li>
+                <strong>Thêm sản phẩm mới</strong> nếu muốn đưa vào các vật dụng nằm ngoài hệ thống có sẵn.
+              </li>
+            </ul>
+            <div style={{ marginTop: 12 }}>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={showProductModal}
+                style={{ marginRight: 8 }}
+              >
+                Tùy chỉnh danh sách sản phẩm
+              </Button>
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={showExternalProductModal}
+              >
+                Thêm sản phẩm ngoài hệ thống
+              </Button>
+            </div>
+          </Card>
         )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div></div>
         <div>
           {(task.serviceOrder.status === "DepositSuccessful" || task.serviceOrder.status === "ReDesign" || task.serviceOrder.status === "AssignToDesigner") && (
             <Tooltip title={
@@ -3160,31 +3174,37 @@ const TaskDetail = () => {
                 style={{
                   border: '1px solid #f0f0f0',
                   marginBottom: '16px',
-                  padding: '16px',
+                  paddingLeft: '16px',
                   borderRadius: '8px',
                   backgroundColor: '#fafafa'
                 }}
               >
                 <Row gutter={16}>
                   <Col span={6}>
-                    <Upload
-                      listType="picture-card"
-                      showUploadList={false}
-                      beforeUpload={(file) => handleExternalProductImageUpload(product.tempId, file)}
+                    <Form.Item
+                      label="Hình ảnh sản phẩm"
+                      required
+                      style={{ marginBottom: '12px' }}
                     >
-                      {product.tempImageUrl ? (
-                        <img
-                          src={product.tempImageUrl}
-                          alt="product"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div>
-                          <PlusOutlined />
-                          <div style={{ marginTop: 8 }}>Tải ảnh</div>
-                        </div>
-                      )}
-                    </Upload>
+                      <Upload
+                        listType="picture-card"
+                        showUploadList={false}
+                        beforeUpload={(file) => handleExternalProductImageUpload(product.tempId, file)}
+                      >
+                        {product.tempImageUrl ? (
+                          <img
+                            src={product.tempImageUrl}
+                            alt="product"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div>
+                            <PlusOutlined />
+                            <div style={{ marginTop: 8 }}>Tải ảnh</div>
+                          </div>
+                        )}
+                      </Upload>
+                    </Form.Item>
                   </Col>
                   <Col span={18}>
                     <Form layout="vertical" style={{ marginBottom: 0 }}>
@@ -3212,20 +3232,24 @@ const TaskDetail = () => {
                           style={{ width: '100%' }}
                         />
                       </Form.Item>
-
-                      <Form.Item
-                        label="Mô tả"
-                        style={{ marginBottom: '0px' }}
-                      >
-                        <Input.TextArea
-                          placeholder="Nhập mô tả sản phẩm (tùy chọn)"
-                          value={product.description}
-                          onChange={(e) => handleExternalProductDescriptionChange(product.tempId, e.target.value)}
-                          rows={2}
-                        />
-                      </Form.Item>
                     </Form>
                   </Col>
+                </Row>
+                <Row gutter={24}>
+                  <div style={{ marginTop: 16, paddingLeft: 16 }}>
+                    <Form.Item
+                      label="Yêu cầu về sản phẩm"
+                      required
+                      rules={[{ required: true, message: 'Vui lòng nhập yêu cầu về sản phẩm' }]}
+                      style={{ marginBottom: '0px' }}
+                    >
+                      <EditorComponent
+                        value={product.description || ""}
+                        onChange={(value) => handleExternalProductDescriptionChange(product.tempId, value)}
+                        height={300}
+                      />
+                    </Form.Item>
+                  </div>
                 </Row>
               </List.Item>
             )}
@@ -3269,7 +3293,7 @@ const TaskDetail = () => {
         cancelButtonProps={{ icon: <CloseCircleOutlined /> }}
         destroyOnClose
         maskClosable={false}
-        styles={{ body: { padding: 24 } }}
+      // styles={{ body: { padding: 24 } }}
       >
         {editingExternalProduct && (
           <Form
@@ -3310,7 +3334,7 @@ const TaskDetail = () => {
                     width: '100%',
                     maxWidth: '300px',
                     margin: '0 auto',
-                    minHeight: '200px',
+                    minHeight: '150px',
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center'
@@ -3465,23 +3489,6 @@ const TaskDetail = () => {
                     />
                   </Form.Item>
 
-                  <Form.Item
-                    name="description"
-                    label="Mô tả sản phẩm"
-                  >
-                    <Input.TextArea
-                      placeholder="Nhập mô tả sản phẩm (tùy chọn)"
-                      rows={4}
-                      showCount
-                      maxLength={1000}
-                      style={{
-                        scrollbarWidth: 'thin', // Firefox
-                        scrollbarColor: '#d9d9d9 #fafafa',
-                        WebkitOverflowScrolling: 'touch',
-                      }}
-                    />
-                  </Form.Item>
-
                   <div style={{
                     background: '#fafafa',
                     padding: '10px 12px',
@@ -3499,274 +3506,26 @@ const TaskDetail = () => {
                 </div>
               </Col>
             </Row>
+            <Row gutter={24}>
+              <div style={{ marginTop: 16, paddingLeft: 16 }}>
+                <Form.Item
+                  name="description"
+                  label="Yêu cầu về sản phẩm"
+                  rules={[{ required: true, message: 'Vui lòng nhập yêu cầu về sản phẩm' }]}
+                >
+                  <EditorComponent
+                    value={editExternalProductForm.getFieldValue('description') || ""}
+                    onChange={(value) => editExternalProductForm.setFieldsValue({ description: value })}
+                    height={300}
+                  />
+                </Form.Item>
+              </div>
+            </Row>
           </Form>
         )}
       </Modal>
 
-      {/* <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <EditOutlined style={{ color: '#1890ff' }} />
-            <span>Chỉnh sửa sản phẩm</span>
-          </div>
-        }
-        open={isEditExternalProductModalVisible}
-        onOk={handleSaveEditedExternalProduct}
-        onCancel={() => {
-          setIsEditExternalProductModalVisible(false);
-          setEditingExternalProduct(null);
-          editExternalProductForm.resetFields();
-        }}
-        confirmLoading={isEditingExternalProduct}
-        okText={isEditingExternalProduct ? "Đang lưu..." : "Lưu thay đổi"}
-        cancelText="Hủy"
-        width={700}
-        okButtonProps={{ 
-          icon: <SaveOutlined />,
-          style: { background: '#1890ff', borderColor: '#1890ff' }
-        }}
-        cancelButtonProps={{ 
-          icon: <CloseCircleOutlined /> 
-        }}
-        destroyOnClose={true}
-        maskClosable={false}
-        bodyStyle={{ padding: '20px' }}
-      >
-        {editingExternalProduct && (
-          <Form
-            form={editExternalProductForm}
-            layout="vertical"
-            initialValues={{
-              name: editingExternalProduct.name,
-              quantity: editingExternalProduct.quantity,
-              description: editingExternalProduct.description || '',
-            }}
-          >
-            <div style={{ marginBottom: '16px' }}>
-              <Alert
-                message="Thông tin sản phẩm"
-                description="Chỉnh sửa thông tin sản phẩm ngoài hệ thống. Các thay đổi sẽ được áp dụng sau khi nhấn 'Lưu thay đổi'."
-                type="info"
-                showIcon
-                style={{ marginBottom: '16px' }}
-              />
-            </div>
-            
-            <Row gutter={24}>
-              <Col span={10}>
-                <div style={{ 
-                  border: '1px solid #d9d9d9', 
-                  borderRadius: '8px', 
-                  padding: '16px', 
-                  background: '#fafafa', 
-                  textAlign: 'center',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between'
-                }}>
-                  <div>
-                    <Typography.Title level={5} style={{ marginTop: 0, marginBottom: '16px' }}>
-                      <PictureOutlined /> Hình ảnh sản phẩm
-                    </Typography.Title>
-                    
-                    <Form.Item name="tempImageUrl" hidden>
-                      <Input />
-                    </Form.Item>
-                    <Form.Item name="tempFile" hidden>
-                      <Input />
-                    </Form.Item>
-                    
-                    <div style={{ 
-                      width: '100%',
-                      maxWidth: '300px',
-                      margin: '0 auto',
-                      minHeight: '200px',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}>
-                      <Upload
-                        listType="picture-card"
-                        showUploadList={false}
-                        beforeUpload={handleEditExternalProductImageUpload}
-                        style={{ width: '100%' }}
-                      >
-                        {editingExternalProduct.tempImageUrl ? (
-                          <div style={{ position: 'relative', width: '100%', aspectRatio: '1/1' }}>
-                            <img
-                              src={editingExternalProduct.tempImageUrl}
-                              alt="product"
-                              style={{ 
-                                width: '100%', 
-                                height: '100%', 
-                                objectFit: 'contain', 
-                                borderRadius: '4px',
-                                backgroundColor: '#f0f0f0'
-                              }}
-                            />
-                            <Button
-                              type="primary"
-                              danger
-                              icon={<DeleteOutlined />}
-                              size="small"
-                              onClick={handleRemoveNewImage}
-                              style={{
-                                position: 'absolute',
-                                top: '5px',
-                                right: '5px',
-                                opacity: 0.8,
-                                zIndex: 10
-                              }}
-                            />
-                            <div
-                              style={{
-                                position: 'absolute',
-                                bottom: '0',
-                                left: '0',
-                                width: '100%',
-                                background: 'rgba(0,0,0,0.5)',
-                                color: 'white',
-                                padding: '5px 8px',
-                                fontSize: '12px',
-                                textAlign: 'center'
-                              }}
-                            >
-                              Hình mới (chưa lưu)
-                            </div>
-                          </div>
-                        ) : editExternalProductForm.getFieldValue('tempImageUrl') ? (
-                          <div style={{ width: '100%', aspectRatio: '1/1' }}>
-                            <img
-                              src={editExternalProductForm.getFieldValue('tempImageUrl')}
-                              alt="product"
-                              style={{ 
-                                width: '100%', 
-                                height: '100%', 
-                                objectFit: 'contain', 
-                                borderRadius: '4px',
-                                backgroundColor: '#f0f0f0'
-                              }}
-                            />
-                          </div>
-                        ) : editingExternalProduct.imageURL ? (
-                          <div style={{ width: '100%', aspectRatio: '1/1' }}>
-                            <img
-                              src={editingExternalProduct.imageURL}
-                              alt="product"
-                              style={{ 
-                                width: '100%', 
-                                height: '100%', 
-                                objectFit: 'contain', 
-                                borderRadius: '4px',
-                                backgroundColor: '#f0f0f0'
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div style={{ 
-                            width: '100%', 
-                            aspectRatio: '1/1',
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            justifyContent: 'center', 
-                            alignItems: 'center',
-                            background: '#ffffff',
-                            border: '1px dashed #d9d9d9',
-                            borderRadius: '4px'
-                          }}>
-                            <PlusOutlined style={{ fontSize: '24px', marginBottom: '8px', color: '#1890ff' }} />
-                            <div>Tải ảnh</div>
-                          </div>
-                        )}
-                      </Upload>
-                    </div>
-                  </div>
-                  
-                  <div style={{ 
-                    marginTop: '16px', 
-                    color: '#666',
-                    fontSize: '13px',
-                    fontStyle: 'italic'
-                  }}>
-                    Bấm vào hình để thay đổi. Định dạng hỗ trợ: JPG, PNG
-                  </div>
-                </div>
-              </Col>
-              <Col span={14}>
-                <div style={{ 
-                  border: '1px solid #d9d9d9', 
-                  borderRadius: '8px', 
-                  padding: '16px', 
-                  background: '#ffffff', 
-                  height: '100%' 
-                }}>
-                  <Typography.Title level={5} style={{ marginTop: 0, marginBottom: '16px' }}>
-                    <ShoppingOutlined /> Thông tin chi tiết
-                  </Typography.Title>
-                  
-                  <Form.Item
-                    name="name"
-                    label="Tên sản phẩm"
-                    rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm' }]}
-                  >
-                    <Input 
-                      placeholder="Nhập tên sản phẩm" 
-                      prefix={<ShoppingOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
-                      size="large"
-                    />
-                  </Form.Item>
 
-                  <Form.Item
-                    name="quantity"
-                    label="Số lượng"
-                    rules={[
-                      { required: true, message: 'Vui lòng nhập số lượng' },
-                      { type: 'number', min: 1, message: 'Số lượng phải lớn hơn 0' }
-                    ]}
-                  >
-                    <InputNumber
-                      style={{ width: '100%' }}
-                      placeholder="Nhập số lượng"
-                      min={1}
-                      size="large"
-                      formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="description"
-                    label="Mô tả sản phẩm"
-                  >
-                    <Input.TextArea
-                      placeholder="Nhập mô tả sản phẩm (tùy chọn)"
-                      rows={4}
-                      showCount
-                      maxLength={500}
-                    />
-                  </Form.Item>
-                  
-                  <div style={{ 
-                    background: '#f9f9f9', 
-                    padding: '8px 12px', 
-                    borderRadius: '4px', 
-                    marginTop: '8px',
-                    fontSize: '13px',
-                    color: '#666',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <InfoCircleOutlined style={{ color: '#1890ff' }} />
-                    <span>Nếu không đổi hình ảnh, hệ thống sẽ giữ nguyên hình ảnh hiện tại.</span>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-          </Form>
-        )}
-      </Modal> */}
     </div >
   );
 };

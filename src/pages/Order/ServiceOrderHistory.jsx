@@ -38,6 +38,7 @@ import {
   FilterOutlined
 } from "@ant-design/icons";
 import api from "@/api/api";
+import useNotificationStore from "@/stores/useNotificationStore";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -54,6 +55,7 @@ const ServiceOrderHistory = () => {
     getServiceOrdersNoUsingIdea,
     cancelServiceOrder
   } = useServiceOrderStore();
+  const { notifications, markAsRead } = useNotificationStore();
   const [localError, setLocalError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
@@ -88,6 +90,25 @@ const ServiceOrderHistory = () => {
 
     fetchOrders();
   }, [user?.id, getServiceOrdersNoUsingIdea]);
+
+  const updatedOrderIds = notifications
+    .filter(n => !n.isSeen)
+    .map(n => {
+      const match = n.content.match(/Mã đơn\s*:\s*([a-f0-9-]{36})/i);
+      return match?.[1];
+    })
+    .filter(Boolean);
+
+  const markNotificationByOrderId = async (orderId) => {
+    const relatedNotification = notifications.find(n => {
+      const match = n.content.match(/Mã đơn\s*:\s*([a-f0-9-]{36})/i);
+      return match?.[1] === orderId && !n.isSeen;
+    });
+
+    if (relatedNotification) {
+      await markAsRead(relatedNotification.id);
+    }
+  };
 
   // Apply both filters and get the filtered data
   const getFilteredOrders = () => {
@@ -398,12 +419,14 @@ const ServiceOrderHistory = () => {
       WaitDeposit: "purple", // Added missing status
       DoneDeterminingDesignPrice: "green", // Added missing status
       DoneDeterminingMaterialPrice: "green", // Added missing status
-      ReDeterminingDesignPrice: "warning", // Added missing status
+      ReDeterminingDesignPrice: "blue", // Added missing status
       ExchangeProdcut: "warning", // Added missing status
       Installing: "blue",
       DoneInstalling: "green",
       ReInstall: "red",
       Successfully: "green",
+      ReDetermineMaterialPrice: "geekblue",
+      MaterialPriceConfirmed: "geekblue",
     };
     return statusColors[status] || "default";
   };
@@ -416,7 +439,7 @@ const ServiceOrderHistory = () => {
       DepositSuccessful: "Đặt cọc thành công",
       AssignToDesigner: "Đang trong quá trình thiết kế",
       DeterminingMaterialPrice: "Đang trong quá trình thiết kế",
-      DoneDesign: "Hoàn thành thiết kế",
+      DoneDesign: "Thanh toán phí thiết kế còn lại",
       PaymentSuccess: "Thanh toán thành công",
       Processing: "Đang xử lý",
       PickedPackageAndDelivery: "Đã lấy hàng & đang giao",
@@ -435,13 +458,15 @@ const ServiceOrderHistory = () => {
       ReDesign: "Thiết kế lại", // Added missing status
       WaitDeposit: "Chờ đặt cọc", // Added missing status
       DoneDeterminingDesignPrice: "Hoàn thành tư vấn & phác thảo", // Added missing status
-      DoneDeterminingMaterialPrice: "Đã hoàn thành xác định giá vật liệu", // Added missing status
-      ReDeterminingDesignPrice: "Xác định lại giá thiết kế", // Added missing status
+      DoneDeterminingMaterialPrice: "Hoàn thành thiết kế chi tiết", // Added missing status
+      ReDeterminingDesignPrice: "Đang tư vấn & phác thảo", // Added missing status
       ExchangeProdcut: "Đổi sản phẩm", // Added missing status
       Installing: "Đang lắp đặt",
       DoneInstalling: "Đã lắp đặt xong",
       ReInstall: "Yêu cầu lắp đặt lại",
       Successfully: "Đơn hàng hoàn tất",
+      ReDetermineMaterialPrice: "Đang trong quá trình thiết kế",
+      MaterialPriceConfirmed: "Đang trong quá trình thiết kế",
     };
     return statusTexts[status] || status;
   };
@@ -490,7 +515,7 @@ const ServiceOrderHistory = () => {
             <div style={{ color: '#888', fontSize: '12px' }}>{format(dateObj, "HH:mm")}</div>
           </div>
         );
-      },      
+      },
       sorter: (a, b) => new Date(a.creationDate) - new Date(b.creationDate),
     },
     {
@@ -533,12 +558,15 @@ const ServiceOrderHistory = () => {
           {
             key: 'view',
             label: (
-              <Link to={`/service-order/${record.id}`}>
-                <Space>
-                  <EyeOutlined />
-                  <span>Xem chi tiết</span>
-                </Space>
-              </Link>
+              <Space
+                onClick={async () => {
+                  await markNotificationByOrderId(record.id);
+                  navigate(`/service-order/${record.id}`);
+                }}
+              >
+                <EyeOutlined />
+                <span>Xem chi tiết</span>
+              </Space>
             ),
           },
         ];
@@ -691,7 +719,7 @@ const ServiceOrderHistory = () => {
               loading={!dataLoaded}
               // size="middle"
               rowKey="id"
-              tableLayout="fixed" 
+              tableLayout="fixed"
               locale={{
                 emptyText: filteredOrders.length === 0
                   ? (searchKeyword || statusFilter)
@@ -715,16 +743,25 @@ const ServiceOrderHistory = () => {
               }}
               className="shadow-md"
               onRow={(record) => ({
-                onClick: (e) => {
-                  if (e.target.tagName !== 'BUTTON' &&
-                    !e.target.closest('button') &&
-                    e.target.tagName !== 'A' &&
-                    !e.target.closest('a') &&
-                    !e.target.closest('.ant-dropdown-trigger')) {
+                onClick: async (e) => {
+                  const isClickingAction =
+                    e.target.tagName === 'BUTTON' ||
+                    e.target.closest('button') ||
+                    e.target.tagName === 'A' ||
+                    e.target.closest('a') ||
+                    e.target.closest('.ant-dropdown-trigger');
+
+                  if (!isClickingAction) {
+                    await markNotificationByOrderId(record.id); // ✅ update notification
                     navigate(`/service-order/${record.id}`);
                   }
                 },
-                style: { cursor: 'pointer' }
+                style: updatedOrderIds.includes(record.id)
+                  ? {
+                    backgroundColor: '#fff7e6', // Màu vàng nhạt cho dòng có thông báo mới
+                    transition: 'background-color 0.3s ease',
+                  }
+                  : {},
               })}
             />
           </div>

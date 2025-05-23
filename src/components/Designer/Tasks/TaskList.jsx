@@ -8,11 +8,12 @@ import useAuthStore from "@/stores/useAuthStore";
 import useNotificationStore from "@/stores/useNotificationStore";
 import { BellOutlined } from "@ant-design/icons";
 import { getFormattedNotificationContent, getNotificationType } from "@/utils/notificationUtils";
+import signalRService from "@/services/signalRService";
 
 dayjs.extend(isBetween);
 
 const TaskList = () => {
-  const { tasks: rawTasks, isLoading, fetchTasks } = useDesignerTask();
+  const { tasks: rawTasks, isLoading, fetchTasks, fetchTasksSilent } = useDesignerTask();
   const { notifications } = useNotificationStore();
   const { user } = useAuthStore();
 
@@ -22,11 +23,38 @@ const TaskList = () => {
   const [appointmentDateRange, setAppointmentDateRange] = useState(null);
   const [creationDateRange, setCreationDateRange] = useState(null);
 
+  const userId = user?.id;
+
   useEffect(() => {
-    if (user?.id) {
-      fetchTasks(user.id);
+    if (userId) {
+      fetchTasks(userId);
     }
-  }, [user]);
+  }, [userId]);
+  
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+  
+        signalRService.on("messageReceived", async (message) => {
+          console.log("SignalR message received:", message);
+          if (user?.id) {
+            await fetchTasksSilent(user.id); // Không làm nháy
+          }
+        });
+      } catch (error) {
+        console.error("Failed to connect to SignalR hub:", error);
+      }
+    };
+  
+    setupSignalR();
+  
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [user?.id]);
+  
+  
 
   const unreadTaskMap = useMemo(() => {
     const map = {};
@@ -140,7 +168,7 @@ const TaskList = () => {
     DoneDeterminingDesignPrice: "success", // Đã xác định giá
     DoneDeterminingMaterialPrice: "success", // Đã xác định giá vật liệu
     ReDeterminingDesignPrice: "warning", // Xác định giá lại
-    ReDeterminingMaterialPrice: "warning", // Xác định giá vật liệu lại
+    ReDetermineMaterialPrice: "warning", // Xác định giá vật liệu lại
     MaterialPriceConfirmed: "success", // Giá vật liệu đã xác định
     Installing: "processing", // Đang lắp đặt
     DoneInstalling: "success", // Đã lắp đặt
@@ -174,7 +202,7 @@ const TaskList = () => {
     DoneDeterminingDesignPrice: "Đã xác định giá",
     DoneDeterminingMaterialPrice: "Đã xác định giá vật liệu",
     ReDeterminingDesignPrice: "Xác định giá lại",
-    ReDeterminingMaterialPrice: "Xác định giá vật liệu lại",
+    ReDetermineMaterialPrice: "Yêu cầu điều chỉnh vật liệu",
     MaterialPriceConfirmed: "Giá vật liệu đã xác định",
     Installing: "Đang lắp đặt",
     DoneInstalling: "Đã lắp đặt",

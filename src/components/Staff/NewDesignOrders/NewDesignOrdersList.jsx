@@ -164,14 +164,13 @@ const NewDesignOrdersList = () => {
   };
 
   const getStatusText = (status) => {
-    // Map ưu tiên cho status dạng số (từ API)
     const numericStatusMap = {
       "0": "Chờ xử lý",
       "1": "Đang tư vấn & phác thảo",
-      "2": "Đang xác định giá TK", // TK: Thiết Kế
+      "2": "Đang xác định giá TK",
       "3": "Đặt cọc thành công",
-      "4": "Đã giao cho NKT", // NKT: Nhà Thiết Kế
-      "5": "Đang xác định giá VL", // VL: Vật Liệu
+      "4": "Đã giao cho NKT",
+      "5": "Đang xác định giá VL",
       "6": "Hoàn thành thiết kế",
       "7": "Thanh toán thành công",
       "8": "Đang xử lý",
@@ -184,7 +183,7 @@ const NewDesignOrdersList = () => {
       "15": "Cảnh báo (>30%)",
       "16": "Hoàn tiền",
       "17": "Đã hoàn tiền",
-      "18": "Hoàn thành (Completed)", // Có vẻ trùng với 13?
+      "18": "Ngừng dịch vụ",
       "19": "Phác thảo lại",
       "20": "Thiết kế lại",
       "21": "Chờ đặt cọc",
@@ -192,108 +191,134 @@ const NewDesignOrdersList = () => {
       "23": "Hoàn thành giá VL",
       "24": "Xác định lại giá TK",
       "25": "Đổi sản phẩm",
-      // Thêm các mã khác nếu cần
+      "26": "Chờ lên lịch thi công",
+      "27": "Đang lắp đặt",
+      "28": "Đã lắp đặt xong",
+      "29": "Lắp đặt lại",
+      "30": "Khách hàng xác nhận",
+      "31": "Thành công",
+      "32": "Điều chỉnh giá vật liệu",
+      "33": "Đã xác nhận giá vật liệu ngoài",
     };
-
-    // Map dự phòng cho status dạng chữ (ít khả năng xảy ra hơn từ API này)
+  
     const stringStatusMap = {
-      "Pending": "Chờ xử lý",
-      "ConsultingAndSketching": "Đang tư vấn & phác thảo",
-      "DeterminingDesignPrice": "Đang xác định giá TK",
-      "DepositSuccessful": "Đặt cọc thành công",
-      "AssignToDesigner": "Đã giao cho NKT",
-      "DeterminingMaterialPrice": "Đang xác định giá VL",
-      "DoneDesign": "Hoàn thành thiết kế",
-      "PaymentSuccess": "Thanh toán thành công",
-      "Processing": "Đang xử lý",
-      "PickedPackageAndDelivery": "Đang giao hàng",
-      "DeliveryFail": "Giao hàng thất bại",
-      "ReDelivery": "Giao lại",
-      "DeliveredSuccessfully": "Đã giao hàng thành công",
-      "CompleteOrder": "Hoàn thành đơn hàng",
-      "OrderCancelled": "Đã hủy",
-      "Warning": "Cảnh báo (>30%)",
-      "Refund": "Hoàn tiền",
-      "DoneRefund": "Đã hoàn tiền",
-      "Completed": "Hoàn thành (Completed)",
-      "ReConsultingAndSketching": "Phác thảo lại",
-      "ReDesign": "Thiết kế lại",
-      "WaitDeposit": "Chờ đặt cọc",
-      "DoneDeterminingDesignPrice": "Hoàn thành giá TK",
-      "DoneDeterminingMaterialPrice": "Hoàn thành giá VL",
-      "ReDeterminingDesignPrice": "Xác định lại giá TK",
-      "ExchangeProduct": "Đổi sản phẩm",
-      // ... thêm các key chữ khác nếu cần
+      Pending: "Chờ xử lý",
+      ConsultingAndSketching: "Đang tư vấn & phác thảo",
+      DeterminingDesignPrice: "Đang xác định giá TK",
+      DepositSuccessful: "Đặt cọc thành công",
+      AssignToDesigner: "Đã giao cho NKT",
+      DeterminingMaterialPrice: "Đang xác định giá VL",
+      DoneDesign: "Hoàn thành thiết kế",
+      PaymentSuccess: "Thanh toán thành công",
+      Processing: "Đang xử lý",
+      PickedPackageAndDelivery: "Đang giao hàng",
+      DeliveryFail: "Giao hàng thất bại",
+      ReDelivery: "Giao lại",
+      DeliveredSuccessfully: "Đã giao hàng thành công",
+      CompleteOrder: "Hoàn thành đơn hàng",
+      OrderCancelled: "Đã hủy",
+      Warning: "Cảnh báo (>30%)",
+      Refund: "Hoàn tiền",
+      DoneRefund: "Đã hoàn tiền",
+      StopService: "Ngừng dịch vụ",
+      ReConsultingAndSketching: "Phác thảo lại",
+      ReDesign: "Thiết kế lại",
+      WaitDeposit: "Chờ đặt cọc",
+      DoneDeterminingDesignPrice: "Hoàn thành giá TK",
+      DoneDeterminingMaterialPrice: "Hoàn thành giá VL",
+      ReDeterminingDesignPrice: "Xác định lại giá TK",
+      ExchangeProduct: "Đổi sản phẩm",
+      WaitForScheduling: "Chờ lên lịch thi công",
+      Installing: "Đang lắp đặt",
+      DoneInstalling: "Đã lắp đặt xong",
+      ReInstall: "Lắp đặt lại",
+      CustomerConfirm: "Khách hàng xác nhận",
+      Successfully: "Thành công",
+      ReDetermineMaterialPrice: "Điều chỉnh giá vật liệu",
+      MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài"
     };
-
+  
     return numericStatusMap[status] || stringStatusMap[status] || status || "Không xác định";
-  };
+  };  
 
   const getStatusColor = (status) => {
-    // Map màu cho status dạng số
     const numericColorMap = {
-      "0": "blue",          // Chờ xử lý
-      "1": "cyan",          // Đang tư vấn & phác thảo
-      "2": "purple",        // Đang xác định giá TK
-      "3": "green",         // Đặt cọc thành công
-      "4": "geekblue",      // Đã giao cho NKT
-      "5": "magenta",       // Đang xác định giá VL
-      "6": "volcano",       // Hoàn thành thiết kế
-      "7": "green",         // Thanh toán thành công
-      "8": "blue",          // Đang xử lý
-      "9": "cyan",          // Đang giao hàng
-      "10": "red",           // Giao hàng thất bại
-      "11": "purple",        // Giao lại
-      "12": "green",         // Đã giao hàng thành công
-      "13": "success",       // Hoàn thành đơn hàng (dùng success)
-      "14": "error",         // Đã hủy (dùng error)
-      "15": "warning",       // Cảnh báo (>30%)
-      "16": "gold",          // Hoàn tiền
-      "17": "success",       // Đã hoàn tiền
-      "18": "success",       // Hoàn thành (Completed)
-      "19": "processing",    // Phác thảo lại (dùng processing)
-      "20": "processing",    // Thiết kế lại
-      "21": "orange",        // Chờ đặt cọc
-      "22": "success",       // Hoàn thành giá TK
-      "23": "success",       // Hoàn thành giá VL
-      "24": "warning",       // Xác định lại giá TK
-      "25": "processing",    // Đổi sản phẩm
+      "0": "blue",         // Chờ xử lý
+      "1": "cyan",         // Tư vấn & phác thảo
+      "2": "purple",       // Xác định giá TK
+      "3": "green",        // Đặt cọc thành công
+      "4": "geekblue",     // Giao cho NTK
+      "5": "magenta",      // Xác định giá VL
+      "6": "volcano",      // Hoàn thành thiết kế
+      "7": "green",        // Thanh toán thành công
+      "8": "blue",         // Đang xử lý
+      "9": "cyan",         // Đang giao hàng
+      "10": "red",         // Giao hàng thất bại
+      "11": "purple",      // Giao lại
+      "12": "green",       // Giao hàng thành công
+      "13": "success",     // Hoàn thành đơn hàng
+      "14": "error",       // Hủy
+      "15": "warning",     // Cảnh báo
+      "16": "gold",        // Hoàn tiền
+      "17": "success",     // Đã hoàn tiền
+      "18": "default",     // Ngừng dịch vụ
+      "19": "processing",  // Phác thảo lại
+      "20": "processing",  // Thiết kế lại
+      "21": "orange",      // Chờ đặt cọc
+      "22": "success",     // Đã xác định giá TK
+      "23": "success",     // Đã xác định giá VL
+      "24": "warning",     // Xác định lại giá TK
+      "25": "lime",        // Đổi sản phẩm
+      "26": "gold",        // Chờ lên lịch
+      "27": "cyan",        // Đang lắp đặt
+      "28": "green",       // Đã lắp đặt xong
+      "29": "orange",      // Lắp đặt lại
+      "30": "blue",        // Khách xác nhận
+      "31": "success",     // Thành công
+      "32": "volcano",     // Điều chỉnh giá VL
+      "33": "success",     // Đã xác nhận giá VL ngoài
     };
-
-    // Map màu dự phòng cho status dạng chữ
+  
     const stringColorMap = {
-      "Pending": "blue",
-      "ConsultingAndSketching": "cyan",
-      "DeterminingDesignPrice": "purple",
-      "DepositSuccessful": "green",
-      "AssignToDesigner": "geekblue",
-      "DeterminingMaterialPrice": "magenta",
-      "DoneDesign": "volcano",
-      "PaymentSuccess": "green",
-      "Processing": "blue",
-      "PickedPackageAndDelivery": "cyan",
-      "DeliveryFail": "red",
-      "ReDelivery": "purple",
-      "DeliveredSuccessfully": "green",
-      "CompleteOrder": "success",
-      "OrderCancelled": "error",
-      "Warning": "warning",
-      "Refund": "gold",
-      "DoneRefund": "success",
-      "Completed": "success",
-      "ReConsultingAndSketching": "processing",
-      "ReDesign": "processing",
-      "WaitDeposit": "orange",
-      "DoneDeterminingDesignPrice": "success",
-      "DoneDeterminingMaterialPrice": "success",
-      "ReDeterminingMaterialPrice": "warning", // Assuming typo, should be ReDeterminingDesignPrice?
-      "ReDeterminingDesignPrice": "warning",
-      "ExchangeProduct": "processing",
+      Pending: "blue",
+      ConsultingAndSketching: "cyan",
+      DeterminingDesignPrice: "purple",
+      DepositSuccessful: "green",
+      AssignToDesigner: "geekblue",
+      DeterminingMaterialPrice: "magenta",
+      DoneDesign: "volcano",
+      PaymentSuccess: "green",
+      Processing: "blue",
+      PickedPackageAndDelivery: "cyan",
+      DeliveryFail: "red",
+      ReDelivery: "purple",
+      DeliveredSuccessfully: "green",
+      CompleteOrder: "success",
+      OrderCancelled: "error",
+      Warning: "warning",
+      Refund: "gold",
+      DoneRefund: "success",
+      StopService: "default",
+      ReConsultingAndSketching: "processing",
+      ReDesign: "processing",
+      WaitDeposit: "orange",
+      DoneDeterminingDesignPrice: "success",
+      DoneDeterminingMaterialPrice: "success",
+      ReDeterminingDesignPrice: "warning",
+      ReDetermineMaterialPrice: "volcano",
+      ExchangeProduct: "lime",
+      WaitForScheduling: "gold",
+      Installing: "cyan",
+      DoneInstalling: "green",
+      ReInstall: "orange",
+      CustomerConfirm: "blue",
+      Successfully: "success",
+      MaterialPriceConfirmed: "success"
     };
-
+  
     return numericColorMap[status] || stringColorMap[status] || "default";
   };
-
+  
   const columns = [
     {
       title: "Mã đơn hàng",

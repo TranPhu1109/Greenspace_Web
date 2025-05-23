@@ -96,6 +96,7 @@ const RecordDesign = ({
       try {
         await updateStatus(order.id, 6);
         // Modal.success({ content: 'Đã cập nhật trạng thái đơn hàng' });
+        // await 
 
         // Third step: Refresh order data
         const updatedOrder = await getServiceOrderById(order.id);

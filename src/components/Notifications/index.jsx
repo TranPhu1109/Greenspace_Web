@@ -21,7 +21,7 @@ const Notifications = ({ onNotificationClick }) => {
     // Set up polling to fetch new notifications every 60 seconds
     const interval = setInterval(() => {
       fetchNotifications();
-    }, 30000);
+    }, 10000);
     
     return () => clearInterval(interval);
   }, [fetchNotifications]);
@@ -57,7 +57,7 @@ const Notifications = ({ onNotificationClick }) => {
             <Menu.Item key={notification.id} onClick={() => handleItemClick(notification)}>
               <div className={`notification-item ${!notification.isSeen ? 'unread' : ''}`}>
                 <div className="notification-title">{notification.title || 'Thông báo'}</div>
-                <div className="notification-content">{getFormattedNotificationContent(notification)}</div>
+                <div className="notification-content" style={{ whiteSpace: 'pre-line' }}>{getFormattedNotificationContent(notification)}</div>
                 {notification.createDate && (
                   <div className="notification-time">
                     {new Date(notification.createDate).toLocaleString('vi-VN')}
