@@ -500,11 +500,11 @@ const NewDesignOrderDetail = () => {
       DoneDesign: 6,
       PaymentSuccess: 7,
       Processing: 8,
-      PickedPackageAndDelivery: 9,
-      DeliveryFail: 12,
-      ReDelivery: 13,
+      Installing: 27,
+      DoneInstalling: 28,
+      ReInstall: 29,
       DeliveredSuccessfully: 10,
-      CompleteOrder: 11,
+      Successfully: 31,
       OrderCancelled: 14,
     };
     return stepMap[status] || 0;
