@@ -164,7 +164,7 @@ const DeliveryScheduler = ({ order, refreshAllData, api }) => {
       title={
         <Space>
           <CalendarOutlined style={{ color: '#4caf50' }} />
-          <span>{(localConstruction.date || displayDate) && !isEditing ? 'Lịch giao hàng đã đặt' : 'Đặt lịch giao hàng'}</span>
+          <span>{(localConstruction.date || displayDate) && !isEditing ? 'Lịch giao hàng và lắp đặt đã đặt' : 'Đặt lịch giao hàng và lắp đặt'}</span>
         </Space>
       }
       style={{ 
@@ -188,7 +188,7 @@ const DeliveryScheduler = ({ order, refreshAllData, api }) => {
         // Show current scheduled delivery
         <>
           <Alert
-            message="Lịch giao hàng đã được xác nhận"
+            message="Lịch giao hàng và lắp đặt đã được xác nhận"
             description={
               <Space direction="vertical">
                 <Text>
@@ -308,7 +308,7 @@ const DeliveryScheduler = ({ order, refreshAllData, api }) => {
               disabled={!selectedDate || !selectedTime}
               icon={<CalendarOutlined />}
             >
-              {(localConstruction.date || displayDate) ? 'Cập nhật lịch giao hàng' : 'Xác nhận lịch giao hàng'}
+              {(localConstruction.date || displayDate) ? 'Cập nhật' : 'Xác nhận'}
             </Button>
           </div>
         </>

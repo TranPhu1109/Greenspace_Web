@@ -74,6 +74,7 @@ import { formatPrice } from "./utils/PriceFormatter";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import usePercentageStore from "@/stores/usePercentageStore";
+import useWalletStore from "@/stores/useWalletStore";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -83,6 +84,7 @@ const ServiceOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { updateStatus, selectedOrder, getDesignOrderById } = useDesignOrderStore();
+  const { fetchBalance } = useWalletStore();
   const {
     getServiceOrderById,
     updateServiceForCus,
@@ -1093,6 +1095,7 @@ const ServiceOrderDetail = () => {
                   updateTaskOrder={updateTaskOrder}
                   getServiceOrderById={getServiceOrderById}
                   data={data}
+                  fetchBalance={fetchBalance}
                 />
               )}
             

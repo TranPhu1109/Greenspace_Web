@@ -30,6 +30,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   EditOutlined,
+  CopyOutlined,
 } from "@ant-design/icons";
 import { format } from "date-fns";
 import useComplaintStore from "../../../stores/useComplaintStore";
@@ -37,6 +38,7 @@ import useProductStore from "../../../stores/useProductStore";
 import signalRService from "../../../services/signalRService";
 import "./ComplaintsList.scss";
 import axios from "../../../api/api";
+import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -74,6 +76,12 @@ const ComplaintsList = () => {
   const [currentRejectingProduct, setCurrentRejectingProduct] = useState(null);
   const [productRejectReason, setProductRejectReason] = useState('');
   const [hasRejectedProducts, setHasRejectedProducts] = useState(false);
+  const [productDescriptions, setProductDescriptions] = useState({});
+  const [explicitlyRejected, setExplicitlyRejected] = useState({});
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoUploadError, setVideoUploadError] = useState(null);
+  const { uploadImages: uploadVideo, progress, error: uploadError } = useCloudinaryStorage();
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -142,17 +150,81 @@ const ComplaintsList = () => {
     fetchProductDetails();
   }, [complaints, getProductById]);
 
-  // Simplify the handleProductApproval function
+  // Modify the effect to set checkedProducts to true by default when opening details
+  useEffect(() => {
+    if (selectedComplaint) {
+      // Initialize all products as checked (approved) by default for new complaints
+      const initialChecked = {};
+
+      // For complaints that have pending status (new complaints)
+      if (selectedComplaint.status === 'pending' || selectedComplaint.status === '0' || selectedComplaint.status === 0) {
+        // Set all products to approved by default
+        selectedComplaint.complaintDetails?.forEach(detail => {
+          initialChecked[detail.productId] = true;
+        });
+        setCheckedProducts(initialChecked);
+      } else {
+        // For already processed complaints, use the existing isCheck values
+        selectedComplaint.complaintDetails?.forEach(detail => {
+          initialChecked[detail.productId] = detail.isCheck;
+        });
+        setCheckedProducts(initialChecked);
+      }
+    } else {
+      setCheckedProducts({});
+    }
+  }, [selectedComplaint]);
+
+  // Update handleProductApproval to be more robust
   const handleProductApproval = (productId, isApproved) => {
     if (!selectedComplaint) return;
-    
-    // Update local state only
-    setCheckedProducts(prev => ({
+
+    console.log(`Setting product ${productId} to ${isApproved ? 'approved' : 'rejected'}`);
+
+    // Update checked status
+    setCheckedProducts(prev => {
+      const updated = {
+        ...prev,
+        [productId]: isApproved
+      };
+      console.log('Updated checkedProducts:', updated);
+      return updated;
+    });
+
+    // Track if this was an explicit rejection by the user
+    if (!isApproved) {
+      setExplicitlyRejected(prev => {
+        const updated = {
+          ...prev,
+          [productId]: true
+        };
+        console.log('Updated explicitlyRejected:', updated);
+        return updated;
+      });
+    } else {
+      // If approving, remove from explicitly rejected
+      setExplicitlyRejected(prev => {
+        const newState = { ...prev };
+        delete newState[productId];
+        console.log('Updated explicitlyRejected (removed):', newState);
+        return newState;
+      });
+
+      // Also clear any rejection description
+      setProductDescriptions(prev => {
+        const newDescriptions = { ...prev };
+        delete newDescriptions[productId];
+        return newDescriptions;
+      });
+    }
+  };
+
+  // Add a function to handle description changes
+  const handleDescriptionChange = (productId, description) => {
+    setProductDescriptions(prev => ({
       ...prev,
-      [productId]: isApproved
+      [productId]: description
     }));
-    
-    // message.success(`Đã đánh dấu sản phẩm là ${isApproved ? 'chấp nhận' : 'từ chối'}`);
   };
 
   // Add a function to generate template rejection reason with product names
@@ -161,97 +233,148 @@ const ComplaintsList = () => {
     const rejectedProductIds = complaintDetails
       .filter(detail => checkedProducts[detail.productId] === false)
       .map(detail => detail.productId);
-    
+
     if (rejectedProductIds.length === 0) return '';
-    
+
     // Get product names
     const rejectedProductNames = rejectedProductIds.map(productId => {
       const product = productDetails[productId];
       return product ? product.name : `Sản phẩm #${productId.slice(0, 8)}...`;
     });
-    
+
     // Generate template
     let template = `Xin lỗi, chúng tôi không thể chấp nhận khiếu nại đối với `;
-    
+
     if (rejectedProductNames.length === 1) {
       template += `sản phẩm "${rejectedProductNames[0]}"`;
     } else {
       const lastProduct = rejectedProductNames.pop();
       template += `các sản phẩm ${rejectedProductNames.map(name => `"${name}"`).join(', ')} và "${lastProduct}"`;
     }
-    
+
     template += ` vì không đáp ứng đủ điều kiện khiếu nại.`;
-    
+
     return template;
   };
 
-  // Update the saveProductReviews function to generate template reason
+  // Update saveProductReviews function to provide better error handling and debugging
   const saveProductReviews = async () => {
     if (!selectedComplaint) {
+      message.error('Không tìm thấy thông tin khiếu nại!');
       return;
     }
-    
-    // If no products are checked, show an error
-    if (Object.keys(checkedProducts).length === 0 || 
-        !Object.values(checkedProducts).some(isChecked => isChecked === true)) {
-      message.warning('Vui lòng chọn ít nhất một sản phẩm hợp lệ để lưu!');
+
+    console.log('Current state before saving:');
+    console.log('checkedProducts:', checkedProducts);
+    console.log('explicitlyRejected:', explicitlyRejected);
+    console.log('productDescriptions:', productDescriptions);
+
+    // Check 1: Make sure all products have been evaluated (either approved or explicitly rejected)
+    const unevaluatedProducts = selectedComplaint.complaintDetails.filter(detail =>
+      !explicitlyRejected[detail.productId] && checkedProducts[detail.productId] !== true
+    );
+
+    if (unevaluatedProducts.length > 0) {
+      console.log('Unevaluated products:', unevaluatedProducts);
+      message.warning('Vui lòng đánh giá tất cả sản phẩm (chấp nhận hoặc từ chối) trước khi lưu!');
       return;
     }
-    
+
+    // Check 2: Make sure all rejected products have a reason
+    const rejectedProductsWithoutDescription = selectedComplaint.complaintDetails
+      .filter(detail =>
+        explicitlyRejected[detail.productId] &&
+        checkedProducts[detail.productId] === false &&
+        (!productDescriptions[detail.productId] || !productDescriptions[detail.productId].trim())
+      );
+
+    if (rejectedProductsWithoutDescription.length > 0) {
+      console.log('Rejected products without descriptions:', rejectedProductsWithoutDescription);
+      message.error('Vui lòng nhập lý do từ chối cho tất cả sản phẩm bị từ chối!');
+      return;
+    }
+
     try {
       setProcessingAction(true);
-      
+
       // Prepare the data for the API
-      // Any product not in checkedProducts will be set to isCheck: false
       const productDetails = selectedComplaint.complaintDetails.map(detail => {
         const isApproved = checkedProducts[detail.productId] === true;
-        
+        const description = isApproved ? null : productDescriptions[detail.productId] || '';
+
         return {
           productId: detail.productId,
-          isCheck: isApproved
+          isCheck: isApproved,
+          description: description
         };
       });
-      
+
+      console.log('Sending data to API:', productDetails);
+
       // Call the API with all product updates at once
-      await updateComplaintDetail(selectedComplaint.id, productDetails);
-      
+      const updateResult = await updateComplaintDetail(selectedComplaint.id, productDetails);
+      console.log('API update result:', updateResult);
+
       // Get the updated complaint directly from the API
       try {
         const response = await axios.get(`/api/complaint/${selectedComplaint.id}`);
+        console.log('Fresh complaint data:', response.data);
+
         if (response.data) {
           // Update the selected complaint with fresh data
           const freshComplaint = response.data;
           setSelectedComplaint(freshComplaint);
-          
+
           // Check if any products were rejected
           const hasRejected = freshComplaint.complaintDetails.some(detail => detail.isCheck === false);
-          const hasApproved = freshComplaint.complaintDetails.some(detail => detail.isCheck === true);
-          
+
           setHasRejectedProducts(hasRejected);
-          
+
           // Update checkedProducts from the fresh data
           const updatedChecked = {};
           freshComplaint.complaintDetails.forEach(detail => {
             updatedChecked[detail.productId] = detail.isCheck;
           });
+          console.log('New checkedProducts from API:', updatedChecked);
           setCheckedProducts(updatedChecked);
-          
+
+          // Update descriptions from the fresh data
+          const updatedDescriptions = {};
+          freshComplaint.complaintDetails.forEach(detail => {
+            if (detail.description) {
+              updatedDescriptions[detail.productId] = detail.description;
+            }
+          });
+          console.log('New descriptions from API:', updatedDescriptions);
+          setProductDescriptions(updatedDescriptions);
+
+          // Clear explicitlyRejected state after successful save,
+          // but restore it based on response data so products remain rejected in UI
+          const newExplicitlyRejected = {};
+          freshComplaint.complaintDetails.forEach(detail => {
+            if (detail.isCheck === false) {
+              newExplicitlyRejected[detail.productId] = true;
+            }
+          });
+          console.log('New explicitlyRejected from API:', newExplicitlyRejected);
+          setExplicitlyRejected(newExplicitlyRejected);
+
           // Generate rejection reason template if there are rejected products
           if (hasRejected) {
             const template = generateRejectionTemplate(
-              freshComplaint.complaintDetails, 
+              freshComplaint.complaintDetails,
               updatedChecked,
               productDetails
             );
-            
+
             // Only update the rejection reason if it's empty or if we haven't customized it yet
             if (!rejectReason.trim()) {
               setRejectReason(template);
             }
           }
-          
+
           message.success('Đã lưu đánh giá sản phẩm thành công!');
-          
+
           // Also update complaints list to keep it consistent
           fetchComplaints();
         }
@@ -259,43 +382,45 @@ const ComplaintsList = () => {
         console.error("Error fetching updated complaint:", fetchError);
         // Fallback to refreshing all complaints
         await fetchComplaints();
-        message.success('Đã lưu đánh giá sản phẩm thành công!');
+        message.success('Đã lưu đánh giá sản phẩm thành công (nhưng không lấy được dữ liệu mới)!');
       }
     } catch (error) {
-      message.error(`Lỗi khi lưu đánh giá sản phẩm: ${error.message}`);
+      console.error('Error saving product reviews:', error);
+      message.error(`Lỗi khi lưu đánh giá sản phẩm: ${error.message || 'Không xác định'}`);
     } finally {
       setProcessingAction(false);
     }
   };
 
-  // Check if all products have been reviewed
+  // Update allProductsReviewed function to check if all products have been evaluated
   const allProductsReviewed = () => {
     if (!selectedComplaint?.complaintDetails || selectedComplaint.complaintDetails.length === 0) {
       return false;
     }
-    
-    // For complaints where products haven't been saved yet, checkedProducts will be empty
-    // If it's empty, consider it not reviewed
-    if (Object.keys(checkedProducts).length === 0) {
-      return false;
-    }
-    
-    // If any products have been checked, consider it reviewed
-    return selectedComplaint.complaintDetails.some(detail => 
-      checkedProducts[detail.productId] === true
+
+    // Check that all products have been evaluated (either approved or explicitly rejected)
+    const allEvaluated = selectedComplaint.complaintDetails.every(detail =>
+      checkedProducts[detail.productId] === true || explicitlyRejected[detail.productId] === true
     );
+
+    // And all rejected products have descriptions
+    const allRejectedHaveDescriptions = selectedComplaint.complaintDetails
+      .filter(detail => explicitlyRejected[detail.productId] && checkedProducts[detail.productId] === false)
+      .every(detail => productDescriptions[detail.productId] && productDescriptions[detail.productId].trim());
+
+    return allEvaluated && allRejectedHaveDescriptions;
   };
 
   // Modify the hasApprovedProducts function to use checkedProducts correctly
   const hasApprovedProducts = () => {
     // First check if product reviews have been saved to the API
     const hasApprovedInAPI = selectedComplaint?.complaintDetails?.some(detail => detail.isCheck === true);
-    
+
     // If already approved in API, return true
     if (hasApprovedInAPI) {
       return true;
     }
-    
+
     // Otherwise check local state
     return Object.values(checkedProducts).some(isChecked => isChecked === true);
   };
@@ -305,11 +430,11 @@ const ComplaintsList = () => {
     if (selectedComplaint) {
       // Initialize with empty object (all products unchecked by default)
       setCheckedProducts({});
-      
+
       // If products have already been reviewed (at least one has isCheck: true)
       // This means the complaint has been processed before
       const hasBeenReviewed = selectedComplaint.complaintDetails?.some(detail => detail.isCheck === true);
-      
+
       if (hasBeenReviewed) {
         // Initialize checked products based on existing isCheck values
         const initialChecked = {};
@@ -324,18 +449,19 @@ const ComplaintsList = () => {
   }, [selectedComplaint]);
 
   // Update the status change handler to consider rejected products
-  const handleStatusChange = async () => {
-    if (!selectedComplaint || !selectedStatus) return;
-    
+  const handleStatusChange = async (status) => {
+    if (!selectedComplaint) return;
+
+    setSelectedStatus(status);
     // Check if any products have been reviewed (API data)
     const hasBeenReviewed = selectedComplaint.complaintDetails?.some(detail => detail.isCheck === true);
-    
+
     // If not reviewed and trying to approve, show error
-    if (!hasBeenReviewed && selectedStatus === 'approved') {
+    if (!hasBeenReviewed && status === 'approved') {
       message.error('Vui lòng lưu đánh giá sản phẩm trước khi duyệt khiếu nại!');
       return;
     }
-    
+
     try {
       // Numeric status mapping
       const numericStatusMap = {
@@ -349,27 +475,27 @@ const ComplaintsList = () => {
         "delivered": 8,    // delivered (chỉ dùng cho ProductReturn)
       };
 
-      const numericStatus = numericStatusMap[selectedStatus];
+      const numericStatus = numericStatusMap[status];
       const isProductReturn = selectedComplaint.complaintType === "ProductReturn";
 
       // Check if any products were rejected in the saved data
       const hasRejectedProducts = selectedComplaint.complaintDetails.some(detail => detail.isCheck === false);
 
       // If approving a complaint with rejected products and no reason provided, require a reason
-      if (selectedStatus === 'approved' && hasRejectedProducts && !rejectReason.trim()) {
+      if (status === 'approved' && hasRejectedProducts && !rejectReason.trim()) {
         message.error('Vui lòng nhập lý do từ chối cho những sản phẩm không được chấp nhận!');
         return;
       }
 
       // Nếu trạng thái là ItemArrivedAtWarehouse (1) cho ProductReturn, hiển thị modal tạo đơn
-      if (isProductReturn && selectedStatus === "ItemArrivedAtWarehouse") {
+      if (isProductReturn && status === "arrived") {
         setIsShippingModalVisible(true);
         return;
       }
 
       // Nếu đang ở trạng thái Đã về kho (1) và chọn Processing (3) cho ProductReturn, hiển thị modal tạo đơn
-      if (isProductReturn && selectedStatus === "processing" && 
-          (selectedComplaint.status === "1" || selectedComplaint.status === 1 || selectedComplaint.status === "ItemArrivedAtWarehouse")) {
+      if (isProductReturn && status === "processing" &&
+        (selectedComplaint.status === "1" || selectedComplaint.status === 1 || selectedComplaint.status === "ItemArrivedAtWarehouse")) {
         setIsShippingModalVisible(true);
         return;
       }
@@ -387,7 +513,7 @@ const ComplaintsList = () => {
       }
 
       // Nếu chọn từ chối mà chưa nhập lý do thì không cho submit
-      if (selectedStatus === 'reject' && !rejectReason.trim()) {
+      if (status === 'reject' && !rejectReason.trim()) {
         message.error('Vui lòng nhập lý do từ chối khiếu nại!');
         return;
       }
@@ -396,18 +522,35 @@ const ComplaintsList = () => {
 
       // Sử dụng deliveryCode hiện tại nếu có
       const deliveryCode = selectedComplaint.deliveryCode || '';
-      const reasonToUse = selectedStatus === 'reject' || (selectedStatus === 'approved' && hasRejectedProducts)
+      const reasonToUse = status === 'reject' || (status === 'approved' && hasRejectedProducts)
         ? rejectReason.trim()
         : selectedComplaint.reason || '';
 
+      // Upload video if available and status is arrived or reject or processing
+      let videoURL = '';
+      if ((status === 'arrived' || status === 'reject' || status === 'processing') && videoFile) {
+        try {
+          const uploadedURLs = await uploadVideo([videoFile]);
+          if (uploadedURLs && uploadedURLs.length > 0) {
+            videoURL = uploadedURLs[0];
+            message.success('Video đã được tải lên thành công!');
+          } else {
+            message.error('Không nhận được URL video từ Cloudinary.');
+          }
+        } catch (error) {
+          message.error(`Lỗi khi tải lên video: ${error.message}`);
+        }
+      }
+
       // Pass the rejection reason for both rejected complaints and approved complaints with rejected products
-      if (selectedStatus === 'reject' || (selectedStatus === 'approved' && hasRejectedProducts)) {
+      if (status === 'reject' || (status === 'approved' && hasRejectedProducts)) {
         await updateComplaintStatus(
           selectedComplaint.id,
           numericStatus,
           isProductReturn ? 0 : 1, // complaintType: 0 for ProductReturn, 1 for Refund
           deliveryCode,
-          reasonToUse
+          reasonToUse,
+          videoURL
         );
       } else {
         await updateComplaintStatus(
@@ -415,7 +558,8 @@ const ComplaintsList = () => {
           numericStatus,
           isProductReturn ? 0 : 1, // complaintType: 0 for ProductReturn, 1 for Refund
           deliveryCode,
-          reasonToUse
+          reasonToUse,
+          videoURL
         );
       }
 
@@ -425,6 +569,9 @@ const ComplaintsList = () => {
       setSelectedComplaint(null);
       setSelectedStatus(null);
       setRejectReason("");
+      setVideoFile(null);
+      setVideoUploadProgress(0);
+      setVideoUploadError(null);
     } catch (error) {
       message.error(`Lỗi khi cập nhật trạng thái: ${error.message}`);
     } finally {
@@ -439,6 +586,33 @@ const ComplaintsList = () => {
 
       setProcessingAction(true);
 
+      // Check if video is uploaded for ItemArrivedAtWarehouse status
+      let videoURL = '';
+      if ((selectedComplaint.status === '1' || selectedComplaint.status === 'ItemArrivedAtWarehouse' || selectedStatus === 'arrived') && !videoFile) {
+        message.error('Vui lòng tải lên video kiểm tra hàng tại kho trước khi tạo đơn vận chuyển!');
+        setProcessingAction(false);
+        return;
+      }
+
+      // Upload video if available
+      if (videoFile) {
+        try {
+          const uploadedURLs = await uploadVideo([videoFile]);
+          if (uploadedURLs && uploadedURLs.length > 0) {
+            videoURL = uploadedURLs[0];
+            message.success('Video đã được tải lên thành công!');
+          } else {
+            message.error('Không nhận được URL video từ Cloudinary.');
+            setProcessingAction(false);
+            return;
+          }
+        } catch (error) {
+          message.error(`Lỗi khi tải lên video: ${error.message}`);
+          setProcessingAction(false);
+          return;
+        }
+      }
+
       // Extract address components
       const addressParts = selectedComplaint.address.split('|');
       const toAddress = addressParts[0] || '';
@@ -448,7 +622,7 @@ const ComplaintsList = () => {
 
       // Filter for only approved products (isCheck=true)
       const approvedProducts = selectedComplaint.complaintDetails.filter(detail => detail.isCheck === true);
-      
+
       // Check if there are any approved products
       if (approvedProducts.length === 0) {
         message.error("Không có sản phẩm nào được chấp nhận để tạo đơn vận chuyển!");
@@ -491,13 +665,14 @@ const ComplaintsList = () => {
         throw new Error("Không nhận được mã vận đơn từ hệ thống");
       }
 
-      // Khi đã có mã vận đơn, cập nhật trạng thái Processing (3) kèm mã vận đơn
+      // Khi đã có mã vận đơn, cập nhật trạng thái Processing (3) kèm mã vận đơn và video URL nếu có
       await updateComplaintStatus(
         selectedComplaint.id,
         3, // Processing status
         0, // complaintType for ProductReturn
         deliveryCode,
-        reasonToUse
+        reasonToUse,
+        videoURL
       );
 
       message.success(`Đã tạo đơn vận chuyển và chuyển sang xử lý thành công! Mã vận đơn: ${deliveryCode}`);
@@ -506,6 +681,9 @@ const ComplaintsList = () => {
       setIsDetailModalVisible(false);
       setSelectedComplaint(null);
       setSelectedStatus(null);
+      setVideoFile(null);
+      setVideoUploadProgress(0);
+      setVideoUploadError(null);
     } catch (error) {
       message.error(`Lỗi khi tạo đơn vận chuyển: ${error.message}`);
     } finally {
@@ -574,7 +752,38 @@ const ComplaintsList = () => {
     return typeConfig[type] || { color: 'default', text: 'Không xác định' };
   };
 
-  // Replace the entire productColumns definition with this simplified version
+  // Thêm hiển thị nút để đánh giá tất cả sản phẩm
+  const handleApproveAll = () => {
+    if (!selectedComplaint || !selectedComplaint.complaintDetails) return;
+
+    const newChecked = {};
+    selectedComplaint.complaintDetails.forEach(detail => {
+      newChecked[detail.productId] = true;
+    });
+
+    // Xóa toàn bộ trạng thái từ chối trước đó
+    setExplicitlyRejected({});
+
+    // Xóa các mô tả từ chối
+    setProductDescriptions({});
+
+    // Cập nhật trạng thái chấp nhận cho tất cả
+    setCheckedProducts(newChecked);
+
+    message.success('Đã chấp nhận tất cả sản phẩm!');
+  };
+
+  // Thêm hàm kiểm tra xem đơn khiếu nại có phải là mới không
+  const isNewComplaint = () => {
+    return (
+      selectedComplaint &&
+      (selectedComplaint.status === 'pending' ||
+        selectedComplaint.status === '0' ||
+        selectedComplaint.status === 0)
+    );
+  };
+
+  // Update the productColumns to show description input only after reject button clicked
   const productColumns = [
     {
       title: "Sản phẩm",
@@ -629,30 +838,82 @@ const ComplaintsList = () => {
       ),
     },
     {
-      // title: "Thao tác",
+      title: "Trạng thái & Lý do",
       key: "action",
-      width: 150,
+      width: 260,
       render: (_, record) => {
         const isPending = selectedComplaint?.status === 'pending' || selectedComplaint?.status === '0' || selectedComplaint?.status === 0;
-        
+        const isApproved = checkedProducts[record.productId] === true;
+        const wasExplicitlyRejected = explicitlyRejected[record.productId] === true;
+
         if (!isPending) {
           return (
-            <Tag color={record.isCheck ? "green" : "red"}>
-              {record.isCheck ? "Đã duyệt" : "Đã từ chối"}
-            </Tag>
+            <div>
+              <Tag color={record.isCheck ? "green" : "red"}>
+                {record.isCheck ? "Đã duyệt" : "Đã từ chối"}
+              </Tag>
+              {!record.isCheck && record.description && (
+                <div style={{ marginTop: 5 }}>
+                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                    Lý do: {record.description}
+                  </Text>
+                </div>
+              )}
+            </div>
           );
         }
-        
+
         return (
-          <Space>
-            <Checkbox
-              checked={checkedProducts[record.productId] === true}
-              onChange={(e) => handleProductApproval(record.productId, e.target.checked)}
-              disabled={processingAction}
-            >
-              Chấp nhận
-            </Checkbox>
-          </Space>
+          <div>
+            <Space>
+              <Tooltip title="Chấp nhận sản phẩm này">
+                <Button
+                  type={isApproved ? "primary" : "default"}
+                  size="small"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => handleProductApproval(record.productId, true)}
+                  disabled={processingAction}
+                >
+                  Chấp nhận
+                </Button>
+              </Tooltip>
+              <Tooltip title="Từ chối và yêu cầu nhập lý do">
+                <Button
+                  danger
+                  type={!isApproved ? "primary" : "default"}
+                  size="small"
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => handleProductApproval(record.productId, false)}
+                  disabled={processingAction}
+                >
+                  Từ chối
+                </Button>
+              </Tooltip>
+            </Space>
+
+            {/* Only show description field when product was explicitly rejected by user action */}
+            {wasExplicitlyRejected && !isApproved && (
+              <div style={{ marginTop: 8 }}>
+                <Input.TextArea
+                  placeholder="Lý do từ chối sản phẩm..."
+                  value={productDescriptions[record.productId] || ''}
+                  onChange={(e) => handleDescriptionChange(record.productId, e.target.value)}
+                  status={!productDescriptions[record.productId] ? "error" : ""}
+                  rows={2}
+                  style={{
+                    fontSize: '12px',
+                    border: !productDescriptions[record.productId] ? '1px solid #ff4d4f' : ''
+                  }}
+                  disabled={processingAction}
+                />
+                {!productDescriptions[record.productId] && (
+                  <div style={{ fontSize: '12px', color: '#ff4d4f' }}>
+                    Vui lòng nhập lý do từ chối
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         );
       },
     },
@@ -669,8 +930,8 @@ const ComplaintsList = () => {
     setDateRange(null);
   };
 
-  // Render complaint status options based on type and current status
-  const renderStatusOptions = () => {
+  // Render complaint status options as buttons
+  const renderStatusButtons = () => {
     // Lấy trạng thái hiện tại dưới dạng số
     const currentStatus = selectedComplaint?.status;
     let numericStatus = currentStatus;
@@ -696,43 +957,44 @@ const ComplaintsList = () => {
       // Bước 1: Đang chờ xử lý (0) -> Đã duyệt (2)
       if (currentStatus === 'pending' || numericStatus === 0 || currentStatus === '0') {
         return [
-          <Option key="approved" value="approved">Duyệt khiếu nại</Option>,
-          <Option key="reject" value="reject">Từ chối khiếu nại</Option>
+          <Button key="approved" type={selectedStatus === 'approved' ? 'primary' : 'default'} onClick={() => setSelectedStatus('approved')}>Duyệt khiếu nại</Button>,
+          <Button key="reject" type={selectedStatus === 'reject' ? 'primary' : 'default'} danger onClick={() => setSelectedStatus('reject')}>Từ chối khiếu nại</Button>
         ];
       }
 
       // Bước 2: Đã duyệt (2) -> Đã về kho kiểm tra (1)
       if (numericStatus === 2 || currentStatus === '2' || currentStatus === 'Approved') {
         return [
-          <Option key="arrived" value="arrived">Đã về kho kiểm tra</Option>
+          <Button key="arrived" type={selectedStatus === 'arrived' ? 'primary' : 'default'} onClick={() => setSelectedStatus('arrived')}>Đã về kho kiểm tra</Button>
         ];
       }
 
       // Bước 3: Đã về kho (1) -> Xử lý (3) - tự động thông qua tạo đơn vận chuyển
       if (numericStatus === 1 || currentStatus === '1' || currentStatus === 'ItemArrivedAtWarehouse') {
         return [
-          <Option key="processing" value="processing">Đang xử lý (tạo đơn giao hàng)</Option>
+          <Button key="processing" type={selectedStatus === 'processing' ? 'primary' : 'default'} onClick={() => setSelectedStatus('processing')}>Đang xử lý (tạo đơn giao hàng)</Button>,
+          <Button key="reject" type={selectedStatus === 'reject' ? 'primary' : 'default'} danger onClick={() => setSelectedStatus('reject')}>Từ chối khiếu nại</Button>
         ];
       }
 
       // Bước 4: Đang xử lý (3) -> Giao hàng (7)
       if (numericStatus === 3 || currentStatus === '3' || currentStatus === 'Processing') {
         return [
-          <Option key="delivery" value="delivery">Giao hàng</Option>
+          <Button key="delivery" type={selectedStatus === 'delivery' ? 'primary' : 'default'} onClick={() => setSelectedStatus('delivery')}>Giao hàng</Button>
         ];
       }
 
       // Bước 5: Giao hàng (7) -> Đã giao hàng (8)
       if (numericStatus === 7 || currentStatus === '7' || currentStatus === 'Delivery') {
         return [
-          <Option key="delivered" value="delivered">Đã giao hàng</Option>
+          <Button key="delivered" type={selectedStatus === 'delivered' ? 'primary' : 'default'} onClick={() => setSelectedStatus('delivered')}>Đã giao hàng</Button>
         ];
       }
 
       // Bước 6: Đã giao hàng (8) -> Hoàn thành (5)
       if (numericStatus === 8 || currentStatus === '8' || currentStatus === 'delivered') {
         return [
-          <Option key="complete" value="complete">Hoàn thành đổi trả</Option>
+          <Button key="complete" type={selectedStatus === 'complete' ? 'primary' : 'default'} onClick={() => setSelectedStatus('complete')}>Hoàn thành đổi trả</Button>
         ];
       }
     } else {
@@ -741,22 +1003,22 @@ const ComplaintsList = () => {
       // Bước 1: Đang chờ xử lý (0) -> Đã duyệt (2)
       if (currentStatus === 'pending' || numericStatus === 0 || currentStatus === '0') {
         return [
-          <Option key="approved" value="approved">Duyệt khiếu nại</Option>,
-          <Option key="reject" value="reject">Từ chối khiếu nại</Option>
+          <Button key="approved" type={selectedStatus === 'approved' ? 'primary' : 'default'} onClick={() => setSelectedStatus('approved')}>Duyệt khiếu nại</Button>,
+          <Button key="reject" type={selectedStatus === 'reject' ? 'primary' : 'default'} danger onClick={() => setSelectedStatus('reject')}>Từ chối khiếu nại</Button>
         ];
       }
 
       // Bước 2: Đã duyệt (2) -> Đã về kho kiểm tra (1)
       if (numericStatus === 2 || currentStatus === '2' || currentStatus === 'Approved') {
         return [
-          <Option key="arrived" value="arrived">Đã về kho kiểm tra</Option>
+          <Button key="arrived" type={selectedStatus === 'arrived' ? 'primary' : 'default'} onClick={() => setSelectedStatus('arrived')}>Đã về kho kiểm tra</Button>
         ];
       }
 
       // Bước 3: Đã về kho (1) -> Xử lý hoàn tiền (3)
       if (numericStatus === 1 || currentStatus === '1' || currentStatus === 'ItemArrivedAtWarehouse') {
         return [
-          <Option key="processing" value="processing">Đang xử lý hoàn tiền</Option>
+          <Button key="processing" type={selectedStatus === 'processing' ? 'primary' : 'default'} onClick={() => setSelectedStatus('processing')}>Đang xử lý hoàn tiền</Button>
         ];
       }
 
@@ -770,7 +1032,7 @@ const ComplaintsList = () => {
 
   // Render modal content
   const renderModalTitle = () => {
-    if (selectedComplaint?.complaintType === "ProductReturn" && selectedStatus === "ItemArrivedAtWarehouse") {
+    if (selectedComplaint?.complaintType === "ProductReturn" && selectedStatus === "arrived") {
       return (
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <CarOutlined style={{ marginRight: 8, color: '#1890ff' }} />
@@ -932,14 +1194,56 @@ const ComplaintsList = () => {
             </Card>
           )}
 
+        {(selectedComplaint.videoURL) && (
+            <Card title="Video minh chứng tại kho" style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {selectedComplaint.videoURL && (
+                  <div
+                    style={{
+                      backgroundColor: '#fafafa',
+                      padding: 16,
+                      borderRadius: 8,
+                      border: '1px solid #f0f0f0',
+                      flex: '1 1 320px',
+                      maxWidth: 360,
+                    }}
+                  >
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                      🎥 Video minh chứng:
+                    </Text>
+                    <video
+                      src={selectedComplaint.videoURL}
+                      controls
+                      width={320}
+                      style={{ borderRadius: 6, maxHeight: 220 }}
+                    />
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
         <Card title="Sản phẩm khiếu nại">
+          {currentStatus === 'pending' || currentStatus === '0' ? (
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="default"
+                icon={<CheckCircleOutlined />}
+                onClick={handleApproveAll}
+                disabled={processingAction}
+              >
+                Chấp nhận tất cả
+              </Button>
+            </div>
+          ) : null}
+
           <Table
             dataSource={selectedComplaint.complaintDetails}
             rowKey="productId"
             pagination={false}
             columns={productColumns}
           />
-          
+
           {currentStatus === 'pending' || currentStatus === '0' ? (
             <div style={{ marginTop: 16 }}>
               <Alert
@@ -948,11 +1252,18 @@ const ComplaintsList = () => {
                   <div>
                     <p>Vui lòng xem xét và đánh giá từng sản phẩm trong khiếu nại:</p>
                     <ol>
-                      <li>Tích chọn <strong>sản phẩm</strong> cho những sản phẩm khiếu nại hợp lệ</li>
-                      <li>Nhấn <strong>Lưu đánh giá sản phẩm</strong> để cập nhật sản phẩm đã chọn</li>
-                      <li>Sau khi lưu, chọn <strong>Duyệt khiếu nại</strong> để tiếp tục quy trình</li>
+                      <li>Nhấn <strong>Chấp nhận</strong> hoặc <strong>Từ chối</strong> cho từng sản phẩm</li>
+                      <li>Nếu chọn từ chối, vui lòng nhập lý do từ chối rõ ràng</li>
+                      <li>Sau khi đánh giá tất cả sản phẩm, nhấn <strong>Lưu đánh giá sản phẩm</strong></li>
+                      <li>Tiếp tục quy trình xử lý bằng cách chọn trạng thái mới cho khiếu nại</li>
                     </ol>
-                    <p><strong>Lưu ý:</strong> Nếu có sản phẩm bị từ chối, cần nhập lý do từ chối khi bạn chọn duyệt khiếu nại.</p>
+                    <div style={{ display: 'flex', lineHeight: '1.6' }}>
+                      <strong style={{ flexShrink: 0, marginRight: 4 }}>Lưu ý:</strong>
+                      <div>
+                        Tất cả sản phẩm đều phải được đánh giá và tất cả sản phẩm bị từ chối phải có lý do.<br />
+                        Không thể hoàn tác lại lựa chọn chấp nhận sản phẩm sau khi đã lưu.
+                      </div>
+                    </div>
                   </div>
                 }
                 type="info"
@@ -963,24 +1274,28 @@ const ComplaintsList = () => {
                 <Text type={allProductsReviewed() ? 'success' : 'warning'}>
                   {allProductsReviewed()
                     ? <><CheckCircleOutlined /> Đã đánh giá tất cả sản phẩm</>
-                    : <><ExclamationCircleOutlined /> Chưa đánh giá hết sản phẩm</>
+                    : <><ExclamationCircleOutlined /> Chưa đánh giá hết sản phẩm hoặc thiếu lý do từ chối</>
                   }
                 </Text>
-                <Button
-                  type="primary"
-                  onClick={saveProductReviews}
-                  loading={processingAction}
-                  disabled={!allProductsReviewed()}
-                  icon={<CheckCircleOutlined />}
-                >
-                  Lưu đánh giá sản phẩm
-                </Button>
+                <Tooltip title={allProductsReviewed() ?
+                  "Lưu đánh giá tất cả sản phẩm" :
+                  "Vui lòng đánh giá tất cả sản phẩm và nhập lý do từ chối để lưu"}>
+                  <Button
+                    type="primary"
+                    onClick={saveProductReviews}
+                    loading={processingAction}
+                    disabled={!allProductsReviewed()}
+                    icon={<CheckCircleOutlined />}
+                  >
+                    Lưu đánh giá sản phẩm
+                  </Button>
+                </Tooltip>
               </div>
             </div>
           ) : null}
         </Card>
 
-        {(currentStatus === 'pending' || currentStatus === '0' ||
+        {(
           currentStatus === 'ItemArrivedAtWarehouse' || currentStatus === '1' ||
           currentStatus === 'Approved' || currentStatus === '2' ||
           (currentStatus === 'Processing' || currentStatus === '3') && isProductReturn ||
@@ -1025,22 +1340,52 @@ const ComplaintsList = () => {
                   showIcon
                   style={{ marginBottom: 16 }}
                 />
-                <Select
-                  style={{ width: '100%' }}
-                  placeholder="Chọn trạng thái mới"
-                  value={selectedStatus}
-                  onChange={setSelectedStatus}
-                >
-                  {renderStatusOptions()}
-                </Select>
-                
+
+                {/* Render buttons instead of dropdown */}
+                <Space wrap style={{ marginBottom: 16 }}>
+                  {renderStatusButtons()}
+                </Space>
+
+                {/* Video upload field for ItemArrivedAtWarehouse */}
+                {(currentStatus === 'ItemArrivedAtWarehouse' || currentStatus === '1') && (
+                  <div style={{ marginTop: 16 }}>
+                    <Text strong style={{ marginBottom: 8, display: 'block' }}>Tải lên video kiểm tra hàng tại kho <Text type="danger">*</Text></Text>
+                    <Input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setVideoFile(e.target.files[0]);
+                        } else {
+                          setVideoFile(null);
+                        }
+                      }}
+                      style={{ marginBottom: 8 }}
+                      status={!videoFile ? 'error' : ''}
+                    />
+                    {!videoFile && (
+                      <Text type="danger" style={{ fontSize: 12 }}>Video kiểm tra hàng tại kho là bắt buộc</Text>
+                    )}
+                    {videoUploadProgress > 0 && videoUploadProgress < 100 && (
+                      <div style={{ marginTop: 8 }}>
+                        <Text>Đang tải lên: {videoUploadProgress}%</Text>
+                      </div>
+                    )}
+                    {videoUploadError && (
+                      <div style={{ marginTop: 8 }}>
+                        <Text type="danger">Lỗi tải lên video: {videoUploadError.message}</Text>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Show rejection reason field when: complete rejection OR approving with rejected products */}
                 {(selectedStatus === 'reject' || (selectedStatus === 'approved' && hasRejectedProducts)) && (
                   <div style={{ marginTop: 24 }}>
                     <div style={{ marginBottom: 8 }}>
                       <Text strong style={{ fontSize: 14 }}>
-                        {selectedStatus === 'reject' 
-                          ? 'Lý do từ chối khiếu nại' 
+                        {selectedStatus === 'reject'
+                          ? 'Lý do từ chối khiếu nại'
                           : 'Lý do từ chối sản phẩm không được chấp nhận'} <Text type="danger">*</Text>
                       </Text>
                     </div>
@@ -1053,8 +1398,8 @@ const ComplaintsList = () => {
                     >
                       <div style={{ marginBottom: 8 }}>
                         <Text type="secondary" style={{ fontSize: 13 }}>
-                          {selectedStatus === 'approved' ? 
-                            'Nội dung mẫu đã được tạo với tên các sản phẩm bị từ chối. Bạn có thể chỉnh sửa thêm nếu cần.' : 
+                          {selectedStatus === 'approved' ?
+                            'Nội dung mẫu đã được tạo với tên các sản phẩm bị từ chối. Bạn có thể chỉnh sửa thêm nếu cần.' :
                             'Vui lòng nhập đầy đủ lý do từ chối khiếu nại.'
                           }
                         </Text>
@@ -1066,8 +1411,8 @@ const ComplaintsList = () => {
                         maxLength={500}
                         showCount
                         placeholder={
-                          selectedStatus === 'reject' 
-                            ? "Nhập lý do từ chối khiếu nại..." 
+                          selectedStatus === 'reject'
+                            ? "Nhập lý do từ chối khiếu nại..."
                             : "Lý do từ chối cho những sản phẩm không được chấp nhận..."
                         }
                         style={{
@@ -1085,15 +1430,15 @@ const ComplaintsList = () => {
                   <Button
                     type="primary"
                     disabled={
-                      !selectedStatus || 
-                      processingAction || 
+                      !selectedStatus ||
+                      processingAction ||
                       (selectedStatus === 'reject' && !rejectReason.trim()) ||
                       (selectedStatus === 'approved' && hasRejectedProducts && !rejectReason.trim()) ||
                       // Simplify the condition to directly check for approved products
-                      (selectedStatus === 'approved' && 
+                      (selectedStatus === 'approved' &&
                         !(selectedComplaint?.complaintDetails?.some(detail => detail.isCheck === true)))
                     }
-                    onClick={handleStatusChange}
+                    onClick={() => handleStatusChange(selectedStatus)}
                     loading={processingAction}
                   >
                     Cập nhật trạng thái
@@ -1113,14 +1458,14 @@ const ComplaintsList = () => {
       dataIndex: "id",
       key: "id",
       width: 110,
-      render: (id) => <Text strong>#{id.slice(0, 8)}...</Text>,
+      render: (id) => <Text copyable={{ text: id, icon: <CopyOutlined /> }} strong>#{id.slice(0, 8)}...</Text>,
     },
     {
       title: "Mã đơn hàng",
       dataIndex: "orderId",
       key: "orderId",
       width: 120,
-      render: (id) => <Text strong>#{id.slice(0, 8)}...</Text>,
+      render: (id) => <Text copyable={{ text: id, icon: <CopyOutlined /> }} strong>#{id.slice(0, 8)}...</Text>,
     },
     {
       title: "Khách hàng",
@@ -1241,7 +1586,7 @@ const ComplaintsList = () => {
     if (!isDetailModalVisible || (selectedStatus !== 'reject' && selectedStatus !== 'approved')) {
       setRejectReason("");
     }
-    
+
     // If status changes to 'approved', check if we have rejected products
     if (selectedStatus === 'approved' && selectedComplaint) {
       const hasRejected = selectedComplaint.complaintDetails.some(
@@ -1256,14 +1601,14 @@ const ComplaintsList = () => {
     if (selectedComplaint && hasRejectedProducts && selectedStatus === 'approved') {
       // Get the current rejected products
       const hasBeenEdited = rejectReason.trim().length > 0;
-      
+
       // Generate new template
       const template = generateRejectionTemplate(
         selectedComplaint.complaintDetails,
         checkedProducts,
         productDetails
       );
-      
+
       // Only update if we have a template and either:
       // 1. There was no previous reason (empty)
       // 2. The reason hasn't been manually edited
@@ -1272,6 +1617,44 @@ const ComplaintsList = () => {
       }
     }
   }, [selectedComplaint, checkedProducts, hasRejectedProducts, selectedStatus]);
+
+  // Update loadProductDescriptions when opening modal
+  useEffect(() => {
+    if (selectedComplaint) {
+      // Load any existing descriptions for rejected products
+      const initialDescriptions = {};
+      selectedComplaint.complaintDetails?.forEach(detail => {
+        if (detail.description) {
+          initialDescriptions[detail.productId] = detail.description;
+        }
+      });
+      setProductDescriptions(initialDescriptions);
+    } else {
+      setProductDescriptions({});
+    }
+  }, [selectedComplaint]);
+
+  // Reset explicitlyRejected when opening a new complaint
+  useEffect(() => {
+    if (selectedComplaint) {
+      setExplicitlyRejected({});
+    }
+  }, [selectedComplaint]);
+
+  // Reset video state when modal closes
+  useEffect(() => {
+    if (!isDetailModalVisible) {
+      setVideoFile(null);
+      setVideoUploadProgress(0);
+      setVideoUploadError(null);
+    }
+  }, [isDetailModalVisible]);
+
+  // Update video upload progress and error
+  useEffect(() => {
+    setVideoUploadProgress(progress);
+    setVideoUploadError(uploadError);
+  }, [progress, uploadError]);
 
   return (
     <div className="complaints-list-container">

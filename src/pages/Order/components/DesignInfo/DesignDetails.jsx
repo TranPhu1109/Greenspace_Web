@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Card, Descriptions, Tag, Button, Modal, Typography, Spin, notification } from "antd";
-import { HomeOutlined, DollarOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { HomeOutlined, DollarOutlined, CheckCircleOutlined, InfoOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { format } from "date-fns";
 
 const { Text } = Typography;
@@ -58,7 +58,7 @@ const DesignDetails = ({
     try {
       // Calculate remaining payment amount (remaining % of design price + material price)
       const remainingPercent = getRemainingPercentage();
-      const remainingDesignFee = (order.designPrice || 0) * (remainingPercent / 100); 
+      const remainingDesignFee = (order.designPrice || 0) * (remainingPercent / 100);
       const materialPrice = order.materialPrice || 0;
       const totalPayment = remainingDesignFee + materialPrice;
 
@@ -85,11 +85,11 @@ const DesignDetails = ({
         if (response.data) {
           // Update order status to PaymentSuccess (7)
           const updateResult = await updateStatus(order.id, 7);
-          
+
           if (updateResult !== "Update Successfully!") {
             throw new Error("Cập nhật trạng thái không thành công");
           }
-          
+
           // Modal.success({ content: "Thanh toán thành công! Đơn hàng của bạn đang được xử lý." });
           notification.open({
             message: 'Thành công',
@@ -102,7 +102,7 @@ const DesignDetails = ({
 
           // Fetch updated order data
           const updatedOrder = await getServiceOrderById(order.id);
-          
+
           // Cập nhật UI trong component cha
           if (typeof window.softUpdateOrderData === 'function') {
             // Sử dụng softUpdateOrderData để cập nhật UI mượt mà
@@ -171,96 +171,125 @@ const DesignDetails = ({
             alignItems: 'center',
             gap: '8px'
           }}>
-            <HomeOutlined />
-            Thông tin thiết kế
+            <InfoCircleOutlined />
+            Thông tin đơn hàng
           </span>
         }
         style={{
-          height: '100%',
           borderRadius: '16px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #f0f0f0'
         }}
       >
-        <Descriptions
-          column={1}
-          labelStyle={{ fontWeight: 'bold', fontSize: '15px' }}
-          contentStyle={{ fontSize: '15px' }}
-          size="middle"
-        >
-          <Descriptions.Item label="Kích thước">
-            {order?.length !== undefined && order?.width !== undefined
-              ? `${order.length}m x ${order.width}m`
-              : 'Đang tải...'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Loại dịch vụ">
+        <div style={{ padding: '0 8px' }}>
+          <div style={{ fontWeight: 'bold', color: '#1677ff', marginBottom: 8 }}>Thông tin thiết kế</div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Text strong>Kích thước:</Text>
+            <Text>{order?.length}m x {order?.width}m</Text>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Text strong>Ngày tạo:</Text>
+            <Text>{order?.creationDate ? format(new Date(order.creationDate), 'dd/MM/yyyy HH:mm') : '...'}</Text>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+            <Text strong>Loại dịch vụ:</Text>
             <Tag color={order?.serviceType === "NoDesignIdea" ? "blue" : "green"}>
-              {order?.serviceType === "NoDesignIdea"
-                ? "Dịch vụ tư vấn & thiết kế"
-                : order?.serviceType || 'Đang tải...'}
+              {order?.serviceType === "NoDesignIdea" ? "Dịch vụ tư vấn & thiết kế" : order?.serviceType}
             </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="Chi phí thiết kế chi tiết">
+          </div>
+
+          <div style={{ height: 1, backgroundColor: '#f0f0f0', margin: '12px 0' }} />
+
+          <div style={{ fontWeight: 'bold', color: '#fa8c16', marginBottom: 8 }}>Thông tin thanh toán</div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Text strong>Chi phí thiết kế chi tiết:</Text>
             {order?.designPrice === 0 || !approvedDesignPriceStatuses.includes(order?.status) ? (
               <Tag color="gold">Chưa xác định giá thiết kế</Tag>
             ) : (
-              <span style={{ color: '#4caf50', fontWeight: 'bold' }}>
-                {order?.designPrice !== undefined ? formatPriceDisplay(order.designPrice) : '...'}
-              </span>
+              <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>{formatPriceDisplay(order.designPrice)}</Text>
             )}
-          </Descriptions.Item>
-          
-          {/* Display deposit amount when appropriate */}
-          {shouldShowDepositInfo() && order?.designPrice > 0 && (
-            <Descriptions.Item label="Đã thanh toán cọc giá thiết kế">
-              <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                {formatPriceDisplay((order?.designPrice || 0) * (getDepositPercentage() / 100))}
-                <Tag color="blue" style={{ marginLeft: '8px' }}>{getDepositPercentage()}%</Tag>
-              </span>
-            </Descriptions.Item>
-          )}
-          
-          <Descriptions.Item
-            label={
-              order?.status === 'DoneDesign' || order?.status === 6
-                ? "Giá vật liệu"
-                : (finalMaterialPriceStatuses.includes(order?.status)
-                  ? "Giá vật liệu"
-                  : "Giá vật liệu (dự kiến)")
-            }
-          >
-            {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
-              <Tag color="default">Chưa có</Tag>
-            ) : (
-              <span style={{ color: '#4caf50', fontWeight: 'bold' }}>
-                {formatPriceDisplay(order.materialPrice)}
-              </span>
-            )}
-          </Descriptions.Item>
-          <Descriptions.Item label="Tổng chi phí">
-            {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" ||
-              order?.status === 'DoneDeterminingMaterialPrice' || order?.status === 'CompleteOrder'
-              || order?.status === "PaymentSucces" || order?.status === "Processing" || order?.status === "PickedPackageAndDelivery"
-              || order?.status === "DeliveredSuccessfully"
-              ? (
-                order?.totalCost === undefined ? 'Đang tải...' :
-                  order.totalCost === 0 ? (
-                    <Tag color="gold">Chưa xác định tổng</Tag>
-                  ) : (
-                    <span style={{ color: '#4caf50', fontWeight: 'bold' }}>{formatPriceDisplay(order.totalCost)}</span>
-                  )
-              ) : (
-                <span style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '16px' }}>
-                  {formatPriceDisplay((order?.designPrice || 0) + (order?.materialPrice || 0))}
-                </span>
-              )}
-          </Descriptions.Item>
-          <Descriptions.Item label="Ngày tạo">
-            {order?.creationDate ? format(new Date(order.creationDate), "dd/MM/yyyy HH:mm") : 'Đang tải...'}
-          </Descriptions.Item>
+          </div>
 
-          {/* Payment Reminder for DoneDesign status */}
-          {(order?.status === 'DoneDesign' || order?.status === 6) && (
-            <Descriptions.Item label="">
+          {/* Hiển thị số dư ví và số tiền cần thanh toán */}
+          {(order?.status === "WaitDeposit" || order?.status === "DoneDeterminingDesignPrice") && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text strong>Cần thanh toán cọc giá thiết kế:</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                  {formatPriceDisplay(Math.round((order?.designPrice || 0) * (getDepositPercentage() / 100)))}
+                </Text>
+                <Tag color="blue">{getDepositPercentage()}%</Tag>
+              </div>
+            </div>
+          )}
+
+
+          {shouldShowDepositInfo() && order?.designPrice > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text strong>Đã toán cọc giá thiết kế:</Text>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ color: '#52c41a', fontWeight: 'bold' }}>
+                    {formatPriceDisplay((order?.designPrice || 0) * (getDepositPercentage() / 100))}
+                  </Text>
+                  <Tag color="blue">{getDepositPercentage()}%</Tag>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(order?.materialPrice > 0) && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text strong>Giá vật liệu:</Text>
+              {(typeof order?.materialPrice !== 'number' || order.materialPrice <= 0) ? (
+                <Tag color="gold">Chưa xác định giá vật liệu</Tag>
+              ) : (
+                <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>{formatPriceDisplay(order.materialPrice)}</Text>
+              )}
+            </div>
+          )}
+
+          {(order?.status === "PaymentSuccess" || order?.status === "Processing" ||
+            order?.status === "PickedPackageAndDelivery" || order?.status === "DeliveredSuccessfully" || order?.status === "Successfully" ||
+            order?.status === "DoneInstalling" || order?.status === "Installing" || order?.status === "ReInstall" ||
+            order?.status === "DoneRefund") && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text strong>Đã thanh toán giá vật liệu và phí thiết kế còn lại:</Text>
+              <Text strong style={{ color: '#52c41a', fontWeight: 'bold', fontSize: 16 }}>{formatPriceDisplay(order.totalCost - (order?.designPrice || 0) * (getDepositPercentage() / 100))}</Text>
+            </div>
+          )}
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            paddingTop: '8px',
+            borderTop: '1px dashed #ccc',
+            marginTop: 10
+          }}>
+            <Text strong style={{ fontSize: 16 }}>Tổng chi phí:</Text>
+            <Text strong style={{ color: '#cf1322', fontSize: 16 }}>
+              {order?.status === 'DoneDesign' || order?.status === "PaymentSuccess" || order?.status === "Processing" ||
+                order?.status === "DoneDeterminingMaterialPrice" || order?.status === "PickedPackageAndDelivery" ||
+                order?.status === "DeliveredSuccessfully" || order?.status === "Successfully" ||
+                order?.status === "DoneInstalling" || order?.status === "Installing" || order?.status === "ReInstall" ||
+                order?.status === "DoneRefund"
+                ? (order?.totalCost === undefined
+                  ? 'Đang tải...'
+                  : order?.totalCost === 0
+                    ? <Tag color="gold">Chưa xác định tổng</Tag>
+                    : formatPriceDisplay(order.totalCost)
+                )
+                : formatPriceDisplay((order?.designPrice || 0) + (order?.materialPrice || 0))
+              }
+            </Text>
+          </div>
+        </div>
+        {(order?.status === 'DoneDesign' || order?.status === 6) && (
               <Card 
                 style={{
                   // backgroundColor: '#f9f9f9',
@@ -268,6 +297,7 @@ const DesignDetails = ({
                   borderRadius: '8px',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                   backgroundColor: '#fffbe6',
+                  marginTop: 10,
                 }}
               >
                 <Text type="warning" style={{ fontSize: '16px', fontWeight: '500' }}>
@@ -282,29 +312,9 @@ const DesignDetails = ({
                   Thanh toán ngay: {formatPriceDisplay(((order?.designPrice || 0) * (getRemainingPercentage() / 100)) + (order?.materialPrice || 0))}
                 </Button>
               </Card>
-            </Descriptions.Item>
           )}
-        </Descriptions>
-
-        {order?.status === "DeliveredSuccessfully" && (
-          <Button
-            style={{ marginTop: 15 }}
-            type="primary"
-            onClick={() => {
-              Modal.confirm({
-                title: "Xác nhận hoàn thành",
-                content:
-                  "Bạn có chắc chắn muốn xác nhận hoàn thành đơn hàng này?",
-                okText: "Xác nhận",
-                cancelText: "Hủy",
-                onOk: handleCompleteOrder,
-              });
-            }}
-          >
-            Xác nhận hoàn thành
-          </Button>
-        )}
       </Card>
+
 
       {/* Payment Modal */}
       <Modal

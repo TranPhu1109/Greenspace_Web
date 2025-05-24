@@ -109,7 +109,13 @@ const useServiceOrderStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const response = await api.get(
-        `/api/serviceorder/userid-nousingidea/${userId}`
+        `/api/serviceorder/userid-nousingidea/${userId}`,
+        {
+          params: {
+            pageNumber: 0,
+            pageSize: 1000,
+          },
+        }
       );
 
       // Check if response exists and has data property

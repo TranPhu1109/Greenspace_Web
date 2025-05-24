@@ -5,11 +5,16 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import useDesignerTask from "@/stores/useDesignerTask";
 import useAuthStore from "@/stores/useAuthStore";
+import useNotificationStore from "@/stores/useNotificationStore";
+import { BellOutlined } from "@ant-design/icons";
+import { getFormattedNotificationContent, getNotificationType } from "@/utils/notificationUtils";
+import signalRService from "@/services/signalRService";
 
 dayjs.extend(isBetween);
 
 const TaskList = () => {
-  const { tasks: rawTasks, isLoading, fetchTasks } = useDesignerTask();
+  const { tasks: rawTasks, isLoading, fetchTasks, fetchTasksSilent } = useDesignerTask();
+  const { notifications } = useNotificationStore();
   const { user } = useAuthStore();
 
   const [globalSearch, setGlobalSearch] = useState("");
@@ -18,11 +23,73 @@ const TaskList = () => {
   const [appointmentDateRange, setAppointmentDateRange] = useState(null);
   const [creationDateRange, setCreationDateRange] = useState(null);
 
+  const userId = user?.id;
+
   useEffect(() => {
-    if (user?.id) {
-      fetchTasks(user.id);
+    if (userId) {
+      fetchTasks(userId);
     }
-  }, [user]);
+  }, [userId]);
+  
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+  
+        signalRService.on("messageReceived", async (message) => {
+          console.log("SignalR message received:", message);
+          if (user?.id) {
+            await fetchTasksSilent(user.id); // Không làm nháy
+          }
+        });
+      } catch (error) {
+        console.error("Failed to connect to SignalR hub:", error);
+      }
+    };
+  
+    setupSignalR();
+  
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [user?.id]);
+  
+  
+
+  const unreadTaskMap = useMemo(() => {
+    const map = {};
+    notifications
+      .filter(n => !n.isSeen)
+      .forEach(n => {
+        const match = n.title.match(/: ([\w-]{36})$/); // Tìm UUID
+        const taskId = match?.[1];
+        if (taskId) {
+          // const isNewTask = n.title.startsWith("Nhiệm vụ mới");
+          map[taskId] = {
+            content: n.content,
+            notificationId: n.id,
+            // type: isNewTask ? 'new' : 'update'
+            type: getNotificationType(n)
+          };
+        }
+      });
+    return map;
+  }, [notifications]);
+
+  const getRowStyle = (type) => {
+    switch (type) {
+      case "new_task":
+        return { backgroundColor: "#e6fffb", borderLeft: "4px solid #13c2c2" }; // xanh
+      case "task_update":
+      case "order_update":
+        return { backgroundColor: "#fffbe6", borderLeft: "4px solid #faad14" }; // vàng
+      case "warning":
+        return { backgroundColor: "#fff1f0", borderLeft: "4px solid #ff4d4f" }; // đỏ
+      default:
+        return {};
+    }
+  };
+  
 
   const allTasks = useMemo(() => rawTasks ?? [], [rawTasks]);
 
@@ -63,35 +130,50 @@ const TaskList = () => {
       });
     }
 
+    filteredTasks.sort((a, b) => {
+      const modA = a.serviceOrder?.modificationDate ? dayjs(a.serviceOrder.modificationDate) : dayjs(0);
+      const modB = b.serviceOrder?.modificationDate ? dayjs(b.serviceOrder.modificationDate) : dayjs(0);
+      return modB.valueOf() - modA.valueOf(); // mới nhất lên trước
+    });
+
     return filteredTasks;
   }, [allTasks, globalSearch, selectedOrderStatuses, selectedTaskStatuses, appointmentDateRange, creationDateRange]);
 
-  
+
 
   // --- Màu và Text cho TRẠNG THÁI ĐƠN HÀNG ---
   const serviceOrderStatusColors = {
     Pending: "default",
-    ConsultingAndSketching: "blue",
-    DeterminingDesignPrice: "orange",
-    DepositSuccessful: "green",
-    AssignToDesigner: "blue",
-    DeterminingMaterialPrice: "orange",
-    DoneDesign: "success",
-    PaymentSuccess: "green",
-    Processing: "processing",
-    PickedPackageAndDelivery: "processing",
-    DeliveryFail: "error",
-    ReDelivery: "warning",
-    DeliveredSuccessfully: "success",
-    CompleteOrder: "success",
-    OrderCancelled: "error",
-    Warning: "warning",
-    Refund: "warning",
-    DoneRefund: "success",
-    Completed: "success",
-    ReConsultingAndSketching: "orange",
-    ReDesign: "orange",
-    WaitDeposit: "gold"
+    ConsultingAndSketching: "processing", // Đang tư vấn & phác thảo
+    DeterminingDesignPrice: "warning", // Đang xác định giá
+    DepositSuccessful: "success", // Đặt cọc thành công
+    AssignToDesigner: "processing", // Đã giao cho nhà thiết kế
+    DeterminingMaterialPrice: "warning", // Xác định giá vật liệu
+    DoneDesign: "success", // Hoàn thành thiết kế
+    PaymentSuccess: "success", // Thanh toán thành công
+    Processing: "processing", // Đang xử lý
+    PickedPackageAndDelivery: "processing", // Đã lấy hàng & đang giao
+    DeliveryFail: "error", // Giao hàng thất bại
+    ReDelivery: "warning", // Giao lại
+    DeliveredSuccessfully: "success", // Đã giao hàng thành công
+    CompleteOrder: "success", // Hoàn thành đơn hàng
+    OrderCancelled: "error", // Đơn hàng đã bị hủy
+    Warning: "error", // Cảnh báo vượt 30%
+    Refund: "warning", // Hoàn tiền
+    DoneRefund: "success", // Hoàn tiền thành công
+    Completed: "success", // Hoàn thành
+    ReConsultingAndSketching: "warning", // Phác thảo lại
+    ReDesign: "warning", // Thiết kế lại
+    WaitDeposit: "warning", // Chờ đặt cọc
+    DoneDeterminingDesignPrice: "success", // Đã xác định giá
+    DoneDeterminingMaterialPrice: "success", // Đã xác định giá vật liệu
+    ReDeterminingDesignPrice: "warning", // Xác định giá lại
+    ReDetermineMaterialPrice: "warning", // Xác định giá vật liệu lại
+    MaterialPriceConfirmed: "success", // Giá vật liệu đã xác định
+    Installing: "processing", // Đang lắp đặt
+    DoneInstalling: "success", // Đã lắp đặt
+    ReInstall: "warning", // Lắp đặt lại
+    Successfully: "success", // Đơn hàng hoàn tất
   };
 
   const serviceOrderStatusTexts = {
@@ -116,7 +198,16 @@ const TaskList = () => {
     Completed: "Hoàn thành",
     ReConsultingAndSketching: "Phác thảo lại",
     ReDesign: "Thiết kế lại",
-    WaitDeposit: "Chờ đặt cọc"
+    WaitDeposit: "Chờ đặt cọc",
+    DoneDeterminingDesignPrice: "Đã xác định giá",
+    DoneDeterminingMaterialPrice: "Đã xác định giá vật liệu",
+    ReDeterminingDesignPrice: "Xác định giá lại",
+    ReDetermineMaterialPrice: "Yêu cầu điều chỉnh vật liệu",
+    MaterialPriceConfirmed: "Giá vật liệu đã xác định",
+    Installing: "Đang lắp đặt",
+    DoneInstalling: "Đã lắp đặt",
+    ReInstall: "Lắp đặt lại",
+    Successfully: "Đơn hàng hoàn tất"
   };
 
   const getOrderStatusColor = (status) => serviceOrderStatusColors[status] || "default";
@@ -181,9 +272,24 @@ const TaskList = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      render: (text) => (
-        <span className="font-mono">#{text.slice(0, 8)}</span>
-      ),
+      render: (id) => {
+        const notif = unreadTaskMap[id];
+      
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {notif && (
+              <Tooltip title={notif ? getFormattedNotificationContent(notif) : undefined}>
+                <BellOutlined style={{ color: notif.type === 'new' ? '#13c2c2' : '#fa541c' }} />
+              </Tooltip>
+            )}
+            <span className="font-mono">#{id.slice(0, 8)}</span>
+          </div>
+        );
+      }
+      
+      // render: (text) => (
+      //   <span className="font-mono">#{text.slice(0, 8)}</span>
+      // ),
     },
     {
       title: "Khách hàng",
@@ -193,15 +299,6 @@ const TaskList = () => {
       onFilter: (value, record) => record.serviceOrder?.userName === value,
       filterSearch: true
     },
-    // {
-    //   title: "Loại dịch vụ",
-    //   dataIndex: ["serviceOrder", "serviceType"],
-    //   key: "serviceType",
-    //   render: (text) =>
-    //     text === "UsingDesignIdea"
-    //       ? "Sử dụng mẫu thiết kế"
-    //       : "Thiết kế tùy chỉnh",
-    // },
     {
       title: "Ghi chú",
       dataIndex: "note",
@@ -324,7 +421,7 @@ const TaskList = () => {
           />
         </Col>
         <Col>
-          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Lịch hẹn:</div> 
+          <div style={{ marginBottom: '8px', fontWeight: 500 }}>Lịch hẹn:</div>
           <DatePicker.RangePicker
             style={{ width: 240 }}
             placeholder={['Từ ngày', 'Đến ngày']}
@@ -349,6 +446,17 @@ const TaskList = () => {
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `Tổng số ${total} công việc`,
+        }}
+        onRow={(record) => {
+          const notif = unreadTaskMap[record.id];
+          return {
+            onClick: () => {
+              if (notif?.notificationId) {
+                useNotificationStore.getState().markAsRead(notif.notificationId);
+              }
+            },
+            style: notif ? getRowStyle(notif.type) : {},
+          };
         }}
       />
     </div>

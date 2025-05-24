@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import AddressForm from "@/components/Common/AddressForm"; // Import AddressForm
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
+import { useNavigate } from "react-router-dom";
 
 const { Text, Title, Paragraph } = Typography;
 const { Step } = Steps;
@@ -25,7 +26,8 @@ const ContractSection = ({
   refreshAllData,    // Func to refresh all order data
   updateTaskOrder,    // Func to update workTask status
   getServiceOrderById, // Func to get service order by id
-  data // Func to get service order by id
+  data,
+  fetchBalance
 }) => {
   const [form] = Form.useForm(); // Form instance for user info
   const [isContractModalVisible, setIsContractModalVisible] = useState(false);
@@ -41,7 +43,7 @@ const ContractSection = ({
   const [useSavedAddress, setUseSavedAddress] = useState(false); // Track if using saved address
   const [userInfo, setUserInfo] = useState({}); // User info from localStorage
   const [checkingExistingContracts, setCheckingExistingContracts] = useState(false);
-
+  const navigate = useNavigate();
   // Check if current status is WaitDeposit
   const isWaitDepositStatus =
     selectedOrder?.status === "WaitDeposit" ||
@@ -62,7 +64,7 @@ const ContractSection = ({
     const fetchContractForSelectedSketch = async () => {
       // Check if selectedOrder has sketchRecords with isSelected=true
       const hasSelectedSketch = selectedOrder?.recordSketches?.some(record => record.isSelected === true);
-      
+
       if (hasSelectedSketch && selectedOrder?.id) {
         console.log("Found selected sketch in order data, fetching contract...");
         try {
@@ -348,6 +350,52 @@ const ContractSection = ({
       return;
     }
 
+    // Kiểm tra số dư ví trước khi tiến hành
+    try {
+      // Lấy thông tin ví từ local storage
+      const walletStorage = localStorage.getItem("wallet-storage");
+      if (!walletStorage) {
+        message.error("Không tìm thấy thông tin ví.");
+        return;
+      }
+
+      const walletData = JSON.parse(walletStorage);
+      const walletId = walletData.state?.walletId;
+
+      if (!walletId) {
+        message.error("Không tìm thấy ID ví.");
+        return;
+      }
+
+      // Tính số tiền cần thanh toán
+      const depositAmount = selectedOrder.designPrice * (data?.depositPercentage || 50) / 100;
+
+      // Lấy số dư trực tiếp từ localStorage thay vì gọi API
+      const currentBalance = walletData.state?.balance || 0;
+
+      console.log("Kiểm tra số dư:", {
+        currentBalance,
+        depositAmount,
+        orderPrice: selectedOrder.designPrice,
+        depositPercent: data?.depositPercentage || 50
+      });
+
+      // Nếu số dư không đủ
+      if (currentBalance < depositAmount) {
+        notification.error({
+          message: "Số dư không đủ",
+          description:
+            `Số dư ví của bạn (${formatPrice(currentBalance)}) không đủ để thanh toán khoản đặt cọc ${formatPrice(depositAmount)}. Vui lòng nạp thêm tiền vào ví để tiếp tục.`,
+          duration: 8,
+        });
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking wallet balance:", error);
+      message.error("Không thể kiểm tra số dư ví: " + (error.response?.data?.message || error.message));
+      return;
+    }
+
     setUploading(true);
     setSigningAndPaying(true);
 
@@ -383,8 +431,8 @@ const ContractSection = ({
         const walletId = walletData.state?.walletId;
         if (!walletId) throw new Error("Không tìm thấy ID ví.");
 
-        const amount = selectedOrder.designPrice * selectedOrder.depositPercentage / 100;
-        const paymentDescription = `Thanh toán ${selectedOrder.depositPercentage}% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`;
+        const amount = selectedOrder.designPrice * (data?.depositPercentage || 50) / 100;
+        const paymentDescription = `Thanh toán ${data?.depositPercentage || 50}% phí thiết kế cho đơn hàng #${selectedOrder.id.slice(0, 8)}`;
 
         console.log("Processing payment:", { walletId, serviceOrderId: selectedOrder.id, amount, description: paymentDescription });
 
@@ -394,6 +442,8 @@ const ContractSection = ({
           amount,
           description: paymentDescription,
         });
+
+        await fetchBalance();
 
       } catch (paymentError) {
         console.error("Payment error:", paymentError);
@@ -844,9 +894,79 @@ const ContractSection = ({
                 type="warning"
                 showIcon
                 message="Xác nhận ký và thanh toán"
-                description={`Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán ${formatPrice((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100)}.`}
+                description={
+                  <>
+                    <p>Bằng việc nhấn nút "Xác nhận & Thanh toán cọc", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán {formatPrice((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100)}.</p>
+                    <p><strong>Lưu ý:</strong> Vui lòng đảm bảo tài khoản ví của bạn có đủ số dư để thanh toán khoản đặt cọc. Nếu không đủ, quá trình ký hợp đồng sẽ không thể hoàn tất.</p>
+                    {/* Hiển thị số dư ví và số tiền cần thanh toán */}
+
+                  </>
+                }
                 style={{ marginBottom: 16 }}
               />
+              {(() => {
+                const walletStr = localStorage.getItem("wallet-storage");
+                const wallet = walletStr ? JSON.parse(walletStr) : null;
+                const balance = wallet?.state?.balance || 0;
+                const depositAmount = Math.round((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100);
+
+                const isEnough = balance >= depositAmount;
+
+                return (
+                  <Card
+                    type="inner"
+                    title={
+                      <span style={{ color: isEnough ? '#389e0d' : '#faad14' }}>
+                        {isEnough ? ' Thông tin số dư ví' : '⚠️ Thông tin số dư ví'}
+                      </span>
+                    }
+                    style={{
+                      backgroundColor: isEnough ? '#f6ffed' : '#fffbe6',
+                      borderColor: isEnough ? '#b7eb8f' : '#ffe58f',
+                      marginTop: 16,
+                      marginBottom: 16,
+                      borderRadius: 8,
+                    }}
+                    styles={{
+                      header: {
+                        borderBottom: `1px solid ${isEnough ? '#b7eb8f' : '#ffe58f'}`,
+                        fontWeight: 600,
+                      },
+                      body: { padding: '12px 16px' }
+                    }}
+                  >
+                    <p><Text strong>Số dư ví hiện tại:</Text> {formatPrice(balance)}</p>
+                    <p><Text strong>Số tiền cần đặt cọc:</Text> {formatPrice(depositAmount)}</p>
+
+                    {balance < depositAmount ? (
+                      <div style={{ marginTop: 12 }}>
+                        <Alert
+                          type="error"
+                          message="Số dư không đủ để thanh toán. Vui lòng nạp thêm tiền để tiếp tục."
+                          showIcon
+                          style={{ marginBottom: 12 }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <Button
+                            type="primary"
+                            danger
+                            onClick={() => navigate("/userwallets")}
+                          >
+                            Nạp tiền vào ví
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Alert
+                        type="success"
+                        message="Số dư ví đủ để thanh toán đặt cọc."
+                        showIcon
+                        style={{ marginTop: 12 }}
+                      />
+                    )}
+                  </Card>
+                );
+              })()}
 
               <div style={{ textAlign: 'right', marginTop: 'auto', paddingTop: 15, borderTop: '1px solid #f0f0f0' }}>
                 <Button onClick={() => {
@@ -862,7 +982,14 @@ const ContractSection = ({
                   type="primary"
                   onClick={handleSignAndPay}
                   loading={signingAndPaying || uploading}
-                  disabled={!previewImage || (!localContractData?.description && !contracts.length)} // Disable if no signature or contract
+                  disabled={!previewImage || (!localContractData?.description && !contracts.length) ||
+                    (() => {
+                      const walletStr = localStorage.getItem("wallet-storage");
+                      const wallet = walletStr ? JSON.parse(walletStr) : null;
+                      const balance = wallet?.state?.balance || 0;
+                      const depositAmount = Math.round((selectedOrder?.designPrice || 0) * (data?.depositPercentage || 50) / 100);
+                      return balance < depositAmount;
+                    })()} // Disable if no signature or contract
                 >
                   {uploading ? "Đang tải chữ ký..." : "Xác nhận & Thanh toán cọc"}
                 </Button>

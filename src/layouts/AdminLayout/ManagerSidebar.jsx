@@ -75,11 +75,6 @@ const ManagerSidebar = ({ collapsed }) => {
           },
         ],
       },
-      // {
-      //   key: "/manager/new-design-orders",
-      //   icon: <ProjectOutlined />,
-      //   label: <Link to="/manager/new-design-orders">Đơn đặt thiết kế mới</Link>,
-      // },
       {
         key: "designOrders",
         icon: <ProjectOutlined />,
@@ -87,7 +82,7 @@ const ManagerSidebar = ({ collapsed }) => {
         children: [
           {
             key: "/manager/new-design-orders",
-            label: <Link to="/manager/new-design-orders">Danh sách đơn</Link>,
+            label: <Link to="/manager/new-design-orders">Danh sách đơn thiết kế</Link>,
           },
           {
             key: "/manager/deposit-management",
@@ -138,29 +133,6 @@ const ManagerSidebar = ({ collapsed }) => {
           },
         ],
       },
-      // {
-      //   key: "/manager/policy",
-      //   icon: <SettingOutlined />,
-      //   label: <Link to="/manager/policy">Quản lý chính sách</Link>,
-      // },
-      // {
-      //   key: "/manager/webmanage",
-      //   icon: <SettingOutlined />,
-      //   label: <Link to="/manager/webmanage">Quản lý logo & banner website</Link>,
-      // },
-      
-      
-      // Commented items can be added back if needed
-      // {
-      //   key: "/manager/analytics",
-      //   icon: <BarChartOutlined />,
-      //   label: <Link to="/manager/analytics">Phân tích</Link>,
-      // },
-      // {
-      //   key: "/manager/settings",
-      //   icon: <SettingOutlined />,
-      //   label: <Link to="/manager/settings">Cài đặt</Link>,
-      // },
     ];
   };
 

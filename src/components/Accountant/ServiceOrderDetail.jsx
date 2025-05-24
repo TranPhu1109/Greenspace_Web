@@ -33,14 +33,16 @@ import {
   ShoppingOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import useAccountantStore from "../../stores/useAccountantStore";
 import useProductStore from "../../stores/useProductStore";
 import dayjs from "dayjs";
 import CreateProductModal from "@/components/Staff/Products/components/CreateProductModal";
 import api from "@/api/api";
+import { formatPrice } from "@/utils/helpers";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const ServiceOrderDetail = () => {
   const { id } = useParams();
@@ -65,6 +67,9 @@ const ServiceOrderDetail = () => {
   const [bulkPriceForm] = Form.useForm();
   const [bulkPriceLoading, setBulkPriceLoading] = useState(false);
   const [bulkPriceValues, setBulkPriceValues] = useState({});
+  const [viewingExternalProduct, setViewingExternalProduct] = useState(null);
+  const [isViewExternalProductModalVisible, setIsViewExternalProductModalVisible] = useState(false);
+  const [previewTotalPrice, setPreviewTotalPrice] = useState(0);
 
   const [confirmingPrices, setConfirmingPrices] = useState(false);
 
@@ -118,6 +123,17 @@ const ServiceOrderDetail = () => {
       setExternalProducts([]);
     }
   }, [selectedOrder]);
+
+  const handleViewProductExternal = (productId) => {
+    const product = selectedOrder?.externalProducts.find(p => p.id === productId);
+    if (product) {
+      setViewingExternalProduct(product);
+      setPreviewTotalPrice((product.price || 0) * product.quantity);
+      editPriceForm.resetFields();
+      editPriceForm.setFieldsValue({ price: product.price || null });
+      setIsViewExternalProductModalVisible(true);
+    }
+  };
 
   const showModal = () => {
     form.setFieldsValue({ designPrice: selectedOrder?.designPrice || null });
@@ -360,16 +376,16 @@ const ServiceOrderDetail = () => {
     try {
       await api.put(`/api/externalproduct/price/${productId}`, { price });
       message.success(`Cập nhật giá thành công cho sản phẩm ${externalProducts.find(p => p.id === productId)?.name}`);
-      
+
       // Update local state
-      setExternalProducts(prevProducts => 
-        prevProducts.map(product => 
-          product.id === productId 
-            ? { ...product, price, totalPrice: price * product.quantity } 
+      setExternalProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.id === productId
+            ? { ...product, price, totalPrice: price * product.quantity }
             : product
         )
       );
-      
+
       // Refresh order data to get updated totalPrice calculations
       await getServiceOrderById(id);
     } catch (error) {
@@ -423,8 +439,8 @@ const ServiceOrderDetail = () => {
           </Card>
 
           <Form form={editPriceForm} layout="vertical">
-            <Form.Item 
-              name="price" 
+            <Form.Item
+              name="price"
               label="Giá sản phẩm (VNĐ)"
               rules={[
                 { required: true, message: "Vui lòng nhập giá" },
@@ -470,6 +486,7 @@ const ServiceOrderDetail = () => {
       title: "Sản phẩm",
       dataIndex: "name",
       key: "name",
+      width: 180,
       render: (text, record) => (
         <Space>
           {record.imageURL && (
@@ -483,25 +500,20 @@ const ServiceOrderDetail = () => {
           )}
           <div>
             <div style={{ fontWeight: 500 }}>{text}</div>
-            {record.description && (
-              <Tooltip title={record.description} styles={{
-                body: {
-                  backgroundColor: '#ffffff',
-                  color: '#000000',
-                  fontSize: 13,
-                  padding: 10,
-                  maxWidth: 300,
-                  borderRadius: 4,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }
-              }}>
-                <div style={{ fontSize: '12px', color: '#666', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {record.description}
-                </div>
-              </Tooltip>
-            )}
+            <div style={{ fontSize: 12, color: '#888' }}>ID: {record.id}</div>
           </div>
         </Space>
+      ),
+    },
+    {
+      title: "Yêu cầu về sản phẩm mới",
+      dataIndex: "description",
+      key: "description",
+      width: 100,
+      render: (text) => (
+        <Tooltip title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />} color="white">
+          <div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />
+        </Tooltip>
       ),
     },
     {
@@ -521,11 +533,11 @@ const ServiceOrderDetail = () => {
         if (updatingPriceId === record.id) {
           return <Spin size="small" />;
         }
-        
+
         if (!text || text === 0) {
           return (
-            <Button 
-              type="dashed" 
+            <Button
+              type="dashed"
               size="small"
               onClick={() => showPriceEditModal(record)}
               style={{ padding: '5px 10px', color: '#ff4d4f' }}
@@ -534,13 +546,13 @@ const ServiceOrderDetail = () => {
             </Button>
           );
         }
-        
+
         return (
           <Space>
             <span>{text.toLocaleString("vi-VN")} đ</span>
-            <Button 
-              type="link" 
-              size="small" 
+            <Button
+              type="link"
+              size="small"
               onClick={() => showPriceEditModal(record)}
               style={{ padding: '0' }}
             >
@@ -561,6 +573,20 @@ const ServiceOrderDetail = () => {
         return <span style={{ fontWeight: 'bold' }}>{totalPrice.toLocaleString("vi-VN")} đ</span>;
       },
     },
+    {
+      title: "Thao tác",
+      dataIndex: "action",
+      key: "action",
+      align: 'center',
+      width: 100,
+      render: (_, record) => (
+        <Space>
+          <Button type="primary" size="middle" onClick={() => handleViewProductExternal(record.id)}>
+            <EyeOutlined />
+          </Button>
+        </Space>
+      ),
+    },
   ];
 
   const showBulkPriceModal = () => {
@@ -571,7 +597,7 @@ const ServiceOrderDetail = () => {
       // Use null instead of 0 for empty values
       initialValues[`price_${id}`] = (!product?.price || product?.price === 0) ? null : product.price;
     });
-    
+
     setBulkPriceValues(initialValues);
     bulkPriceForm.resetFields();
     setIsBulkPriceModalVisible(true);
@@ -581,7 +607,7 @@ const ServiceOrderDetail = () => {
     try {
       const values = await bulkPriceForm.validateFields();
       setBulkPriceLoading(true);
-      
+
       if (!selectedExternalProductIds.length) {
         message.warning("Vui lòng chọn ít nhất một sản phẩm để cập nhật giá");
         setBulkPriceLoading(false);
@@ -595,7 +621,7 @@ const ServiceOrderDetail = () => {
       for (const productId of selectedExternalProductIds) {
         const fieldName = `price_${productId}`;
         const price = values[fieldName];
-        
+
         if (price !== undefined) {
           updatePromises.push(
             api.put(`/api/externalproduct/price/${productId}`, { price })
@@ -613,34 +639,34 @@ const ServiceOrderDetail = () => {
       }
 
       await Promise.all(updatePromises);
-      
+
       // Update local state for successfully updated products
       if (updatedProducts.length > 0) {
-        setExternalProducts(prevProducts => 
+        setExternalProducts(prevProducts =>
           prevProducts.map(product => {
             const updatedProduct = updatedProducts.find(p => p.id === product.id);
             if (updatedProduct) {
-              return { 
-                ...product, 
-                price: updatedProduct.price, 
-                totalPrice: updatedProduct.price * product.quantity 
+              return {
+                ...product,
+                price: updatedProduct.price,
+                totalPrice: updatedProduct.price * product.quantity
               };
             }
             return product;
           })
         );
-        
+
         message.success(`Đã cập nhật giá cho ${updatedProducts.length} sản phẩm`);
-        
+
         // Refresh order data to get updated totalPrice calculations
         await getServiceOrderById(id);
       } else {
         message.error("Không thể cập nhật giá cho bất kỳ sản phẩm nào");
       }
-      
+
       setIsBulkPriceModalVisible(false);
       setSelectedExternalProductIds([]);
-      
+
     } catch (error) {
       console.error("Validation error:", error);
     } finally {
@@ -665,13 +691,13 @@ const ServiceOrderDetail = () => {
       setConfirmingPrices(true);
       // Update order status to MaterialPriceConfirmed (33)
       await updateOrderStatus(selectedOrder.id, 33);
-      
+
       message.success(
         selectedOrder.status === 'DeterminingMaterialPrice'
           ? "Đã xác nhận thành công tất cả giá sản phẩm!"
           : "Đã xác nhận thành công điều chỉnh giá sản phẩm!"
       );
-      
+
       // Refresh the order data
       await getServiceOrderById(selectedOrder.id);
     } catch (error) {
@@ -858,18 +884,8 @@ const ServiceOrderDetail = () => {
             <Col span={24}>
               <Card
                 title={
-                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>Yêu cầu vật liệu từ NTK</span>
-                    {/* {selectedOrder?.status === "DeterminingMaterialPrice" && (
-                      <Button
-                        type="dashed"
-                        icon={<PlusOutlined />}
-                        onClick={showCreateProductModal}
-                        size="small"
-                      >
-                        Thêm vật liệu mới vào hệ thống
-                      </Button>
-                    )} */}
+                  <Space style={{ width: '100%', justifyContent: 'space-between', color: '#f5222d' }}>
+                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>Yêu cầu điều chỉnh giá sản phẩm</span>
                   </Space>
                 }
               >
@@ -956,14 +972,14 @@ const ServiceOrderDetail = () => {
                 />
                 <div style={{ marginTop: 16, textAlign: 'right' }}>
                   {(selectedOrder.status === 'DeterminingMaterialPrice' || selectedOrder.status === 'ReDetermineMaterialPrice') && (
-                    <Button 
-                      type="primary" 
+                    <Button
+                      type="primary"
                       disabled={externalProducts.some(p => !p.price || p.price === 0)}
                       onClick={handleConfirmMaterialPrices}
                       loading={confirmingPrices}
                     >
-                      {selectedOrder.status === 'DeterminingMaterialPrice' 
-                        ? "Xác nhận tất cả giá sản phẩm" 
+                      {selectedOrder.status === 'DeterminingMaterialPrice'
+                        ? "Xác nhận tất cả giá sản phẩm"
                         : "Xác nhận điều chỉnh giá sản phẩm"}
                     </Button>
                   )}
@@ -1037,7 +1053,7 @@ const ServiceOrderDetail = () => {
                                   }}
                                   preview={false}
                                 />
-                        
+
                                 {/* 2. Tên & Giá */}
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginLeft: 12 }}>
                                   <span style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.2 }}>
@@ -1047,7 +1063,7 @@ const ServiceOrderDetail = () => {
                                     {product.price?.toLocaleString("vi-VN")} đ
                                   </span>
                                 </div>
-                        
+
                                 {/* 3. Tag "Mới" */}
                                 {isNew && (
                                   <Tag
@@ -1196,7 +1212,7 @@ const ServiceOrderDetail = () => {
             showIcon
             style={{ marginBottom: 16 }}
           />
-          
+
           <Form
             form={bulkPriceForm}
             layout="vertical"
@@ -1226,14 +1242,7 @@ const ServiceOrderDetail = () => {
                           style={{ objectFit: "cover", borderRadius: '4px', marginRight: 8 }}
                         />
                       )}
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{text}</div>
-                        {record.description && (
-                          <div style={{ fontSize: '12px', color: '#666', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {record.description}
-                          </div>
-                        )}
-                      </div>
+                      <div style={{ fontWeight: 500, marginLeft: 8 }}>{text}</div>
                     </div>
                   )
                 },
@@ -1285,6 +1294,118 @@ const ServiceOrderDetail = () => {
               locale={{ emptyText: "Không có sản phẩm nào được chọn" }}
             />
           </Form>
+        </Modal>
+        <Modal
+          open={isViewExternalProductModalVisible}
+          onCancel={() => {
+            setViewingExternalProduct(null);
+            setPreviewTotalPrice(0);
+            editPriceForm.resetFields();
+            setIsViewExternalProductModalVisible(false);
+          }}
+          footer={null}
+          title="Chi tiết sản phẩm thêm mới"
+          width={900}
+        >
+          {viewingExternalProduct && (
+            <>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Image
+                    src={viewingExternalProduct.imageURL || '/placeholder.png'}
+                    alt={viewingExternalProduct.name}
+                    width="100%"
+                    style={{ borderRadius: 8, objectFit: 'cover' }}
+                  />
+                </Col>
+                <Col span={16}>
+                  <Descriptions column={1} size="small" bordered>
+                    <Descriptions.Item label="Tên sản phẩm">
+                      <Text strong>{viewingExternalProduct.name}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số lượng">
+                      {viewingExternalProduct.quantity}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Đơn giá">
+                      <Form
+                        form={editPriceForm}
+                        layout="vertical"
+                        onFinish={(values) =>
+                          updateExternalProductPrice(viewingExternalProduct.id, values.price)
+                        }
+                        initialValues={{
+                          price: viewingExternalProduct.price || null,
+                        }}
+                      >
+                        <Descriptions.Item label="Đơn giá">
+                          <Form.Item
+                            name="price"
+                            noStyle
+                            rules={[
+                              { required: true, message: "Vui lòng nhập giá" },
+                              { type: "number", min: 0, message: "Giá không hợp lệ" },
+                            ]}
+                          >
+                            <InputNumber
+                              style={{ width: "100%" }}
+                              placeholder="Nhập giá sản phẩm"
+                              formatter={(value) =>
+                                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                              }
+                              parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+                              onChange={(value) => {
+                                // Update preview total price when price changes
+                                setPreviewTotalPrice((value || 0) * viewingExternalProduct.quantity);
+                              }}
+                            />
+                          </Form.Item>
+                        </Descriptions.Item>
+                      </Form>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Thành tiền">
+                      {(viewingExternalProduct.totalPrice === 0 && selectedOrder.status === "DeterminingMaterialPrice") ? (
+                        <Tag color="orange">Chưa xác định</Tag>
+                      ) : (
+                        <Text strong style={{ color: '#4caf50' }}>
+                          {formatPrice(previewTotalPrice)}
+                        </Text>
+                      )}
+                    </Descriptions.Item>
+                  </Descriptions>
+                  <div style={{ textAlign: 'right', marginTop: 16 }}>
+                    <Button
+                      type="primary"
+                      onClick={() => editPriceForm.submit()}
+                      loading={updatingPriceId === viewingExternalProduct?.id}
+                    >
+                      Lưu giá sản phẩm
+                    </Button>
+                  </div>
+
+                </Col>
+              </Row>
+
+              <div style={{ marginTop: 24 }}>
+                <Typography.Title level={5} style={{ marginBottom: 8 }}>
+                  Yêu cầu về sản phẩm
+                </Typography.Title>
+                <div
+                  className="html-preview"
+                  style={{
+                    border: '1px solid #f0f0f0',
+                    padding: 12,
+                    borderRadius: 4,
+                    background: '#fafafa',
+                    maxHeight: 300,
+                    overflowY: 'auto',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#d3d3d3 #f9f9f9'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: viewingExternalProduct.description }}
+                />
+              </div>
+            </>
+          )}
         </Modal>
       </div>
     </Spin>

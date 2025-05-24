@@ -58,7 +58,10 @@ const ProductsList = ({
               style={{ objectFit: 'cover', borderRadius: '4px' }}
               preview={false}
             />
-            <Text strong>{product?.name || 'Không tìm thấy tên'}</Text>
+            <div style={{ maxWidth: 250 }}>
+              <Text strong>{product?.name || 'Không tìm thấy tên'}</Text>
+              <div style={{ color: '#888', fontSize: 12 }}>ID: {product?.id}</div>
+            </div>
           </Space>
         );
       },
@@ -110,7 +113,8 @@ const ProductsList = ({
           />
           <div style={{ maxWidth: 250 }}>
             <Text strong>{record.name}</Text>
-            {record.description && (
+            <div style={{ color: '#888', fontSize: 12 }}>ID: {record.id}</div>
+            {/* {record.description && (
               <Tooltip
                 title={record.description}
                 placement="top"
@@ -141,7 +145,7 @@ const ProductsList = ({
                   {record.description}
                 </div>
               </Tooltip>
-            )}
+            )} */}
           </div>
         </Space>
       ),
@@ -151,14 +155,14 @@ const ProductsList = ({
       dataIndex: 'quantity',
       key: 'quantity',
       align: 'center',
-      width: 100,
+      // width: 100,
     },
     {
       title: 'Đơn giá',
       dataIndex: 'price',
       key: 'price',
       align: 'right',
-      width: 150,
+      // width: 150,
       render: (price) => <Text>{formatPrice(price)}</Text>,
     },
     {
@@ -166,7 +170,7 @@ const ProductsList = ({
       dataIndex: 'totalPrice',
       key: 'totalPrice',
       align: 'right',
-      width: 150,
+      // width: 150,
       render: (totalPrice) => (
         <Text strong style={{ color: '#4caf50' }}>
           {formatPrice(totalPrice)}

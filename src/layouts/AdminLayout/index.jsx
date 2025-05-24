@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Layout, Menu, Dropdown, Avatar, Badge, message } from "antd";
+import { Layout, Menu, Dropdown, Avatar, message } from "antd";
 import {
   UserOutlined,
   LogoutOutlined,
@@ -7,18 +7,19 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import AccountantSidebar from "./AccountantSidebar";
 import StaffSidebar from "./StaffSidebar";
 import DesignerSidebar from "./DesignerSidebar";
 import ManagerSidebar from "./ManagerSidebar";
 import Notifications from "@/components/Notifications";
-import signalRService from "@/services/signalRService";
 import "./AdminLayout.scss";
 import useAuthStore from "@/stores/useAuthStore";
+import useNotificationStore from "@/stores/useNotificationStore";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import ContructorSidebar from "./ContructorSidebar";
+import { setupForegroundFCMListener } from "@/firebase/firebase-messaging-handler";
 
 const { Header, Content } = Layout;
 
@@ -29,59 +30,20 @@ const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [role, setRole] = useState("");
   const [username, setUsername] = useState("");
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
   const userData = JSON.parse(localStorage.getItem("user"));
   const { getAccountPath } = useRoleBasedPath();
+  const { fetchNotifications } = useNotificationStore();
 
+  // Fetch notifications when component mounts
   useEffect(() => {
-    const connectSignalR = async () => {
-      try {
-        await signalRService.startConnection();
-
-        signalRService.on("messageReceived", (messageType, messageData) => {
-          console.log(`SignalR messageReceived - Type: ${messageType}, Data: ${messageData}`);
-
-          setNotifications((prevNotifications) => {
-            const isDuplicate = prevNotifications.some(notif => notif.relatedId === messageData);
-
-            if (isDuplicate) {
-              // Don't add duplicate, return previous state
-              return prevNotifications;
-            } else {
-              // Not a duplicate, create new notification and update count
-              const newNotification = {
-                id: Date.now(), // Use timestamp as unique key for React list rendering
-                relatedId: messageData, // Store the actual ID for navigation/logic
-                messageType: messageType, // Store the original message type
-                title: messageType === 'UpdateOrderService' ? "Cập nhật đơn hàng" : "Thông báo",
-                message: `Cập nhật cho ID: ${messageData}`,
-                timestamp: new Date().toLocaleTimeString(),
-                read: false,
-              };
-
-              // Increment count since it's a new notification
-              setNotificationCount(prevCount => prevCount + 1);
-
-              // Return new state with the notification added and list trimmed
-              return [newNotification, ...prevNotifications.slice(0, 9)];
-            }
-          });
-        });
-
-      } catch (err) {
-        console.error("SignalR connection failed: ", err);
-      }
-    };
-
-    connectSignalR();
-
-    return () => {
-      signalRService.off("messageReceived");
-      signalRService.stopConnection();
-    };
+    setupForegroundFCMListener();
   }, []);
+  // useEffect(() => {
+  //   if (userData && userData.id) {
+  //     fetchNotifications();
+  //   }
+  // }, [fetchNotifications]);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user"));
@@ -92,7 +54,6 @@ const AdminLayout = () => {
       
       // Check if the user's role is allowed to access admin layout
       if (!ALLOWED_ROLES.includes(userRole)) {
-        // message.error('Bạn không có quyền truy cập trang này');
         navigate('/');
       }
     } else {
@@ -126,23 +87,23 @@ const AdminLayout = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    console.log("Notification clicked:", notification);
+    // Extract ID and determine navigation path based on notification content/type
+    if (notification.content) {
+      // Try to extract ID from content using regex (looking for patterns like "Mã đơn: uuid")
+      const orderIdMatch = notification.content.match(/Mã đơn: ([a-f0-9-]+)/i);
+      
+      if (orderIdMatch && orderIdMatch[1]) {
+        const orderId = orderIdMatch[1].trim();
+        let detailPath = "";
 
-    if (notification.relatedId && notification.messageType) {
-      // Extract only the ID part before any dash
-      const orderId = notification.relatedId.split(" -")[0].trim();
-      const messageType = notification.messageType;
-      let detailPath = "";
-
-      // Determine the path based on messageType and role
-      switch (messageType) {
-        case 'UpdateOrderService':
+        // Determine the path based on notification title and user role
+        if (notification.title.includes("dịch vụ thiết kế")) {
           switch (role) {
             case 'staff':
               detailPath = `/staff/design-orders/new-design-orders/${orderId}`;
               break;
             case 'designer':
-              detailPath = `/designer/tasks/${orderId}`; // Adjust as needed
+              detailPath = `/designer/tasks/${orderId}`;
               break;
             case 'manager':
               detailPath = `/manager/new-design-orders/${orderId}`;
@@ -151,40 +112,25 @@ const AdminLayout = () => {
               detailPath = `/accountant/service-orders/${orderId}`;
               break;
             case 'admin':
-              detailPath = `/${role}/orders/${orderId}`; // Adjust as needed
+              detailPath = `/${role}/orders/${orderId}`;
               break;
-
             default:
-              console.warn(`Unhandled role '${role}' for UpdateOrderService notification.`);
+              console.warn(`Unhandled role '${role}' for design order notification.`);
               break;
           }
-          break;
+        } else {
+          // Handle other notification types as needed
+          console.log("Unrecognized notification type:", notification.title);
+        }
 
-        default:
-          console.warn(`Unhandled messageType '${messageType}' for notification navigation.`);
-          break;
+        if (detailPath) {
+          console.log(`Navigating to: ${detailPath}`);
+          navigate(detailPath);
+        } else {
+          console.log("No navigation path determined for this notification.");
+        }
       }
-
-      if (detailPath) {
-        console.log(`Navigating to: ${detailPath}`);
-        navigate(detailPath);
-
-        // Mark notification as read locally
-        setNotifications(prev =>
-          prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
-        );
-        // Optional: Decrease count logic if needed
-      } else {
-        console.log("No navigation path determined for this notification.");
-      }
-    } else {
-      console.log("Notification missing relatedId or messageType, cannot navigate.");
     }
-  };
-
-  const handleViewAllClick = () => {
-    console.log("View all notifications clicked");
-    setNotificationCount(0);
   };
 
   const renderSidebar = () => {
@@ -247,12 +193,7 @@ const AdminLayout = () => {
             </div>
           </div>
           <div className="header-right">
-            <Notifications
-              count={notificationCount}
-              notifications={notifications}
-              onNotificationClick={handleNotificationClick}
-              onViewAllClick={handleViewAllClick}
-            />
+            <Notifications onNotificationClick={handleNotificationClick} />
             <Dropdown
               overlay={userMenu}
               trigger={["click"]}

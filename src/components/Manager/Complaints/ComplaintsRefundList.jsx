@@ -18,6 +18,7 @@ import {
   message,
   DatePicker,
   Drawer,
+  Alert,
 } from "antd";
 import {
   SearchOutlined,
@@ -524,6 +525,46 @@ const ComplaintsRefundList = () => {
             </Card>
           )}
 
+        {(selectedComplaint.videoURL) && (
+            <Card title="Video minh chứng tại kho" style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {selectedComplaint.videoURL && (
+                  <div
+                    style={{
+                      backgroundColor: '#fafafa',
+                      padding: 16,
+                      borderRadius: 8,
+                      border: '1px solid #f0f0f0',
+                      flex: '1 1 320px',
+                      maxWidth: 360,
+                    }}
+                  >
+                    <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                      {selectedComplaint.videoURL.includes('/video/upload/')
+                        ? '🎥 Video minh chứng:'
+                        : '🖼️ Hình ảnh minh chứng:'}
+                    </Text>
+                    {selectedComplaint.videoURL.includes('/video/upload/') ? (
+                      <video
+                        src={selectedComplaint.videoURL}
+                        controls
+                        width={320}
+                        style={{ borderRadius: 6, maxHeight: 220 }}
+                      />
+                    ) : (
+                      <Image
+                        src={selectedComplaint.videoURL}
+                        alt="Hình ảnh minh chứng"
+                        width={320}
+                        style={{ borderRadius: 6, maxHeight: 220, objectFit: 'cover' }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
         <Card title="Sản phẩm khiếu nại">
           <Table
             dataSource={selectedComplaint.complaintDetails}
@@ -535,7 +576,7 @@ const ComplaintsRefundList = () => {
                 title: "Sản phẩm",
                 dataIndex: "productId",
                 key: "product",
-                render: (productId) => {
+                render: (productId, record) => {
                   const product = productDetails[productId];
 
                   // Handle different image formats
@@ -545,19 +586,26 @@ const ComplaintsRefundList = () => {
                     null;
 
                   return (
-                    <Space align="center">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={product?.name}
-                          style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4 }}
-                        />
-                      ) : (
-                        <div style={{ width: 40, height: 40, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
-                          <ShoppingOutlined style={{ fontSize: 16, color: '#999' }} />
-                        </div>
+                    <Space direction="vertical" size={4}>
+                      <Space align="center">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={product?.name}
+                            style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4 }}
+                          />
+                        ) : (
+                          <div style={{ width: 40, height: 40, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
+                            <ShoppingOutlined style={{ fontSize: 16, color: '#999' }} />
+                          </div>
+                        )}
+                        <Text>{product ? product.name : `Sản phẩm #${productId.slice(0, 8)}...`}</Text>
+                      </Space>
+                      {!record.isCheck && record.description && (
+                        <Text type="danger" style={{ fontSize: "14px", marginTop: 4 }}>
+                          Lý do từ chối: {record.description}
+                        </Text>
                       )}
-                      <Text>{product ? product.name : `Sản phẩm #${productId.slice(0, 8)}...`}</Text>
                     </Space>
                   );
                 },
@@ -588,68 +636,67 @@ const ComplaintsRefundList = () => {
                 dataIndex: "isCheck",
                 key: "status",
                 render: (isCheck) => (
-                  isCheck ? 
-                  <Tag color="success">Chấp nhận</Tag> : 
-                  <Tag color="error">Từ chối</Tag>
+                  isCheck ?
+                    <Tag color="success">Chấp nhận</Tag> :
+                    <Tag color="error">Từ chối</Tag>
                 ),
               },
             ]}
           />
-          
+
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {selectedComplaint.complaintDetails && (
               <Descriptions
-              column={1}
-              bordered
-              size="small"
-              style={{ marginBottom: 24, background: '#fafafa', borderRadius: 8 }}
-            >
-              <Descriptions.Item label="Tổng số sản phẩm">
-                <Text strong>{selectedComplaint.complaintDetails.length}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Sản phẩm được chấp nhận">
-                <Text strong style={{ color: '#52c41a' }}>
-                  {selectedComplaint.complaintDetails.filter((item) => item.isCheck).length}
-                </Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Sản phẩm bị từ chối">
-                <Text strong style={{ color: '#ff4d4f' }}>
-                  {selectedComplaint.complaintDetails.filter((item) => !item.isCheck).length}
-                </Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Tổng tiền hoàn trả">
-                <Text strong style={{ color: '#faad14', fontSize: 16 }}>
-                  {selectedComplaint.complaintDetails
-                    .filter((item) => item.isCheck)
-                    .reduce((sum, item) => sum + item.totalPrice, 0)
-                    .toLocaleString()}đ
-                </Text>
-              </Descriptions.Item>
-            </Descriptions>
+                column={1}
+                bordered
+                size="small"
+                style={{ marginBottom: 24, background: '#fafafa', borderRadius: 8 }}
+              >
+                <Descriptions.Item label="Tổng số sản phẩm">
+                  <Text strong>{selectedComplaint.complaintDetails.length}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Sản phẩm được chấp nhận">
+                  <Text strong style={{ color: '#52c41a' }}>
+                    {selectedComplaint.complaintDetails.filter((item) => item.isCheck).length}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Sản phẩm bị từ chối">
+                  <Text strong style={{ color: '#ff4d4f' }}>
+                    {selectedComplaint.complaintDetails.filter((item) => !item.isCheck).length}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Tổng tiền hoàn trả">
+                  <Text strong style={{ color: '#faad14', fontSize: 16 }}>
+                    {selectedComplaint.complaintDetails
+                      .filter((item) => item.isCheck)
+                      .reduce((sum, item) => sum + item.totalPrice, 0)
+                      .toLocaleString()}đ
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
             )}
           </div>
         </Card>
 
         {/* Manager can update status from Processing to Refund */}
         {(currentStatus === 'Processing' || currentStatus === '3') && (
-          <Card title="Cập nhật trạng thái" style={{ marginTop: 20 }}>
+          <Card title="Hoàn tiền" style={{ marginTop: 20 }}>
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Select
-                style={{ width: '100%' }}
-                placeholder="Chọn trạng thái mới"
-                value={selectedStatus}
-                onChange={setSelectedStatus}
-              >
-                {renderStatusOptions()}
-              </Select>
+              <Alert
+                message="Xác nhận hoàn tiền"
+                description="Nhấn nút bên dưới để xác nhận hoàn tiền cho khách hàng. Hành động này không thể hoàn tác."
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12 }}
+              />
               <Space style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
                   type="primary"
-                  disabled={!selectedStatus || processingAction}
-                  onClick={handleStatusChange}
+                  disabled={processingAction}
+                  onClick={() => handleProcessRefund(selectedComplaint.id)}
                   loading={processingAction}
                 >
-                  Cập nhật trạng thái
+                  Xác nhận hoàn tiền
                 </Button>
               </Space>
             </Space>
@@ -665,7 +712,7 @@ const ComplaintsRefundList = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Title level={4} style={{ margin: 0 }}>Quản lý hoàn tiền</Title>
           <Button type="default" onClick={() => setIsReasonDrawerOpen(true)}>
-          ⚙️ Cài đặt lý do khiếu nại
+            ⚙️ Cài đặt lý do khiếu nại
           </Button>
         </div>
         <Row gutter={[16, 16]} className="filter-row">

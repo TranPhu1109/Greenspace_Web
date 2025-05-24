@@ -1,7 +1,7 @@
-import { create } from 'zustand';
 import api from '@/api/api';
+import { create } from 'zustand';
 
-const useDesignerTask = create((set) => ({
+const useDesignerTask = create((set, get) => ({
   tasks: [],
   currentTask: null,
   isLoading: false,
@@ -17,6 +17,22 @@ const useDesignerTask = create((set) => ({
       set({ error: error.message, isLoading: false });
     }
   },
+
+  fetchTasksSilent: async (userId) => {
+    try {
+      const response = await api.get(`/api/worktask/${userId}/users`);
+      const newTasks = response.data;
+      const currentTasks = get().tasks;
+  
+      const isChanged = JSON.stringify(currentTasks) !== JSON.stringify(newTasks);
+      if (isChanged) {
+        set({ tasks: newTasks }); // Không bật loading
+      }
+    } catch (error) {
+      console.error("Silent fetchTasks error:", error.message);
+    }
+  },
+  
 
   // Lấy chi tiết task theo taskId
   fetchTaskDetail: async (taskId) => {
