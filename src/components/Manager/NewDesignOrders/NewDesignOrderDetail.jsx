@@ -804,7 +804,7 @@ ${externalProductsTable}
               gap: '8px'
             }}>
               <DollarOutlined />
-              Chi tiết chi phí đơn hàng
+              Chi tiết chi phí đơn hàng test
             </span>
             {currentOrder.status === 'DeterminingDesignPrice' && (
               <Tag color="orange" style={{ fontSize: 14 }}>
@@ -1725,6 +1725,11 @@ ${externalProductsTable}
         )}
 
         {renderProductsCollapse()}
+        {currentOrder.products.length > 0 && (
+          <Card title="Sản phẩm" style={{ marginTop: '24px' }}>
+            <Table dataSource={currentOrder.products} columns={columns} />
+          </Card>
+        )}
 
         {renderCostCard()}
 
