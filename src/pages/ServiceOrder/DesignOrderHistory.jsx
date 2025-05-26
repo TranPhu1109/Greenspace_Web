@@ -8,6 +8,7 @@ import {
   Spin,
   Empty,
   Button,
+  Breadcrumb,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -15,6 +16,7 @@ import Footer from "@/components/Footer";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useAuthStore from "@/stores/useAuthStore";
 import "./styles.scss";
+import { AppstoreOutlined, CopyOutlined, HomeOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -63,7 +65,7 @@ const DesignOrderHistory = () => {
       title: "Mã đơn hàng",
       dataIndex: "id",
       key: "id",
-      render: (id) => <span>#{id?.slice(0, 8)}</span>,
+      render: (id) => <Text copyable={{ text: id, icon: <CopyOutlined /> }}>#{id?.slice(0, 8)}</Text>,
     },
     {
       title: "Thông tin khách hàng",
@@ -71,7 +73,7 @@ const DesignOrderHistory = () => {
       render: (_, record) => (
         <Space direction="vertical" size={2}>
           <Text strong>{record.userName}</Text>
-          <Text type="secondary">{record.email}</Text>
+          <Text type="secondary"><PhoneOutlined /> {record.cusPhone}</Text>
         </Space>
       ),
     },
@@ -79,28 +81,28 @@ const DesignOrderHistory = () => {
       title: "Địa chỉ",
       dataIndex: "address",
       key: "address",
-      render: (text) => <Text>{text}</Text>,
+      render: (text) => <Text>{text.replace(/\|/g, ', ')}</Text>,
     },
-    {
-      title: "Số điện thoại",
-      dataIndex: "cusPhone",
-      key: "cusPhone",
-      render: (phone) => <Text>{phone}</Text>,
-    },
-    {
-      title: "Loại đơn hàng",
-      dataIndex: "isCustom",
-      key: "isCustom",
-      render: (isCustom) => {
-        const customConfig = {
-          false: { color: "blue", text: "Không tùy chỉnh" },
-          true: { color: "green", text: "Tùy chỉnh" },
-          full: { color: "purple", text: "Tùy chỉnh hoàn toàn" },
-        };
-        const config = customConfig[isCustom] || customConfig.false;
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
-    },
+    // {
+    //   title: "Số điện thoại",
+    //   dataIndex: "cusPhone",
+    //   key: "cusPhone",
+    //   render: (phone) => <Text>{phone}</Text>,
+    // },
+    // {
+    //   title: "Loại đơn hàng",
+    //   dataIndex: "isCustom",
+    //   key: "isCustom",
+    //   render: (isCustom) => {
+    //     const customConfig = {
+    //       false: { color: "blue", text: "Không tùy chỉnh" },
+    //       true: { color: "green", text: "Tùy chỉnh" },
+    //       full: { color: "purple", text: "Tùy chỉnh hoàn toàn" },
+    //     };
+    //     const config = customConfig[isCustom] || customConfig.false;
+    //     return <Tag color={config.color}>{config.text}</Tag>;
+    //   },
+    // },
     {
       title: "Trạng thái",
       dataIndex: "status",
@@ -200,7 +202,22 @@ const DesignOrderHistory = () => {
           className="order-history-content"
           style={{ padding: "180px 0", width: "1200px", margin: "0 auto" }}
         >
-          <Title level={2}>Lịch sử đơn hàng</Title>
+          {/* <Title level={2}>Lịch sử đơn hàng</Title> */}
+          <Breadcrumb style={{
+            marginTop: '16px',
+            marginBottom: '20px',
+            padding: '12px 16px',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+          }}>
+            <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
+              <HomeOutlined /> Trang chủ
+            </Breadcrumb.Item>
+            <Breadcrumb.Item>
+              Lịch sử đặt thiết kế mẫu kèm sản phẩm đã đặt
+            </Breadcrumb.Item>
+          </Breadcrumb>
           {designOrders && designOrders.length > 0 ? (
             <Table
               columns={columns}
