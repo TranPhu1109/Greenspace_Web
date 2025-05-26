@@ -9,8 +9,9 @@ import {
   Input,
   Select,
   Empty,
+  Breadcrumb,
 } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, HomeOutlined, SearchOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -102,15 +103,32 @@ const DesignsPage = () => {
     <Layout className="designs-layout">
       <Header />
       <Content>
-        <div className="designs-hero">
+        {/* <div className="designs-hero">
           <div className="container">
             <Title level={1}>Ý Tưởng Thiết Kế</Title>
             <Paragraph>
               Khám phá những ý tưởng độc đáo cho không gian xanh của bạn
             </Paragraph>
           </div>
+        </div> */}
+        <div className="designs-hero">
+          <div className="container">
+            <Breadcrumb style={{
+              marginBottom: '20px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
+                <HomeOutlined /> Trang chủ
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>
+                <AppstoreOutlined /> Ý tưởng thiết kế
+              </Breadcrumb.Item>
+            </Breadcrumb>
+          </div>
         </div>
-
         <div className="designs-content">
           <div className="container">
             <div className="filters-section">

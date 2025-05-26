@@ -24,7 +24,7 @@ function NavigationMenu({ user }) {
     },
     {
       key: "service-history",
-      label: <Link to="/serviceorderhistory">Lịch sử đặt dịch vụ</Link>,
+      label: <Link to="/serviceorderhistory">Lịch sử đặt thiết kế mẫu kèm sản phẩm</Link>,
     },
     {
       key: "booking-history",

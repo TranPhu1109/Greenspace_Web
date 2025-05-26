@@ -26,10 +26,10 @@ export default defineConfig({
     proxy: {
       // Proxy requests starting with /hub (you can choose another path prefix if needed)
       '/hub': {
-        target: 'http://localhost:8080', // Your backend server address
-        changeOrigin: true, // Recommended to avoid potential issues with origin checking on the backend
-        secure: false,      // Set to false if your backend is HTTP, true if HTTPS
-        ws: true            // IMPORTANT: Enable WebSocket proxying for SignalR
+        target: 'http://localhost:8080',
+        changeOrigin: true, 
+        secure: false,      
+        ws: true          
       }
     }
   }

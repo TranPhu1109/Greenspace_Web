@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Layout, Typography, Row, Col, Card, Spin, Empty, Button } from "antd";
+import { Layout, Typography, Row, Col, Card, Spin, Empty, Button, Breadcrumb, Space, Tag } from "antd";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,6 +9,7 @@ import useProductStore from "@/stores/useProductStore";
 import useAuthStore from "@/stores/useAuthStore";
 import DesignLoginModal from "./components/DesignLoginModal";
 import "./styles.scss";
+import { AppstoreOutlined, HomeOutlined } from "@ant-design/icons";
 
 const { Content } = Layout;
 const { Title, Paragraph } = Typography;
@@ -185,7 +186,24 @@ const DesignDetailPage = () => {
         <Content>
           <div className="design-detail-hero">
             <div className="container">
-              <Title level={1}>{currentDesign.name}</Title>
+              <Breadcrumb style={{
+                marginBottom: '20px',
+                padding: '12px 16px',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
+                  <HomeOutlined /> Trang chủ
+                </Breadcrumb.Item>
+                <Breadcrumb.Item onClick={() => navigate("/Designs")} style={{ cursor: 'pointer' }}>
+                  <AppstoreOutlined /> Ý tưởng thiết kế
+                </Breadcrumb.Item>
+                <Breadcrumb.Item>
+                  <span style={{ fontWeight: 'bold' }}>{currentDesign.name}</span>
+                </Breadcrumb.Item>
+              </Breadcrumb>
+
             </div>
           </div>
 
@@ -203,7 +221,7 @@ const DesignDetailPage = () => {
                         />
                       }
                     >
-                      {/* <Row gutter={[16, 16]} className="sub-images">
+                      <Row gutter={[16, 16]} className="sub-images">
                         {currentDesign.image?.image2 && (
                           <Col span={8}>
                             <img
@@ -222,10 +240,10 @@ const DesignDetailPage = () => {
                             />
                           </Col>
                         )}
-                      </Row> */}
+                      </Row>
 
                     </Card>
-                    <Card title="Mô tả">
+                    <Card title="Mô tả" style={{ marginTop: '16px', marginBottom: '16px' }}>
                       <div
                         className="html-preview"
                         dangerouslySetInnerHTML={{
@@ -238,8 +256,9 @@ const DesignDetailPage = () => {
 
                 <Col xs={24} md={8}>
                   <Card className="design-info-card">
-                    <Title level={3}>Thông tin thiết kế</Title>
+                    <Title level={3} style={{ fontWeight: 'bold' }}>{currentDesign.name}</Title>
                     <div className="price-info">
+                      <Title level={4} >Thông tin thiết kế</Title>
                       <div className="price-item">
                         <span>Giá thiết kế:</span>
                         <span>
@@ -269,12 +288,12 @@ const DesignDetailPage = () => {
                       </div>
                     </div>
 
-                    <div className="category-info">
+                    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: '14px' }}>
                       <Title level={4}>Danh mục</Title>
-                      <Paragraph>{currentDesign.categoryName}</Paragraph>
-                    </div>
+                      <Tag color="blue">{currentDesign.categoryName}</Tag>
+                    </Space>
 
-                    <div className="design-actions">
+                    <div style={{ marginBottom: '16px' }}>
                       <Button
                         type="primary"
                         block
@@ -315,7 +334,9 @@ const DesignDetailPage = () => {
                                   {product.name}
                                 </span>
                                 <span className="product-description">
-                                  {product.description}
+                                  <div dangerouslySetInnerHTML={{
+                                    __html: product.description,
+                                  }} />
                                 </span>
                               </div>
                             </div>
