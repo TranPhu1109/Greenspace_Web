@@ -173,7 +173,17 @@ const ServiceOrderList = () => {
       key: "action",
       render: (_, record) => (
         <Space size="middle">
-          <Tooltip title="Xem chi tiết">
+          <Tooltip 
+           styles={{
+            body: {
+              width: 900,
+              maxHeight: 500,
+              overflowY: 'auto',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d9d9d9 #f0f0f0',
+            },
+          }}
+          title="Xem chi tiết">
             <Button
               type="primary"
               icon={<EyeOutlined />}

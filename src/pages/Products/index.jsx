@@ -481,7 +481,7 @@ const ProductsPage = () => {
               borderRadius: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
-              <Breadcrumb.Item href="/Home">
+              <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
                 <HomeOutlined /> Trang chủ
               </Breadcrumb.Item>
               <Breadcrumb.Item>

@@ -230,7 +230,7 @@ const DesignDetails = ({
 
           {shouldShowDepositInfo() && order?.designPrice > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text strong>Đã toán cọc giá thiết kế:</Text>
+              <Text strong>Đã thanh toán cọc giá thiết kế:</Text>
               
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

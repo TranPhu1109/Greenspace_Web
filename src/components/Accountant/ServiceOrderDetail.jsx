@@ -511,7 +511,15 @@ const ServiceOrderDetail = () => {
       key: "description",
       width: 100,
       render: (text) => (
-        <Tooltip title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />} color="white">
+        <Tooltip styles={{
+          body: {
+            width: 900,
+            maxHeight: 500,
+            overflowY: 'auto',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d9d9d9 #f0f0f0',
+          },
+        }} title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />} color="white">
           <div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />
         </Tooltip>
       ),

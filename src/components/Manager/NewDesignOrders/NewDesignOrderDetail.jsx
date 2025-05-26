@@ -804,7 +804,7 @@ ${externalProductsTable}
               gap: '8px'
             }}>
               <DollarOutlined />
-              Chi tiết chi phí đơn hàng
+              Chi tiết chi phí đơn hàng test
             </span>
             {currentOrder.status === 'DeterminingDesignPrice' && (
               <Tag color="orange" style={{ fontSize: 14 }}>
@@ -942,7 +942,7 @@ ${externalProductsTable}
                     {
                       title: 'Sản phẩm',
                       key: 'product',
-                      width: 180,
+                      width: 200,
                       render: (_, record) => (
                         <Space>
                           <Image
@@ -956,33 +956,6 @@ ${externalProductsTable}
                           <div>
                             <Text strong>{record.name}</Text>
                             <div style={{ fontSize: 12, color: '#888' }}>ID: {record.id}</div>
-                            {/* {record.description && (
-                              <Tooltip
-                                title={<div
-                                  className="html-preview"
-                                  dangerouslySetInnerHTML={{ __html: record.description }}
-                                />}
-                                placement="top"
-                                color="white"
-                              >
-                                <div
-                                  style={{
-                                    fontSize: 12,
-                                    color: '#888',
-                                    marginTop: 2,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    lineHeight: '1.4em',
-                                    maxHeight: '2.8em'
-                                  }}
-                                  dangerouslySetInnerHTML={{ __html: record.description }}
-                                >
-                                </div>
-                              </Tooltip>
-                            )} */}
                           </div>
                         </Space>
                       ),
@@ -991,7 +964,7 @@ ${externalProductsTable}
                       title: 'Yêu cầu về sản phẩm',
                       dataIndex: 'description',
                       key: 'description',
-                      width: 100,
+                      width: 300,
                       render: (description) => (
                         <Tooltip
                           title={<div
@@ -1000,6 +973,15 @@ ${externalProductsTable}
                           />}
                           placement="top"
                           color="white"
+                          styles={{
+                            body: {
+                              width: 900,
+                              maxHeight: 500,
+                              overflowY: 'auto',
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: '#d9d9d9 #f0f0f0',
+                            },
+                          }}
                         >
                           <div
                             style={{
@@ -1743,6 +1725,11 @@ ${externalProductsTable}
         )}
 
         {renderProductsCollapse()}
+        {currentOrder.products.length > 0 && (
+          <Card title="Sản phẩm" style={{ marginTop: '24px' }}>
+            <Table dataSource={currentOrder.products} columns={columns} />
+          </Card>
+        )}
 
         {renderCostCard()}
 

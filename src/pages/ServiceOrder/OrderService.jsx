@@ -22,7 +22,9 @@ import {
   Tag,
   Statistic,
   Checkbox,
-  Tooltip
+  Tooltip,
+  InputNumber,
+  Breadcrumb
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -45,7 +47,7 @@ import useProductStore from "@/stores/useProductStore";
 import useAuthStore from "@/stores/useAuthStore";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useWalletStore from "@/stores/useWalletStore";
-import useShippingStore from "@/stores/useShippingStore";
+import AddressForm from "@/components/Common/AddressForm";
 // import "./styles.scss";
 
 const { Content } = Layout;
@@ -71,18 +73,7 @@ const OrderService = () => {
     loading: walletLoading,
     createBill,
   } = useWalletStore();
-  const {
-    getProvinces,
-    getDistricts,
-    getWards,
-    provinces,
-    districts,
-    wards,
-    provincesLoading,
-    districtsLoading,
-    wardsLoading,
-  } = useShippingStore();
-  
+
   const [productDetails, setProductDetails] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productError, setProductError] = useState(null);
@@ -98,7 +89,7 @@ const OrderService = () => {
   const [leftColumnHeight, setLeftColumnHeight] = useState(0);
   const [footerTop, setFooterTop] = useState(0);
   const containerRef = useRef(null);
-  
+
   // New states for products and categories
   const [allProducts, setAllProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -111,15 +102,10 @@ const OrderService = () => {
   const [productsForCategory, setProductsForCategory] = useState([]);
   const [materialPrice, setMaterialPrice] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
-  
-  // State for address selection
-  const [selectedProvince, setSelectedProvince] = useState(null);
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
-  const [selectedWard, setSelectedWard] = useState(null);
-  const [addressDetail, setAddressDetail] = useState("");
-  const [useExistingAddress, setUseExistingAddress] = useState(false);
-  const [saveNewAddress, setSaveNewAddress] = useState(false);
+
+  // State for address
   const [isAddressValid, setIsAddressValid] = useState(false);
+  const [fullAddressData, setFullAddressData] = useState(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -133,35 +119,27 @@ const OrderService = () => {
 
   // Kiểm tra và thiết lập tính hợp lệ của địa chỉ
   useEffect(() => {
-    if (useExistingAddress && hasExistingAddress) {
-      // Nếu sử dụng địa chỉ có sẵn và có địa chỉ
+    if (fullAddressData) {
       setIsAddressValid(true);
-    } else if (!useExistingAddress) {
-      // Nếu nhập địa chỉ mới, kiểm tra đầy đủ thông tin
-      const isValid = selectedProvince && selectedDistrict && selectedWard && addressDetail.trim() !== "";
-      setIsAddressValid(isValid);
     } else {
       setIsAddressValid(false);
     }
-  }, [useExistingAddress, hasExistingAddress, selectedProvince, selectedDistrict, selectedWard, addressDetail]);
+  }, [fullAddressData]);
 
-  // Xử lý khi chọn sử dụng địa chỉ có sẵn
-  const handleUseExistingAddress = (e) => {
-    const checked = e.target.checked;
-    setUseExistingAddress(checked);
+  // Handle address change from AddressForm
+  const handleAddressChange = (addressData) => {
+    if (addressData && addressData.fullAddressData) {
+      setFullAddressData(addressData.fullAddressData);
+      setIsAddressValid(true);
 
-    if (checked && hasExistingAddress) {
-      // Reset các trường địa chỉ khi sử dụng địa chỉ có sẵn
-      setSelectedProvince(null);
-      setSelectedDistrict(null);
-      setSelectedWard(null);
-      setAddressDetail("");
+      // Cập nhật thông tin người nhận từ AddressForm
+      if (addressData.fullAddressData.recipientInfo) {
+        form.setFieldValue("fullName", addressData.fullAddressData.recipientInfo.name || user?.name || "");
+        form.setFieldValue("phone", addressData.fullAddressData.recipientInfo.phone || user?.phone || "");
+      }
+    } else {
+      setIsAddressValid(false);
     }
-  };
-
-  // Xử lý khi chọn lưu địa chỉ mới
-  const handleSaveNewAddress = (e) => {
-    setSaveNewAddress(e.target.checked);
   };
 
   // Tính toán chiều cao và vị trí các phần tử
@@ -181,17 +159,17 @@ const OrderService = () => {
       const scrollY = window.scrollY;
       const rightColumn = rightColumnRef.current;
       if (!rightColumn || !footerRef.current) return;
-      
+
       const footerTop = footerRef.current.offsetTop;
       const rightColumnHeight = rightColumn.offsetHeight;
       const viewportHeight = window.innerHeight;
-      
+
       // Điểm bắt đầu dịch chuyển: khi footer sắp va chạm với cột phải
       const scrollThreshold = footerTop - viewportHeight;
-      
+
       // Giới hạn dịch chuyển: không dịch chuyển quá chiều cao của cột phải
       const maxOffset = Math.max(0, rightColumnHeight - viewportHeight + 100); // +100px buffer
-      
+
       if (scrollY > scrollThreshold) {
         // Tính toán khoảng cách dịch chuyển và giới hạn nó
         const distance = Math.min(scrollY - scrollThreshold, maxOffset);
@@ -216,9 +194,9 @@ const OrderService = () => {
     const handleWheel = (e) => {
       const leftColumn = leftColumnRef.current;
       if (!leftColumn) return true; // Để browser xử lý nếu không có ref
-      
+
       // Không cần kiểm tra vị trí chuột, luôn ưu tiên cuộn cột trái trước
-      
+
       const scrollHeight = leftColumn.scrollHeight;
       const clientHeight = leftColumn.clientHeight;
       const maxScroll = scrollHeight - clientHeight;
@@ -234,7 +212,7 @@ const OrderService = () => {
         }
         // Nếu đã cuộn đến cuối, để browser xử lý cuộn cả trang
         return true;
-      } 
+      }
       // Kiểm tra cuộn lên
       else if (e.deltaY < 0) {
         // Nếu cột trái không ở đầu, ưu tiên cuộn cột trái lên trước
@@ -246,7 +224,7 @@ const OrderService = () => {
         // Nếu đã ở đầu cột trái, để browser xử lý cuộn cả trang
         return true;
       }
-      
+
       return true; // Để browser xử lý trong các trường hợp khác
     };
 
@@ -269,7 +247,7 @@ const OrderService = () => {
       const headerHeight = 80; // Chiều cao ước tính của header
       const footerHeight = 60; // Chiều cao ước tính của footer
       const padding = 40; // Padding thêm vào
-      
+
       const maxHeight = viewportHeight - headerHeight - padding;
       rightColumn.style.maxHeight = `${maxHeight}px`;
     };
@@ -321,11 +299,11 @@ const OrderService = () => {
       try {
         // Ensure categories are loaded first
         const categoriesData = await fetchCategories();
-        
+
         // Load all products
         const allProductsData = await fetchProducts();
         if (!isMounted) return;
-        
+
         console.log("All products loaded:", allProductsData);
         setAllProducts(allProductsData || []);
 
@@ -341,14 +319,14 @@ const OrderService = () => {
                 // Find category name from categories
                 const category = categoriesData.find(cat => cat.id === product.categoryId);
                 const categoryName = category ? category.name : "Không xác định";
-                
+
                 // Add categoryId and categoryName to detail
                 const enhancedDetail = {
                   ...detail,
                   categoryId: product.categoryId,
                   categoryName: categoryName
                 };
-                
+
                 return {
                   detail: enhancedDetail,
                   product: {
@@ -370,41 +348,33 @@ const OrderService = () => {
 
         if (isMounted) {
           const validResults = results.filter(Boolean);
-          console.log("Loaded products with categories:", validResults);
-          
+
           // Tính toán giá dựa trên sản phẩm ban đầu
           let initialMaterialPrice = 0;
-          
+
           validResults.forEach(({ detail }) => {
             initialMaterialPrice += detail.price || 0;
           });
-          
+
           const designPrice = currentDesign?.designPrice || 0;
           const initialTotalPrice = initialMaterialPrice + designPrice;
-          
-          console.log("Initial prices:", {
-            materialPrice: initialMaterialPrice,
-            designPrice,
-            totalPrice: initialTotalPrice
-          });
-          
+
           // Cập nhật state
           setProductDetails(validResults);
           setOriginalProductDetails([...validResults]); // Store original product details
           setMaterialPrice(initialMaterialPrice);
           setTotalPrice(initialTotalPrice);
-          
+
           // Cập nhật giá trong currentDesign
           if (currentDesign) {
             currentDesign.materialPrice = initialMaterialPrice;
             currentDesign.totalPrice = initialTotalPrice;
           }
-          
+
           setProductError(null);
         }
       } catch (error) {
         if (isMounted) {
-          console.error("Failed to load products:", error);
           setProductError("Failed to load products");
           setProductDetails([]);
           setOriginalProductDetails([]);
@@ -431,12 +401,12 @@ const OrderService = () => {
       // Extract unique categories from current products
       const categoryIds = productDetails.map(({ detail }) => detail.categoryId).filter(Boolean);
       const uniqueCategories = [...new Set(categoryIds)];
-      
+
       console.log("Unique categories from products:", uniqueCategories);
       console.log("Available categories:", categories);
-      
+
       setExistingCategories(uniqueCategories);
-      
+
       // If no category selected, select the first one
       if (!selectedCategory && uniqueCategories.length > 0) {
         setSelectedCategory(uniqueCategories[0]);
@@ -456,7 +426,7 @@ const OrderService = () => {
         // Load categories
         const categoriesData = await fetchCategories();
         console.log("Loaded categories:", categoriesData);
-        
+
         if (mountedRef.current) {
           // We already loaded products in the previous effect
           setLoadingAllProducts(false);
@@ -468,7 +438,7 @@ const OrderService = () => {
         }
       }
     };
-    
+
     loadAllProductsAndCategories();
   }, [fetchCategories]);
 
@@ -477,7 +447,7 @@ const OrderService = () => {
     if (selectedCategory && allProducts.length > 0) {
       console.log("Filtering products by category:", selectedCategory);
       console.log("All products count:", allProducts.length);
-      
+
       const filtered = allProducts.filter(product => product.categoryId === selectedCategory);
       console.log("Filtered products count:", filtered.length);
       setFilteredProducts(filtered);
@@ -505,98 +475,47 @@ const OrderService = () => {
     loadWalletBalance();
   }, [fetchBalance]);
 
-  // Load provinces when component mounts
-  useEffect(() => {
-    const loadProvinces = async () => {
-      try {
-        await getProvinces();
-      } catch (error) {
-        console.error("Error loading provinces:", error);
-        //message.error("Không thể tải danh sách tỉnh thành");
-      }
-    };
-    loadProvinces();
-  }, [getProvinces]);
-
-  // Load districts when province changes
-  useEffect(() => {
-    const loadDistricts = async () => {
-      if (selectedProvince) {
-        try {
-          await getDistricts(selectedProvince);
-          // Reset district and ward selections when province changes
-          setSelectedDistrict(null);
-          setSelectedWard(null);
-        } catch (error) {
-          console.error("Error loading districts:", error);
-          message.error("Không thể tải danh sách quận/huyện");
-        }
-      }
-    };
-    loadDistricts();
-  }, [selectedProvince, getDistricts]);
-
-  // Load wards when district changes
-  useEffect(() => {
-    const loadWards = async () => {
-      if (selectedDistrict) {
-        try {
-          await getWards(selectedDistrict);
-          // Reset ward selection when district changes
-          setSelectedWard(null);
-        } catch (error) {
-          console.error("Error loading wards:", error);
-          message.error("Không thể tải danh sách phường/xã");
-        }
-      }
-    };
-    loadWards();
-  }, [selectedDistrict, getWards]);
-
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // Xác định địa chỉ giao hàng
       let fullAddress = "";
-      
-      if (useExistingAddress && hasExistingAddress) {
-        fullAddress = user.address;
+      let cusPhone = values.phone || "";
+      let userName = values.fullName || user?.name || "";
+
+      if (fullAddressData) {
+        fullAddress = fullAddressData.fullAddressString;
+        // Lấy thông tin từ fullAddressData nếu có
+        if (fullAddressData.recipientInfo) {
+          cusPhone = fullAddressData.recipientInfo.phone || values.phone || "";
+          userName = fullAddressData.recipientInfo.name || values.fullName || "";
+        }
       } else {
-      const provinceName = selectedProvince ? provinces.find(p => p.provinceId === selectedProvince)?.provinceName : '';
-      const districtName = selectedDistrict ? districts.find(d => d.districtId === selectedDistrict)?.districtName : '';
-      const wardName = selectedWard ? wards.find(w => w.wardCode === selectedWard)?.wardName : '';
-        fullAddress = `${addressDetail}|${provinceName}|${districtName}|${wardName}`;
+        message.error("Vui lòng cung cấp địa chỉ giao hàng");
+        return;
       }
 
       // Create a productDetails array from the current product details 
       const updatedProductDetails = productDetails.map(({ detail }) => ({
         productId: detail.productId,
         quantity: detail.quantity,
-        // price: detail.price,
-        // categoryName: detail.categoryName
       }));
-
-      // Log để kiểm tra danh sách sản phẩm
-      console.log("Submitting order with products:", updatedProductDetails);
 
       const data = {
         userId: user.id,
         designIdeaId: currentDesign.id,
+        userName: userName,
         address: fullAddress,
-        cusPhone: values.phone,
+        cusPhone: cusPhone,
         isCustom: false,
         totalPrice: totalPrice, // Sử dụng tổng giá từ state
         designPrice: currentDesign.designPrice,
         materialPrice: materialPrice, // Sử dụng giá vật liệu từ state
         products: updatedProductDetails, // Danh sách sản phẩm hiện tại
       };
-      
-      console.log("Order data prepared:", data);
-      setOrderData({
-        ...data,
-        saveAddress: saveNewAddress && !hasExistingAddress && !useExistingAddress
-      });
+
+      setOrderData(data);
       setIsModalOpen(true);
     } catch (error) {
       console.error("Form validation error:", error);
@@ -616,15 +535,12 @@ const OrderService = () => {
           quantity: detail.quantity,
         }))
       };
-      
-      console.log("Sending order with latest products:", updatedProductData.productDetails);
-      console.log("Total price being sent:", updatedProductData.totalPrice);
 
       // Nếu có yêu cầu lưu địa chỉ mới
-      if (orderData.saveAddress) {
+      if (fullAddressData && fullAddressData.shippingInfo.saveAsDefault) {
         try {
           // Cập nhật địa chỉ người dùng thông qua API
-          await useAuthStore.getState().updateUserAddress(orderData.address);
+          await useAuthStore.getState().updateUserAddress(fullAddressData.fullAddressString);
           message.success("Đã lưu địa chỉ mới");
         } catch (error) {
           console.error("Error saving address:", error);
@@ -634,42 +550,42 @@ const OrderService = () => {
 
       // Create the order
       const orderResponse = await createDesignOrder(updatedProductData);
-      
+
       // Create bill after successful order creation
       await createBill(orderResponse.data.id, totalPrice);
-      
+
       // Update stock for each product in the order using the latest productDetails
-        if (productDetails && productDetails.length > 0) {
-          for (const { detail, product } of productDetails) {
-            try {
-              // Calculate new stock by subtracting ordered quantity
-              const newStock = product.stock - detail.quantity;
-              
-              // Prepare update data
-              const updateData = {
-                name: product.name,
-                categoryId: product.categoryId,
-                price: product.price,
-                stock: newStock,
-                description: product.description,
-                designImage1URL: product.designImage1URL || "",
-                size: product.size,
-                image: {
-                  imageUrl: product.image?.imageUrl || "",
-                  image2: product.image?.image2 || "",
-                  image3: product.image?.image3 || ""
-                }
-              };
-              
-              // Update product stock
-              await updateProduct(product.id, updateData);
-            } catch (error) {
-              console.error(`Error updating stock for product ${product.id}:`, error);
-              // Continue with other products even if one fails
+      if (productDetails && productDetails.length > 0) {
+        for (const { detail, product } of productDetails) {
+          try {
+            // Calculate new stock by subtracting ordered quantity
+            const newStock = product.stock - detail.quantity;
+
+            // Prepare update data
+            const updateData = {
+              name: product.name,
+              categoryId: product.categoryId,
+              price: product.price,
+              stock: newStock,
+              description: product.description,
+              designImage1URL: product.designImage1URL || "",
+              size: product.size,
+              image: {
+                imageUrl: product.image?.imageUrl || "",
+                image2: product.image?.image2 || "",
+                image3: product.image?.image3 || ""
+              }
+            };
+
+            // Update product stock
+            await updateProduct(product.id, updateData);
+          } catch (error) {
+            console.error(`Error updating stock for product ${product.id}:`, error);
+            // Continue with other products even if one fails
           }
         }
       }
-      
+
       // Refresh wallet balance after successful order creation and bill creation
       await fetchBalance();
       message.success("Đặt hàng thành công!");
@@ -679,26 +595,6 @@ const OrderService = () => {
       console.error("Order submission error:", error);
       message.error("Có lỗi xảy ra khi đặt hàng");
     }
-  };
-
-  // Handle province selection
-  const handleProvinceChange = (value) => {
-    setSelectedProvince(value);
-  };
-
-  // Handle district selection
-  const handleDistrictChange = (value) => {
-    setSelectedDistrict(value);
-  };
-
-  // Handle ward selection
-  const handleWardChange = (value) => {
-    setSelectedWard(value);
-  };
-
-  // Handle address detail change
-  const handleAddressDetailChange = (e) => {
-    setAddressDetail(e.target.value);
   };
 
   // Handle category selection
@@ -720,7 +616,7 @@ const OrderService = () => {
       // If product exists, increase quantity
       const updatedProductDetails = [...productDetails];
       const currentDetail = updatedProductDetails[existingProductIndex].detail;
-      
+
       updatedProductDetails[existingProductIndex] = {
         ...updatedProductDetails[existingProductIndex],
         detail: {
@@ -729,7 +625,7 @@ const OrderService = () => {
           price: product.price * (currentDetail.quantity + 1)
         }
       };
-      
+
       setProductDetails(updatedProductDetails);
       message.success(`Đã tăng số lượng ${product.name}`);
     } else {
@@ -744,12 +640,12 @@ const OrderService = () => {
         },
         product
       };
-      
+
       console.log("Adding new product:", newProductDetail);
       setProductDetails([...productDetails, newProductDetail]);
       message.success(`Đã thêm ${product.name} vào thiết kế`);
     }
-    
+
     // Recalculate total price
     updateTotalPrice();
   };
@@ -759,32 +655,32 @@ const OrderService = () => {
     const updatedProductDetails = productDetails.filter(
       ({ detail }) => detail.productId !== productId
     );
-    
+
     setProductDetails(updatedProductDetails);
     message.success('Đã xóa sản phẩm khỏi thiết kế');
-    
+
     // Recalculate total price
     updateTotalPrice();
   };
 
   // Handle quantity change for a product
   const handleQuantityChange = (productId, newQuantity) => {
-    if (newQuantity < 1) return;
-    
+    if (!newQuantity || newQuantity < 1) return;
+
     const productIndex = productDetails.findIndex(
       ({ detail }) => detail.productId === productId
     );
-    
+
     if (productIndex >= 0) {
       const updatedProductDetails = [...productDetails];
       const product = updatedProductDetails[productIndex].product;
-      
+
       // Check if new quantity exceeds stock
       if (newQuantity > product.stock) {
         message.warning(`Số lượng vượt quá hàng trong kho (${product.stock})`);
         newQuantity = product.stock;
       }
-      
+
       updatedProductDetails[productIndex] = {
         ...updatedProductDetails[productIndex],
         detail: {
@@ -793,9 +689,9 @@ const OrderService = () => {
           price: product.price * newQuantity
         }
       };
-      
+
       setProductDetails(updatedProductDetails);
-      
+
       // Recalculate total price
       updateTotalPrice();
     }
@@ -805,8 +701,8 @@ const OrderService = () => {
   const handleReplaceProduct = (product) => {
     // Find if any product with the same category already exists
     const existingCategoryProductIndex = productDetails.findIndex(
-      ({ detail, product: existingProduct }) => 
-        (detail.categoryId && detail.categoryId === product.categoryId) || 
+      ({ detail, product: existingProduct }) =>
+        (detail.categoryId && detail.categoryId === product.categoryId) ||
         (existingProduct.categoryId && existingProduct.categoryId === product.categoryId)
     );
 
@@ -814,10 +710,10 @@ const OrderService = () => {
       // Replace the existing product with the new one
       const updatedProductDetails = [...productDetails];
       const existingDetail = updatedProductDetails[existingCategoryProductIndex].detail;
-      
+
       // Preserve the quantity from the existing product
       const quantity = existingDetail.quantity || 1;
-      
+
       updatedProductDetails[existingCategoryProductIndex] = {
         detail: {
           productId: product.id,
@@ -828,14 +724,14 @@ const OrderService = () => {
         },
         product
       };
-      
+
       setProductDetails(updatedProductDetails);
       message.success(`Đã thay thế bằng ${product.name}`);
     } else {
       // If no product with the same category exists, simply add it
       handleAddProduct(product);
     }
-    
+
     // Recalculate total price
     updateTotalPrice();
   };
@@ -853,51 +749,83 @@ const OrderService = () => {
 
   // Update the total price based on product details
   const updateTotalPrice = () => {
-    // Calculate material price based on selected products
+    // Tính toán giá vật liệu dựa trên danh sách sản phẩm hiện tại
     const calculatedMaterialPrice = productDetails.reduce(
       (total, { detail }) => total + detail.price,
       0
     );
-    
-    // Keep the same design price
+
+    // Giá thiết kế không đổi
     const designPrice = currentDesign?.designPrice || 0;
-    
-    // Calculate total price
+
+    // Tính tổng giá
     const calculatedTotalPrice = calculatedMaterialPrice + designPrice;
-    
-    // Update state to trigger re-render
+
+    // Cập nhật state để giao diện được cập nhật
     setMaterialPrice(calculatedMaterialPrice);
     setTotalPrice(calculatedTotalPrice);
-    
-    // Update the currentDesign object for use in the order
+
+    // Cập nhật giá trong đối tượng currentDesign để sử dụng khi đặt hàng
     if (currentDesign) {
       currentDesign.materialPrice = calculatedMaterialPrice;
       currentDesign.totalPrice = calculatedTotalPrice;
     }
-
-    console.log("Updated prices:", {
-      materialPrice: calculatedMaterialPrice,
-      designPrice,
-      totalPrice: calculatedTotalPrice
-    });
   };
+
+  // Hàm tính tổng giá trị sản phẩm để kiểm tra chéo
+  const calculateTotalProductPrice = () => {
+    return productDetails.reduce(
+      (total, { detail }) => total + detail.price,
+      0
+    );
+  };
+
+  // Đảm bảo cập nhật giá mỗi khi danh sách sản phẩm thay đổi
+  useEffect(() => {
+    if (productDetails && productDetails.length >= 0) {
+      updateTotalPrice();
+
+      // Log để kiểm tra
+      const calculatedPrice = calculateTotalProductPrice();
+      if (calculatedPrice !== materialPrice) {
+        // Cập nhật lại giá nếu không khớp
+        setMaterialPrice(calculatedPrice);
+        setTotalPrice(calculatedPrice + (currentDesign?.designPrice || 0));
+      }
+    }
+  }, [productDetails, materialPrice, currentDesign]);
+
+  // Thêm một useEffect mới để đảm bảo rằng giá được cập nhật sau khi component mount
+  useEffect(() => {
+    // Đảm bảo cập nhật giá khi component mount và có danh sách sản phẩm
+    if (productDetails && productDetails.length >= 0 && currentDesign) {
+      updateTotalPrice();
+    }
+  }, []);
 
   // Hiển thị modal thay đổi sản phẩm
   const showChangeProductModal = (productId, categoryId) => {
     // Tìm product cần thay đổi
-    const productToChange = productDetails.find(({detail}) => detail.productId === productId);
+    const productToChange = productDetails.find(({ detail }) => detail.productId === productId);
     if (!productToChange) return;
 
     setSelectedProductToChange(productToChange);
 
     // Lọc các sản phẩm cùng category
-    const productsInSameCategory = allProducts.filter(product => 
+    const productsInSameCategory = allProducts.filter(product =>
       product.categoryId === categoryId
     );
-    
+
     console.log("Showing products of category:", categoryId);
     console.log("Found products:", productsInSameCategory.length);
-    
+
+    // Lọc ra danh sách sản phẩm đã được sử dụng trong cùng category
+    const usedProductIds = productDetails
+      .filter(item => item.detail.categoryId === categoryId)
+      .map(item => item.detail.productId);
+
+    console.log("Used product IDs in this category:", usedProductIds);
+
     setProductsForCategory(productsInSameCategory);
     setIsChangeProductModalOpen(true);
   };
@@ -908,19 +836,19 @@ const OrderService = () => {
 
     // Tìm vị trí sản phẩm cần thay đổi trong productDetails
     const productIndex = productDetails.findIndex(
-      ({detail}) => detail.productId === selectedProductToChange.detail.productId
+      ({ detail }) => detail.productId === selectedProductToChange.detail.productId
     );
 
     if (productIndex >= 0) {
       // Tạo bản sao của danh sách sản phẩm
       const updatedProductDetails = [...productDetails];
-      
+
       // Giữ nguyên số lượng của sản phẩm cũ
       const quantity = updatedProductDetails[productIndex].detail.quantity;
-      
+
       // Tính giá mới
       const newPrice = newProduct.price * quantity;
-      
+
       // Thay thế sản phẩm
       updatedProductDetails[productIndex] = {
         detail: {
@@ -932,47 +860,18 @@ const OrderService = () => {
         },
         product: newProduct
       };
-      
+
       // Cập nhật danh sách sản phẩm
       setProductDetails(updatedProductDetails);
-      
-      // Tính toán giá mới
-      const newMaterialPrice = updatedProductDetails.reduce(
-        (total, { detail }) => total + detail.price,
-        0
-      );
-      
-      // Keep the same design price
-      const designPrice = currentDesign?.designPrice || 0;
-      
-      // Calculate new total price
-      const newTotalPrice = newMaterialPrice + designPrice;
-      
-      // Cập nhật state để trigger re-render
-      setMaterialPrice(newMaterialPrice);
-      setTotalPrice(newTotalPrice);
-      
-      // Cập nhật giá trong currentDesign
-      if (currentDesign) {
-        currentDesign.materialPrice = newMaterialPrice;
-        currentDesign.totalPrice = newTotalPrice;
-      }
-      
-      console.log("Updated prices after product change:", {
-        materialPrice: newMaterialPrice,
-        designPrice,
-        totalPrice: newTotalPrice,
-        updatedProduct: newProduct.name,
-        quantity,
-        productPrice: newProduct.price,
-        newItemPrice: newPrice
-      });
-      
+
       // Đóng modal
       setIsChangeProductModalOpen(false);
-      
+
       // Hiển thị thông báo thành công
       message.success(`Đã thay thế bằng ${newProduct.name}`);
+
+      // Không cần tính toán giá ở đây nữa vì useEffect sẽ tự động tính
+      // khi productDetails thay đổi
     }
   };
 
@@ -1010,9 +909,32 @@ const OrderService = () => {
     <Layout className="order-service-layout">
       <Header />
       <Content style={{ paddingTop: '0px', paddingBottom: '0px' }}>
+        <div style={{ marginTop: '70px' }}>
+          <div className="container">
+            <Breadcrumb style={{
+              marginBottom: '20px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
+                <HomeOutlined /> Trang chủ
+              </Breadcrumb.Item>
+              <Breadcrumb.Item onClick={() => navigate("/Designs")} style={{ cursor: 'pointer' }}>
+                <AppstoreOutlined /> Ý tưởng thiết kế
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>
+                <span style={{ color: '#888' }}>{currentDesign.name}</span>
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>
+                <ShoppingCartOutlined /> Đặt hàng
+              </Breadcrumb.Item>
+            </Breadcrumb>
+          </div>
+        </div>
         <div className="order-service-content" ref={containerRef} style={{ paddingBottom: '50px' }}>
           <div className="container order-service-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
-
             <Row gutter={[24, 24]} style={{ position: 'relative' }}>
               {/* Cột trái (2/3) - Có thể cuộn */}
               <Col xs={24} md={16}>
@@ -1036,13 +958,13 @@ const OrderService = () => {
                     }
                   }}
                 >
-            <div className="order-form">
+                  <div className="order-form">
                     {/* Design Information */}
                     <Card className="form-section design-info-card">
                       <Row gutter={[16, 16]}>
                         <Col span={24}>
                           <div className="design-images-carousel">
-                            <Title level={3}>{currentDesign?.name}</Title>
+                            <Title level={3} style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center' }}>{currentDesign?.name}</Title>
                             <Row gutter={[16, 16]}>
                               {currentDesign?.image?.imageUrl && (
                                 <Col span={24} md={8}>
@@ -1111,7 +1033,7 @@ const OrderService = () => {
                         </Panel>
                       </Collapse>
                     </Card>
-                    
+
                     {/* Product List */}
                     <Collapse
                       defaultActiveKey={activeKey}
@@ -1142,23 +1064,23 @@ const OrderService = () => {
                             <div className="product-summary" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f6ffed', borderRadius: '8px', border: '1px solid #b7eb8f' }}>
                               <Row gutter={16}>
                                 <Col span={8}>
-                                  <Statistic 
-                                    title="Tổng sản phẩm" 
-                                    value={productDetails.reduce((total, { detail }) => total + detail.quantity, 0)} 
-                                    prefix={<TagOutlined />} 
+                                  <Statistic
+                                    title="Tổng sản phẩm"
+                                    value={productDetails.reduce((total, { detail }) => total + detail.quantity, 0)}
+                                    prefix={<TagOutlined />}
                                   />
                                 </Col>
                                 <Col span={8}>
-                                  <Statistic 
-                                    title="Số loại sản phẩm" 
-                                    value={productDetails.length} 
-                                    prefix={<AppstoreOutlined />} 
+                                  <Statistic
+                                    title="Số loại sản phẩm"
+                                    value={productDetails.length}
+                                    prefix={<AppstoreOutlined />}
                                   />
                                 </Col>
                                 <Col span={8}>
-                                  <Statistic 
-                                    title="Tổng tiền vật liệu" 
-                                    value={productDetails.reduce((total, { detail }) => total + detail.price, 0)} 
+                                  <Statistic
+                                    title="Tổng tiền vật liệu"
+                                    value={productDetails.reduce((total, { detail }) => total + detail.price, 0)}
                                     prefix={<DollarOutlined />}
                                     formatter={(value) => value.toLocaleString("vi-VN", {
                                       style: "currency",
@@ -1175,9 +1097,9 @@ const OrderService = () => {
                                 {existingCategories.map(categoryId => {
                                   const category = categories.find(cat => cat.id === categoryId);
                                   return category ? (
-                                    <Tag 
-                                      key={categoryId} 
-                                      color="blue" 
+                                    <Tag
+                                      key={categoryId}
+                                      color="blue"
                                       style={{ marginBottom: '8px', fontSize: '14px', padding: '4px 8px' }}
                                     >
                                       {category.name}
@@ -1186,7 +1108,7 @@ const OrderService = () => {
                                 })}
                               </div>
                             </div>
-                            
+
                             {productDetails.map(({ detail, product }) => (
                               <div key={detail.productId} className="product-item">
                                 <Row gutter={16} align="middle">
@@ -1200,37 +1122,32 @@ const OrderService = () => {
                                   </Col>
                                   <Col span={8}>
                                     <Title level={5}>{product.name}</Title>
-                                    <Paragraph ellipsis={{ rows: 2 }}>{product.description}</Paragraph>
+                                    <Paragraph ellipsis={{ rows: 2 }}><div dangerouslySetInnerHTML={{ __html: product.description }} /></Paragraph>
                                     <Tag color="blue">{detail.categoryName || product.categoryName || "Không xác định"}</Tag>
                                   </Col>
                                   <Col span={4}>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                      <Button
-                                        icon={<MinusOutlined />}
-                                        onClick={() => handleQuantityChange(detail.productId, detail.quantity - 1)}
-                                        disabled={detail.quantity <= 1}
-                                        style={{ borderRadius: '4px 0 0 4px' }}
-                                      />
-                                      <Input 
-                                        value={detail.quantity} 
-                                        style={{ width: '90px', margin: '0', textAlign: 'center', borderLeft: 0, borderRight: 0 }} 
-                                        onChange={(e) => {
-                                          const value = parseInt(e.target.value);
-                                          if (!isNaN(value)) {
-                                            handleQuantityChange(detail.productId, value);
+                                    <InputNumber
+                                      min={1}
+                                      max={product.stock}
+                                      value={detail.quantity}
+                                      onChange={(value) => {
+                                        // Đảm bảo value là một số trước khi xử lý
+                                        if (value !== null && value !== undefined) {
+                                          const numValue = parseInt(value);
+                                          if (!isNaN(numValue)) {
+                                            handleQuantityChange(detail.productId, numValue);
                                           }
-                                        }}
-                                      />
-                                      <Button
-                                        icon={<PlusOutlined />}
-                                        onClick={() => handleQuantityChange(detail.productId, detail.quantity + 1)}
-                                        disabled={detail.quantity >= product.stock}
-                                        style={{ borderRadius: '0 4px 4px 0', margin:'0 15' }}
-                                      />
-                                    </div>
+                                        }
+                                      }}
+                                      onStep={(value) => {
+                                        // Khi bấm mũi tên, đảm bảo value là số hợp lệ
+                                        handleQuantityChange(detail.productId, value);
+                                      }}
+                                      style={{ width: '100%' }}
+                                    />
                                     <div style={{ marginTop: '4px', fontSize: '12px', color: '#8c8c8c', textAlign: 'center' }}>
                                       Kho: {product.stock}
-                                    </div>  
+                                    </div>
                                   </Col>
                                   <Col span={4}>
                                     <span className="product-price">
@@ -1241,8 +1158,8 @@ const OrderService = () => {
                                     </span>
                                   </Col>
                                   <Col span={4}>
-                                    <Button 
-                                      type="primary" 
+                                    <Button
+                                      type="primary"
                                       icon={<FilterOutlined />}
                                       onClick={() => showChangeProductModal(detail.productId, product.categoryId)}
                                     >
@@ -1259,7 +1176,7 @@ const OrderService = () => {
                         )}
                       </Panel>
 
-              {/* Customer Information */}
+                      {/* Customer Information */}
                       <Panel
                         header={
                           <div className="panel-header">
@@ -1267,59 +1184,87 @@ const OrderService = () => {
                             <span>Thông tin người đặt</span>
                           </div>
                         }
-                        key="2"
+                        key="3"
                         forceRender
                       >
-                <Form
-                  form={form}
-                  layout="vertical"
-                  initialValues={{
-                    fullName: user?.name || "",
-                    phone: user?.phone || "",
-                    email: user?.email || "",
-                  }}
-                >
-                  <Row gutter={[16, 16]}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="fullName"
-                        label="Họ và tên"
-                        rules={[
-                          {
-                            required: true,
-                            message: "Vui lòng nhập họ và tên",
-                          },
-                        ]}
-                      >
-                                <Input disabled={true} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="phone"
-                        label="Số điện thoại"
-                        rules={[
-                          {
-                            required: true,
-                            message: "Vui lòng nhập số điện thoại",
-                          },
-                        ]}
-                      >
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="email"
-                        label="Email"
-                        rules={[
-                          { required: true, message: "Vui lòng nhập email" },
-                          { type: "email", message: "Email không hợp lệ" },
-                        ]}
-                      >
-                                <Input disabled={true} />
-                      </Form.Item>
-                    </Col>
+                        <div style={{ marginBottom: '16px' }}>
+                          <Text type="secondary">
+                            Thông tin người nhận hàng sẽ được tự động điền từ địa chỉ bạn chọn.
+                          </Text>
+                        </div>
+                        <Form
+                          form={form}
+                          layout="vertical"
+                          initialValues={{
+                            fullName: user?.name || "",
+                            phone: user?.phone || "",
+                            email: user?.email || "",
+                          }}
+                        >
+                          <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                              <Form.Item
+                                name="fullName"
+                                label="Họ và tên"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Vui lòng nhập họ và tên",
+                                  },
+                                ]}
+                              >
+                                <Input
+                                  disabled={true}
+                                  style={{
+                                    backgroundColor: '#f5f5f5',
+                                    color: '#333',
+                                    opacity: 1,
+                                    borderColor: '#d9d9d9',
+                                    cursor: 'not-allowed'
+                                  }}
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                              <Form.Item
+                                name="phone"
+                                label="Số điện thoại"
+                                rules={[
+                                  {
+                                    required: true,
+                                    message: "Vui lòng nhập số điện thoại",
+                                  },
+                                ]}
+                              >
+                                <Input disabled={true}
+                                  style={{
+                                    backgroundColor: '#f5f5f5',
+                                    color: '#333',
+                                    opacity: 1,
+                                    borderColor: '#d9d9d9',
+                                    cursor: 'not-allowed'
+                                  }} />
+                              </Form.Item>
+                            </Col>
+                            <Col span={24}>
+                              <Form.Item
+                                name="email"
+                                label="Email"
+                                rules={[
+                                  { required: true, message: "Vui lòng nhập email" },
+                                  { type: "email", message: "Email không hợp lệ" },
+                                ]}
+                              >
+                                <Input disabled={true}
+                                  style={{
+                                    backgroundColor: '#f5f5f5',
+                                    color: '#333',
+                                    opacity: 1,
+                                    borderColor: '#d9d9d9',
+                                    cursor: 'not-allowed'
+                                  }} />
+                              </Form.Item>
+                            </Col>
                           </Row>
                         </Form>
                       </Panel>
@@ -1332,7 +1277,7 @@ const OrderService = () => {
                             <span>Thông tin địa chỉ</span>
                           </div>
                         }
-                        key="3"
+                        key="2"
                         forceRender
                       >
                         <div style={{ marginBottom: '16px' }}>
@@ -1341,134 +1286,25 @@ const OrderService = () => {
                             Vui lòng chọn địa chỉ giao hàng chính xác để đảm bảo đơn hàng được giao đúng nơi nhận
                           </Text>
                         </div>
-                        
-                        {/* Checkbox sử dụng địa chỉ có sẵn - chỉ hiển thị nếu người dùng đã có địa chỉ */}
-                        {hasExistingAddress && (
-                          <Form.Item>
-                            <Checkbox 
-                              checked={useExistingAddress} 
-                              onChange={handleUseExistingAddress}
-                              style={{ marginBottom: '16px' }}
-                            >
-                              <span style={{ fontWeight: 'bold' }}>Sử dụng địa chỉ có sẵn</span>
-                            </Checkbox>
-                            
-                            {/* {useExistingAddress && ( */}
-                              <Alert
-                                message="Địa chỉ hiện tại"
-                                description={user.address.replace(/\|/g, ', ')}
-                                type="info"
-                                showIcon
-                                style={{ marginBottom: '16px' }}
-                              />
-                            {/* )} */}
-                          </Form.Item>
-                        )}
-                        
-                        {/* Address Selection - Hiển thị nếu không sử dụng địa chỉ có sẵn */}
-                        {!useExistingAddress && (
-                          <>
-                            <Row gutter={[16, 16]}>
-                    <Col span={24}>
-                      <Form.Item label="Tỉnh/Thành phố" required>
-                        <Select
-                          placeholder="Chọn tỉnh/thành phố"
-                          value={selectedProvince}
-                          onChange={handleProvinceChange}
-                          loading={provincesLoading}
-                          style={{ width: "100%" }}
-                        >
-                          {provinces.map((province) => (
-                            <Option
-                              key={province.provinceId}
-                              value={province.provinceId}
-                            >
-                              {province.provinceName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
 
-                    <Col span={24}>
-                      <Form.Item label="Quận/Huyện" required>
-                        <Select
-                          placeholder="Chọn quận/huyện"
-                          value={selectedDistrict}
-                          onChange={handleDistrictChange}
-                          loading={districtsLoading}
-                          disabled={!selectedProvince}
-                          style={{ width: "100%" }}
-                        >
-                          {districts.map((district) => (
-                            <Option
-                              key={district.districtId}
-                              value={district.districtId}
-                            >
-                              {district.districtName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={24}>
-                      <Form.Item label="Phường/Xã" required>
-                        <Select
-                          placeholder="Chọn phường/xã"
-                          value={selectedWard}
-                          onChange={handleWardChange}
-                          loading={wardsLoading}
-                          disabled={!selectedDistrict}
-                          style={{ width: "100%" }}
-                        >
-                          {wards.map((ward) => (
-                            <Option key={ward.wardCode} value={ward.wardCode}>
-                              {ward.wardName}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={24}>
-                      <Form.Item label="Địa chỉ chi tiết" required>
-                        <Input.TextArea
-                          rows={3}
-                          placeholder="Nhập số nhà, tên đường, tòa nhà, v.v."
-                          value={addressDetail}
-                          onChange={handleAddressDetailChange}
+                        <AddressForm
+                          form={form}
+                          onAddressChange={handleAddressChange}
+                          useExistingAddress={true}
+                          showUserInfo={false}
                         />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                            
-                            {/* Checkbox lưu địa chỉ mới - chỉ hiển thị nếu chưa có địa chỉ */}
-                            {!hasExistingAddress && (
-                              <Form.Item>
-                                <Checkbox 
-                                  checked={saveNewAddress}
-                                  onChange={handleSaveNewAddress}
-                                >
-                                  Lưu địa chỉ này cho lần sau
-                                </Checkbox>
-                              </Form.Item>
-                            )}
-                          </>
-                        )}
                       </Panel>
-                      
                     </Collapse>
                   </div>
                 </div>
-                        </Col>
+              </Col>
 
               {/* Cột phải (1/3) */}
               <Col xs={24} md={8}>
-                  <div
+                <div
                   ref={rightColumnRef}
                   className="right-column-sticky"
-                    style={{
+                  style={{
                     position: 'sticky',
                     top: '80px',
                     maxHeight: 'calc(100vh - 100px)',
@@ -1484,7 +1320,7 @@ const OrderService = () => {
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <DollarOutlined style={{ marginRight: '8px', color: '#4caf50' }} />
                         <span>Thông tin đơn hàng</span>
-                  </div>
+                      </div>
                     }
                     style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   >
@@ -1493,7 +1329,7 @@ const OrderService = () => {
                       <div className="total-price-container" style={{
                         background: 'linear-gradient(135deg, #f6ffed 0%, #e8f5e9 100%)',
                         padding: '16px',
-                            borderRadius: '8px',
+                        borderRadius: '8px',
                         textAlign: 'center',
                         marginBottom: '16px'
                       }}>
@@ -1507,11 +1343,11 @@ const OrderService = () => {
                           fontFamily: "'Roboto', sans-serif"
                         }}>
                           {totalPrice.toLocaleString("vi-VN", {
-                              style: "currency",
-                              currency: "VND",
-                            })}
+                            style: "currency",
+                            currency: "VND",
+                          })}
                         </Text>
-                    </div>
+                      </div>
 
                       {/* Chi tiết giá */}
                       <div className="price-details" style={{
@@ -1528,12 +1364,12 @@ const OrderService = () => {
                         }}>
                           <Text type="secondary">Giá thiết kế:</Text>
                           <Text>
-                      {currentDesign?.designPrice?.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })}
+                            {currentDesign?.designPrice?.toLocaleString("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            })}
                           </Text>
-                  </div>
+                        </div>
                         <div className="price-detail-item" style={{
                           display: 'flex',
                           justifyContent: 'space-between'
@@ -1541,12 +1377,12 @@ const OrderService = () => {
                           <Text type="secondary">Giá vật liệu:</Text>
                           <Text>
                             {materialPrice.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })}
+                              style: "currency",
+                              currency: "VND",
+                            })}
                           </Text>
-                  </div>
-                  </div>
+                        </div>
+                      </div>
 
 
                       {/* Số dư ví */}
@@ -1570,50 +1406,50 @@ const OrderService = () => {
                               fontSize: '18px',
                               color: balance >= totalPrice ? '#4caf50' : '#f5222d'
                             }}>
-                      {walletLoading ? (
-                        <Spin size="small" />
-                      ) : (
-                        balance?.toLocaleString("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        })
-                      )}
+                              {walletLoading ? (
+                                <Spin size="small" />
+                              ) : (
+                                balance?.toLocaleString("vi-VN", {
+                                  style: "currency",
+                                  currency: "VND",
+                                })
+                              )}
                             </Text>
-                  </div>
+                          </div>
                           {balance >= totalPrice && (
                             <Badge
                               status="success"
                               text={<Text style={{ color: '#4caf50' }}>Đủ để thanh toán</Text>}
                             />
                           )}
-                      </div>
+                        </div>
 
                         {balance < totalPrice && (
                           <div style={{ marginTop: '12px' }}>
                             <Text type="danger" style={{ display: 'block', marginBottom: '8px' }}>
                               Số dư ví không đủ để thanh toán.
                             </Text>
-                      <Button
-                        type="primary"
+                            <Button
+                              type="primary"
                               danger
                               onClick={() => navigate("/userwallets")}
                               icon={<DollarOutlined />}
                               block
                             >
                               Nạp tiền ngay
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Nút đặt hàng */}
                       <div style={{ margin: '20px 0' }}>
-                <Button
-                  type="primary"
-                  size="large"
+                        <Button
+                          type="primary"
+                          size="large"
                           icon={<ShoppingCartOutlined />}
-                  onClick={handleSubmit}
-                  loading={orderLoading}
+                          onClick={handleSubmit}
+                          loading={orderLoading}
                           disabled={balance < totalPrice || !isAddressValid}
                           block
                           style={{
@@ -1622,22 +1458,22 @@ const OrderService = () => {
                             background: balance >= totalPrice && isAddressValid ? '#4caf50' : '#d9d9d9',
                             borderColor: balance >= totalPrice && isAddressValid ? '#3d9140' : '#d9d9d9'
                           }}
-                >
-                  Xác nhận đặt hàng
-                </Button>
+                        >
+                          Xác nhận đặt hàng
+                        </Button>
                         {!isAddressValid && (
                           <Text type="danger" style={{ display: 'block', textAlign: 'center', marginTop: '8px' }}>
-                            Vui lòng {hasExistingAddress ? 'chọn địa chỉ có sẵn hoặc điền đầy đủ thông tin địa chỉ mới' : 'điền đầy đủ thông tin địa chỉ'}
+                            Vui lòng cung cấp địa chỉ giao hàng hợp lệ
                           </Text>
                         )}
-              </div>
+                      </div>
 
                       <div style={{ textAlign: 'center' }}>
                         <Space>
                           <CheckCircleOutlined style={{ color: '#4caf50' }} />
                           <Text type="secondary">Đảm bảo 100% chính hãng</Text>
                         </Space>
-            </div>
+                      </div>
                     </div>
                   </Card>
                 </div>
@@ -1668,66 +1504,66 @@ const OrderService = () => {
           <h2 style={{ color: '#4caf50', marginBottom: "16px" }}>
             Hoàn tất đơn hàng!
           </h2>
-              <div style={{ marginBottom: "24px" }}>
-                <p style={{ fontSize: "16px", marginBottom: "8px" }}>
-                  Số tiền cần thanh toán:
-                </p>
-                <p
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#f5222d",
-                    marginBottom: "16px",
-                  }}
-                >
+          <div style={{ marginBottom: "24px" }}>
+            <p style={{ fontSize: "16px", marginBottom: "8px" }}>
+              Số tiền cần thanh toán:
+            </p>
+            <p
+              style={{
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: "#f5222d",
+                marginBottom: "16px",
+              }}
+            >
               {totalPrice.toLocaleString("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              })}
+            </p>
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "#f5f5f5",
+                borderRadius: "8px",
+                marginBottom: "16px",
+              }}
+            >
+              <p style={{ fontSize: "16px", marginBottom: "8px" }}>
+                Số dư ví hiện tại:
+              </p>
+              <p
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color:
+                    balance >= totalPrice
+                      ? "#52c41a"
+                      : "#f5222d",
+                }}
+              >
+                {walletLoading ? (
+                  <Spin size="small" />
+                ) : (
+                  balance?.toLocaleString("vi-VN", {
                     style: "currency",
                     currency: "VND",
-                  })}
-                </p>
-                <div
-                  style={{
-                    padding: "16px",
-                    backgroundColor: "#f5f5f5",
-                    borderRadius: "8px",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <p style={{ fontSize: "16px", marginBottom: "8px" }}>
-                    Số dư ví hiện tại:
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "20px",
-                      fontWeight: "bold",
-                      color:
-                    balance >= totalPrice
-                          ? "#52c41a"
-                          : "#f5222d",
-                    }}
-                  >
-                    {walletLoading ? (
-                      <Spin size="small" />
-                    ) : (
-                      balance?.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })
-                    )}
-                  </p>
-                </div>
-            {balance < totalPrice && (
-                  <div
-                    style={{
-                      color: "#f5222d",
-                      fontSize: "14px",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.
-                  </div>
+                  })
                 )}
+              </p>
+            </div>
+            {balance < totalPrice && (
+              <div
+                style={{
+                  color: "#f5222d",
+                  fontSize: "14px",
+                  marginBottom: "16px",
+                }}
+              >
+                Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.
               </div>
+            )}
+          </div>
           <p style={{ color: "#666" }}>
             {balance >= totalPrice
               ? 'Nhấn "Xác nhận đặt hàng" để hoàn tất'
@@ -1755,7 +1591,7 @@ const OrderService = () => {
       >
         <div>
           {selectedProductToChange && (
-            <div style={{ 
+            <div style={{
               background: 'linear-gradient(to right, #e6f7ff, #f0f5ff)',
               borderRadius: '8px',
               padding: '16px',
@@ -1768,23 +1604,23 @@ const OrderService = () => {
                   Sản phẩm đang được thay thế
                 </Text>
               </div>
-              <div style={{ 
-                display: 'flex', 
+              <div style={{
+                display: 'flex',
                 alignItems: 'center',
                 background: 'white',
                 padding: '12px',
                 borderRadius: '6px'
               }}>
-                <div style={{ 
-                  width: '80px', 
-                  height: '80px', 
-                  borderRadius: '6px', 
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '6px',
                   overflow: 'hidden',
                   border: '1px solid #f0f0f0',
                   flexShrink: 0
                 }}>
-                  <img 
-                    src={selectedProductToChange.product.image?.imageUrl} 
+                  <img
+                    src={selectedProductToChange.product.image?.imageUrl}
                     alt={selectedProductToChange.product.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
@@ -1792,9 +1628,9 @@ const OrderService = () => {
                 <div style={{ marginLeft: '16px', flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Title level={5} style={{ margin: 0 }}>{selectedProductToChange.product.name}</Title>
-                    <Badge 
-                      count={`x${selectedProductToChange.detail.quantity}`} 
-                      style={{ backgroundColor: '#1890ff' }} 
+                    <Badge
+                      count={`x${selectedProductToChange.detail.quantity}`}
+                      style={{ backgroundColor: '#1890ff' }}
                     />
                   </div>
                   <div style={{ display: 'flex', marginTop: '8px', alignItems: 'center' }}>
@@ -1828,23 +1664,32 @@ const OrderService = () => {
             <Row gutter={[16, 16]}>
               {productsForCategory.map(product => {
                 // Kiểm tra xem đây có phải là sản phẩm đang được sử dụng không
-                const isCurrentProduct = selectedProductToChange && 
+                const isCurrentProduct = selectedProductToChange &&
                   selectedProductToChange.detail.productId === product.id;
-                
+
+                // Kiểm tra xem sản phẩm này đã được sử dụng trong danh sách sản phẩm hay chưa
+                const isUsedElsewhere = !isCurrentProduct && productDetails.some(
+                  ({ detail }) => detail.productId === product.id
+                );
+
                 return (
                   <Col key={product.id} xs={24} sm={12} md={8}>
                     <Card
-                      hoverable={!isCurrentProduct}
-                      style={{ 
-                        height: '100%', 
+                      hoverable={!isCurrentProduct && !isUsedElsewhere && product.stock > 0}
+                      style={{
+                        height: '100%',
                         borderRadius: '8px',
-                        opacity: isCurrentProduct ? 0.7 : 1,
-                        border: isCurrentProduct ? '2px solid #d9d9d9' : '1px solid #f0f0f0',
-                        boxShadow: isCurrentProduct ? 'none' : '0 2px 8px rgba(0,0,0,0.09)',
+                        opacity: isCurrentProduct || isUsedElsewhere ? 0.7 : 1,
+                        border: isCurrentProduct
+                          ? '2px solid #d9d9d9'
+                          : isUsedElsewhere
+                            ? '2px solid #faad14'
+                            : '1px solid #f0f0f0',
+                        boxShadow: isCurrentProduct || isUsedElsewhere ? 'none' : '0 2px 8px rgba(0,0,0,0.09)',
                         transition: 'all 0.3s'
                       }}
                       onClick={() => {
-                        if (!isCurrentProduct) {
+                        if (!isCurrentProduct && !isUsedElsewhere && product.stock > 0) {
                           handleChangeProduct(product);
                         }
                       }}
@@ -1853,12 +1698,12 @@ const OrderService = () => {
                           <img
                             alt={product.name}
                             src={product.image?.imageUrl}
-                            style={{ 
-                              height: '100%', 
-                              width: '100%', 
+                            style={{
+                              height: '100%',
+                              width: '100%',
                               objectFit: 'cover',
                               transition: 'transform 0.3s',
-                              ...((!isCurrentProduct && product.stock > 0) ? {
+                              ...((!(isCurrentProduct || isUsedElsewhere) && product.stock > 0) ? {
                                 transform: 'scale(1)',
                                 '&:hover': {
                                   transform: 'scale(1.05)'
@@ -1884,6 +1729,27 @@ const OrderService = () => {
                                 borderRadius: '20px'
                               }}>
                                 <Text strong>Đang sử dụng</Text>
+                              </div>
+                            </div>
+                          )}
+                          {isUsedElsewhere && (
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(0,0,0,0.5)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <div style={{
+                                background: 'rgba(255,255,255,0.85)',
+                                padding: '6px 16px',
+                                borderRadius: '20px'
+                              }}>
+                                <Text strong style={{ color: '#faad14' }}>Đã được sử dụng</Text>
                               </div>
                             </div>
                           )}
@@ -1915,9 +1781,9 @@ const OrderService = () => {
                       <Card.Meta
                         title={
                           <Tooltip title={product.name}>
-                            <div style={{ 
-                              whiteSpace: 'nowrap', 
-                              overflow: 'hidden', 
+                            <div style={{
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               fontSize: '15px'
                             }}>
@@ -1927,14 +1793,14 @@ const OrderService = () => {
                         }
                         description={
                           <div>
-                            <div style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
                               marginTop: '8px',
                               alignItems: 'center'
                             }}>
-                              <Tag 
-                                color={product.stock > 0 ? 'green' : 'red'} 
+                              <Tag
+                                color={product.stock > 0 ? 'green' : 'red'}
                                 style={{ margin: 0 }}
                               >
                                 Kho: {product.stock}
@@ -1946,12 +1812,12 @@ const OrderService = () => {
                                 })}
                               </Text>
                             </div>
-                            {!isCurrentProduct && (
+                            {!isCurrentProduct && !isUsedElsewhere && (
                               <Button
                                 type="primary"
                                 size="middle"
                                 block
-                                style={{ 
+                                style={{
                                   marginTop: '12px',
                                   borderRadius: '4px',
                                   height: '36px'
@@ -1966,6 +1832,19 @@ const OrderService = () => {
                                 Chọn sản phẩm
                               </Button>
                             )}
+                            {isUsedElsewhere && (
+                              <div style={{
+                                marginTop: '12px',
+                                textAlign: 'center',
+                                padding: '6px',
+                                background: '#fffbe6',
+                                border: '1px solid #ffe58f',
+                                borderRadius: '4px',
+                                fontSize: '13px'
+                              }}>
+                                <Text type="warning">Sản phẩm đã được thêm vào thiết kế</Text>
+                              </div>
+                            )}
                           </div>
                         }
                       />
@@ -1975,8 +1854,8 @@ const OrderService = () => {
               })}
             </Row>
           ) : (
-            <Empty 
-              description="Không tìm thấy sản phẩm cùng loại" 
+            <Empty
+              description="Không tìm thấy sản phẩm cùng loại"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               style={{
                 margin: '40px 0'

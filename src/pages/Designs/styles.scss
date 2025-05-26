@@ -8,26 +8,22 @@
   }
 
   .designs-hero {
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-      url('/images/designs-hero.jpg') center/cover no-repeat;
-    padding: 80px 0;
-    text-align: center;
-    margin-top: 132px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%; // Chiếm toàn bộ chiều rộng
+    text-align: center; // Căn giữa văn bản bên trong
+    padding: 0 24px; // Thêm padding để tránh nội dung sát mép trên mobile
+    margin-top: 200px;
 
-    h1.ant-typography {
-      color: white;
-      font-size: 2.5rem;
-      margin-bottom: 16px;
-    }
-
-    .ant-typography {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 1.1rem;
+    .container {
+      max-width: 1200px;
+      width: 100%; // Đảm bảo container chiếm toàn bộ chiều rộng có thể
     }
   }
 
   .designs-content {
-    padding: 40px 0;
+    // padding: 40px 0;
 
     .filters-section {
       display: flex;
@@ -174,10 +170,8 @@
   padding-top: 132px;
 
   .design-detail-hero {
-    background-color: #fff;
     padding: 10px 0;
     margin-top: 50px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
     .container {
       max-width: 1200px;
@@ -187,7 +181,6 @@
   }
 
   .design-detail-content {
-    padding: 24px 0;
 
     .container {
       max-width: 1200px;

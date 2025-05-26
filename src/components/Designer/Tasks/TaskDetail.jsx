@@ -1598,6 +1598,15 @@ const TaskDetail = () => {
                 />
               }
               color="white"
+              styles={{
+                body: {
+                  width: 900,
+                  maxHeight: 500,
+                  overflowY: 'auto',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#d9d9d9 #f0f0f0',
+                },
+              }}
               >
               <div style={{
                 overflow: 'hidden',
@@ -2550,7 +2559,7 @@ const TaskDetail = () => {
                 icon={<PlusOutlined />}
                 onClick={showExternalProductModal}
               >
-                Thêm sản phẩm ngoài hệ thống
+                Thêm sản phẩm mới
               </Button>
             </div>
           </Card>
