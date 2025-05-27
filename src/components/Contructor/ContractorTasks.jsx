@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Card, 
-  Table, 
-  Typography, 
-  Tag, 
-  Space, 
-  Button, 
-  Modal, 
-  Descriptions, 
-  Spin, 
-  Alert, 
-  Empty, 
+import {
+  Card,
+  Table,
+  Typography,
+  Tag,
+  Space,
+  Button,
+  Modal,
+  Descriptions,
+  Spin,
+  Alert,
+  Empty,
   Tabs,
   Badge,
   Avatar,
   message
 } from 'antd';
-import { 
-  ClockCircleOutlined, 
-  CalendarOutlined, 
-  CheckOutlined, 
-  CloseOutlined, 
+import {
+  ClockCircleOutlined,
+  CalendarOutlined,
+  CheckOutlined,
+  CloseOutlined,
   UserOutlined,
   InfoCircleOutlined,
   PhoneOutlined,
@@ -45,7 +45,7 @@ const ContractorTasks = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  
+
   const { user } = useAuthStore();
   const userId = user?.id;
   const navigate = useNavigate();
@@ -58,14 +58,14 @@ const ContractorTasks = () => {
 
   const fetchContractorTasks = async () => {
     if (!userId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await api.get(`/api/worktask/${userId}/users`);
       console.log('Tasks response:', response.data);
-      
+
       if (response.status === 200) {
         setTasks(response.data || []);
       } else {
@@ -91,7 +91,7 @@ const ContractorTasks = () => {
   const updateTaskStatus = async (taskId, taskStatus, orderStatus) => {
     try {
       setLoading(true);
-      
+
       // Get task details to maintain existing values
       const taskToUpdate = tasks.find(task => task.id === taskId);
       if (!taskToUpdate) {
@@ -99,7 +99,7 @@ const ContractorTasks = () => {
         setLoading(false);
         return;
       }
-      
+
       // Update task status
       const taskResponse = await api.put(`/api/worktask/${taskId}`, {
         serviceOrderId: taskToUpdate.serviceOrderId,
@@ -109,7 +109,7 @@ const ContractorTasks = () => {
         status: taskStatus,
         note: taskToUpdate.note
       });
-      
+
       // Update order status if orderStatus is provided
       if (orderStatus && taskToUpdate.serviceOrderId) {
         const orderResponse = await api.put(`/api/serviceorder/status/${taskToUpdate.serviceOrderId}`, {
@@ -122,7 +122,7 @@ const ContractorTasks = () => {
           throw new Error('Không thể cập nhật trạng thái đơn hàng');
         }
       }
-      
+
       if (taskResponse.status === 200) {
         message.success('Cập nhật trạng thái công việc thành công');
         // Refresh tasks
@@ -168,6 +168,10 @@ const ContractorTasks = () => {
         return 'green';
       case 'ReInstall':
         return 'red';
+      case 'Completed':
+        return 'green';
+      case 'cancel':
+        return 'red';
       default:
         return 'blue';
     }
@@ -183,34 +187,38 @@ const ContractorTasks = () => {
         return 'Đã lắp đặt xong';
       case 'ReInstall':
         return 'Yêu cầu lắp đặt lại';
+      case 'Completed':
+        return 'Đã hoàn thành';
+      case 'cancel':
+        return 'Giao hàng thất bại';
       default:
         return status;
     }
   };
 
-  const filteredTasks = activeTab === 'all' 
-    ? tasks 
+  const filteredTasks = activeTab === 'all'
+    ? tasks
     : tasks.filter(task => {
-        if (activeTab === 'upcoming') {
-          return task.status === 'Pending' || task.status === 'Installing' || task.status === 8;
-        } else if (activeTab === 'completed') {
-          return task.status === 'DoneInstalling' || task.status === 'Completed';
-        } else if (activeTab === 'reinstall') {
-          return task.status === 'ReInstall';
-        }
-        return true;
-      });
+      if (activeTab === 'upcoming') {
+        return task.status === 'Pending' || task.status === 'Installing' || task.status === 8;
+      } else if (activeTab === 'completed') {
+        return task.status === 'DoneInstalling' || task.status === 'Completed';
+      } else if (activeTab === 'reinstall') {
+        return task.status === 'ReInstall';
+      }
+      return true;
+    });
 
   const columns = [
     {
-      title: 'Mã công việc', 
+      title: 'Mã công việc',
       dataIndex: 'id',
       key: 'id',
       render: (text) => <Text strong copyable={{ text: text }}>#{text.slice(0, 8)}</Text>,
     },
     {
       title: 'Mã đơn hàng',
-      dataIndex: 'serviceOrderId', 
+      dataIndex: 'serviceOrderId',
       key: 'serviceOrderId',
       render: (text) => <Text strong copyable={{ text: text }}>#{text.slice(0, 8)}</Text>,
     },
@@ -263,22 +271,22 @@ const ContractorTasks = () => {
           <Button type="primary" onClick={() => goToTaskDetail(record.id)}>
             Xem chi tiết
           </Button>
-          
+
           {(record.status === 'Pending') && (
-            <Button 
-              type="primary" 
-              icon={<ToolOutlined />} 
+            <Button
+              type="primary"
+              icon={<ToolOutlined />}
               style={{ backgroundColor: '#1890ff', borderColor: '#1890ff' }}
               onClick={() => handleStartInstallation(record.id)}
             >
               Bắt đầu lắp đặt
             </Button>
           )}
-          
+
           {(record.status === 'Installing' || record.status === 8) && (
-            <Button 
-              type="primary" 
-              icon={<CheckOutlined />} 
+            <Button
+              type="primary"
+              icon={<CheckOutlined />}
               style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               onClick={() => handleCompleteInstallation(record.id)}
             >
@@ -294,85 +302,85 @@ const ContractorTasks = () => {
     <div className="contractor-tasks-container">
       <Card className="tasks-card">
         <Title level={3}>Quản lý công việc</Title>
-        
+
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane 
+          <TabPane
             tab={
               <span>
                 {/* <Badge count={tasks.length} offset={[10, 0]}> */}
-                  <span>Tất cả</span>
+                <span>Tất cả</span>
                 {/* </Badge> */}
               </span>
-            } 
+            }
             key="all"
           />
-          <TabPane 
+          <TabPane
             tab={
               <span>
-                <Badge 
-                  count={tasks.filter(task => task.status === 'Installing').length} 
+                <Badge
+                  count={tasks.filter(task => task.status === 'Installing').length}
                   offset={[10, 0]}
                 >
                   <span>Đang thực hiện</span>
                 </Badge>
               </span>
-            } 
+            }
             key="upcoming"
           />
-          <TabPane 
+          <TabPane
             tab={
               <span>
-                <Badge 
-                  count={tasks.filter(task => task.status === 'DoneInstalling' || task.status === 'Completed').length} 
+                <Badge
+                  count={tasks.filter(task => task.status === 'DoneInstalling' || task.status === 'Completed').length}
                   offset={[10, 0]}
                   style={{ backgroundColor: '#52c41a' }}
                 >
                   <span>Đã hoàn thành</span>
                 </Badge>
               </span>
-            } 
+            }
             key="completed"
           />
-          <TabPane 
+          <TabPane
             tab={
               <span>
-                <Badge 
-                  count={tasks.filter(task => task.status === 'ReInstall').length} 
+                <Badge
+                  count={tasks.filter(task => task.status === 'ReInstall').length}
                   offset={[10, 0]}
                   style={{ backgroundColor: '#f5222d' }}
                 >
                   <span>Yêu cầu lắp đặt lại</span>
                 </Badge>
               </span>
-            } 
+            }
             key="reinstall"
           />
         </Tabs>
-        
+
         {loading ? (
           <div className="loading-container">
             <Spin size="large" />
             <Text>Đang tải dữ liệu...</Text>
           </div>
         ) : filteredTasks.length > 0 ? (
-          <Table 
-            columns={columns} 
-            dataSource={filteredTasks} 
+          <Table
+            columns={columns}
+            dataSource={filteredTasks}
             rowKey="id"
-            pagination={{ 
+            pagination={{
               pageSize: 10,
               showSizeChanger: true,
               showTotal: (total) => `Tổng số ${total} công việc`
             }}
           />
         ) : (
-          <Empty 
-            description="Không có công việc nào" 
+          <Empty
+            description="Không có công việc nào"
             style={{ margin: '40px 0' }}
           />
         )}
       </Card>
-      
+
       <Modal
         title="Chi tiết công việc"
         open={isDetailModalVisible}
@@ -385,9 +393,9 @@ const ContractorTasks = () => {
             Xem trang chi tiết
           </Button>,
           selectedTask && selectedTask.status === 'Pending' && (
-            <Button 
-              key="start-install" 
-              type="primary" 
+            <Button
+              key="start-install"
+              type="primary"
               icon={<ToolOutlined />}
               onClick={() => {
                 handleStartInstallation(selectedTask.id);
@@ -398,10 +406,10 @@ const ContractorTasks = () => {
             </Button>
           ),
           selectedTask && (selectedTask.status === 'Installing' || selectedTask.status === 8) && (
-            <Button 
-              key="complete-install" 
-              type="primary" 
-              icon={<CheckOutlined />} 
+            <Button
+              key="complete-install"
+              type="primary"
+              icon={<CheckOutlined />}
               style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               onClick={() => {
                 handleCompleteInstallation(selectedTask.id);
@@ -421,29 +429,29 @@ const ContractorTasks = () => {
                 <Descriptions.Item label="Mã đơn hàng" span={2}>
                   #{selectedTask.serviceOrderId}
                 </Descriptions.Item>
-                
+
                 <Descriptions.Item label="Ngày giao hàng">
                   <CalendarOutlined style={{ marginRight: 8 }} />
                   {selectedTask.dateAppointment ? dayjs(selectedTask.dateAppointment).format('DD/MM/YYYY') : 'Chưa có lịch'}
                 </Descriptions.Item>
-                
+
                 <Descriptions.Item label="Giờ giao hàng">
                   <ClockCircleOutlined style={{ marginRight: 8 }} />
                   {selectedTask.timeAppointment || 'Chưa có lịch'}
                 </Descriptions.Item>
-                
+
                 <Descriptions.Item label="Trạng thái">
                   <Tag color={getStatusColor(selectedTask.status)}>
                     {getStatusText(selectedTask.status)}
                   </Tag>
                 </Descriptions.Item>
-                
+
                 <Descriptions.Item label="Ghi chú">
                   {selectedTask.note || 'Không có ghi chú'}
                 </Descriptions.Item>
               </Descriptions>
             </div>
-            
+
             <div className="customer-info-section">
               <Title level={5}>Thông tin khách hàng</Title>
               {selectedTask.serviceOrder ? (
@@ -472,11 +480,11 @@ const ContractorTasks = () => {
                 <Empty description="Không có thông tin khách hàng" />
               )}
             </div>
-            
+
             <div className="products-section">
               <Title level={5}>Danh sách sản phẩm</Title>
-              {selectedTask.serviceOrder && selectedTask.serviceOrder.serviceOrderDetails && 
-              selectedTask.serviceOrder.serviceOrderDetails.length > 0 ? (
+              {selectedTask.serviceOrder && selectedTask.serviceOrder.serviceOrderDetails &&
+                selectedTask.serviceOrder.serviceOrderDetails.length > 0 ? (
                 <Table
                   dataSource={selectedTask.serviceOrder.serviceOrderDetails}
                   rowKey="productId"
@@ -511,42 +519,42 @@ const ContractorTasks = () => {
                 <Empty description="Không có sản phẩm" />
               )}
             </div>
-            
-            {selectedTask.serviceOrder && selectedTask.serviceOrder.externalProducts && 
-            selectedTask.serviceOrder.externalProducts.length > 0 && (
-              <div className="external-products-section">
-                <Title level={5}>Sản phẩm bổ sung</Title>
-                <Table
-                  dataSource={selectedTask.serviceOrder.externalProducts}
-                  rowKey="id"
-                  pagination={false}
-                  columns={[
-                    {
-                      title: 'Tên sản phẩm',
-                      dataIndex: 'name',
-                      key: 'name',
-                    },
-                    {
-                      title: 'Số lượng',
-                      dataIndex: 'quantity',
-                      key: 'quantity',
-                    },
-                    {
-                      title: 'Giá',
-                      dataIndex: 'price',
-                      key: 'price',
-                      render: (price) => <span>{price.toLocaleString()} đ</span>,
-                    },
-                    {
-                      title: 'Thành tiền',
-                      dataIndex: 'totalPrice',
-                      key: 'totalPrice',
-                      render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
-                    },
-                  ]}
-                />
-              </div>
-            )}
+
+            {selectedTask.serviceOrder && selectedTask.serviceOrder.externalProducts &&
+              selectedTask.serviceOrder.externalProducts.length > 0 && (
+                <div className="external-products-section">
+                  <Title level={5}>Sản phẩm bổ sung</Title>
+                  <Table
+                    dataSource={selectedTask.serviceOrder.externalProducts}
+                    rowKey="id"
+                    pagination={false}
+                    columns={[
+                      {
+                        title: 'Tên sản phẩm',
+                        dataIndex: 'name',
+                        key: 'name',
+                      },
+                      {
+                        title: 'Số lượng',
+                        dataIndex: 'quantity',
+                        key: 'quantity',
+                      },
+                      {
+                        title: 'Giá',
+                        dataIndex: 'price',
+                        key: 'price',
+                        render: (price) => <span>{price.toLocaleString()} đ</span>,
+                      },
+                      {
+                        title: 'Thành tiền',
+                        dataIndex: 'totalPrice',
+                        key: 'totalPrice',
+                        render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
+                      },
+                    ]}
+                  />
+                </div>
+              )}
           </div>
         ) : (
           <div className="loading-container">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Spin,
@@ -21,7 +21,8 @@ import {
   Alert,
   Statistic,
   Empty,
-  message
+  message,
+  List
 } from 'antd';
 import {
   CheckOutlined,
@@ -40,11 +41,15 @@ import {
   InfoCircleOutlined,
   EnvironmentOutlined,
   CopyOutlined,
-  ToolOutlined
+  ToolOutlined,
+  FileImageOutlined,
+  FilePdfOutlined,
+  PlayCircleOutlined
 } from '@ant-design/icons';
 import api from '@/api/api';
 import dayjs from 'dayjs';
 import useProductStore from '@/stores/useProductStore';
+import useDesignIdeaStore from '@/stores/useDesignIdeaStore';
 import './ContractorTasks.scss';
 
 const { Title, Text, Paragraph } = Typography;
@@ -59,10 +64,34 @@ const ContractorTaskDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { products, fetchProducts, getProductById } = useProductStore();
+  const { fetchDesignIdeaById } = useDesignIdeaStore();
+  const [designIdea, setDesignIdea] = useState(null);
+  const [loadingDesignIdea, setLoadingDesignIdea] = useState(false);
+  const pdfViewerRef = useRef(null);
 
   useEffect(() => {
     fetchTaskDetails();
   }, [id]);
+
+  useEffect(() => {
+    // Fetch design idea if order is UsingDesignIdea and has designIdeaId
+    if (order && order.serviceType === "UsingDesignIdea" && order.designIdeaId) {
+      fetchDesignIdeaDetails(order.designIdeaId);
+    }
+  }, [order]);
+
+  const fetchDesignIdeaDetails = async (designIdeaId) => {
+    try {
+      setLoadingDesignIdea(true);
+      const designData = await fetchDesignIdeaById(designIdeaId);
+      setDesignIdea(designData);
+    } catch (err) {
+      console.error('Error fetching design idea:', err);
+      message.error('Không thể tải thông tin mẫu thiết kế');
+    } finally {
+      setLoadingDesignIdea(false);
+    }
+  };
 
   const fetchTaskDetails = async () => {
     setLoading(true);
@@ -166,6 +195,16 @@ const ContractorTaskDetail = () => {
     });
   };
 
+  const handleCancelInstallation = () => {
+    Modal.confirm({
+      title: 'Xác nhận hủy lắp đặt',
+      content: 'Bạn có chắc chắn muốn hủy lắp đặt?',
+      okText: 'Xác nhận',
+      cancelText: 'Hủy',
+      onOk: () => updateTaskStatus(11, 10) // 11 = ReInstall for task, 10 = ReInstall for order
+    });
+  };
+
   const handleCompleteInstallation = () => {
     Modal.confirm({
       title: 'Xác nhận hoàn thành lắp đặt',
@@ -189,6 +228,10 @@ const ContractorTaskDetail = () => {
         return 'green';
       case 'ReInstall':
         return 'red';
+      case 'Completed':
+        return 'green';
+      case 'cancel':
+        return 'red';
       default:
         return 'blue';
     }
@@ -207,6 +250,10 @@ const ContractorTaskDetail = () => {
         return 'Đã lắp đặt xong';
       case 'ReInstall':
         return 'Yêu cầu lắp đặt lại';
+      case 'Completed':
+        return 'Đã hoàn thành';
+      case 'cancel':
+        return 'Giao hàng thất bại';
       default:
         return status;
     }
@@ -214,6 +261,23 @@ const ContractorTaskDetail = () => {
 
   const formatAddress = (address) => {
     return address ? address.replace(/\|/g, ', ') : 'Không có thông tin';
+  };
+
+  // Function to determine if a URL is a PDF
+  const isPDF = (url) => {
+    return url && url.toLowerCase().endsWith('.pdf');
+  };
+
+  // Function to determine if a URL is a video
+  const isVideo = (url) => {
+    return url && /\.(mp4|webm|ogg|mov)$/i.test(url);
+  };
+
+  // Check if design guides exist
+  const hasDesignGuides = () => {
+    return order?.serviceType === "UsingDesignIdea" && 
+           designIdea && 
+           (designIdea.designImage1URL || designIdea.designImage2URL || designIdea.designImage3URL);
   };
 
   if (loading) {
@@ -224,22 +288,6 @@ const ContractorTaskDetail = () => {
       </div>
     );
   }
-
-  //   if (error) {
-  //     return (
-  //       <Alert
-  //         message="Lỗi"
-  //         description={error}
-  //         type="error"
-  //         showIcon
-  //         action={
-  //           <Button type="primary" onClick={() => navigate('/contructor/tasks')}>
-  //             Quay lại danh sách
-  //           </Button>
-  //         }
-  //       />
-  //     );
-  //   }
 
   if (!task) {
     return (
@@ -289,6 +337,15 @@ const ContractorTaskDetail = () => {
                   >
                     {task.status === 'ReInstall' ? 'Bắt đầu lắp đặt lại' : 'Bắt đầu lắp đặt'}
                   </Button>
+                  <Button
+                    type="primary"
+                    danger
+                    icon={<PhoneOutlined />}
+                    onClick={handleCancelInstallation}
+                    // style={{ backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                  >
+                    Không liên hệ được KH
+                  </Button>
                 </Space>
               )}
               {(task.status === 8 || task.status === 'Installing') && (
@@ -336,6 +393,11 @@ const ContractorTaskDetail = () => {
                   <Descriptions.Item label="Ghi chú" span={2}>
                     {task.note || 'Không có ghi chú'}
                   </Descriptions.Item>
+                  {order?.serviceType === "UsingDesignIdea" && (
+                    <Descriptions.Item label="Loại dịch vụ" span={2}>
+                      <Tag color="green">Sử dụng mẫu thiết kế có sẵn</Tag>
+                    </Descriptions.Item>
+                  )}
                 </Descriptions>
               </Card>
 
@@ -371,18 +433,46 @@ const ContractorTaskDetail = () => {
                         dataIndex: 'quantity',
                         key: 'quantity',
                       },
-                      // {
-                      //   title: 'Giá',
-                      //   dataIndex: 'price',
-                      //   key: 'price',
-                      //   render: (price) => <span>{price.toLocaleString()} đ</span>,
-                      // },
-                      // {
-                      //   title: 'Thành tiền',
-                      //   dataIndex: 'totalPrice',
-                      //   key: 'totalPrice',
-                      //   render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
-                      // },
+                      {
+                        title: 'Hướng dẫn',
+                        key: 'designGuide',
+                        width: 120,
+                        render: (_, record) => {
+                          const product = products.find(p => p.id === record.productId);
+                          return product?.designImage1URL ? (
+                            <Button
+                              type="primary"
+                              size="small"
+                              icon={<FilePdfOutlined />}
+                              onClick={() => {
+                                if (isPDF(product.designImage1URL)) {
+                                  Modal.info({
+                                    title: `Hướng dẫn sử dụng ${product.name}`,
+                                    width: '80%',
+                                    content: (
+                                      <div style={{ height: '80vh', width: '100%' }}>
+                                        <iframe
+                                          src={`${product.designImage1URL}#toolbar=1&navpanes=1&scrollbar=1`}
+                                          width="100%"
+                                          height="100%"
+                                          style={{ border: 'none' }}
+                                          title="PDF Viewer"
+                                        />
+                                      </div>
+                                    ),
+                                    okText: 'Đóng',
+                                    onOk() {},
+                                  });
+                                } else {
+                                  window.open(product.designImage1URL, '_blank');
+                                }
+                              }}
+                            >
+                              {isPDF(product?.designImage1URL) ? 'Xem PDF' : 'Xem hướng dẫn'}
+                            </Button>
+                          ) : null
+                        }
+                      },
                     ]}
                   />
                 ) : (
@@ -419,18 +509,6 @@ const ContractorTaskDetail = () => {
                         dataIndex: 'quantity',
                         key: 'quantity',
                       },
-                      // {
-                      //   title: 'Giá',
-                      //   dataIndex: 'price',
-                      //   key: 'price',
-                      //   render: (price) => <span>{price.toLocaleString()} đ</span>,
-                      // },
-                      // {
-                      //   title: 'Thành tiền',
-                      //   dataIndex: 'totalPrice',
-                      //   key: 'totalPrice',
-                      //   render: (totalPrice) => <span>{totalPrice.toLocaleString()} đ</span>,
-                      // },
                     ]}
                   />
                 </Card>
@@ -446,85 +524,90 @@ const ContractorTaskDetail = () => {
                   </div>
                 </div>
                 <Descriptions column={1} className="customer-descriptions">
-                  <Descriptions.Item label={<><PhoneOutlined /> Số điện thoại</>}>
+                  <Descriptions.Item label={<span><PhoneOutlined /> Số điện thoại</span>}>
                     {order?.cusPhone || 'Không có thông tin'}
                   </Descriptions.Item>
-                  <Descriptions.Item label={<><MailOutlined /> Email</>}>
+                  <Descriptions.Item label={<span><MailOutlined /> Email</span>}>
                     {order?.email || 'Không có thông tin'}
                   </Descriptions.Item>
-                  <Descriptions.Item label={<><HomeOutlined /> Địa chỉ</>}>
+                  <Descriptions.Item label={<span><HomeOutlined /> Địa chỉ</span>}>
                     {formatAddress(order?.address)}
                   </Descriptions.Item>
                 </Descriptions>
 
                 <Divider />
-
-                {/* <Title level={5}>Thông tin đơn hàng</Title>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Statistic
-                      title="Phí thiết kế"
-                      value={order?.designPrice || 0}
-                      prefix={<DollarOutlined />}
-                      suffix="đ"
-                      groupSeparator=","
-                    />
-                  </Col>
-                  <Col span={12}>
-                    <Statistic
-                      title="Phí vật liệu"
-                      value={order?.materialPrice || 0}
-                      prefix={<DollarOutlined />}
-                      suffix="đ"
-                      groupSeparator=","
-                    />
-                  </Col>
-                  <Col span={24}>
-                    <Statistic
-                      title="Tổng giá trị đơn hàng"
-                      value={order?.totalCost || 0}
-                      prefix={<DollarOutlined />}
-                      suffix="đ"
-                      valueStyle={{ color: '#1890ff', fontWeight: 'bold' }}
-                      groupSeparator=","
-                    />
-                  </Col>
-                </Row> */}
               </Card>
 
               <Card title="Hình ảnh đơn hàng" className="order-images-card">
-                {order?.image ? (
-                  <div className="order-images">
-                    {order.image.imageUrl && (
-                      <div className="image-item">
-                        <Image
-                          src={order.image.imageUrl}
-                          alt="Hình ảnh sản phẩm"
-                          style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
-                        />
-                      </div>
-                    )}
-                    {order.image.image2 && (
-                      <div className="image-item">
-                        <Image
-                          src={order.image.image2}
-                          alt="Hình ảnh sản phẩm"
-                          style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
-                        />
-                      </div>
-                    )}
-                    {order.image.image3 && (
-                      <div className="image-item">
-                        <Image
-                          src={order.image.image3}
-                          alt="Hình ảnh sản phẩm"
-                          style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
-                        />
-                      </div>
-                    )}
+                {loadingDesignIdea ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <Spin />
+                    <div style={{ marginTop: '10px' }}>Đang tải thông tin thiết kế...</div>
                   </div>
                 ) : (
-                  <Empty description="Không có hình ảnh" />
+                  order?.serviceType === "UsingDesignIdea" && designIdea?.image ? (
+                    <div className="order-images">
+                      {designIdea.image.imageUrl && (
+                        <div className="image-item">
+                          <Image
+                            src={designIdea.image.imageUrl}
+                            alt="Hình ảnh thiết kế"
+                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                      {designIdea.image.image2 && (
+                        <div className="image-item">
+                          <Image
+                            src={designIdea.image.image2}
+                            alt="Hình ảnh thiết kế"
+                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                      {designIdea.image.image3 && (
+                        <div className="image-item">
+                          <Image
+                            src={designIdea.image.image3}
+                            alt="Hình ảnh thiết kế"
+                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : order?.image ? (
+                    <div className="order-images">
+                      {order.image.imageUrl && (
+                        <div className="image-item">
+                          <Image
+                            src={order.image.imageUrl}
+                            alt="Hình ảnh sản phẩm"
+                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                      {order.image.image2 && (
+                        <div className="image-item">
+                          <Image
+                            src={order.image.image2}
+                            alt="Hình ảnh sản phẩm"
+                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                      {order.image.image3 && (
+                        <div className="image-item">
+                          <Image
+                            src={order.image.image3}
+                            alt="Hình ảnh sản phẩm"
+                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Empty description="Không có hình ảnh" />
+                  )
                 )}
               </Card>
             </Col>
@@ -534,9 +617,163 @@ const ContractorTaskDetail = () => {
         <TabPane tab="Mô tả đơn hàng" key="description">
           <Card className="description-card">
             <Title level={4}>Mô tả chi tiết</Title>
-            <div className="html-content" dangerouslySetInnerHTML={{ __html: order?.description || 'Không có mô tả' }} />
+            {order?.serviceType === "UsingDesignIdea" && designIdea ? (
+              <>
+                <div className="html-content" dangerouslySetInnerHTML={{ __html: designIdea.description || 'Không có mô tả' }} />
+                <Divider />
+                <Title level={5}>Thông tin thiết kế</Title>
+                <Descriptions bordered>
+                  <Descriptions.Item label="Tên thiết kế" span={3}>{designIdea.name}</Descriptions.Item>
+                  <Descriptions.Item label="Danh mục" span={3}>{designIdea.categoryName}</Descriptions.Item>
+                </Descriptions>
+              </>
+            ) : (
+              <div className="html-content" dangerouslySetInnerHTML={{ __html: order?.description || 'Không có mô tả' }} />
+            )}
           </Card>
         </TabPane>
+
+        {/* Add the new design guides tab */}
+        {hasDesignGuides() && (
+          <TabPane tab="Tài liệu hướng dẫn thiết kế" key="design-guides">
+            <Card className="design-guides-card">
+              <Row gutter={[24, 24]}>
+                {/* Design Guide Images */}
+                {designIdea.designImage1URL && !isPDF(designIdea.designImage1URL) && !isVideo(designIdea.designImage1URL) && (
+                  <Col xs={24} md={24} lg={designIdea.designImage2URL || designIdea.designImage3URL ? 12 : 24}>
+                    <Card 
+                      title={<><FileImageOutlined /> Hình ảnh hướng dẫn</>} 
+                      className="guide-card"
+                      extra={<Button type="link" href={designIdea.designImage1URL} target="_blank">Mở trong tab mới</Button>}
+                    >
+                      <div style={{ textAlign: 'center' }}>
+                        <Image
+                          src={designIdea.designImage1URL}
+                          alt="Hình ảnh hướng dẫn"
+                          style={{ maxWidth: '100%', maxHeight: '500px' }}
+                        />
+                      </div>
+                    </Card>
+                  </Col>
+                )}
+
+                {/* PDF Documents */}
+                {designIdea.designImage2URL && isPDF(designIdea.designImage2URL) && (
+                  <Col xs={24} md={24} lg={designIdea.designImage1URL || designIdea.designImage3URL ? 12 : 24}>
+                    <Card 
+                      title={<><FilePdfOutlined /> Tài liệu PDF</>} 
+                      className="guide-card"
+                      extra={<Button type="link" href={designIdea.designImage2URL} target="_blank">Mở trong tab mới</Button>}
+                    >
+                      <div style={{ height: '600px', width: '100%' }}>
+                        <iframe
+                          src={`${designIdea.designImage2URL}#toolbar=1&navpanes=1&scrollbar=1`}
+                          width="100%"
+                          height="100%"
+                          style={{ border: 'none' }}
+                          title="PDF Viewer"
+                          ref={pdfViewerRef}
+                        />
+                      </div>
+                    </Card>
+                  </Col>
+                )}
+
+                {/* Video Guides */}
+                {designIdea.designImage3URL && isVideo(designIdea.designImage3URL) && (
+                  <Col xs={24} md={24} lg={designIdea.designImage1URL || designIdea.designImage2URL ? 12 : 24}>
+                    <Card 
+                      title={<><PlayCircleOutlined /> Video hướng dẫn</>} 
+                      className="guide-card"
+                      extra={<Button type="link" href={designIdea.designImage3URL} target="_blank">Mở trong tab mới</Button>}
+                    >
+                      <div style={{ textAlign: 'center' }}>
+                        <video
+                          controls
+                          width="100%"
+                          height="auto"
+                          style={{ maxHeight: '500px' }}
+                          preload="metadata"
+                        >
+                          <source src={designIdea.designImage3URL} />
+                          Trình duyệt của bạn không hỗ trợ thẻ video.
+                        </video>
+                      </div>
+                    </Card>
+                  </Col>
+                )}
+
+                {/* Fallback for other file types */}
+                {((designIdea.designImage1URL && (isPDF(designIdea.designImage1URL) || isVideo(designIdea.designImage1URL))) ||
+                  (designIdea.designImage2URL && (!isPDF(designIdea.designImage2URL))) ||
+                  (designIdea.designImage3URL && (!isVideo(designIdea.designImage3URL)))) && (
+                  <Col xs={24}>
+                    <Card title="Các tài liệu khác" className="guide-card">
+                      <List
+                        itemLayout="horizontal"
+                        dataSource={[
+                          {
+                            key: 'designImage1URL',
+                            url: designIdea.designImage1URL,
+                            title: isPDF(designIdea.designImage1URL) ? 'Tài liệu PDF' : isVideo(designIdea.designImage1URL) ? 'Video hướng dẫn' : 'Hình ảnh hướng dẫn',
+                            icon: isPDF(designIdea.designImage1URL) ? <FilePdfOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} /> :
+                                  isVideo(designIdea.designImage1URL) ? <PlayCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} /> :
+                                  <FileImageOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                          },
+                          {
+                            key: 'designImage2URL',
+                            url: designIdea.designImage2URL,
+                            title: isPDF(designIdea.designImage2URL) ? 'Tài liệu PDF' : isVideo(designIdea.designImage2URL) ? 'Video hướng dẫn' : 'Hình ảnh hướng dẫn',
+                            icon: isPDF(designIdea.designImage2URL) ? <FilePdfOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} /> :
+                                  isVideo(designIdea.designImage2URL) ? <PlayCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} /> :
+                                  <FileImageOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                          },
+                          {
+                            key: 'designImage3URL',
+                            url: designIdea.designImage3URL,
+                            title: isPDF(designIdea.designImage3URL) ? 'Tài liệu PDF' : isVideo(designIdea.designImage3URL) ? 'Video hướng dẫn' : 'Hình ảnh hướng dẫn',
+                            icon: isPDF(designIdea.designImage3URL) ? <FilePdfOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} /> :
+                                  isVideo(designIdea.designImage3URL) ? <PlayCircleOutlined style={{ fontSize: '24px', color: '#52c41a' }} /> :
+                                  <FileImageOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                          }
+                        ].filter(item => item.url && 
+                          ((item.key === 'designImage1URL' && (isPDF(item.url) || isVideo(item.url))) ||
+                           (item.key === 'designImage2URL' && !isPDF(item.url)) ||
+                           (item.key === 'designImage3URL' && !isVideo(item.url)))
+                        )}
+                        renderItem={item => (
+                          <List.Item>
+                            <List.Item.Meta
+                              avatar={item.icon}
+                              title={item.title}
+                              description={
+                                <Button 
+                                  type="primary" 
+                                  onClick={() => window.open(item.url, '_blank')}
+                                  style={{ marginTop: '8px' }}
+                                >
+                                  {isPDF(item.url) ? 'Xem tài liệu PDF' : 
+                                   isVideo(item.url) ? 'Xem video hướng dẫn' : 'Xem hình ảnh'}
+                                </Button>
+                              }
+                            />
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  </Col>
+                )}
+
+                {/* No design guides available */}
+                {!designIdea.designImage1URL && !designIdea.designImage2URL && !designIdea.designImage3URL && (
+                  <Col span={24}>
+                    <Empty description="Không có tài liệu hướng dẫn" />
+                  </Col>
+                )}
+              </Row>
+            </Card>
+          </TabPane>
+        )}
 
         {order?.report && (
           <TabPane tab="Báo cáo đơn hàng" key="report">
@@ -547,6 +784,19 @@ const ContractorTaskDetail = () => {
           </TabPane>
         )}
       </Tabs>
+
+      {/* Add CSS for design guides */}
+      <style jsx>{`
+        .design-guides-card {
+          margin-bottom: 24px;
+        }
+        .guide-card {
+          height: 100%;
+        }
+        .guide-card .ant-card-head {
+          background-color: #f9f9f9;
+        }
+      `}</style>
     </div>
   );
 };

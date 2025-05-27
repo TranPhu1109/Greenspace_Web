@@ -9,6 +9,7 @@ import {
   Empty,
   Button,
   Breadcrumb,
+  Modal,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -23,7 +24,7 @@ const { Title, Text } = Typography;
 
 const DesignOrderHistory = () => {
   const navigate = useNavigate();
-  const { designOrders, isLoading, fetchDesignOrdersForCus } =
+  const { designOrders, isLoading, fetchDesignOrdersForCus, cancelOrder } =
     useDesignOrderStore();
   const { user } = useAuthStore();
   //console.log(user);
@@ -60,6 +61,19 @@ const DesignOrderHistory = () => {
     }
   };
 
+  const handleCancelOrder = (record) => {
+    Modal.confirm({
+      title: 'Xác nhận hủy đơn',
+      content: 'Bạn có chắc chắn muốn hủy đơn này không?',
+      onOk: async () => {
+        // call api cancel order
+        await cancelOrder(record.id);
+        // refresh lại danh sách đơn hàng
+        fetchDesignOrdersForCus(user.id, componentId.current);
+      },
+    });
+  };
+
   const columns = [
     {
       title: "Mã đơn hàng",
@@ -81,7 +95,7 @@ const DesignOrderHistory = () => {
       title: "Địa chỉ",
       dataIndex: "address",
       key: "address",
-      render: (text) => <Text>{text.replace(/\|/g, ', ')}</Text>,
+      render: (text) => <Text>{text ? text.replace(/\|/g, ', ') : 'Không có địa chỉ'}</Text>,
     },
     // {
     //   title: "Số điện thoại",
@@ -164,16 +178,31 @@ const DesignOrderHistory = () => {
       title: "Thao tác",
       key: "action",
       render: (_, record) => (
-        <Button
-          type="primary"
-          className="detail-button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleViewOrderDetail(record);
-          }}
-        >
-          Xem chi tiết
-        </Button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Button
+            type="primary"
+            className="detail-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewOrderDetail(record);
+            }}
+          >
+            Xem chi tiết
+          </Button>
+          {record.status === 'Pending' && (
+            <Button
+              // type="danger"
+              danger
+            className="detail-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCancelOrder(record);
+            }}
+          >
+              Hủy đơn
+            </Button>
+          )}
+        </div>
       ),
     },
   ];
