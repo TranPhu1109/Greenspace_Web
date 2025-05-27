@@ -27,6 +27,8 @@ import {
   CalendarOutlined,
   CloseCircleOutlined,
   CopyOutlined,
+  ProfileOutlined,
+  TagOutlined,
 } from "@ant-design/icons";
 import "./OrderDetail.scss";
 import { Tooltip } from "antd";
@@ -264,6 +266,15 @@ const OrderDetail = () => {
               <Descriptions.Item
                 label={
                   <span style={{ fontWeight: "bold" }}>
+                    <TagOutlined /> Mã đơn hàng
+                  </span>
+                }
+              >
+                <Text copyable={{ text: selectedOrder.id, icon: <CopyOutlined /> }}>#{selectedOrder.id.slice(0, 8)}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item
+                label={
+                  <span style={{ fontWeight: "bold" }}>
                     <UserOutlined /> Khách hàng
                   </span>
                 }
@@ -372,18 +383,19 @@ const OrderDetail = () => {
 
         <Col xs={24} lg={8}>
           {/* Thông tin trạng thái */}
-          <Card className="order-summary-card">
+          <Card >
             <Row gutter={[16, 16]}>
               <Col span={12}>
-                <div>
-                  <div style={{ marginBottom: 10 }}>
-                    <Text strong style={{ fontSize: "16px", marginBottom: 10 }}>
-                      Trạng thái đơn hàng
-                    </Text>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                <div style={{ marginBottom: 12 }}>
+                  {/* <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "nowrap"
+                  }}>
+                    <Text strong style={{ fontSize: 16 }}>Trạng thái đơn hàng</Text>
                     <Tag
-                      style={{ fontSize: "14px" }}
+                      style={{ fontSize: "14px", whiteSpace: "nowrap" }}
                       color={
                         selectedOrder.status === "3" ||
                           selectedOrder.status === "7"
@@ -419,6 +431,8 @@ const OrderDetail = () => {
                                             ? "Đơn hàng đã hoàn thành"
                                             : "Đang xử lý"}
                     </Tag>
+                  </div> */}
+                  <div style={{ marginTop: 8 }}>
                     {selectedOrder.status === "0" && (
                       <Button
                         type="primary"
@@ -429,7 +443,7 @@ const OrderDetail = () => {
                         </Tooltip>
                       </Button>
                     )}
-                    {selectedOrder.status === "1" && (
+                    {/* {selectedOrder.status === "1" && (
                       <Button
                         type="primary"
                         onClick={async () => {
@@ -448,8 +462,8 @@ const OrderDetail = () => {
                           <CheckCircleOutlined /> Đã lấy hàng
                         </Tooltip>
                       </Button>
-                    )}
-                    {(selectedOrder.status === "6" || selectedOrder.status === "8") && (
+                    )} */}
+                    {/* {(selectedOrder.status === "6" || selectedOrder.status === "8") && (
                       <Space>
                         <Button
                           type="primary"
@@ -488,7 +502,7 @@ const OrderDetail = () => {
                           </Tooltip>
                         </Button>
                       </Space>
-                    )}
+                    )} */}
                     {selectedOrder.status === "7" && (
                       <Button
                         type="primary"

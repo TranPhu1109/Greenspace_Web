@@ -322,6 +322,30 @@ const useDesignOrderStore = create((set, get) => ({
       throw error;
     }
   },
+
+  cancelOrder: async (orderId) => {
+    try {
+      // Update order status to cancelled (status: 14)
+      const statusResponse = await axios.put(`/api/serviceorder/status/${orderId}`, {
+        status: 14
+      });
+      
+      // Simultaneously perform refund request
+      const refundResponse = await axios.post(`/api/wallets/refund?id=${orderId}`);
+      
+      // Return combined response data if needed
+      return {
+        statusData: statusResponse.data,
+        refundData: refundResponse.data
+      };
+    } catch (error) {
+      set({ 
+        error: error.message,
+        isLoading: false 
+      });
+      throw error;
+    }
+  }
 }));
 
 export default useDesignOrderStore;
