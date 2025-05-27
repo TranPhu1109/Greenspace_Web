@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import locale from 'antd/es/date-picker/locale/vi_VN';
 import './DesignerScheduleManager.scss';
+import api from '@/api/api';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -279,6 +280,8 @@ const DesignerScheduleManager = () => {
         return <Tag color="blue">Hoàn tất tư vấn</Tag>;
       case 'Design':
         return <Tag color="success">Đang thiết kế</Tag>;
+      case 'DoneDesign':
+        return <Tag color="blue">Hoàn tất thiết kế</Tag>;
       default:
         return <Tag color="error">Không xác định</Tag>;
     }
@@ -287,10 +290,11 @@ const DesignerScheduleManager = () => {
   // Function to get status color
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Pending': return '#d9d9d9';
-      case 'ConsultingAndSket': return '#bae7ff';
-      case 'DoneConsulting': return '#adc6ff';
-      case 'Design': return '#d9f7be';
+      case 'Pending': return '#faad14';
+      case 'ConsultingAndSket': return '#91d5ff';
+      case 'DoneConsulting': return '#95de64';
+      case 'Design': return '#69c0ff';
+      case 'DoneDesign': return '#52c41a';
       default: return '#ffccc7';
     }
   };
@@ -300,22 +304,77 @@ const DesignerScheduleManager = () => {
     switch (status) {
       case 'Pending':
         return <Tag color="default">Chờ xử lý</Tag>;
+      case 'ConsultingAndSketching':
+        return <Tag color="blue">Tư vấn & Phác thảo</Tag>;
+      case 'ReConsultingAndSketching':
+        return <Tag color="blue">Tư vấn & Phác thảo lại</Tag>;
+      case 'DeterminingDesignPrice':
+        return <Tag color="purple">Đang xác định giá thiết kế</Tag>;
+      case 'ReDeterminingDesignPrice':
+        return <Tag color="purple">Xác định lại giá thiết kế</Tag>;
+      case 'DoneDeterminingDesignPrice':
+        return <Tag color="purple">Hoàn tất xác định giá thiết kế</Tag>;
+      case 'DesignPriceConfirm':
+        return <Tag color="geekblue">Xác nhận giá thiết kế</Tag>;
+      case 'WaitDeposit':
+        return <Tag color="gold">Chờ đặt cọc</Tag>;
+      case 'DepositSuccessful':
+        return <Tag color="cyan">Đặt cọc thành công</Tag>;
+      case 'AssignToDesigner':
+        return <Tag color="lime">Đã giao cho Designer</Tag>;
+      case 'DoneDesign':
+        return <Tag color="green">Hoàn tất thiết kế</Tag>;
+      case 'ReDesign':
+        return <Tag color="blue">Thiết kế lại</Tag>;
+      case 'DeterminingMaterialPrice':
+        return <Tag color="purple">Xác định giá vật liệu</Tag>;
+      case 'ReDetermineMaterialPrice':
+        return <Tag color="purple">Xác định lại giá vật liệu</Tag>;
+      case 'DoneDeterminingMaterialPrice':
+        return <Tag color="green">Hoàn tất xác định giá vật liệu</Tag>;
+      case 'MaterialPriceConfirmed':
+        return <Tag color="cyan">Đã xác nhận giá vật liệu</Tag>;
+      case 'PaymentSuccess':
+        return <Tag color="green">Thanh toán thành công</Tag>;
+      case 'StopService':
+        return <Tag color="red">Ngưng dịch vụ</Tag>;
       case 'Processing':
         return <Tag color="blue">Đang xử lý</Tag>;
-      case 'Installing':
-        return <Tag color="blue">Đang lắp đặt</Tag>;
-      case 'ReInstall':
-        return <Tag color="orange">Lắp lại</Tag>;
-      case 'Successfully':
-      case 'DoneInstalling':
-      case 'Completed':
-        return <Tag color="green">Hoàn tất</Tag>;
+      case 'PickedPackageAndDelivery':
+        return <Tag color="blue">Đang giao hàng</Tag>;
       case 'DeliveryFail':
         return <Tag color="error">Giao hàng thất bại</Tag>;
+      case 'ReDelivery':
+        return <Tag color="orange">Giao lại</Tag>;
+      case 'DeliveredSuccessfully':
+        return <Tag color="cyan">Giao hàng thành công</Tag>;
+      case 'WaitForScheduling':
+        return <Tag color="gold">Chờ lên lịch lắp đặt</Tag>;
+      case 'Installing':
+        return <Tag color="blue">Đang lắp đặt</Tag>;
+      case 'DoneInstalling':
+        return <Tag color="green">Đã lắp đặt xong</Tag>;
+      case 'ReInstall':
+        return <Tag color="volcano">Lắp đặt lại</Tag>;
+      case 'CustomerConfirm':
+        return <Tag color="processing">Khách xác nhận hoàn tất</Tag>;
+      case 'Successfully':
+        return <Tag color="success">Hoàn tất đơn hàng</Tag>;
+      case 'CompleteOrder':
+        return <Tag color="green">Đơn hàng hoàn tất</Tag>;
+      case 'OrderCancelled':
+        return <Tag color="red">Đã hủy</Tag>;
+      case 'ExchangeProdcut':
+        return <Tag color="orange">Đổi sản phẩm</Tag>;
+      case 'Refund':
+        return <Tag color="volcano">Đang hoàn tiền</Tag>;
+      case 'DoneRefund':
+        return <Tag color="green">Hoàn tiền xong</Tag>;
       default:
-        return <Tag color="red">Không xác định</Tag>;
+        return <Tag color="magenta">Không xác định</Tag>;
     }
   };
+  
 
   // Function to handle calendar date selection
   const handleDateSelect = (date) => {
@@ -792,6 +851,11 @@ const DesignerScheduleManager = () => {
         preselectedOrderId={serviceOrderFromNav}
         customerName={customerNameFromNav}
         address={addressFromNav}
+        disabledDates={(date) => {
+          if (!viewingDesigner || !viewingDesigner.id) return false;
+          const tasks = filteredTasks.filter(task => dayjs(task.dateAppointment).isSame(date, 'day'));
+          return tasks.length > 0;
+        }}
       />
 
       {/* Task Details Drawer */}
