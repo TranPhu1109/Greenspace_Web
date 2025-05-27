@@ -825,7 +825,6 @@ const OrderHistoryDetail = () => {
         <div className="order-detail-content">
           <Card className="order-detail-card">
             <Space direction="vertical" size={24} style={{ width: "100%" }}>
-              {/* Header */}
 
               <Space
                 direction="horizontal"

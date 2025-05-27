@@ -31,7 +31,8 @@ import {
   HistoryOutlined,
   CheckCircleOutlined,
   FilePdfOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
+  ArrowLeftOutlined
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -329,59 +330,66 @@ const StandardOrderDetail = () => {
     <Layout className="order-detail-layout">
       <Header />
       <Content>
+        <div
+          style={{
+            paddingTop: '40px',
+            maxWidth: '1200px',
+            margin: '0 auto',
+          }}
+        >
+          <Breadcrumb
+            items={[
+              {
+                title: (
+                  <Link to="/Home">
+                    <Space>
+                      <HomeOutlined style={{ fontSize: '16px' }} />
+                      <span style={{ fontSize: '16px' }}>Trang chủ</span>
+                    </Space>
+                  </Link>
+                ),
+              },
+              {
+                title: (
+                  <Link to="/serviceorderhistory">
+                    <Space>
+                      <HistoryOutlined style={{ fontSize: '16px' }} />
+                      <span style={{ fontSize: '16px' }}>Lịch sử đơn hàng</span>
+                    </Space>
+                  </Link>
+                ),
+              },
+              {
+                title: (
+                  <Space>
+                    <ShoppingOutlined style={{ fontSize: '16px' }} />
+                    <span style={{ fontSize: '16px' }}>Chi tiết đơn hàng #{id.slice(0, 8)}</span>
+                  </Space>
+                ),
+              },
+            ]}
+            style={{
+              marginBottom: '16px',
+              padding: '12px 16px',
+              backgroundColor: '#fff',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }}
+          />
+        </div>
         <div className="order-detail-content">
           <Card className="order-detail-card">
             <Space direction="vertical" size={24} style={{ width: "100%" }}>
-              {/* Header */}
-              <Breadcrumb
-                items={[
-                  {
-                    title: (
-                      <Link to="/Home">
-                        <Space>
-                          <HomeOutlined style={{ fontSize: '18px' }} />
-                          <span style={{ fontSize: '16px' }}>Trang chủ</span>
-                        </Space>
-                      </Link>
-                    ),
-                  },
-                  {
-                    title: (
-                      <Link to="/serviceorderhistory">
-                        <Space>
-                          <HistoryOutlined style={{ fontSize: '18px' }} />
-                          <span style={{ fontSize: '16px' }}>Lịch sử đơn hàng</span>
-                        </Space>
-                      </Link>
-                    ),
-                  },
-                  {
-                    title: (
-                      <Space>
-                        <ShoppingOutlined style={{ fontSize: '18px' }} />
-                        <span style={{ fontSize: '16px' }}>Chi tiết đơn hàng #{id.slice(0, 8)}</span>
-                      </Space>
-                    ),
-                  },
-                ]}
-                style={{
-                  marginBottom: '16px',
-                  padding: '12px 16px',
-                  backgroundColor: '#fff',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-              />
-
               <Space
                 direction="horizontal"
                 align="center"
                 style={{ width: "100%", justifyContent: "space-between" }}
               >
                 <Button
-                  type="default"
+                  type="primary"
                   onClick={() => navigate("/serviceorderhistory")}
                 >
+                  <ArrowLeftOutlined />
                   Quay lại danh sách
                 </Button>
                 <Space>
