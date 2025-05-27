@@ -221,8 +221,8 @@ const AddDesignerTaskModal = ({
       <Space align="center">
         <Avatar 
           icon={<UserOutlined />} 
-          src={designer.avatarUrl}
-          style={{ backgroundColor: !designer.avatarUrl ? '#1890ff' : undefined }}
+          src={designer.avatarUrl && designer.avatarUrl !== '' ? designer.avatarUrl : undefined}
+          style={{ backgroundColor: !designer.avatarUrl || designer.avatarUrl === '' ? '#1890ff' : undefined }}
         />
         <div className="designer-info">
           <Text strong>{designer.name}</Text>
@@ -482,8 +482,8 @@ const AddDesignerTaskModal = ({
                 <Avatar 
                   size={48}
                   icon={<UserOutlined />} 
-                  src={selectedDesigner.avatarUrl}
-                  style={{ backgroundColor: !selectedDesigner.avatarUrl ? '#1890ff' : undefined }}
+                  src={selectedDesigner.avatarUrl && selectedDesigner.avatarUrl !== '' ? selectedDesigner.avatarUrl : undefined}
+                  style={{ backgroundColor: !selectedDesigner.avatarUrl || selectedDesigner.avatarUrl === '' ? '#1890ff' : undefined }}
                 />
                 <div>
                   <Text strong style={{ fontSize: '16px' }}>{selectedDesigner.name}</Text>
