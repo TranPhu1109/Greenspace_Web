@@ -43,10 +43,11 @@
   .calendar-task-item {
     display: flex;
     align-items: center;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
     cursor: pointer;
-    padding: 1px 0;
+    padding: 2px 4px;
     transition: all 0.3s;
+    border-radius: 4px;
     
     &:hover {
       background-color: rgba(0, 0, 0, 0.04);
@@ -55,17 +56,70 @@
 
   .task-tag {
     margin-left: 4px;
-    font-size: 11px;
-    padding: 0 5px;
+    font-size: 12px;
+    padding: 1px 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100px;
+    max-width: 150px;
+    border-radius: 4px;
+    line-height: 1.5;
+    font-weight: 500;
   }
 
   .more-tasks {
     font-size: 11px;
     padding-left: 4px;
+    color: #1890ff;
+    font-weight: 500;
+  }
+  
+  // Reset tất cả các ô lịch về màu trắng
+  .ant-picker-calendar-date {
+    background-color: white !important;
+    border-color: #f0f0f0 !important;
+  }
+  
+  // Chỉ ô ngày hôm nay có màu xanh lá
+  .ant-picker-calendar-date-today {
+    background-color: #d9f7be !important;
+    border-color: #b7eb8f !important;
+  }
+  
+  // Cải thiện hover ngày
+  .ant-picker-calendar-date:hover {
+    background-color: #f5f5f5 !important;
+  }
+  
+  // Làm nổi bật ngày có task
+  .ant-picker-calendar-date-content:not(:empty) {
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      right: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #1890ff;
+    }
+  }
+  
+  // Fix các điểm bất thường trong giao diện lịch
+  .ant-picker-cell {
+    &:hover {
+      .ant-picker-calendar-date {
+        background-color: #f5f5f5 !important;
+      }
+    }
+  }
+  
+  // Đảm bảo ngày được chọn không có màu xanh dương
+  .ant-picker-cell-selected .ant-picker-calendar-date {
+    background-color: #f0f7ff !important;
+    border-color: #e6f7ff !important;
   }
 }
 

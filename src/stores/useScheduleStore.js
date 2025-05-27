@@ -16,17 +16,53 @@ const useScheduleStore = create((set, get) => ({
   getAllTasks: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('/api/worktask');
+      // Sử dụng API /api/worktask/designer để lấy danh sách task của designer
+      const response = await api.get('/api/worktask/designer');
       const tasks = response.data;
       
       set({
         workTasks: tasks,
         isLoading: false
       });
+      console.log("Loaded designer tasks:", tasks);
       return tasks;
     } catch (error) {
       set({
         error: error.message || 'Không thể tải danh sách công việc',
+        isLoading: false
+      });
+      console.error("Error loading designer tasks:", error);
+      return [];
+    }
+  },
+
+  // Lấy danh sách task của một designer cụ thể
+  getTasksByDesignerId: async (designerId) => {
+    if (!designerId) return [];
+    
+    set({ isLoading: true, error: null });
+    try {
+      // Nếu đã có tasks trong store, lọc theo designerId
+      const allTasks = get().workTasks;
+      if (allTasks && allTasks.length > 0) {
+        const filteredTasks = allTasks.filter(task => task.userId === designerId);
+        set({ isLoading: false });
+        return filteredTasks;
+      }
+      
+      // Nếu chưa có tasks, gọi API để lấy tất cả task của designer rồi lọc
+      const response = await api.get('/api/worktask/designer');
+      const tasks = response.data;
+      
+      set({
+        workTasks: tasks,
+        isLoading: false
+      });
+      
+      return tasks.filter(task => task.userId === designerId);
+    } catch (error) {
+      set({
+        error: error.message || 'Không thể tải danh sách công việc của designer',
         isLoading: false
       });
       return [];
@@ -160,7 +196,7 @@ const useScheduleStore = create((set, get) => ({
       }));
       
       // Cập nhật lại danh sách tasks
-      await get().getAllActiveTasks();
+      await get().getAllTasks();
       
       return updatedTask;
     } catch (error) {

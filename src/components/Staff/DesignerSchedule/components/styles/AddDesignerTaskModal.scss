@@ -4,6 +4,18 @@
     overflow: hidden;
   }
 
+  .ant-modal-header {
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e8e8e8;
+    padding: 16px 24px;
+    
+    .ant-modal-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #333;
+    }
+  }
+
   .designer-task-form {
     .form-item {
       margin-bottom: 16px;
@@ -11,6 +23,12 @@
     
     .select-item {
       width: 100%;
+    }
+    
+    .order-select {
+      .ant-select-selection-item {
+        font-weight: 500;
+      }
     }
     
     .text-area {
@@ -29,41 +47,69 @@
     }
   }
   
-  .designer-option {
+  // Designer option styling
+  .designer-option-item {
+    padding: 8px 0;
+    display: flex;
     align-items: center;
+    
+    .designer-info {
+      margin-left: 8px;
+      
+      .designer-contact {
+        margin-top: 2px;
+      }
+    }
   }
   
-  // Improved styles for order options
+  // Order option styling
   .order-option-detail {
     width: 100%;
+    padding: 8px 0;
     
     .order-info {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
       width: 100%;
       
-      .order-main {
+      .order-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        
-        .customer-name {
-          max-width: 200px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          overflow: hidden;
-        }
       }
       
-      .order-meta {
+      .order-body {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        gap: 6px;
         
-        .order-date {
-          font-size: 12px;
+        .customer-info, .address-info, .date-info {
+          display: flex;
+          align-items: center;
         }
+        
+        .address-info {
+          align-items: flex-start;
+        }
+        
+        .date-info {
+          margin-top: 4px;
+        }
+      }
+    }
+  }
+
+  // Preview sections styling
+  .designer-preview, .order-preview {
+    margin-top: 20px;
+    
+    .ant-divider {
+      margin: 16px 0;
+      
+      .ant-divider-inner-text {
+        font-size: 14px;
+        color: #595959;
       }
     }
   }
@@ -91,13 +137,53 @@
 
 // Responsive styles for select dropdown
 .ant-select-dropdown {
+  .designer-option-item {
+    padding: 8px 12px;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: #f5f5f5;
+    }
+  }
+  
   .order-option-detail {
-    padding: 8px 0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: #f5f5f5;
+    }
     
     .order-info {
-      .order-main {
-        margin-bottom: 4px;
+      .order-header {
+        margin-bottom: 8px;
+      }
+      
+      .order-body {
+        .address-info {
+          max-width: 100%;
+          
+          .ant-typography {
+            line-height: 1.4;
+          }
+        }
       }
     }
   }
+}
+
+// Custom scrollbar for select dropdowns
+.ant-select-dropdown::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ant-select-dropdown::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.ant-select-dropdown::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
 } 

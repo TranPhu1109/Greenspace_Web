@@ -164,7 +164,8 @@ const TemplateOrderDetail = () => {
         serviceOrderId: selectedOrder.id,
         customerName: selectedOrder.userName,
         address: selectedOrder.address,
-        autoOpenModal: false
+        autoOpenModal: false,
+        currentStatus: selectedOrder.status
         // Removed construction date and time to let staff choose their own
       }
     });

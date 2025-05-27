@@ -232,6 +232,10 @@ const ContractorTaskDetail = () => {
         return 'green';
       case 'cancel':
         return 'red';
+      case 'DeliveryFail':
+        return 'red';
+      case 'ReDelivery':
+        return 'blue';
       default:
         return 'blue';
     }
@@ -254,6 +258,10 @@ const ContractorTaskDetail = () => {
         return 'Đã hoàn thành';
       case 'cancel':
         return 'Giao hàng thất bại';
+      case 'DeliveryFail':
+        return 'Giao hàng thất bại';
+      case 'ReDelivery':
+        return 'Giao hàng lại';
       default:
         return status;
     }
@@ -375,8 +383,8 @@ const ContractorTaskDetail = () => {
                     <Text copyable={{ text: task.serviceOrderId, icon: <CopyOutlined /> }} strong>#{task.serviceOrderId}</Text>
                   </Descriptions.Item>
                   <Descriptions.Item label="Trạng thái đơn hàng">
-                    <Tag color={getStatusColor(task.status)}>
-                      {getStatusText(task.status)}  
+                    <Tag color={getStatusColor(task.serviceOrder.status)}>
+                      {getStatusText(task.serviceOrder.status)}  
                     </Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Ngày giao hàng và lắp đặt">

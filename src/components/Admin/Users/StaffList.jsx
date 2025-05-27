@@ -173,7 +173,7 @@ const StaffList = () => {
     Modal.confirm({
       title: 'Xác nhận vô hiệu hóa tài khoản',
       content: `Bạn có chắc chắn muốn vô hiệu hóa tài khoản nhân viên "${user.name}" không?`,
-      okText: 'Xóa',
+      okText: 'Xác nhận',
       okType: 'danger',
       cancelText: 'Hủy',
       onOk: async () => {
