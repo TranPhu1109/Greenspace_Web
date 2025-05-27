@@ -117,6 +117,9 @@ const useDesignOrderStore = create((set, get) => ({
         "DoneDeterminingMaterialPrice": 23, // Hoàn thành xác định giá vật liệu
         "ReDeterminingDesignPrice": 24, // Xác định lại giá thiết kế
         "ExchangeProduct": 25, // Đổi sản phẩm
+        "DoneInstalling": 26, // Hoàn tất lắp đặt
+        "ReInstall": 29, // Lắp đặt lại
+        "Successfully": 31, // Hoàn tất đơn hàng
       };
       
       const numericStatus = typeof newStatus === 'string' ? statusMap[newStatus] : newStatus;

@@ -79,6 +79,7 @@ const DesignOrderHistory = () => {
       title: "Mã đơn hàng",
       dataIndex: "id",
       key: "id",
+      width: 130,
       render: (id) => <Text copyable={{ text: id, icon: <CopyOutlined /> }}>#{id?.slice(0, 8)}</Text>,
     },
     {
@@ -97,26 +98,6 @@ const DesignOrderHistory = () => {
       key: "address",
       render: (text) => <Text>{text ? text.replace(/\|/g, ', ') : 'Không có địa chỉ'}</Text>,
     },
-    // {
-    //   title: "Số điện thoại",
-    //   dataIndex: "cusPhone",
-    //   key: "cusPhone",
-    //   render: (phone) => <Text>{phone}</Text>,
-    // },
-    // {
-    //   title: "Loại đơn hàng",
-    //   dataIndex: "isCustom",
-    //   key: "isCustom",
-    //   render: (isCustom) => {
-    //     const customConfig = {
-    //       false: { color: "blue", text: "Không tùy chỉnh" },
-    //       true: { color: "green", text: "Tùy chỉnh" },
-    //       full: { color: "purple", text: "Tùy chỉnh hoàn toàn" },
-    //     };
-    //     const config = customConfig[isCustom] || customConfig.false;
-    //     return <Tag color={config.color}>{config.text}</Tag>;
-    //   },
-    // },
     {
       title: "Trạng thái",
       dataIndex: "status",
@@ -142,6 +123,10 @@ const DesignOrderHistory = () => {
           'Refund': { color: 'orange', text: 'Hoàn tiền' },
           'DoneRefund': { color: 'success', text: 'Đã hoàn tiền' },
           'Completed': { color: 'success', text: 'Hoàn thành' },
+          'Installing': { color: 'blue', text: 'Đang lắp đặt' },
+          'ReInstall': { color: 'warning', text: 'Lắp đặt lại' },
+          'DoneInstalling': { color: 'success', text: 'Hoàn tất lắp đặt' },
+          'Successfully': { color: 'success', text: 'Hoàn tất đơn hàng' },
           'ReConsultingAndSketching': { color: 'blue', text: 'Phác thảo lại' },
           'ReDesign': { color: 'volcano', text: 'Thiết kế lại' },
           'WaitDeposit': { color: 'gold', text: 'Chờ đặt cọc' }

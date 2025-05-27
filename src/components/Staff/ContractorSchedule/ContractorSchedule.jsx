@@ -57,6 +57,7 @@ const ContractorSchedule = () => {
   const customerNameFromNav = state?.customerName;
   const addressFromNav = state?.address;
   const autoOpenModal = state?.autoOpenModal;
+  const currentStatusFromNav = state?.currentStatus;
   const existingConstructionDate = state?.contructionDate;
   const existingConstructionTime = state?.contructionTime;
 
@@ -202,15 +203,22 @@ const ContractorSchedule = () => {
       // Refresh the tasks
       await fetchContractorTasks(selectedContractor.id);
 
-      // Update the order status to Processing (8)
+      // Update the order status to Processing (8) or ReDelivery (11)
       if (serviceOrderFromNav) {
         try {
+          // Determine the appropriate status based on the current status
+          let newStatus = 8; // Default to Processing
+          
+          if (currentStatusFromNav === 'DeliveryFail') {
+            newStatus = 11; // ReDelivery status
+          }
+          
           const updateStatusResponse = await api.put(`/api/serviceorder/status/${serviceOrderFromNav}`, {
-            status: 8, // Processing
+            status: newStatus,
           });
 
           if (updateStatusResponse.status === 200) {
-            console.log('Order status updated to Processing (8) successfully');
+            console.log(`Order status updated to ${newStatus === 8 ? 'Processing (8)' : 'ReDelivery (11)'} successfully`);
           } else {
             console.warn('Failed to update order status:', updateStatusResponse);
           }
@@ -414,6 +422,8 @@ const ContractorSchedule = () => {
         return <Tag color="blue">Hoàn tất lắp đặt</Tag>;
       case 'Completed':
         return <Tag color="success">Hoàn tất giao hàng</Tag>;
+      case 'cancel':
+        return <Tag color="error">Giao hàng thất bại</Tag>;
       default:
         return <Tag color="error">Không xác định</Tag>;
     }
@@ -433,6 +443,8 @@ const ContractorSchedule = () => {
       case 'DoneInstalling':
       case 'Completed':
         return <Tag color="green">Hoàn tất</Tag>;
+      case 'DeliveryFail':
+        return <Tag color="error">Giao hàng thất bại</Tag>;
       default:
         return <Tag color="red">Không xác định</Tag>;
     }
@@ -1297,7 +1309,7 @@ const ContractorSchedule = () => {
           description={
             <div>
               <p>Đã gán đội lắp đặt <strong>{selectedContractor?.name}</strong> cho đơn hàng #{serviceOrderFromNav} thành công.</p>
-              <p>Trạng thái đơn hàng đã được cập nhật thành <strong>Đang xử lý (Processing)</strong>.</p>
+              <p>Trạng thái đơn hàng đã được cập nhật thành <strong>{currentStatusFromNav === 'DeliveryFail' ? 'Giao lại (ReDelivery)' : 'Đang xử lý (Processing)'}</strong>.</p>
               <p>Bạn có thể tiếp tục xem lịch làm việc của đội lắp đặt hoặc quay lại trang đơn hàng.</p>
               <div style={{ marginTop: '12px' }}>
                 <Button

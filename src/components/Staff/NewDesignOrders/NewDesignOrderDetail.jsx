@@ -1274,7 +1274,14 @@ const NewDesignOrderDetail = () => {
                     width: "100%",
                   }}
                   onClick={() => {
-                    navigate("/staff/schedule");
+                    navigate("/staff/schedule", {
+                      state: {
+                        serviceOrderId: selectedOrder.id,
+                        customerName: selectedOrder.userName,
+                        address: selectedOrder.address,
+                        autoOpenModal: false
+                      }
+                    });
                   }}
                 >
                   Giao task cho designer
