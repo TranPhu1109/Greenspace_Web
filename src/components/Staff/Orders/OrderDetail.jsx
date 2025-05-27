@@ -77,7 +77,7 @@ const OrderDetail = () => {
     try {
       // Tạo đơn ship
       const addressParts = selectedOrder.address
-        .split(",")
+        .split("|")
         .map((part) => part.trim());
       const toAddress = addressParts[0];
       const toWard = addressParts[1];
@@ -310,7 +310,7 @@ const OrderDetail = () => {
                   </span>
                 }
               >
-                {selectedOrder.address}
+                {selectedOrder.address.replace(/\|/g, ', ')}
               </Descriptions.Item>
             </Descriptions>
 

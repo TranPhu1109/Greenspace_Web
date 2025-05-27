@@ -374,11 +374,11 @@ const UpdateProductModal = ({
             <Form.Item
               name="size"
               label="Kích thước (cm)"
-              rules={[{ required: true, message: "Vui lòng nhập kích thước!" }]}
+              // rules={[{ required: true, message: "Vui lòng nhập kích thước!" }]}
             >
-              <InputNumber
+              <Input
                 style={{ width: "100%" }}
-                placeholder="Nhập kích thước"
+                placeholder="Nhập kích thước (VD: 100cm x 100cm)"
                 min={0}
               />
             </Form.Item>
