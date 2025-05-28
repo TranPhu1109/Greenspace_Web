@@ -1106,7 +1106,7 @@ const ContractorSchedule = () => {
                   Hủy
                 </Button>
                 <Button type="primary" htmlType="submit" loading={isLoading}>
-                  {serviceOrderFromNav ? "Xác nhận lịch giao hàng" : "Tạo lịch"}
+                  {serviceOrderFromNav ? "Xác nhận lịch" : "Tạo lịch"}
                 </Button>
               </Space>
             </div>

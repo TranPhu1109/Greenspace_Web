@@ -157,7 +157,9 @@ const CreateDesignModal = ({ visible, onCancel, onSubmit, categories }) => {
       <div style={{ 
         height: 'calc(100% - 64px)', // Full height minus footer height
         overflow: 'auto',
-        padding: '24px 24px 16px 24px' // Restore padding
+        padding: '24px 24px 16px 24px', // Restore padding
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#808080 #f0f0f0'
       }}>
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Row gutter={16}>
