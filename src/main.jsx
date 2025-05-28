@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router-dom";
 import { ConfigProvider, theme } from "antd";
 import "./index.css";
 import router from "./routes";
+import { Analytics } from "@vercel/analytics/react";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       }}
     >
       <RouterProvider router={router} />
+      <Analytics />
     </ConfigProvider>
   </React.StrictMode>
 );
