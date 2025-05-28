@@ -8,8 +8,6 @@ importScripts(
 importScripts(
   "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"
 );
-importScripts("/utils-notification-helper.js");
-importScripts("/logo.png");
 // Initialize the Firebase app in the service worker by passing in
 // your app's Firebase config object.
 // https://firebase.google.com/docs/web/setup#config-object
@@ -28,14 +26,9 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
-  console.log(
-    "[firebase-messaging-sw.js] Received background message ",
-    payload
-  );
+  console.log("[firebase-messaging-sw.js] Background message", payload);
   const title = payload.notification.title || "Thông báo từ GreenSpace";
-  const formattedContent = self.getFormattedNotificationContent(
-    payload.notification
-  );
+  const formattedContent = getFormattedNotificationContent(payload.notification);
 
   const notificationOptions = {
     body: formattedContent,
