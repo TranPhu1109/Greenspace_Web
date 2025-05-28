@@ -1,4 +1,3 @@
-import Dashboard from "../pages/Admin/Dashboard";
 // import UsersList from "../pages/Admin/Users/UsersList";
 import UserDetail from "../pages/Admin/Users/UserDetail";
 import StaffRoles from "../pages/Admin/Staff/StaffRoles";
@@ -15,6 +14,7 @@ import StaffList from "@/components/Admin/Users/StaffList";
 import BannedAccounts from "@/components/Admin/Users/BannedAccounts";
 import Profile from "@/components/Account/Profile";
 import Settings from "@/components/Account/Settings";
+import Dashboard from "@/pages/Admin/Dashboard/DashboardAdmin";
 
 export const adminRoutes = {
   path: "/admin",
