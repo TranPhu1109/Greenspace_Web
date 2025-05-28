@@ -13,8 +13,12 @@ const VNPayCallback = () => {
       try {
         // Lấy URL hiện tại và thay thế domain
         const currentUrl = window.location.href;
+        const apiUrl = import.meta.env.VITE_API_URL;
+        const greenspaceUrl = import.meta.env.VITE_GREENSPACE_URL;
+
         const backendUrl = currentUrl
-          .replace('http://localhost:5173/userwallets/response', 'http://localhost:8080/api/userwallets/vn-pay/response');
+          .replace(`${greenspaceUrl}/userwallets/response`, `${apiUrl}/userwallets/vn-pay/response`);
+          // .replace('http://localhost:5173/userwallets/response', 'http://localhost:8080/api/userwallets/vn-pay/response');
         
         // Xử lý response từ VNPay
         await handleVNPayResponse(backendUrl);
