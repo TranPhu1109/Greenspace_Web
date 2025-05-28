@@ -1809,7 +1809,8 @@ const TaskDetail = () => {
       'ReDelivery',
       'DeliveredSuccessfully',
       'CompleteOrder',
-      'ReDesign'
+      'ReDesign',
+      'DeterminingMaterialPrice'
     ];
 
     return statusesAfterAssignToDesigner.includes(status);

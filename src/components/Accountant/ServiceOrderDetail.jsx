@@ -509,7 +509,7 @@ const ServiceOrderDetail = () => {
       title: "Yêu cầu về sản phẩm mới",
       dataIndex: "description",
       key: "description",
-      width: 100,
+      width: 400,
       render: (text) => (
         <Tooltip styles={{
           body: {
@@ -520,7 +520,18 @@ const ServiceOrderDetail = () => {
             scrollbarColor: '#d9d9d9 #f0f0f0',
           },
         }} title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />} color="white">
-          <div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />
+          <div 
+            className="html-preview" 
+            dangerouslySetInnerHTML={{ __html: text }} 
+            style={{ 
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              lineClamp: 3
+            }}
+          />
         </Tooltip>
       ),
     },

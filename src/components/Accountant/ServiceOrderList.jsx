@@ -176,7 +176,6 @@ const ServiceOrderList = () => {
           <Tooltip 
            styles={{
             body: {
-              width: 900,
               maxHeight: 500,
               overflowY: 'auto',
               scrollbarWidth: 'thin',

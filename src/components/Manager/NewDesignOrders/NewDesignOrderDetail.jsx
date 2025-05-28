@@ -1725,7 +1725,7 @@ ${externalProductsTable}
         )}
 
         {renderProductsCollapse()}
-        {currentOrder.products.length > 0 && (
+        {currentOrder.products && currentOrder.products.length > 0 && (
           <Card title="Sản phẩm" style={{ marginTop: '24px' }}>
             <Table dataSource={currentOrder.products} columns={columns} />
           </Card>
