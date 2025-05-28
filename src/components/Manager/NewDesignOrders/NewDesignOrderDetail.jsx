@@ -804,7 +804,7 @@ ${externalProductsTable}
               gap: '8px'
             }}>
               <DollarOutlined />
-              Chi tiết chi phí đơn hàng test
+              Chi tiết chi phí đơn hàng
             </span>
             {currentOrder.status === 'DeterminingDesignPrice' && (
               <Tag color="orange" style={{ fontSize: 14 }}>
