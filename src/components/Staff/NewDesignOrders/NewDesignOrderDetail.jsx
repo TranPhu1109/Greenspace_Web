@@ -1312,7 +1312,7 @@ const NewDesignOrderDetail = () => {
               )} */}
 
               {/* Add Assign to Contractor Button */}
-              {selectedOrder.status === "PaymentSuccess" && (
+              {(selectedOrder.status === "PaymentSuccess" || selectedOrder.status === "DeliveryFail") && (
                 <Button
                   type="primary"
                   icon={<TeamOutlined />}
