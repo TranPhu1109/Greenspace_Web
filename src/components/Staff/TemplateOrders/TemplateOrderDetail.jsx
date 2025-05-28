@@ -757,7 +757,7 @@ const TemplateOrderDetail = () => {
                   gap: "8px",
                 }}
               >
-                {selectedOrder.status === "Pending" || selectedOrder.status === "DeliveryFail" && (
+                {(selectedOrder.status === "Pending" || selectedOrder.status === "DeliveryFail") && (
                   <>
                     {/* <Button
                       type="primary"
@@ -805,7 +805,7 @@ const TemplateOrderDetail = () => {
                     </Button>
                   </>
                 )}
-                {selectedOrder.status === "Pending" || selectedOrder.status === "DeliveryFail" && (
+                {(selectedOrder.status === "Pending" || selectedOrder.status === "DeliveryFail") && (
                   <Button
                     danger
                     style={{
