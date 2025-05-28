@@ -637,7 +637,7 @@ const Dashboard = () => {
           </TabPane>
         </Tabs>
       </div>
-      <Analytics />
+      {/* <Analytics /> */}
     </div>
   );
 };

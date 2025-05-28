@@ -14,7 +14,7 @@ import StaffList from "@/components/Admin/Users/StaffList";
 import BannedAccounts from "@/components/Admin/Users/BannedAccounts";
 import Profile from "@/components/Account/Profile";
 import Settings from "@/components/Account/Settings";
-import Dashboard from "@/pages/Admin/Dashboard/DashboardAdmin";
+import Dashboard from "@/pages/Admin/Dashboard";
 
 export const adminRoutes = {
   path: "/admin",
