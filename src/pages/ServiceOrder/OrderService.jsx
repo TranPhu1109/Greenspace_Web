@@ -516,7 +516,7 @@ const OrderService = () => {
         address: fullAddress,
         cusPhone: cusPhone,
         isCustom: false,
-        totalPrice: totalPrice, // Sử dụng tổng giá từ state
+        totalCost: totalPrice, // Sử dụng tổng giá từ state
         designPrice: currentDesign.designPrice,
         materialPrice: materialPrice, // Sử dụng giá vật liệu từ state
         products: updatedProductDetails, // Danh sách sản phẩm hiện tại
