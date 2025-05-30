@@ -163,6 +163,8 @@ const TemplateOrderDetail = () => {
       state: {
         serviceOrderId: selectedOrder.id,
         customerName: selectedOrder.userName,
+        customerPhone: selectedOrder.cusPhone,
+        email: selectedOrder.email,
         address: selectedOrder.address,
         autoOpenModal: false,
         currentStatus: selectedOrder.status

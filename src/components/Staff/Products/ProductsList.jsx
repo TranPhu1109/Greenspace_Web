@@ -198,6 +198,8 @@ const ProductsList = () => {
       title: "Sản phẩm",
       dataIndex: "name",
       key: "name",
+      width: 300,
+      fixed: "left",
       render: (text, record) => (
         <div className="product-info">
           <img
@@ -223,15 +225,29 @@ const ProductsList = () => {
       title: "Mô tả",
       dataIndex: "description",
       key: "description",
+      width: 500,
       render: (text) => (
-        <Tooltip title={text}>
+        <Tooltip 
+        styles={{
+          root: { maxWidth: '1200px' },
+          body: {
+            maxHeight: '300px',
+            overflowY: 'auto',
+            scrollbarWidth: 'thin', // Firefox
+            scrollbarColor: '#888 #f0f0f0', // Firefox
+          },
+        }}
+          color="white" 
+          title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />}
+        >
           <span
             style={{
-              display: "inline-block",
-              maxWidth: "200px",
-              whiteSpace: "nowrap",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              textOverflow: "ellipsis",
+              lineHeight: "1.2em",
+              maxHeight: "4em",
             }}
           >
             <div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />
@@ -457,5 +473,6 @@ const ProductsList = () => {
     </div>
   );
 };
+
 
 export default ProductsList;

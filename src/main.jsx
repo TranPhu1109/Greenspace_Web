@@ -5,6 +5,7 @@ import { ConfigProvider, theme } from "antd";
 import "./index.css";
 import router from "./routes";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     >
       <RouterProvider router={router} />
       <Analytics />
+      <SpeedInsights /> 
     </ConfigProvider>
   </React.StrictMode>
 );

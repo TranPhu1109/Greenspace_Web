@@ -381,7 +381,17 @@ const NewDesignOrdersList = () => {
           <Tooltip
             title={<span className="html-preview" dangerouslySetInnerHTML={{ __html: text }}></span>}
             color="#fff"
-            placement="topLeft"
+            placement="bottom"
+            styles={{
+              root: { maxWidth: '1000px' },
+              body: {
+                maxHeight: '300px',
+                overflowY: 'auto',
+                scrollbarWidth: 'thin', // Firefox
+                scrollbarColor: '#888 #f0f0f0', // Firefox
+                WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+              },
+            }}
           >
             <span
               style={{
