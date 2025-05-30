@@ -32,6 +32,7 @@ const DesignDetailPage = () => {
   const [productError, setProductError] = useState(null);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [actionType, setActionType] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
 
   //console.log("currentDesign", currentDesign);
   // Cleanup on unmount
@@ -57,6 +58,9 @@ const DesignDetailPage = () => {
   // Initial load of design
   useEffect(() => {
     loadDesign();
+    if (currentDesign?.image?.imageUrl) {
+      setSelectedImage(currentDesign.image.imageUrl);
+    }
   }, [loadDesign]);
 
   // Load products when design data is available
@@ -212,36 +216,41 @@ const DesignDetailPage = () => {
               <Row gutter={[24, 24]}>
                 <Col xs={24} md={16}>
                   <div className="design-images">
-                    <Card
-                      cover={
+                    <Card>
+                      <div className="main-image-container" style={{ textAlign: 'center' }}>
                         <img
+                          src={selectedImage}
                           alt={currentDesign.name}
-                          src={currentDesign.image.imageUrl}
-                          className="main-image"
+                          style={{
+                            width: '100%',
+                            maxHeight: 500,
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }}
                         />
-                      }
-                    >
-                      <Row gutter={[16, 16]} className="sub-images">
-                        {currentDesign.image?.image2 && (
-                          <Col span={8}>
-                            <img
-                              alt="Sub 1"
-                              src={currentDesign.image?.image2}
-                              className="sub-image"
-                            />
-                          </Col>
-                        )}
-                        {currentDesign.image?.image3 && (
-                          <Col span={8}>
-                            <img
-                              alt="Sub 2"
-                              src={currentDesign.image?.image3}
-                              className="sub-image"
-                            />
-                          </Col>
-                        )}
-                      </Row>
+                      </div>
 
+                      <div className="thumbnail-container" style={{ marginTop: 16, display: 'flex', gap: 12, justifyContent: 'center' }}>
+                        {[currentDesign.image?.imageUrl, currentDesign.image?.image2, currentDesign.image?.image3]
+                          .filter(Boolean)
+                          .map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt={`Thumbnail ${idx}`}
+                              style={{
+                                width: 80,
+                                height: 80,
+                                objectFit: 'cover',
+                                cursor: 'pointer',
+                                borderRadius: 4,
+                                border: selectedImage === img ? '2px solid #1890ff' : '1px solid #ddd'
+                              }}
+                              onClick={() => setSelectedImage(img)}
+                            />
+                          ))}
+                      </div>
                     </Card>
                     <Card title="Mô tả" style={{ marginTop: '16px', marginBottom: '16px' }}>
                       <div

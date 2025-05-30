@@ -64,6 +64,7 @@ const ProductDetail = () => {
   const [showError, setShowError] = useState(false);
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [actionType, setActionType] = useState(null); // 'cart' or 'buy'
+  const [selectedImage, setSelectedImage] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,6 +83,13 @@ const ProductDetail = () => {
       fetchCartItems();
     }
   }, [user, fetchCartItems]);
+
+  useEffect(() => {
+    if (product?.image?.imageUrl) {
+      setSelectedImage(product.image.imageUrl);
+    }
+  }, [product]);
+
 
   // Handle quantity change - check against stock and cart
   const handleQuantityChange = (value) => {
@@ -335,28 +343,41 @@ const ProductDetail = () => {
               <Row gutter={[32, 32]}>
                 <Col xs={24} md={12}>
                   <div className="product-images">
-                    <Image.PreviewGroup>
-                      <div className="main-image">
-                        <Image
-                          src={product.image.imageUrl}
-                          alt={product.name}
-                        />
-                      </div>
-                      {product.image.image2 && (
-                        <div className="thumbnail-images">
+                    <div className="main-image">
+                      <Image
+                        src={selectedImage}
+                        alt={product.name}
+                        width="100%"
+                        height={500}
+                        style={{
+                          objectFit: "cover",
+                          borderRadius: 8,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                        }}
+                      />
+                    </div>
+
+                    <div className="image-thumbnails" style={{ display: "flex", gap: 12, marginTop: 16 }}>
+                      {[product.image.imageUrl, product.image.image2, product.image.image3]
+                        .filter(Boolean)
+                        .map((img, index) => (
                           <Image
-                            src={product.image.image2}
-                            alt={`${product.name} - 2`}
+                            key={index}
+                            src={img}
+                            alt={`Thumbnail ${index}`}
+                            preview={false}
+                            width={80}
+                            height={80}
+                            style={{
+                              border: selectedImage === img ? "2px solid #1890ff" : "1px solid #eee",
+                              borderRadius: 4,
+                              cursor: "pointer",
+                              objectFit: "cover",
+                            }}
+                            onClick={() => setSelectedImage(img)}
                           />
-                          {product.image.image3 && (
-                            <Image
-                              src={product.image.image3}
-                              alt={`${product.name} - 3`}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </Image.PreviewGroup>
+                        ))}
+                    </div>
                   </div>
                 </Col>
                 <Col xs={24} md={12}>

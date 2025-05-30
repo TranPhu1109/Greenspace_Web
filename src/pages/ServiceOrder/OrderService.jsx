@@ -89,6 +89,7 @@ const OrderService = () => {
   const [leftColumnHeight, setLeftColumnHeight] = useState(0);
   const [footerTop, setFooterTop] = useState(0);
   const containerRef = useRef(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // New states for products and categories
   const [allProducts, setAllProducts] = useState([]);
@@ -125,6 +126,12 @@ const OrderService = () => {
       setIsAddressValid(false);
     }
   }, [fullAddressData]);
+
+  useEffect(() => {
+    if (currentDesign?.image?.imageUrl) {
+      setSelectedImage(currentDesign.image.imageUrl);
+    }
+  }, [currentDesign]);
 
   // Handle address change from AddressForm
   const handleAddressChange = (addressData) => {
@@ -964,66 +971,72 @@ const OrderService = () => {
                       <Row gutter={[16, 16]}>
                         <Col span={24}>
                           <div className="design-images-carousel">
-                            <Title level={3} style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center' }}>{currentDesign?.name}</Title>
-                            <Row gutter={[16, 16]}>
-                              {currentDesign?.image?.imageUrl && (
-                                <Col span={24} md={8}>
+                            <Title
+                              level={3}
+                              style={{ fontSize: "24px", fontWeight: "bold", textAlign: "center" }}
+                            >
+                              {currentDesign?.name}
+                            </Title>
+
+                            {/* Ảnh chính */}
+                            <div style={{ textAlign: "center", marginBottom: 16 }}>
+                              <img
+                                src={selectedImage}
+                                alt={currentDesign.name}
+                                style={{
+                                  width: "100%",
+                                  height: "300px",
+                                  objectFit: "cover",
+                                  borderRadius: "8px",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                                }}
+                              />
+                            </div>
+
+                            {/* Danh sách thumbnail */}
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "center",
+                                gap: 12,
+                                marginBottom: 20,
+                              }}
+                            >
+                              {[currentDesign.image?.imageUrl, currentDesign.image?.image2, currentDesign.image?.image3]
+                                .filter(Boolean)
+                                .map((img, idx) => (
                                   <img
-                                    src={currentDesign.image.imageUrl}
-                                    alt={`${currentDesign.name} - 1`}
-                                    className="design-image"
+                                    key={idx}
+                                    src={img}
+                                    alt={`Thumbnail ${idx}`}
                                     style={{
-                                      width: "100%",
-                                      height: "220px",
+                                      width: 80,
+                                      height: 80,
                                       objectFit: "cover",
-                                      borderRadius: "8px",
+                                      borderRadius: 4,
+                                      border:
+                                        selectedImage === img ? "2px solid #1890ff" : "1px solid #ddd",
+                                      cursor: "pointer",
                                     }}
+                                    onClick={() => setSelectedImage(img)}
                                   />
-                                </Col>
-                              )}
-                              {currentDesign?.image?.image2 && (
-                                <Col span={24} md={8}>
-                                  <img
-                                    src={currentDesign.image.image2}
-                                    alt={`${currentDesign.name} - 2`}
-                                    className="design-image"
-                                    style={{
-                                      width: "100%",
-                                      height: "220px",
-                                      objectFit: "cover",
-                                      borderRadius: "8px",
-                                    }}
-                                  />
-                                </Col>
-                              )}
-                              {currentDesign?.image?.image3 && (
-                                <Col span={24} md={8}>
-                                  <img
-                                    src={currentDesign.image.image3}
-                                    alt={`${currentDesign.name} - 3`}
-                                    className="design-image"
-                                    style={{
-                                      width: "100%",
-                                      height: "220px",
-                                      objectFit: "cover",
-                                      borderRadius: "8px",
-                                    }}
-                                  />
-                                </Col>
-                              )}
-                            </Row>
+                                ))}
+                            </div>
                           </div>
                         </Col>
                       </Row>
 
                       <Collapse
                         className="design-description-collapse"
-                        defaultActiveKey={['1']}
+                        defaultActiveKey={["1"]}
                         bordered={false}
                         expandIconPosition="end"
-                        style={{ marginTop: '20px' }}
+                        style={{ marginTop: "20px" }}
                       >
-                        <Panel header={<Title level={5}>Chi tiết thiết kế</Title>} key="1">
+                        <Panel
+                          header={<Title level={5}>Chi tiết thiết kế</Title>}
+                          key="1"
+                        >
                           <div
                             dangerouslySetInnerHTML={{
                               __html: currentDesign?.description,
