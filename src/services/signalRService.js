@@ -1,6 +1,7 @@
 import * as signalR from "@microsoft/signalr";
 
-const HUB_URL = "/hub";
+// const HUB_URL = "/hub";
+const HUB_URL = import.meta.env.VITE_SIGNALR_URL;
 
 class SignalRService {
   constructor() {
