@@ -450,7 +450,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
         title: "Thao tác",
         render: (_, record) => {
           const orderStatus = record?.parentOrder?.status;
-          if (orderStatus === 9 || orderStatus === "9") {
+          if (orderStatus === 9 || orderStatus === "9" || orderStatus === 10 || orderStatus === "10") {
             if (!isDataFullyLoaded) {
               return <Spin size="small" />;
             }
