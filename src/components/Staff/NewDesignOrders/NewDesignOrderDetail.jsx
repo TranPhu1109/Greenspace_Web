@@ -38,12 +38,12 @@ import {
   CalendarOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { useParams, useNavigate } from 'react-router-dom';
-import useServiceOrderStore from '@/stores/useServiceOrderStore';
-import CustomerInfoSection from './sections/CustomerInfoSection';
-import RequirementsSection from './sections/RequirementsSection';
-import MaterialSuggestionsSection from './sections/MaterialSuggestionsSection';
-import './NewDesignOrderDetail.scss';
+import { useParams, useNavigate } from "react-router-dom";
+import useServiceOrderStore from "@/stores/useServiceOrderStore";
+import CustomerInfoSection from "./sections/CustomerInfoSection";
+import RequirementsSection from "./sections/RequirementsSection";
+import MaterialSuggestionsSection from "./sections/MaterialSuggestionsSection";
+import "./NewDesignOrderDetail.scss";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useProductStore from "@/stores/useProductStore";
@@ -108,7 +108,9 @@ const NewDesignOrderDetail = () => {
   useEffect(() => {
     const handleOrderUpdate = (messageType, messageData) => {
       // Log all messages received for debugging
-      console.log(`SignalR received in NewDesignOrderDetail - Type: ${messageType}, Data: ${messageData}, Current Order ID: ${id}`);
+      console.log(
+        `SignalR received in NewDesignOrderDetail - Type: ${messageType}, Data: ${messageData}, Current Order ID: ${id}`
+      );
 
       // Define relevant message types that should trigger a refresh for this specific order
       const relevantUpdateTypes = [
@@ -124,25 +126,41 @@ const NewDesignOrderDetail = () => {
 
       // Check if the message type is relevant AND the message data matches the current order ID
       if (relevantUpdateTypes.includes(messageType) && messageData === id) {
-        console.log(`Relevant SignalR message received for order ${id} (${messageType}), refreshing details.`);
+        console.log(
+          `Relevant SignalR message received for order ${id} (${messageType}), refreshing details.`
+        );
         getDesignOrderById(id); // Refresh the order details
       }
     };
 
     try {
-      signalRService.startConnection().then(() => { // Ensure connection is attempted
-        console.log(`SignalR connection ready for NewDesignOrderDetail listener (Order ID: ${id}).`);
-        signalRService.on("messageReceived", handleOrderUpdate);
-      }).catch(err => {
-        console.error(`SignalR connection failed in NewDesignOrderDetail (Order ID: ${id}):`, err);
-      });
+      signalRService
+        .startConnection()
+        .then(() => {
+          // Ensure connection is attempted
+          console.log(
+            `SignalR connection ready for NewDesignOrderDetail listener (Order ID: ${id}).`
+          );
+          signalRService.on("messageReceived", handleOrderUpdate);
+        })
+        .catch((err) => {
+          console.error(
+            `SignalR connection failed in NewDesignOrderDetail (Order ID: ${id}):`,
+            err
+          );
+        });
     } catch (err) {
-      console.error(`Error initiating SignalR connection for NewDesignOrderDetail (Order ID: ${id}):`, err);
+      console.error(
+        `Error initiating SignalR connection for NewDesignOrderDetail (Order ID: ${id}):`,
+        err
+      );
     }
 
     // Cleanup function
     return () => {
-      console.log(`Removing SignalR listener from NewDesignOrderDetail (Order ID: ${id}).`);
+      console.log(
+        `Removing SignalR listener from NewDesignOrderDetail (Order ID: ${id}).`
+      );
       signalRService.off("messageReceived", handleOrderUpdate);
       // Consider stopping connection only if no other components need it.
       // signalRService.stopConnection();
@@ -151,10 +169,24 @@ const NewDesignOrderDetail = () => {
 
   // Tìm và cập nhật thông tin designer từ userId trong workTasks
   useEffect(() => {
-    if (selectedOrder?.workTasks && selectedOrder.workTasks.length > 0 && designers && designers.length > 0) {
-      const designerTask = selectedOrder.workTasks[0];
-      const designerId = designerTask.userId;
-      const matchedDesigner = designers.find(designer => designer.id === designerId);
+    if (
+      selectedOrder?.workTasks &&
+      selectedOrder.workTasks.length > 0 &&
+      designers &&
+      designers.length > 0
+    ) {
+      // Sort workTasks by creation date in ascending order
+      const sortedTasks = [...selectedOrder.workTasks].sort(
+        (a, b) => new Date(a.creationDate) - new Date(b.creationDate)
+      );
+
+      // Get the earliest task
+      const earliestTask = sortedTasks[0];
+      const designerId = earliestTask.userId;
+
+      const matchedDesigner = designers.find(
+        (designer) => designer.id === designerId
+      );
 
       if (matchedDesigner) {
         setAssignedDesigner(matchedDesigner);
@@ -268,7 +300,7 @@ const NewDesignOrderDetail = () => {
       console.error("Error confirming order:", error);
       message.error(
         "Không thể xác nhận đơn hàng: " +
-        (error.message || "Lỗi không xác định")
+          (error.message || "Lỗi không xác định")
       );
     }
   };
@@ -442,7 +474,7 @@ const NewDesignOrderDetail = () => {
       CustomerConfirm: "Khách hàng xác nhận",
       Successfully: "Thành công",
       ReDetermineMaterialPrice: "Điều chỉnh giá vật liệu",
-      MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài"
+      MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài",
     };
     return statusMap[status] || status;
   };
@@ -483,7 +515,7 @@ const NewDesignOrderDetail = () => {
       DoneRefund: "success",
       StopService: "default",
       ExchangeProdcut: "lime",
-      WaitForScheduling: "lime"
+      WaitForScheduling: "lime",
     };
     return colorMap[status] || "default";
   };
@@ -553,7 +585,7 @@ const NewDesignOrderDetail = () => {
                 current={getCurrentStep(selectedOrder.status)}
                 status={
                   selectedOrder.status === "OrderCancelled" ||
-                    selectedOrder.status === "DeliveryFail"
+                  selectedOrder.status === "DeliveryFail"
                     ? "error"
                     : "process"
                 }
@@ -715,54 +747,88 @@ const NewDesignOrderDetail = () => {
         </Col>
 
         {/* Add prominent delivery schedule notification when available */}
-        {selectedOrder.contructionDate && selectedOrder.contructionTime && selectedOrder.status === "PaymentSuccess" && (
-          <Col span={24}>
-            <Alert
-              type="info"
-              showIcon
-              icon={<CalendarOutlined style={{ fontSize: '24px', color: '#1890ff' }} />}
-              message={
-                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                  Khách hàng đã đặt lịch giao hàng
-                </div>
-              }
-              description={
-                <div style={{
-                  padding: '10px',
-                  backgroundColor: '#f0f7ff',
-                  borderRadius: '8px',
-                  marginTop: '8px'
-                }}>
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Badge status="processing" />
-                      <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
-                        Ngày giao hàng: {dayjs(selectedOrder.contructionDate).format('DD/MM/YYYY')}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Badge status="processing" />
-                      <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
-                        Thời gian: {selectedOrder.contructionTime}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Badge status="warning" />
-                      <span style={{ fontSize: '15px' }}>
-                        Địa chỉ giao hàng: {selectedOrder.address?.replace(/\|/g, ', ')}
-                      </span>
-                    </div>
-                  </Space>
-                </div>
-              }
-              style={{
-                border: '1px solid #91d5ff',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-            />
-          </Col>
-        )}
+        {selectedOrder.contructionDate &&
+          selectedOrder.contructionTime &&
+          selectedOrder.status === "PaymentSuccess" && (
+            <Col span={24}>
+              <Alert
+                type="info"
+                showIcon
+                icon={
+                  <CalendarOutlined
+                    style={{ fontSize: "24px", color: "#1890ff" }}
+                  />
+                }
+                message={
+                  <div style={{ fontSize: "16px", fontWeight: "bold" }}>
+                    Khách hàng đã đặt lịch giao hàng
+                  </div>
+                }
+                description={
+                  <div
+                    style={{
+                      padding: "10px",
+                      backgroundColor: "#f0f7ff",
+                      borderRadius: "8px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    <Space
+                      direction="vertical"
+                      size="middle"
+                      style={{ width: "100%" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <Badge status="processing" />
+                        <span style={{ fontWeight: "bold", fontSize: "15px" }}>
+                          Ngày giao hàng:{" "}
+                          {dayjs(selectedOrder.contructionDate).format(
+                            "DD/MM/YYYY"
+                          )}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <Badge status="processing" />
+                        <span style={{ fontWeight: "bold", fontSize: "15px" }}>
+                          Thời gian: {selectedOrder.contructionTime}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <Badge status="warning" />
+                        <span style={{ fontSize: "15px" }}>
+                          Địa chỉ giao hàng:{" "}
+                          {selectedOrder.address?.replace(/\|/g, ", ")}
+                        </span>
+                      </div>
+                    </Space>
+                  </div>
+                }
+                style={{
+                  border: "1px solid #91d5ff",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                }}
+              />
+            </Col>
+          )}
 
         <Col span={16}>
           <Card
@@ -788,15 +854,14 @@ const NewDesignOrderDetail = () => {
               <Descriptions.Item label="Mã đơn hàng">
                 #{selectedOrder.id}
               </Descriptions.Item>
-              <Descriptions.Item label="Mã vận đơn">
-                #{selectedOrder.deliveryCode}
+              <Descriptions.Item label="Ngày đặt hàng">
+                {dayjs(selectedOrder.orderDate).format("DD/MM/YYYY")}
               </Descriptions.Item>
-              {/* <Descriptions.Item label="Ngày đặt hàng">
-                {dayjs(order.orderDate).format("DD/MM/YYYY")}
-              </Descriptions.Item> */}
               <Descriptions.Item label="Người thiết kế">
                 {assignedDesigner ? (
-                  <Tooltip title={`${assignedDesigner.email} - ${assignedDesigner.phone}`}>
+                  <Tooltip
+                    title={`${assignedDesigner.email} - ${assignedDesigner.phone}`}
+                  >
                     <Tag color="blue" icon={<UserOutlined />}>
                       {assignedDesigner.name}
                     </Tag>
@@ -896,7 +961,11 @@ const NewDesignOrderDetail = () => {
                           </Space>
                         )}
                       />
-                      <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
+                      <Table.Column
+                        title="Số lượng"
+                        dataIndex="quantity"
+                        align="center"
+                      />
                       <Table.Column
                         title="Đơn giá"
                         dataIndex="price"
@@ -919,72 +988,111 @@ const NewDesignOrderDetail = () => {
               )}
 
             {/* External Products Section */}
-            {selectedOrder.externalProducts && selectedOrder.externalProducts.length > 0 && (
-              <div className="external-products">
-                <h4 style={{ marginTop: "20px" }}>Sản phẩm thêm mới (ngoài hệ thống):</h4>
-                <div style={{ marginBottom: "10px" }}>
-                  <Table
-                    dataSource={selectedOrder.externalProducts}
-                    pagination={false}
-                    size="small"
-                    bordered
-                    rowKey="id"
-                  >
-                    <Table.Column
-                      title="Sản phẩm"
-                      key="name"
-                      render={(record) => (
-                        <Space>
-                          <div>
-                            {record.imageURL && (
-                              <img
-                                src={record.imageURL}
-                                alt={record.name}
-                                style={{
-                                  width: 50,
-                                  height: 50,
-                                  borderRadius: "5px",
-                                  objectFit: "cover",
+            {selectedOrder.externalProducts &&
+              selectedOrder.externalProducts.length > 0 && (
+                <div className="external-products">
+                  <h4 style={{ marginTop: "20px" }}>
+                    Sản phẩm thêm mới (ngoài hệ thống):
+                  </h4>
+                  <div style={{ marginBottom: "10px" }}>
+                    <Table
+                      dataSource={selectedOrder.externalProducts}
+                      pagination={false}
+                      size="small"
+                      bordered
+                      rowKey="id"
+                    >
+                      <Table.Column
+                        title="Sản phẩm"
+                        key="name"
+                        render={(record) => (
+                          <Space>
+                            <div>
+                              {record.imageURL && (
+                                <img
+                                  src={record.imageURL}
+                                  alt={record.name}
+                                  style={{
+                                    width: 50,
+                                    height: 50,
+                                    borderRadius: "5px",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div>{record.name}</div>
+                          </Space>
+                        )}
+                      />
+                      <Table.Column
+                        title="Yêu cầu về sản phẩm"
+                        dataIndex="description"
+                        align="left"
+                        width={300}
+                        render={(description) => (
+                          <Tooltip
+                            color="white"
+                            title={
+                              <div
+                                className="html-preview"
+                                dangerouslySetInnerHTML={{
+                                  __html: description,
                                 }}
                               />
-                            )}
-                            <div>{record.name}</div>
-                          </div>
-                        </Space>
-                      )}
-                    />
-                    <Table.Column title="Yêu cầu về sản phẩm" dataIndex="description"
-                      render={(description) => (
-                        <Tooltip color="white" title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: description }} />}>
-                          <div 
-                          style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          className="html-preview"
-                          dangerouslySetInnerHTML={{ __html: description }}
+                            }
+                            styles={{
+                              root: { maxWidth: "1200px" },
+                              body: {
+                                maxHeight: "300px",
+                                overflowY: "auto",
+                                scrollbarWidth: "thin", // Firefox
+                                scrollbarColor: "#888 #f0f0f0", // Firefox
+                                WebkitOverflowScrolling: "touch", // iOS smooth scrolling
+                              },
+                            }}
                           >
-                          </div>
-                        </Tooltip>
-                      )} />
-                    <Table.Column title="Số lượng" dataIndex="quantity" align="center" />
-                    <Table.Column
-                      title="Đơn giá"
-                      dataIndex="price"
-                      align="right"
-                      render={(price) => (
-                        <span>{price?.toLocaleString("vi-VN")} đ</span>
-                      )}
-                    />
-                    <Table.Column
-                      title="Thành tiền"
-                      dataIndex="totalPrice"
-                      align="right"
-                      render={(totalPrice) => (
-                        <span>{totalPrice?.toLocaleString("vi-VN")} đ</span>
-                      )}
-                    />
-                  </Table>
+                            <div
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                lineHeight: "1.4em",
+                                maxHeight: "5em", // 1.4em * 3 dòng
+                              }}
+                              className="html-preview"
+                              dangerouslySetInnerHTML={{ __html: description }}
+                            />
+                          </Tooltip>
+                        )}
+                      />
+                      <Table.Column
+                        title="Số lượng"
+                        dataIndex="quantity"
+                        align="center"
+                      />
+                      <Table.Column
+                        title="Đơn giá"
+                        dataIndex="price"
+                        align="right"
+                        render={(price) => (
+                          <span>{price?.toLocaleString("vi-VN")} đ</span>
+                        )}
+                      />
+                      <Table.Column
+                        title="Thành tiền"
+                        dataIndex="totalPrice"
+                        align="right"
+                        render={(totalPrice) => (
+                          <span>{totalPrice?.toLocaleString("vi-VN")} đ</span>
+                        )}
+                      />
+                    </Table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {selectedOrder.status === "DeterminingMaterialPrice" && (
               <Button
@@ -1117,7 +1225,7 @@ const NewDesignOrderDetail = () => {
                   </Space>
                 }
               >
-                {selectedOrder.address?.replace(/\|/g, ', ')}
+                {selectedOrder.address?.replace(/\|/g, ", ")}
               </Descriptions.Item>
               <Descriptions.Item
                 label={
@@ -1146,36 +1254,6 @@ const NewDesignOrderDetail = () => {
                 </Tag>
               </Descriptions.Item>
 
-              {/* Add construction date and time if available */}
-              {/* {selectedOrder.contructionDate && selectedOrder.contructionTime && (
-                <Descriptions.Item
-                  label={
-                    <Space>
-                      <CalendarOutlined
-                        style={{
-                          color: "#4caf50",
-                          fontSize: "18px",
-                          backgroundColor: "#f0f7f0",
-                          padding: "10px",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      />
-                      <span style={{ color: "#666", fontSize: "15px" }}>
-                        Lịch giao hàng
-                      </span>
-                    </Space>
-                  }
-                >
-                  <div>
-                    <div><strong>Ngày:</strong> {dayjs(selectedOrder.contructionDate).format('DD/MM/YYYY')}</div>
-                    <div><strong>Giờ:</strong> {selectedOrder.contructionTime}</div>
-                  </div>
-                </Descriptions.Item>
-              )} */}
-
               <Descriptions.Item
                 label={
                   <Space>
@@ -1199,7 +1277,9 @@ const NewDesignOrderDetail = () => {
                 }
               >
                 {assignedDesigner ? (
-                  <Tooltip title={`${assignedDesigner.email} - ${assignedDesigner.phone}`}>
+                  <Tooltip
+                    title={`${assignedDesigner.email} - ${assignedDesigner.phone}`}
+                  >
                     <Tag color="blue" icon={<UserOutlined />}>
                       {assignedDesigner.name}
                     </Tag>
@@ -1208,31 +1288,7 @@ const NewDesignOrderDetail = () => {
                   <Tag color="default">Chưa gán designer</Tag>
                 )}
               </Descriptions.Item>
-              {/* <Descriptions.Item
-                // label="Diện tích yêu cầu"
-                label={
-                  <Space>
-                    <LayoutOutlined
-                      style={{
-                        color: "#4caf50",
-                        fontSize: "18px",
-                        backgroundColor: "#f0f7f0",
-                        padding: "10px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    />
 
-                    <span style={{ color: "#666", fontSize: "15px" }}>
-                      Diện tích yêu cầu
-                    </span>
-                  </Space>
-                }
-              >
-                {selectedOrder.length * selectedOrder.width} m²
-              </Descriptions.Item> */}
               <Descriptions.Item
                 label={
                   <span style={{ color: "#666", fontSize: "15px" }}>
@@ -1245,13 +1301,15 @@ const NewDesignOrderDetail = () => {
                   const materialPrice = selectedOrder?.materialPrice || 0;
                   const total = designPrice + materialPrice;
 
-                  console.log('Debug total cost:', {
+                  console.log("Debug total cost:", {
                     designPrice,
                     materialPrice,
-                    total
+                    total,
                   });
 
-                  return total > 0 ? `${total.toLocaleString("vi-VN")} đ` : 'Chưa có thông tin';
+                  return total > 0
+                    ? `${total.toLocaleString("vi-VN")} đ`
+                    : "Chưa có thông tin";
                 })()}
               </Descriptions.Item>
             </Descriptions>
@@ -1279,8 +1337,8 @@ const NewDesignOrderDetail = () => {
                         serviceOrderId: selectedOrder.id,
                         customerName: selectedOrder.userName,
                         address: selectedOrder.address,
-                        autoOpenModal: false
-                      }
+                        autoOpenModal: false,
+                      },
                     });
                   }}
                 >
@@ -1312,7 +1370,8 @@ const NewDesignOrderDetail = () => {
               )} */}
 
               {/* Add Assign to Contractor Button */}
-              {(selectedOrder.status === "PaymentSuccess" || selectedOrder.status === "DeliveryFail") && (
+              {(selectedOrder.status === "PaymentSuccess" ||
+                selectedOrder.status === "DeliveryFail") && (
                 <Button
                   type="primary"
                   icon={<TeamOutlined />}
@@ -1320,7 +1379,7 @@ const NewDesignOrderDetail = () => {
                     width: "100%",
                     marginBottom: "8px",
                     backgroundColor: "#1890ff",
-                    borderColor: "#1890ff"
+                    borderColor: "#1890ff",
                   }}
                   onClick={() => {
                     navigate("/staff/schedule-contructor", {
@@ -1330,197 +1389,43 @@ const NewDesignOrderDetail = () => {
                         address: selectedOrder.address,
                         contructionDate: selectedOrder.contructionDate,
                         contructionTime: selectedOrder.contructionTime,
-                        // autoOpenModal: true 
-                      }
+                        // autoOpenModal: true
+                      },
                     });
                   }}
                 >
                   Chọn đội thi công giao hàng
                 </Button>
               )}
-
-              <Button
-                danger
-                style={{
-                  width: "100%",
-                }}
-                onClick={() => {
-                  Modal.confirm({
-                    title: "Hủy đơn hàng",
-                    content: "Bạn có chắc chắn muốn hủy đơn hàng này?",
-                    okText: "Hủy đơn",
-                    cancelText: "Đóng",
-                    okButtonProps: { danger: true },
-                    onOk: () => {
-                      message.success("Đã hủy đơn hàng thành công");
-                    },
-                  });
-                }}
-              >
-                Hủy đơn hàng
-              </Button>
+              {selectedOrder.status === "Pending" && (
+                <Button
+                  danger
+                  style={{
+                    width: "100%",
+                  }}
+                  onClick={() => {
+                    Modal.confirm({
+                      title: "Hủy đơn hàng",
+                      content: "Bạn có chắc chắn muốn hủy đơn hàng này?",
+                      okText: "Hủy đơn",
+                      cancelText: "Đóng",
+                      okButtonProps: { danger: true },
+                      onOk: () => {
+                        message.success("Đã hủy đơn hàng thành công");
+                      },
+                    });
+                  }}
+                >
+                  Hủy đơn hàng
+                </Button>
+              )}
             </div>
           </Card>
         </Col>
       </Row>
 
       {/* Order basic info */}
-      <Row gutter={[16, 16]}>
-        {/* Customer Info */}
-        {/* <Col span={24}>
-          <Card
-            title="Thông tin khách hàng"
-            headStyle={{
-              backgroundColor: "#e3f0e1",
-              borderBottom: "2px solid #4caf50",
-            }}
-          >
-            <Descriptions column={{ xs: 1, sm: 2, md: 3 }} layout="horizontal">
-              <Descriptions.Item
-                label={
-                  <div style={{ fontWeight: "bold" }}>
-                    <UserOutlined
-                      style={{ color: "#4caf50", marginRight: "5px" }}
-                    />{" "}
-                    Họ tên
-                  </div>
-                }
-              >
-                {order.customerInfo?.name}
-              </Descriptions.Item>
-              <Descriptions.Item
-                label={
-                  <div style={{ fontWeight: "bold" }}>
-                    <PhoneOutlined
-                      style={{ color: "#4caf50", marginRight: "5px" }}
-                    />{" "}
-                    Số điện thoại
-                  </div>
-                }
-              >
-                {order.customerInfo?.phone}
-              </Descriptions.Item>
-              <Descriptions.Item
-                label={
-                  <div style={{ fontWeight: "bold" }}>
-                    <MailOutlined
-                      style={{ color: "#4caf50", marginRight: "5px" }}
-                    />{" "}
-                    Email
-                  </div>
-                }
-              >
-                {order.customerInfo?.email}
-              </Descriptions.Item>
-              <Descriptions.Item
-                label={
-                  <div style={{ fontWeight: "bold" }}>
-                    <HomeOutlined
-                      style={{ color: "#4caf50", marginRight: "5px" }}
-                    />{" "}
-                    Địa chỉ
-                  </div>
-                }
-              >
-                {order.customerInfo?.address}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
-        </Col> */}
-
-        {/* Order Progress */}
-        {/* <Col span={24}>
-          <Card title="Tiến độ đơn hàng" bordered={false}>
-            <Steps current={currentStep}>
-              {orderSteps.map((step, index) => (
-                <Step
-                  key={index}
-                  title={step.title}
-                  description={step.description}
-                />
-              ))}
-            </Steps>
-          </Card>
-        </Col> */}
-
-        {/* Yêu cầu thiết kế */}
-        <Col span={24}>
-          {/* <Card title="Yêu cầu thiết kế" bordered={false}>
-            <p>{order.requirements || "Không có yêu cầu cụ thể"}</p>
-            {order.attachments && order.attachments.length > 0 && (
-              <div className="attachments">
-                <h4>Tài liệu đính kèm:</h4>
-                <ul>
-                  {order.attachments.map((file, index) => (
-                    <li key={index}>
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {file.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Card> */}
-        </Col>
-
-        {/* Chi phí và thanh toán */}
-        {/* <Col span={24}>
-          <Card title="Chi phí và thanh toán" bordered={false}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Statistic
-                  title="Phí thiết kế"
-                  value={order.prices?.designFee || 0}
-                  suffix="đ"
-                  groupSeparator=","
-                />
-              </Col>
-              <Col xs={24} md={12}>
-                <Statistic
-                  title="Tổng chi phí vật liệu"
-                  value={order.prices?.totalMaterialCost || 0}
-                  suffix="đ"
-                  groupSeparator=","
-                />
-              </Col>
-              <Col xs={24}>
-                <Statistic
-                  title="Tổng chi phí"
-                  value={order.prices?.totalCost || 0}
-                  suffix="đ"
-                  groupSeparator=","
-                  valueStyle={{ color: "#1890ff", fontWeight: "bold" }}
-                />
-              </Col>
-            </Row>
-          </Card>
-        </Col> */}
-
-        {/* Timeline */}
-        {/* <Col span={24}>
-            <Card title="Lịch sử đơn hàng">
-              {order.timeline && order.timeline.length > 0 ? (
-                <Timeline
-                  items={order.timeline.map(item => ({
-                    children: (
-                      <>
-                        <div>{dayjs(item.date).format('DD/MM/YYYY HH:mm')}</div>
-                        <div>{item.description}</div>
-                      </>
-                    )
-                  }))}
-                />
-              ) : (
-                <Empty description="Chưa có lịch sử" />
-              )}
-            </Card>
-          </Col> */}
-      </Row>
+      <Row gutter={[16, 16]}></Row>
 
       {/* Contract Modal */}
       <Modal

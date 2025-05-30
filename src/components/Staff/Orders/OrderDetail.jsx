@@ -151,7 +151,7 @@ const OrderDetail = () => {
         return (
           <div className="product-cell">
             {product ? (
-              <>
+              <Space size="small" className="product-info">
                 <div className="product-image">
                   <img
                     src={product.image?.imageUrl}
@@ -160,7 +160,7 @@ const OrderDetail = () => {
                   />
                 </div>
                 <div className="product-name">{product.name}</div>
-              </>
+              </Space>
             ) : (
               <div className="product-name">Sản phẩm không tồn tại</div>
             )}
@@ -278,6 +278,7 @@ const OrderDetail = () => {
                     <UserOutlined /> Khách hàng
                   </span>
                 }
+                span={2}
               >
                 {selectedOrder.userName}
               </Descriptions.Item>
@@ -387,51 +388,6 @@ const OrderDetail = () => {
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <div style={{ marginBottom: 12 }}>
-                  {/* <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "nowrap"
-                  }}>
-                    <Text strong style={{ fontSize: 16 }}>Trạng thái đơn hàng</Text>
-                    <Tag
-                      style={{ fontSize: "14px", whiteSpace: "nowrap" }}
-                      color={
-                        selectedOrder.status === "3" ||
-                          selectedOrder.status === "7"
-                          ? "red"
-                          : selectedOrder.status === "9"
-                            ? "green"
-                            : selectedOrder.status === "1"
-                              ? "blue"
-                              : "gold"
-                      }
-                    >
-                      {selectedOrder.status === "0"
-                        ? "Chờ xử lý"
-                        : selectedOrder.status === "1"
-                          ? "Đang xử lý"
-                          : selectedOrder.status === "2"
-                            ? "Đã xử lý"
-                            : selectedOrder.status === "3"
-                              ? "Đã hủy"
-                              : selectedOrder.status === "4"
-                                ? "Đã hoàn tiền"
-                                : selectedOrder.status === "5"
-                                  ? "Đã hoàn tiền xong"
-                                  : selectedOrder.status === "6"
-                                    ? "Đã lấy hàng & đang giao"
-                                    : selectedOrder.status === "7"
-                                      ? "Giao hàng thất bại"
-                                      : selectedOrder.status === "8"
-                                        ? "Giao lại"
-                                        : selectedOrder.status === "9"
-                                          ? "Đã giao hàng thành công"
-                                          : selectedOrder.status === "10"
-                                            ? "Đơn hàng đã hoàn thành"
-                                            : "Đang xử lý"}
-                    </Tag>
-                  </div> */}
                   <div style={{ marginTop: 8 }}>
                     {selectedOrder.status === "0" && (
                       <Button

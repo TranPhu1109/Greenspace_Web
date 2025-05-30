@@ -46,6 +46,7 @@ const { TextArea } = Input;
 // Add notification to imports
 import { notification } from "antd";
 import { useRoleBasedPath } from "../../../hooks/useRoleBasedPath";
+import EditorComponent from "../../Common/EditorComponent";
 
 const ProductDetail = () => {
   const { getBasePath } = useRoleBasedPath();
@@ -368,9 +369,8 @@ const ProductDetail = () => {
                       <Form.Item
                         name="size"
                         label="Kích thước"
-                        rules={[{ required: true }]}
                       >
-                        <InputNumber style={{ width: "100%" }} />
+                        <Input style={{ width: "100%" }} />
                       </Form.Item>
                       <Form.Item
                         name="price"
@@ -387,7 +387,11 @@ const ProductDetail = () => {
                         <InputNumber style={{ width: "100%" }} />
                       </Form.Item>
                       <Form.Item name="description" label="Mô tả">
-                        <TextArea rows={4} />
+                        <EditorComponent
+                          value={form.getFieldValue('description')}
+                          onChange={(content) => form.setFieldValue('description', content)}
+                          height={400}
+                        />
                       </Form.Item>
                     </>
                   )}

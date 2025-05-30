@@ -86,49 +86,87 @@ const TemplateOrdersList = () => {
 
   const getStatusDisplay = (status) => {
     switch (status) {
-      case "Pending":
-        return "Chờ xử lý";
-      case "PaymentSuccess":
-        return "Đã thanh toán";
-      case "Processing":
-        return "Đang xử lý";
-      case "PickedPackageAndDelivery":
-        return "Đang giao hàng";
-      case "DeliveryFail":
-        return "Giao hàng thất bại";
-      case "ReDelivery":
-        return "Giao hàng lại";
-      case "DeliveredSuccessfully":
-        return "Đã giao hàng";
-      case "CompleteOrder":
-        return "Hoàn thành";
-      case "OrderCancelled":
-        return "Đã hủy";
-      default:
-        return "Không xác định";
+      case "Pending": return "Chờ xử lý";
+      case "ConsultingAndSketching": return "Đang tư vấn & phác thảo";
+      case "DeterminingDesignPrice": return "Đang xác định giá";
+      case "DepositSuccessful": return "Đặt cọc thành công";
+      case "AssignToDesigner": return "Đã giao cho nhà thiết kế";
+      case "DeterminingMaterialPrice": return "Xác định giá vật liệu";
+      case "DoneDesign": return "Hoàn thành thiết kế";
+      case "PaymentSuccess": return "Thanh toán thành công";
+      case "Processing": return "Đang xử lý";
+      case "PickedPackageAndDelivery": return "Đã lấy hàng & đang giao";
+      case "DeliveryFail": return "Giao hàng thất bại";
+      case "ReDelivery": return "Giao lại";
+      case "DeliveredSuccessfully": return "Đã giao hàng thành công";
+      case "CompleteOrder": return "Hoàn thành đơn hàng";
+      case "OrderCancelled": return "Đơn hàng đã bị hủy";
+      case "DesignPriceConfirm": return "Xác nhận giá thiết kế";
+      case "Refund": return "Hoàn tiền";
+      case "DoneRefund": return "Đã hoàn tiền";
+      case "StopService": return "Ngừng dịch vụ";
+      case "ReConsultingAndSketching": return "Phác thảo lại";
+      case "ReDesign": return "Thiết kế lại";
+      case "WaitDeposit": return "Chờ đặt cọc";
+      case "DoneDeterminingDesignPrice": return "Đã xác định giá thiết kế";
+      case "DoneDeterminingMaterialPrice": return "Đã xác định giá vật liệu";
+      case "ReDeterminingDesignPrice": return "Xác định lại giá thiết kế";
+      case "ExchangeProdcut": return "Đổi sản phẩm";
+      case "WaitForScheduling": return "Chờ lên lịch";
+      case "Installing": return "Đang lắp đặt";
+      case "DoneInstalling": return "Đã lắp đặt xong";
+      case "ReInstall": return "Lắp đặt lại";
+      case "CustomerConfirm": return "Khách hàng xác nhận";
+      case "Successfully": return "Thành công";
+      case "ReDetermineMaterialPrice": return "Xác định lại giá vật liệu";
+      case "MaterialPriceConfirmed": return "Đã xác nhận giá vật liệu";
+      default: return "Không xác định";
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "Pending":
-        return "default";
-      case "PaymentSuccess":
-        return "processing";
-      case "Processing":
-        return "processing";
-      case "PickedPackageAndDelivery":
-        return "processing";
-      case "DeliveryFail":
-        return "error";
-      case "ReDelivery":
         return "warning";
-      case "DeliveredSuccessfully":
-        return "success";
-      case "CompleteOrder":
-        return "success";
+      case "WaitDeposit":
+      case "WaitForScheduling":
+        return "default";
+      
+      case "ConsultingAndSketching":
+      case "DeterminingDesignPrice":
+      case "DeterminingMaterialPrice":
+      case "Processing":
+      case "PickedPackageAndDelivery":
+      case "Installing":
+        return "processing";
+      
+      case "DeliveryFail":
       case "OrderCancelled":
+      case "StopService":
         return "error";
+      
+      case "ReDelivery":
+      case "ReConsultingAndSketching":
+      case "ReDesign":
+      case "ReInstall":
+      case "ReDeterminingDesignPrice":
+      case "ReDetermineMaterialPrice":
+        return "warning";
+      
+      case "DepositSuccessful":
+      case "DoneDesign":
+      case "PaymentSuccess":
+      case "DeliveredSuccessfully":
+      case "CompleteOrder":
+      case "DoneInstalling":
+      case "CustomerConfirm":
+      case "Successfully":
+      case "DoneRefund":
+      case "DoneDeterminingDesignPrice":
+      case "DoneDeterminingMaterialPrice":
+      case "MaterialPriceConfirmed":
+        return "success";
+      
       default:
         return "default";
     }
@@ -186,13 +224,23 @@ const TemplateOrdersList = () => {
     },
     {
       title: "Khách hàng",
-      dataIndex: "userName",
-      key: "userName",
+      key: "userInfo",
+      render: (_, record) => (
+        <div>
+          <div>{record.userName}</div>
+          <div className="text-sm text-gray-500">{record.cusPhone}</div>
+        </div>
+      ),
     },
     {
-      title: "Số điện thoại",
-      dataIndex: "cusPhone",
-      key: "cusPhone",
+      title: "Địa chỉ",
+      dataIndex: "address",
+      key: "address",
+      render: (address) => (
+        <Tooltip title={address.split('|').join(', ')}>
+          <span>{address.split('|').join(', ').length > 20 ? `${address.split('|').join(', ').slice(0, 150)}` : address.split('|').join(', ')}</span>
+        </Tooltip>
+      ),
     },
     {
       title: "Tổng tiền",
@@ -205,12 +253,12 @@ const TemplateOrdersList = () => {
         });
       },
     },
-    {
-      title: "Mã đơn",
-      dataIndex: "deliveryCode",
-      key: "deliveryCode",
+    // {
+    //   title: "Mã đơn",
+    //   dataIndex: "deliveryCode",
+    //   key: "deliveryCode",
 
-    },
+    // },
     {
       title: "Trạng thái",
       dataIndex: "status",

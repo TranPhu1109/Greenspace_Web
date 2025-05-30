@@ -55,6 +55,8 @@ const ContractorSchedule = () => {
   const { state } = location;
   const serviceOrderFromNav = state?.serviceOrderId;
   const customerNameFromNav = state?.customerName;
+  const customerPhoneFromNav = state?.customerPhone;
+  const customerEmailFromNav = state?.email;
   const addressFromNav = state?.address;
   const autoOpenModal = state?.autoOpenModal;
   const currentStatusFromNav = state?.currentStatus;
@@ -601,6 +603,8 @@ const ContractorSchedule = () => {
             <div>
               <p><strong>Đơn hàng:</strong> #{serviceOrderFromNav}</p>
               <p><strong>Khách hàng:</strong> {customerNameFromNav}</p>
+              <p><strong>Số điện thoại:</strong> {customerPhoneFromNav}</p>
+              <p><strong>Email:</strong> {customerEmailFromNav}</p>
               {addressFromNav && <p><strong>Địa chỉ:</strong> {addressFromNav.replace(/\|/g, ', ')}</p>}
               {existingConstructionDate && existingConstructionTime && (
                 <p>

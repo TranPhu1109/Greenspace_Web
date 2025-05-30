@@ -110,7 +110,7 @@ const UpdateProductModal = ({
         price: parseFloat(values.price),
         stock: parseInt(values.stock),
         description: values.description || "",
-        size: parseFloat(values.size) || 0,
+        size: values.size, // Không cần parseFloat nữa, lưu nguyên chuỗi
         image: imageUrls,
         designImage1URL: designImage1URL
       };
@@ -373,13 +373,11 @@ const UpdateProductModal = ({
 
             <Form.Item
               name="size"
-              label="Kích thước (cm)"
-              // rules={[{ required: true, message: "Vui lòng nhập kích thước!" }]}
+              label="Kích thước"
             >
               <Input
                 style={{ width: "100%" }}
-                placeholder="Nhập kích thước (VD: 100cm x 100cm)"
-                min={0}
+                placeholder="Nhập kích thước (VD: 40cm x 60cm)"
               />
             </Form.Item>
           </Col>
