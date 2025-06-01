@@ -15,7 +15,12 @@ import {
   notification,
   Breadcrumb,
 } from "antd";
-import { SearchOutlined, ShoppingCartOutlined, HomeOutlined, AppstoreOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  ShoppingCartOutlined,
+  HomeOutlined,
+  AppstoreOutlined,
+} from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -226,7 +231,7 @@ const ProductsPage = () => {
     sort: "newest",
   });
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
-  const [actionType, setActionType] = useState('cart');
+  const [actionType, setActionType] = useState("cart");
   const mountedRef = useRef(true);
   const componentId = useRef(`products-page-${Date.now()}`).current;
 
@@ -236,17 +241,17 @@ const ProductsPage = () => {
       // Nếu có thông tin state và người dùng đã đăng nhập
       if (location?.state?.actionCompleted && user && selectedProduct) {
         const action = location.state.actionType;
-        
+
         // Xóa state để tránh thực hiện lại hành động nếu người dùng refresh trang
         window.history.replaceState({}, document.title);
-        
+
         // Thực hiện hành động tương ứng
-        if (action === 'cart') {
+        if (action === "cart") {
           setIsModalOpen(true); // Hiển thị modal thay vì tự động thêm vào giỏ hàng
         }
       }
     };
-    
+
     checkLoginStatus();
   }, [user, selectedProduct, location?.state]);
 
@@ -375,22 +380,24 @@ const ProductsPage = () => {
     try {
       // Kiểm tra stock
       const quantity = quantities[product.id] || 1;
-      
+
       // Kiểm tra số lượng trong giỏ hàng hiện tại
-      const existingCartItem = cartItems.find(item => item.id === product.id);
+      const existingCartItem = cartItems.find((item) => item.id === product.id);
       const existingQuantity = existingCartItem ? existingCartItem.quantity : 0;
       const totalQuantity = existingQuantity + quantity;
-      
+
       if (totalQuantity > product.stock) {
-        message.error(`Tổng số lượng trong giỏ hàng (${existingQuantity}) và số lượng thêm vào (${quantity}) không được vượt quá tồn kho (${product.stock})`);
+        message.error(
+          `Tổng số lượng trong giỏ hàng (${existingQuantity}) và số lượng thêm vào (${quantity}) không được vượt quá tồn kho (${product.stock})`
+        );
         return;
       }
-      
+
       await addToCart(product.id, quantity);
-      
+
       // Trigger sự kiện cập nhật giỏ hàng local
-      window.dispatchEvent(new Event('localCartUpdated'));
-      
+      window.dispatchEvent(new Event("localCartUpdated"));
+
       // Cập nhật lại giỏ hàng sau khi thêm sản phẩm
       if (user) {
         await fetchCartItems();
@@ -403,9 +410,9 @@ const ProductsPage = () => {
   const handleModalClose = () => {
     // Reset số lượng về 1 cho sản phẩm đang chọn
     if (selectedProduct) {
-      setQuantities(prev => ({
+      setQuantities((prev) => ({
         ...prev,
-        [selectedProduct.id]: 1
+        [selectedProduct.id]: 1,
       }));
     }
     setIsModalOpen(false);
@@ -420,7 +427,7 @@ const ProductsPage = () => {
     if (selectedProduct) {
       // Không kiểm tra giới hạn stock ở đây, chỉ đảm bảo giá trị hợp lệ (>=1)
       if (value < 1) value = 1;
-      
+
       setQuantities((prev) => ({
         ...prev,
         [selectedProduct.id]: value,
@@ -431,12 +438,14 @@ const ProductsPage = () => {
   const handleConfirmAddToCart = async () => {
     if (selectedProduct) {
       const quantity = quantities[selectedProduct.id] || 1;
-      
+
       // Kiểm tra số lượng trong giỏ hàng hiện tại
-      const existingCartItem = cartItems.find(item => item.id === selectedProduct.id);
+      const existingCartItem = cartItems.find(
+        (item) => item.id === selectedProduct.id
+      );
       const existingQuantity = existingCartItem ? existingCartItem.quantity : 0;
       const totalQuantity = existingQuantity + quantity;
-      
+
       // Kiểm tra stock
       if (totalQuantity > selectedProduct.stock) {
         notification.warning({
@@ -446,11 +455,28 @@ const ProductsPage = () => {
         });
         return;
       }
-      
+
       await handleAddToCart(selectedProduct);
       handleModalClose();
     }
   };
+
+  const breadcrumbItems = [
+    {
+      title: (
+        <span style={{ cursor: "pointer" }} onClick={() => navigate("/Home")}>
+          <HomeOutlined /> Trang chủ
+        </span>
+      ),
+    },
+    {
+      title: (
+        <>
+          <AppstoreOutlined /> Sản phẩm
+        </>
+      ),
+    },
+  ];
 
   return (
     <Layout className="products-layout">
@@ -474,20 +500,16 @@ const ProductsPage = () => {
 
         <div className="products-content">
           <div className="container">
-            <Breadcrumb style={{
-              marginBottom: '20px',
-              padding: '12px 16px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
-                <HomeOutlined /> Trang chủ
-              </Breadcrumb.Item>
-              <Breadcrumb.Item>
-                <AppstoreOutlined /> Sản phẩm
-              </Breadcrumb.Item>
-            </Breadcrumb>
+            <Breadcrumb
+              style={{
+                marginBottom: "20px",
+                padding: "12px 16px",
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+              }}
+              items={breadcrumbItems}
+            />
 
             <div className="filters-section">
               <Input
@@ -552,8 +574,8 @@ const ProductsPage = () => {
                         />
                       }
                       actions={[
-                        <Link 
-                          to={`/products/${product.id}`} 
+                        <Link
+                          to={`/products/${product.id}`}
                           key="view"
                           onClick={(e) => e.stopPropagation()}
                         >

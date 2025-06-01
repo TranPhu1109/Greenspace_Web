@@ -14,7 +14,8 @@ import {
   Tabs,
   Badge,
   Avatar,
-  message
+  message,
+  notification
 } from 'antd';
 import {
   ClockCircleOutlined,
@@ -34,6 +35,7 @@ import dayjs from 'dayjs';
 import useAuthStore from '@/stores/useAuthStore';
 import './ContractorTasks.scss';
 import { useNavigate } from 'react-router-dom';
+import signalRService from '@/services/signalRService';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -56,6 +58,33 @@ const ContractorTasks = () => {
     }
   }, [userId]);
 
+  useEffect(() => {
+    if (!userId) return;
+  
+    // Kết nối SignalR
+    const initSignalR = async () => {
+      try {
+        const connection = await signalRService.startConnection();
+  
+        // Đăng ký listener khi có task cập nhật
+        signalRService.on("messageReceived", async () => {
+          await fetchContractorTasks();
+        });
+  
+      } catch (err) {
+        console.error("Không thể kết nối SignalR", err);
+      }
+    };
+  
+    initSignalR();
+  
+    return () => {
+      signalRService.off("messageReceived");
+      signalRService.stopConnection();
+    };
+  }, [userId]);
+  
+
   const fetchContractorTasks = async () => {
     if (!userId) return;
 
@@ -64,7 +93,6 @@ const ContractorTasks = () => {
 
     try {
       const response = await api.get(`/api/worktask/${userId}/users`);
-      console.log('Tasks response:', response.data);
 
       if (response.status === 200) {
         setTasks(response.data || []);
@@ -138,7 +166,36 @@ const ContractorTasks = () => {
     }
   };
 
+  const isCurrentTimeMatchTaskTime = (task) => {
+    if (!task.dateAppointment || !task.timeAppointment) return false;
+  
+    const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
+    const now = dayjs();
+  
+    return now.isBefore(taskDateTime.add(30, 'minute'));
+  };  
+
   const handleStartInstallation = async (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      notification.error({
+        message: 'Lỗi',
+        description: 'Không tìm thấy công việc',
+        placement: 'topRight',
+      });
+      return;
+    }
+  
+    if (!isCurrentTimeMatchTaskTime(task)) {
+      notification.warning({
+        message: 'Chưa đến thời gian lắp đặt',
+        description: `Chỉ được phép bắt đầu lắp đặt từ ${dayjs(`${task.dateAppointment} ${task.timeAppointment}`).format('HH:mm')} ngày ${dayjs(task.dateAppointment).format('DD/MM/YYYY')}`,
+        placement: 'topRight',
+        duration: 5
+      });
+      return;
+    }
+
     Modal.confirm({
       title: 'Xác nhận bắt đầu lắp đặt',
       content: 'Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt cho khách hàng?',

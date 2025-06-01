@@ -62,7 +62,6 @@ const useDesignIdeaStore = create((set, get) => ({
     } catch (error) {
       // Only update state if the error is not from cancellation
       if (!axios.isCancel(error)) {
-        console.error("Error fetching design:", error);
         set({
           designIdeaById: null,
           currentDesign: null,

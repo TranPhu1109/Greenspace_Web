@@ -178,7 +178,21 @@ const Register = () => {
                 <Form.Item
                   name="name"
                   label="Họ và tên"
-                  rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập họ và tên!' },
+                    {
+                      pattern: /^[A-Za-zÀ-ỹ\s]+$/,
+                      message: 'Họ và tên không được chứa số hoặc ký tự đặc biệt!'
+                    },
+                    {
+                      min: 2,
+                      message: 'Họ và tên phải có ít nhất 2 ký tự!'
+                    },
+                    {
+                      max: 50,
+                      message: 'Họ và tên không được vượt quá 50 ký tự!'
+                    }
+                  ]}
                 >
                   <Input
                     prefix={<UserOutlined className="site-form-item-icon" />}

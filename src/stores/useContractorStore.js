@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import api from '@/api/api';
-import { message } from 'antd';
+import { create } from "zustand";
+import api from "@/api/api";
+import { message } from "antd";
 
 const useContractorStore = create((set, get) => ({
   contractors: [],
@@ -14,14 +14,14 @@ const useContractorStore = create((set, get) => ({
   fetchContractors: async () => {
     try {
       set({ isLoading: true, error: null });
-      const response = await api.get('/api/users/contructor');
+      const response = await api.get("/api/users/contructor");
       set({ contractors: response.data, isLoading: false });
       return response.data;
     } catch (error) {
-      console.error('Error fetching contractors:', error);
-      set({ 
-        error: error.response?.data?.error || 'Failed to fetch contractors', 
-        isLoading: false 
+      console.error("Error fetching contractors:", error);
+      set({
+        error: error.response?.data?.error || "Failed to fetch contractors",
+        isLoading: false,
       });
       throw error;
     }
@@ -31,13 +31,13 @@ const useContractorStore = create((set, get) => ({
   fetchContractorTasks: async (contractorId) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await api.get('/api/worktask/contructor');
-      
+      const response = await api.get("/api/worktask/contructor");
+
       // Filter tasks by contractor ID if provided
-      const tasks = contractorId 
-        ? response.data.filter(task => task.userId === contractorId)
+      const tasks = contractorId
+        ? response.data.filter((task) => task.userId === contractorId)
         : response.data;
-        
+
       set({ contractorTasks: tasks, isLoading: false });
       return tasks;
     } catch (error) {
@@ -46,11 +46,12 @@ const useContractorStore = create((set, get) => ({
         set({ contractorTasks: [], isLoading: false });
         return [];
       }
-      
-      console.error('Error fetching contractor tasks:', error);
+
+      console.error("Error fetching contractor tasks:", error);
       set({
-        error: error.response?.data?.error || 'Failed to fetch contractor tasks',
-        isLoading: false
+        error:
+          error.response?.data?.error || "Failed to fetch contractor tasks",
+        isLoading: false,
       });
       throw error;
     }
@@ -60,44 +61,85 @@ const useContractorStore = create((set, get) => ({
   createContractorTask: async (taskData) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await api.post('/api/worktask/contruction', taskData);
-      
+      const response = await api.post("/api/worktask/contruction", taskData);
+
       // Update the task list
       const { contractorTasks } = get();
-      set({ 
+      set({
         contractorTasks: [...contractorTasks, response.data],
-        isLoading: false
+        isLoading: false,
       });
-      
-      message.success('Đã tạo lịch làm việc thành công');
+
+      message.success("Đã tạo lịch làm việc thành công");
       return response.data;
     } catch (error) {
-      console.error('Error creating contractor task:', error);
+      console.error("Error creating contractor task:", error);
       set({
-        error: error.response?.data?.error || 'Failed to create contractor task',
-        isLoading: false
+        error:
+          error.response?.data?.error || "Failed to create contractor task",
+        isLoading: false,
       });
-      message.error('Không thể tạo lịch làm việc: ' + (error.response?.data?.error || error.message || 'Lỗi không xác định'));
+      message.error(
+        "Không thể tạo lịch làm việc: " +
+          (error.response?.data?.error || error.message || "Lỗi không xác định")
+      );
       throw error;
     }
   },
 
   // Fetch available service orders (with PaymentSuccess status)
   fetchAvailableServiceOrders: async () => {
+    let noIdeaOrders = [];
+    let usingIdeaOrders = [];
     try {
-      set({ isLoading: true, error: null });
-      const response = await api.get('/api/serviceorder/noidea');
-      
-      // Filter for orders with PaymentSuccess status
-      const filteredOrders = response.data.filter(order => order.status === 'PaymentSuccess');
-      
-      set({ serviceOrders: filteredOrders, isLoading: false });
-      return filteredOrders;
-    } catch (error) {
-      console.error('Error fetching available service orders:', error);
+      // set({ isLoading: true, error: null });
+      // const noIdeaResponse = await api.get('/api/serviceorder/noidea');
+      // const usingIdeaResponse = await api.get('/api/serviceorder/usingidea');
+      const [noIdeaResponse, usingIdeaResponse] = await Promise.all([
+        api.get("/api/serviceorder/noidea"),
+        api.get("/api/serviceorder/usingidea"),
+      ]);
+
+      noIdeaOrders = noIdeaResponse.data.filter(
+        (o) => o.status === "PaymentSuccess"
+      );
+      usingIdeaOrders = usingIdeaResponse.data.filter(
+        (o) => o.status === "Pending"
+      );
+
       set({
-        error: error.response?.data?.error || 'Failed to fetch available service orders',
-        isLoading: false
+        serviceOrders: [...noIdeaOrders, ...usingIdeaOrders],
+        isLoading: false,
+      });
+
+      return [...noIdeaOrders, ...usingIdeaOrders];
+
+      // const response = [...noIdeaResponse.data, ...usingIdeaResponse.data];
+
+      // Filter for orders with PaymentSuccess status
+      // const filteredOrders = response.data.filter(order => order.status === 'PaymentSuccess' || order.status === 'Pending');
+      // const noIdeaOrders = noIdeaResponse.data.filter(
+      //   (order) => order.status === "PaymentSuccess"
+      // );
+
+      // const usingIdeaOrders = usingIdeaResponse.data.filter(
+      //   (order) => order.status === "Pending"
+      // );
+
+      // const mergedOrders = [...noIdeaOrders, ...usingIdeaOrders];
+
+      // set({ serviceOrders: mergedOrders, isLoading: false });
+      // return mergedOrders;
+
+      // set({ serviceOrders: filteredOrders, isLoading: false });
+      // return filteredOrders;
+    } catch (error) {
+      console.error("Error fetching available service orders:", error);
+      set({
+        error:
+          error.response?.data?.error ||
+          "Failed to fetch available service orders",
+        isLoading: false,
       });
       throw error;
     }
@@ -115,9 +157,9 @@ const useContractorStore = create((set, get) => ({
       contractorTasks: [],
       selectedContractor: null,
       error: null,
-      serviceOrders: []
+      serviceOrders: [],
     });
-  }
+  },
 }));
 
-export default useContractorStore; 
+export default useContractorStore;

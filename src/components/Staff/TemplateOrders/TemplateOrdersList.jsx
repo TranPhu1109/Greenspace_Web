@@ -27,14 +27,12 @@ import {
   ExclamationCircleOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-import { templateOrders, orderStatuses } from "../mockData/templateOrders";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { message } from "antd";
 import { Popover } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
-import StatusTag from "@/pages/Admin/DesignOrders/components/StatusTag";
 import api from "@/api/api";
 
 const { Option } = Select;
@@ -60,7 +58,7 @@ const TemplateOrdersList = () => {
   };
 
   useEffect(() => {
-    fetchDesignOrders(componentId);
+    fetchDesignOrders(componentId, 0, 1000);
     
     // Cleanup function to abort any pending requests when component unmounts
     return () => {

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios, { isCancel } from '../api/api';
+import api, { isCancel } from '@/api/api';
 
 const useDesignOrderStore = create((set, get) => ({
   designOrders: [],
@@ -16,12 +16,16 @@ const useDesignOrderStore = create((set, get) => ({
     });
   },
 
-  fetchDesignOrders: async (componentId) => {
+  fetchDesignOrders: async (componentId, pageNumber = 0, pageSize = 1000) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get('/api/serviceorder/usingidea', {
+      const response = await api.get('/api/serviceorder/usingidea', {
         componentId,
-        allowDuplicate: false
+        allowDuplicate: false,
+        params: {
+          pageNumber,
+          pageSize
+        }
       });
       
       // Skip processing if the request was canceled
@@ -53,7 +57,7 @@ const useDesignOrderStore = create((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       //console.log('Fetching orders for user:', userId);
-      const response = await axios.get(`/api/serviceorder/userid-usingidea/${userId}`, {
+      const response = await api.get(`/api/serviceorder/userid-usingidea/${userId}`, {
         componentId,
         allowDuplicate: false
       });
@@ -124,7 +128,7 @@ const useDesignOrderStore = create((set, get) => ({
       
       const numericStatus = typeof newStatus === 'string' ? statusMap[newStatus] : newStatus;
       
-      const response = await axios.put(`/api/serviceorder/status/${orderId}`, { 
+      const response = await api.put(`/api/serviceorder/status/${orderId}`, { 
         status: numericStatus,
         deliveryCode: deliveryCode || "",
         reportManger: reportManger || "",
@@ -155,7 +159,7 @@ const useDesignOrderStore = create((set, get) => ({
   updateReport: async (orderId, newStatus, newReportManger, newReportAccoutant) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`/api/serviceorder/status/${orderId}`, {
+      const response = await api.put(`/api/serviceorder/status/${orderId}`, {
         status: newStatus,
         // deliveryCode: "",
         reportManger: newReportManger,
@@ -176,7 +180,7 @@ const useDesignOrderStore = create((set, get) => ({
     
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.post('/api/serviceorder', orderData);
+      const response = await api.post('/api/serviceorder', orderData);
       set({ 
         isLoading: false,
         designOrders: [...useDesignOrderStore.getState().designOrders, response.data]
@@ -201,7 +205,7 @@ const useDesignOrderStore = create((set, get) => ({
   getDesignOrderById: async (id, componentId) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.get(`/api/serviceorder/${id}`, {
+      const response = await api.get(`/api/serviceorder/${id}`, {
         componentId,
         allowDuplicate: false
       });
@@ -234,7 +238,7 @@ const useDesignOrderStore = create((set, get) => ({
   updateServiceOrder: async (serviceOrderId, updateData) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`/api/serviceorder/${serviceOrderId}`, updateData);
+      const response = await api.put(`/api/serviceorder/${serviceOrderId}`, updateData);
       
       // Update the order in the store
       set(state => ({
@@ -260,7 +264,7 @@ const useDesignOrderStore = create((set, get) => ({
   updateProductOrder: async (serviceOrderId, updateData) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await axios.put(`/api/serviceorder/${serviceOrderId}`, updateData);
+      const response = await api.put(`/api/serviceorder/${serviceOrderId}`, updateData);
       
       // Update the order in the store
       set(state => ({
@@ -292,7 +296,7 @@ const useDesignOrderStore = create((set, get) => ({
       const refund = parseFloat(refundPercentage);
  
       // Call the API to update deposit settings
-      const response = await axios.put(`/api/serviceorder/deposit/${serviceOrderId}`, {
+      const response = await api.put(`/api/serviceorder/deposit/${serviceOrderId}`, {
         depositPercentage: deposit,
         refundPercentage: refund
       });
@@ -329,12 +333,12 @@ const useDesignOrderStore = create((set, get) => ({
   cancelOrder: async (orderId) => {
     try {
       // Update order status to cancelled (status: 14)
-      const statusResponse = await axios.put(`/api/serviceorder/status/${orderId}`, {
+      const statusResponse = await api.put(`/api/serviceorder/status/${orderId}`, {
         status: 14
       });
       
       // Simultaneously perform refund request
-      const refundResponse = await axios.post(`/api/wallets/refund?id=${orderId}`);
+      const refundResponse = await api.post(`/api/wallets/refund?id=${orderId}`);
       
       // Return combined response data if needed
       return {

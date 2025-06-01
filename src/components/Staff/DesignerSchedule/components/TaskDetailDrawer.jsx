@@ -131,22 +131,43 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
     const statusMap = {
       'Pending': { text: 'Chờ xử lý', color: 'gold' },
       'ConsultingAndSketching': { text: 'Tư vấn & phác thảo', color: 'blue' },
+      'ReConsultingAndSketching': { text: 'Phác thảo lại', color: 'blue' },
       'DeterminingDesignPrice': { text: 'Xác định giá thiết kế', color: 'purple' },
-      'DepositSuccessful': { text: 'Đã đặt cọc', color: 'green' },
+      'DoneDeterminingDesignPrice': { text: 'Đã xác định giá thiết kế', color: 'purple' },
+      'ReDeterminingDesignPrice': { text: 'Xác định lại giá thiết kế', color: 'purple' },
+      'DesignPriceConfirm': { text: 'Quản lý xác nhận giá thiết kế', color: 'purple' },
+      'WaitDeposit': { text: 'Chờ đặt cọc', color: 'warning' },
+      'DepositSuccessful': { text: 'Đặt cọc thành công', color: 'green' },
       'AssignToDesigner': { text: 'Giao cho Designer', color: 'geekblue' },
+      'ReDesign': { text: 'Thiết kế lại', color: 'volcano' },
+      'DoneDesign': { text: 'Hoàn thành thiết kế', color: 'cyan' },
       'DeterminingMaterialPrice': { text: 'Xác định giá vật liệu', color: 'magenta' },
-      'DoneDesign': { text: 'Hoàn thành thiết kế', color: 'volcano' },
+      'DoneDeterminingMaterialPrice': { text: 'Đã xác định giá vật liệu', color: 'magenta' },
+      'ReDetermineMaterialPrice': { text: 'Xác định lại giá vật liệu', color: 'magenta' },
+      'MaterialPriceConfirmed': { text: 'Đã xác nhận giá vật liệu', color: 'purple' },
       'PaymentSuccess': { text: 'Thanh toán thành công', color: 'green' },
       'Processing': { text: 'Đang xử lý', color: 'blue' },
       'PickedPackageAndDelivery': { text: 'Đang giao hàng', color: 'cyan' },
       'DeliveryFail': { text: 'Giao hàng thất bại', color: 'red' },
-      'ReDelivery': { text: 'Giao lại', color: 'purple' },
+      'ReDelivery': { text: 'Giao lại', color: 'orange' },
       'DeliveredSuccessfully': { text: 'Đã giao hàng', color: 'green' },
-      'CompleteOrder': { text: 'Hoàn thành', color: 'success' },
-      'OrderCancelled': { text: 'Đã hủy', color: 'error' }
+      'Installing': { text: 'Đang lắp đặt', color: 'geekblue' },
+      'DoneInstalling': { text: 'Đã lắp đặt xong', color: 'cyan' },
+      'ReInstall': { text: 'Lắp đặt lại', color: 'orange' },
+      'CustomerConfirm': { text: 'Khách hàng xác nhận', color: 'green' },
+      'Successfully': { text: 'Thành công', color: 'green' },
+      'CompleteOrder': { text: 'Hoàn thành đơn hàng', color: 'success' },
+      'ExchangeProdcut': { text: 'Đổi sản phẩm', color: 'volcano' },
+      'WaitForScheduling': { text: 'Chờ lên lịch lắp đặt', color: 'gold' },
+      'Refund': { text: 'Đang hoàn tiền', color: 'red' },
+      'DoneRefund': { text: 'Hoàn tiền xong', color: 'green' },
+      'StopService': { text: 'Ngưng dịch vụ', color: 'error' },
+      'OrderCancelled': { text: 'Đã hủy', color: 'error' },
     };
+
     return statusMap[status] || { text: status, color: 'default' };
   };
+
 
   // Handle edit task button click
   const handleEdit = () => {
@@ -420,7 +441,7 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
                       {orderDetail.address && (
                         <Space>
                           <HomeOutlined />
-                          {orderDetail.address}
+                          {orderDetail.address?.split('|').join(', ')}
                         </Space>
                       )}
                     </Space>
@@ -450,18 +471,55 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
                   </Descriptions.Item>
 
                   {orderDetail.serviceOrderDetails && orderDetail.serviceOrderDetails.length > 0 && (
-                    <Descriptions.Item label="Vật liệu">
-                      <div style={{ maxHeight: '200px', overflow: 'auto', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+                    <Descriptions.Item label="Vật liệu có sẵn">
+                      <div
+                        style={{
+                          maxHeight: '400px',
+                          overflow: 'auto',
+                          padding: '12px',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          backgroundColor: '#f9f9f9',
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#888 #f1f1f1',
+                        }}
+                      >
                         {orderDetail.serviceOrderDetails.map((detail, index) => {
-                          const productImage = products.find(product => product.id === detail.productId)?.image?.imageUrl;
+                          const product = products.find(product => product.id === detail.productId);
+                          const productImage = product?.image?.imageUrl;
+                          const productName = product?.name || `Sản phẩm ${index + 1}`;
+                          const totalPrice = detail.quantity * detail.price;
+
                           return (
-                            <div key={index} style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', border: '1px solid #dcdcdc', borderRadius: '6px', backgroundColor: '#ffffff' }}>
-                              {productImage && (
-                                <img src={productImage} alt={getProductName(detail.productId)} style={{ width: '60px', borderRadius: '6px' }} />
-                              )}
-                              <Text style={{ flex: 1, marginLeft: '16px', fontWeight: '600' }}>{getProductName(detail.productId)}</Text>
-                              <Text style={{ fontWeight: '600' }}>{detail.quantity} x</Text>
-                              <Text style={{ fontWeight: '600' }}>{formatCurrency(detail.price)}</Text>
+                            <div
+                              key={index}
+                              style={{
+                                marginBottom: '24px',
+                                padding: '16px',
+                                border: '1px solid #dcdcdc',
+                                borderRadius: '6px',
+                                backgroundColor: '#ffffff',
+                              }}
+                            >
+                              {/* Hình ảnh & thông tin */}
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                {productImage && (
+                                  <img
+                                    src={productImage}
+                                    alt={productName}
+                                    style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }}
+                                  />
+                                )}
+                                <div style={{ marginLeft: '16px', flex: 1 }}>
+                                  <Text strong>{productName}</Text>
+                                  <div>
+                                    <Text>{detail.quantity} x {formatCurrency(detail.price)}</Text>
+                                  </div>
+                                  <div>
+                                    <Text type="secondary">Tổng: {formatCurrency(totalPrice)}</Text>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
@@ -469,11 +527,72 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
                     </Descriptions.Item>
                   )}
 
+
+                  {orderDetail.externalProducts && orderDetail.externalProducts.length > 0 && (
+                    <Descriptions.Item label="Vật liệu thêm mới">
+                      <div
+                        style={{
+                          maxHeight: '400px',
+                          overflow: 'auto',
+                          padding: '12px',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          backgroundColor: '#f9f9f9',
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#888 #f1f1f1',
+                        }}
+                      >
+                        {orderDetail.externalProducts.map((detail, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              marginBottom: '24px',
+                              padding: '16px',
+                              border: '1px solid #dcdcdc',
+                              borderRadius: '6px',
+                              backgroundColor: '#ffffff',
+                            }}
+                          >
+                            {/* Hình ảnh & thông tin chung */}
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              {detail.imageURL && (
+                                <img
+                                  src={detail.imageURL}
+                                  alt={detail.name}
+                                  style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }}
+                                />
+                              )}
+                              <div style={{ marginLeft: '16px', flex: 1 }}>
+                                <Text strong>{detail.name}</Text>
+                                <div>
+                                  <Text>{detail.quantity} x {formatCurrency(detail.price)}</Text>
+                                </div>
+                                <div>
+                                  <Text type="secondary">Tổng: {formatCurrency(detail.totalPrice)}</Text>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Mô tả HTML */}
+                            {/* {detail.description && (
+                              <div
+                                style={{ marginTop: '12px', fontSize: '13px' }}
+                                dangerouslySetInnerHTML={{ __html: detail.description }}
+                                className="html-preview"
+                              />
+                            )} */}
+                          </div>
+                        ))}
+                      </div>
+                    </Descriptions.Item>
+                  )}
+
+
                   {orderDetail.description && (
                     <Descriptions.Item label="Mô tả yêu cầu">
                       <div
                         className="html-preview"
-                        style={{ maxHeight: '150px', overflow: 'auto' }}
+                        style={{ maxHeight: '150px', overflow: 'auto', fontSize: '14px', scrollbarWidth: 'thin', scrollbarColor: '#888 #f1f1f1' }}
                         dangerouslySetInnerHTML={{ __html: orderDetail.description }}
                       />
                     </Descriptions.Item>
@@ -483,17 +602,17 @@ const TaskDetailDrawer = ({ visible, task, onClose, designers }) => {
                     <Descriptions.Item label="Báo cáo tư vấn">
                       <div
                         className="html-preview"
-                        style={{ maxHeight: '150px', overflow: 'auto' }}
+                        style={{ maxHeight: '150px', overflow: 'auto', fontSize: '14px', scrollbarWidth: 'thin', scrollbarColor: '#888 #f1f1f1' }}
                         dangerouslySetInnerHTML={{ __html: orderDetail.report }}
                       />
                     </Descriptions.Item>
                   )}
 
-                  {orderDetail.deliveryCode && (
+                  {/* {orderDetail.deliveryCode && (
                     <Descriptions.Item label="Mã giao hàng">
                       <Text copyable>{orderDetail.deliveryCode}</Text>
                     </Descriptions.Item>
-                  )}
+                  )} */}
                 </Descriptions>
               </>
             )}
