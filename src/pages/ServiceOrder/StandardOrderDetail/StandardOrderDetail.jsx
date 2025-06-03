@@ -18,7 +18,7 @@ import {
   Form,
   Input,
   DatePicker,
-  TimePicker
+  TimePicker,
 } from "antd";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
@@ -36,7 +36,7 @@ import {
   CheckCircleOutlined,
   FilePdfOutlined,
   VideoCameraOutlined,
-  ArrowLeftOutlined
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -56,7 +56,8 @@ const { Title, Text } = Typography;
 const StandardOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { selectedOrder, isLoading, getDesignOrderById, updateStatus } = useDesignOrderStore();
+  const { selectedOrder, isLoading, getDesignOrderById, updateStatus } =
+    useDesignOrderStore();
   const { fetchDesignIdeaById } = useDesignIdeaStore();
   const { getProductById } = useProductStore();
   const { trackOrder } = useShippingStore();
@@ -66,7 +67,8 @@ const StandardOrderDetail = () => {
   const [products, setProducts] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isConfirmCompleteModalVisible, setIsConfirmCompleteModalVisible] = useState(false);
+  const [isConfirmCompleteModalVisible, setIsConfirmCompleteModalVisible] =
+    useState(false);
   const [pdfModalVisible, setPdfModalVisible] = useState(false);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [currentPdfUrl, setCurrentPdfUrl] = useState("");
@@ -179,7 +181,14 @@ const StandardOrderDetail = () => {
         }
       };
     }
-  }, [selectedOrder?.deliveryCode, selectedOrder?.status, id, getDesignOrderById, updateStatus, trackOrder]);
+  }, [
+    selectedOrder?.deliveryCode,
+    selectedOrder?.status,
+    id,
+    getDesignOrderById,
+    updateStatus,
+    trackOrder,
+  ]);
 
   const handleRefresh = async () => {
     try {
@@ -212,25 +221,23 @@ const StandardOrderDetail = () => {
   const handleRequestReInstall = async () => {
     setIsReInstallModalVisible(true);
   };
-  
+
   const submitReInstallRequest = async (values) => {
     try {
       // Find the latest work task
       const latestWorkTask = selectedOrder.workTasks
-        .filter(task => task.status !== "cancel")
-        .sort((a, b) => 
-          new Date(b.creationDate) - new Date(a.creationDate)
-        )[0];
-      
+        .filter((task) => task.status !== "cancel")
+        .sort((a, b) => new Date(b.creationDate) - new Date(a.creationDate))[0];
+
       if (!latestWorkTask) {
         message.error("Không tìm thấy thông tin lịch lắp đặt");
         return;
       }
-      
+
       // Format date and time
-      const dateAppointment = values.reinstallDate.format('YYYY-MM-DD');
-      const timeAppointment = values.reinstallTime.format('HH:mm:ss');
-      
+      const dateAppointment = values.reinstallDate.format("YYYY-MM-DD");
+      const timeAppointment = values.reinstallTime.format("HH:mm:ss");
+
       // Call API to update work task
       await api.put(`/api/worktask/${latestWorkTask.id}`, {
         serviceOrderId: selectedOrder.id,
@@ -238,22 +245,25 @@ const StandardOrderDetail = () => {
         dateAppointment: dateAppointment,
         timeAppointment: timeAppointment,
         status: 10, // ReInstall status
-        note: values.reason || "Yêu cầu lắp đặt lại"
+        note: values.reason || "Yêu cầu lắp đặt lại",
       });
-      
+
       // Call API to update order status
       await updateStatus(
         selectedOrder.id,
         "ReInstall",
         selectedOrder.deliveryCode
       );
-      
+
       message.success("Đã yêu cầu lắp đặt lại thành công");
       setIsReInstallModalVisible(false);
       await getDesignOrderById(id, componentId.current);
     } catch (error) {
       console.error("Error requesting reinstall:", error);
-      message.error("Không thể yêu cầu lắp đặt lại: " + (error.response?.data?.message || error.message));
+      message.error(
+        "Không thể yêu cầu lắp đặt lại: " +
+          (error.response?.data?.message || error.message)
+      );
     }
   };
 
@@ -261,16 +271,14 @@ const StandardOrderDetail = () => {
     try {
       // Find the latest work task
       const latestWorkTask = selectedOrder.workTasks
-        .filter(task => task.status !== "cancel")
-        .sort((a, b) => 
-          new Date(b.creationDate) - new Date(a.creationDate)
-        )[0];
-      
+        .filter((task) => task.status !== "cancel")
+        .sort((a, b) => new Date(b.creationDate) - new Date(a.creationDate))[0];
+
       if (!latestWorkTask) {
         message.error("Không tìm thấy thông tin lịch lắp đặt");
         return;
       }
-      
+
       // Call API to update work task
       await api.put(`/api/worktask/${latestWorkTask.id}`, {
         serviceOrderId: selectedOrder.id,
@@ -278,24 +286,26 @@ const StandardOrderDetail = () => {
         dateAppointment: latestWorkTask.dateAppointment,
         timeAppointment: latestWorkTask.timeAppointment,
         status: 6, // Completed status
-        note: "Hoàn thành lắp đặt"
+        note: "Hoàn thành lắp đặt",
       });
-      
+
       // Call API to update order status
       await updateStatus(
         selectedOrder.id,
         "Successfully",
         selectedOrder.deliveryCode
       );
-      
+
       message.success("Đã xác nhận hoàn tất đơn hàng");
       await getDesignOrderById(id, componentId.current);
     } catch (error) {
       console.error("Error confirming completion:", error);
-      message.error("Không thể xác nhận hoàn tất đơn hàng: " + (error.response?.data?.message || error.message));
+      message.error(
+        "Không thể xác nhận hoàn tất đơn hàng: " +
+          (error.response?.data?.message || error.message)
+      );
     }
   };
-  
 
   const showConfirmCompleteModal = () => {
     setIsConfirmCompleteModalVisible(true);
@@ -315,7 +325,10 @@ const StandardOrderDetail = () => {
   // Add function to calculate material price
   const calculateMaterialPrice = (order) => {
     if (order.materialPrice === 0 && order.serviceOrderDetails?.length > 0) {
-      return order.serviceOrderDetails.reduce((total, detail) => total + detail.totalPrice, 0);
+      return order.serviceOrderDetails.reduce(
+        (total, detail) => total + detail.totalPrice,
+        0
+      );
     }
     return order.materialPrice;
   };
@@ -344,15 +357,15 @@ const StandardOrderDetail = () => {
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    window.open(product.designImage1URL, '_blank');
+                    window.open(product.designImage1URL, "_blank");
                   }}
                   style={{ padding: "0", height: "auto" }}
                 >
                   <Space>
                     <Text type="success">
-                      {product.designImage1URL.includes('.pdf')
-                        ? 'Xem hướng dẫn lắp đặt (PDF)'
-                        : 'Xem hướng dẫn lắp đặt (Video)'}
+                      {product.designImage1URL.includes(".pdf")
+                        ? "Xem hướng dẫn lắp đặt (PDF)"
+                        : "Xem hướng dẫn lắp đặt (Video)"}
                     </Text>
                   </Space>
                 </Button>
@@ -442,9 +455,9 @@ const StandardOrderDetail = () => {
       <Content>
         <div
           style={{
-            paddingTop: '40px',
-            maxWidth: '1200px',
-            margin: '0 auto',
+            paddingTop: "40px",
+            maxWidth: "1200px",
+            margin: "0 auto",
           }}
         >
           <Breadcrumb
@@ -453,8 +466,8 @@ const StandardOrderDetail = () => {
                 title: (
                   <Link to="/Home">
                     <Space>
-                      <HomeOutlined style={{ fontSize: '16px' }} />
-                      <span style={{ fontSize: '16px' }}>Trang chủ</span>
+                      <HomeOutlined style={{ fontSize: "16px" }} />
+                      <span style={{ fontSize: "16px" }}>Trang chủ</span>
                     </Space>
                   </Link>
                 ),
@@ -463,8 +476,8 @@ const StandardOrderDetail = () => {
                 title: (
                   <Link to="/serviceorderhistory">
                     <Space>
-                      <HistoryOutlined style={{ fontSize: '16px' }} />
-                      <span style={{ fontSize: '16px' }}>Lịch sử đơn hàng</span>
+                      <HistoryOutlined style={{ fontSize: "16px" }} />
+                      <span style={{ fontSize: "16px" }}>Lịch sử đơn hàng</span>
                     </Space>
                   </Link>
                 ),
@@ -472,18 +485,20 @@ const StandardOrderDetail = () => {
               {
                 title: (
                   <Space>
-                    <ShoppingOutlined style={{ fontSize: '16px' }} />
-                    <span style={{ fontSize: '16px' }}>Chi tiết đơn hàng #{id.slice(0, 8)}</span>
+                    <ShoppingOutlined style={{ fontSize: "16px" }} />
+                    <span style={{ fontSize: "16px" }}>
+                      Chi tiết đơn hàng #{id.slice(0, 8)}
+                    </span>
                   </Space>
                 ),
               },
             ]}
             style={{
-              marginBottom: '16px',
-              padding: '12px 16px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              marginBottom: "16px",
+              padding: "12px 16px",
+              backgroundColor: "#fff",
+              borderRadius: "8px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             }}
           />
         </div>
@@ -553,7 +568,7 @@ const StandardOrderDetail = () => {
                       </>
                     }
                   >
-                    {selectedOrder.address.replace(/\|/g, ', ')}
+                    {selectedOrder.address.replace(/\|/g, ", ")}
                   </Descriptions.Item>
                   <Descriptions.Item
                     label={
@@ -627,12 +642,17 @@ const StandardOrderDetail = () => {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(240px, 1fr))",
                       gap: "16px",
                       marginTop: 16,
                     }}
                   >
-                    {[designIdea?.image?.imageUrl, designIdea?.image?.image2, designIdea?.image?.image3]
+                    {[
+                      designIdea?.image?.imageUrl,
+                      designIdea?.image?.image2,
+                      designIdea?.image?.image3,
+                    ]
                       .filter(Boolean)
                       .map((imgUrl, index) => (
                         <div
@@ -680,14 +700,28 @@ const StandardOrderDetail = () => {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(300px, 1fr))",
                       gap: "24px",
                       padding: "16px",
                     }}
                   >
                     {designIdea?.designImage1URL && (
-                      <div style={{ borderRadius: "8px", overflow: "hidden", border: "1px solid #eee" }}>
-                        <div style={{ width: "100%", textAlign: "center", padding: "8px", backgroundColor: "#f5f5f5" }}>
+                      <div
+                        style={{
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          border: "1px solid #eee",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "100%",
+                            textAlign: "center",
+                            padding: "8px",
+                            backgroundColor: "#f5f5f5",
+                          }}
+                        >
                           <Text strong>Bản vẽ thiết kế</Text>
                         </div>
                         <Image
@@ -696,7 +730,7 @@ const StandardOrderDetail = () => {
                           style={{
                             width: "100%",
                             aspectRatio: "4/3",
-                            objectFit: "cover"
+                            objectFit: "cover",
                           }}
                           preview
                         />
@@ -704,8 +738,21 @@ const StandardOrderDetail = () => {
                     )}
 
                     {designIdea?.designImage2URL && (
-                      <div style={{ borderRadius: "8px", overflow: "hidden", border: "1px solid #eee" }}>
-                        <div style={{ width: "100%", textAlign: "center", padding: "8px", backgroundColor: "#f5f5f5" }}>
+                      <div
+                        style={{
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          border: "1px solid #eee",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "100%",
+                            textAlign: "center",
+                            padding: "8px",
+                            backgroundColor: "#f5f5f5",
+                          }}
+                        >
                           <Text strong>Hướng dẫn lắp đặt (PDF)</Text>
                         </div>
                         <div
@@ -713,60 +760,23 @@ const StandardOrderDetail = () => {
                             width: "100%",
                             height: "400px",
                             cursor: "pointer",
-                            position: "relative"
+                            position: "relative",
                           }}
-                          onClick={() => openPdfModal(designIdea.designImage2URL)}
+                          onClick={() =>
+                            openPdfModal(designIdea.designImage2URL)
+                          }
                         >
                           <iframe
                             src={designIdea.designImage2URL}
                             title="Hướng dẫn lắp đặt PDF"
-                            style={{ width: "100%", height: "100%", border: "none" }}
-                          />
-                          <div style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            width: "100%",
-                            height: "100%",
-                            background: "rgba(0,0,0,0.05)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            opacity: 0,
-                            transition: "opacity 0.3s",
-                            ":hover": { opacity: 1 }
-                          }}>
-                            <Button type="primary" icon={<FilePdfOutlined />}>Xem đầy đủ</Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {designIdea?.designImage3URL && (
-                      <div style={{ borderRadius: "8px", overflow: "hidden", border: "1px solid #eee" }}>
-                        <div style={{ width: "100%", textAlign: "center", padding: "8px", backgroundColor: "#f5f5f5" }}>
-                          <Text strong>
-                            {designIdea.designImage3URL.includes('.pdf')
-                              ? 'Hướng dẫn bổ sung (PDF)'
-                              : 'Video hướng dẫn lắp đặt'}
-                          </Text>
-                        </div>
-                        {designIdea.designImage3URL.includes('.pdf') ? (
-                          <div
                             style={{
                               width: "100%",
-                              height: "400px",
-                              cursor: "pointer",
-                              position: "relative"
+                              height: "100%",
+                              border: "none",
                             }}
-                            onClick={() => openPdfModal(designIdea.designImage3URL)}
-                          >
-                            <iframe
-                              src={designIdea.designImage3URL}
-                              title="Hướng dẫn bổ sung PDF"
-                              style={{ width: "100%", height: "100%", border: "none" }}
-                            />
-                            <div style={{
+                          />
+                          <div
+                            style={{
                               position: "absolute",
                               top: 0,
                               left: 0,
@@ -778,9 +788,79 @@ const StandardOrderDetail = () => {
                               justifyContent: "center",
                               opacity: 0,
                               transition: "opacity 0.3s",
-                              ":hover": { opacity: 1 }
-                            }}>
-                              <Button type="primary" icon={<FilePdfOutlined />}>Xem đầy đủ</Button>
+                              ":hover": { opacity: 1 },
+                            }}
+                          >
+                            <Button type="primary" icon={<FilePdfOutlined />}>
+                              Xem đầy đủ
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {designIdea?.designImage3URL && (
+                      <div
+                        style={{
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          border: "1px solid #eee",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "100%",
+                            textAlign: "center",
+                            padding: "8px",
+                            backgroundColor: "#f5f5f5",
+                          }}
+                        >
+                          <Text strong>
+                            {designIdea.designImage3URL.includes(".pdf")
+                              ? "Hướng dẫn bổ sung (PDF)"
+                              : "Video hướng dẫn lắp đặt"}
+                          </Text>
+                        </div>
+                        {designIdea.designImage3URL.includes(".pdf") ? (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "400px",
+                              cursor: "pointer",
+                              position: "relative",
+                            }}
+                            onClick={() =>
+                              openPdfModal(designIdea.designImage3URL)
+                            }
+                          >
+                            <iframe
+                              src={designIdea.designImage3URL}
+                              title="Hướng dẫn bổ sung PDF"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                border: "none",
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                background: "rgba(0,0,0,0.05)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                opacity: 0,
+                                transition: "opacity 0.3s",
+                                ":hover": { opacity: 1 },
+                              }}
+                            >
+                              <Button type="primary" icon={<FilePdfOutlined />}>
+                                Xem đầy đủ
+                              </Button>
                             </div>
                           </div>
                         ) : (
@@ -789,30 +869,39 @@ const StandardOrderDetail = () => {
                               width: "100%",
                               aspectRatio: "16/9",
                               cursor: "pointer",
-                              position: "relative"
+                              position: "relative",
                             }}
-                            onClick={() => openVideoModal(designIdea.designImage3URL)}
+                            onClick={() =>
+                              openVideoModal(designIdea.designImage3URL)
+                            }
                           >
                             <video
                               src={designIdea.designImage3URL}
                               controls
                               style={{ width: "100%", height: "100%" }}
                             />
-                            <div style={{
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              width: "100%",
-                              height: "100%",
-                              background: "rgba(0,0,0,0.05)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              opacity: 0,
-                              transition: "opacity 0.3s",
-                              ":hover": { opacity: 1 }
-                            }}>
-                              <Button type="primary" icon={<VideoCameraOutlined />}>Xem đầy đủ</Button>
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                background: "rgba(0,0,0,0.05)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                opacity: 0,
+                                transition: "opacity 0.3s",
+                                ":hover": { opacity: 1 },
+                              }}
+                            >
+                              <Button
+                                type="primary"
+                                icon={<VideoCameraOutlined />}
+                              >
+                                Xem đầy đủ
+                              </Button>
                             </div>
                           </div>
                         )}
@@ -881,7 +970,7 @@ const StandardOrderDetail = () => {
                       <Text type="danger" strong style={{ fontSize: "16px" }}>
                         {formatPrice(
                           selectedOrder.designPrice +
-                          calculateMaterialPrice(selectedOrder)
+                            calculateMaterialPrice(selectedOrder)
                         )}
                       </Text>
                     </Descriptions.Item>
@@ -889,7 +978,7 @@ const StandardOrderDetail = () => {
                       <Text type="danger" strong style={{ fontSize: "16px" }}>
                         {formatPrice(
                           selectedOrder.designPrice +
-                          calculateMaterialPrice(selectedOrder)
+                            calculateMaterialPrice(selectedOrder)
                         )}
                       </Text>
                     </Descriptions.Item>
@@ -903,17 +992,30 @@ const StandardOrderDetail = () => {
                     padding: "24px",
                     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                     borderRadius: "8px",
-                    backgroundColor: "#fafafa"
+                    backgroundColor: "#fafafa",
                   }}
                 >
                   <Text style={{ fontSize: 16, fontWeight: 500 }}>
-                    Vui lòng kiểm tra kết quả thi công. Nếu bạn hài lòng, hãy xác nhận hoàn tất đơn hàng. Nếu có vấn đề, bạn có thể yêu cầu lắp đặt lại.
+                    Vui lòng kiểm tra kết quả thi công. Nếu bạn hài lòng, hãy
+                    xác nhận hoàn tất đơn hàng. Nếu có vấn đề, bạn có thể yêu
+                    cầu lắp đặt lại.
                   </Text>
 
-                  <div style={{ marginTop: 24, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 16 }}>
+                  <div
+                    style={{
+                      marginTop: 24,
+                      display: "flex",
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                      gap: 16,
+                    }}
+                  >
                     <Button
                       type="primary"
-                      style={{ backgroundColor: "#ff4d4f", borderColor: "#ff4d4f" }}
+                      style={{
+                        backgroundColor: "#ff4d4f",
+                        borderColor: "#ff4d4f",
+                      }}
                       icon={<ReloadOutlined />}
                       onClick={() => {
                         handleRequestReInstall();
@@ -932,7 +1034,6 @@ const StandardOrderDetail = () => {
                     </Button>
                   </div>
                 </Card>
-
               )}
 
               {/* Status Tracking */}
@@ -944,10 +1045,7 @@ const StandardOrderDetail = () => {
               <div style={{ textAlign: "right" }}>
                 <Space>
                   {selectedOrder.status === "DeliveredSuccessfully" && (
-                    <Button
-                      type="primary"
-                      onClick={showConfirmCompleteModal}
-                    >
+                    <Button type="primary" onClick={showConfirmCompleteModal}>
                       Xác nhận hoàn thành
                     </Button>
                   )}
@@ -980,46 +1078,55 @@ const StandardOrderDetail = () => {
                 layout="vertical"
                 onFinish={submitReInstallRequest}
                 initialValues={{
-                  reinstallDate: dayjs().add(1, 'day'),
-                  reinstallTime: dayjs('09:00:00', 'HH:mm:ss')
+                  reinstallDate: dayjs().add(1, "day"),
+                  reinstallTime: dayjs("09:00:00", "HH:mm:ss"),
                 }}
               >
                 <Form.Item
                   name="reinstallDate"
                   label="Ngày lắp đặt lại"
                   rules={[
-                    { required: true, message: 'Vui lòng chọn ngày lắp đặt lại' }
+                    {
+                      required: true,
+                      message: "Vui lòng chọn ngày lắp đặt lại",
+                    },
                   ]}
                 >
                   <DatePicker
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                     format="DD/MM/YYYY"
                     disabledDate={(current) => {
                       // Không cho phép chọn ngày trước ngày hiện tại
-                      return current && current < dayjs().startOf('day');
+                      return current && current < dayjs().startOf("day");
                     }}
                   />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="reinstallTime"
                   label="Giờ lắp đặt lại"
                   rules={[
-                    { required: true, message: 'Vui lòng chọn giờ lắp đặt lại' }
+                    {
+                      required: true,
+                      message: "Vui lòng chọn giờ lắp đặt lại",
+                    },
                   ]}
                 >
                   <TimePicker
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                     format="HH:mm:ss"
                     minuteStep={15}
                   />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="reason"
                   label="Lý do yêu cầu lắp đặt lại"
                   rules={[
-                    { required: true, message: 'Vui lòng nhập lý do yêu cầu lắp đặt lại' }
+                    {
+                      required: true,
+                      message: "Vui lòng nhập lý do yêu cầu lắp đặt lại",
+                    },
                   ]}
                 >
                   <Input.TextArea
@@ -1027,8 +1134,8 @@ const StandardOrderDetail = () => {
                     placeholder="Nhập lý do yêu cầu lắp đặt lại"
                   />
                 </Form.Item>
-                
-                <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+
+                <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
                   <Space>
                     <Button onClick={() => setIsReInstallModalVisible(false)}>
                       Hủy
@@ -1049,7 +1156,12 @@ const StandardOrderDetail = () => {
               width="90%"
               style={{ top: 20 }}
               footer={null}
-              bodyStyle={{ height: "80vh", padding: 0 }}
+              styles={{
+                body: {
+                  height: "80vh",
+                  padding: 0,
+                },
+              }}
             >
               <iframe
                 src={currentPdfUrl}
@@ -1066,7 +1178,11 @@ const StandardOrderDetail = () => {
               width="90%"
               style={{ top: 20 }}
               footer={null}
-              bodyStyle={{ padding: 0 }}
+              styles={{
+                body: {
+                  padding: 0,
+                },
+              }}
             >
               <video
                 src={currentVideoUrl}
@@ -1083,4 +1199,4 @@ const StandardOrderDetail = () => {
   );
 };
 
-export default StandardOrderDetail; 
+export default StandardOrderDetail;

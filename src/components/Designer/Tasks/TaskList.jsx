@@ -335,7 +335,7 @@ const TaskList = () => {
         if (!record.dateAppointment && !record.timeAppointment) return "Không có";
         const date = record.dateAppointment;
         const time = record.timeAppointment;
-        return dayjs(`${date} ${time}`).format("DD/MM/YYYY HH:mm");
+        return dayjs(`${date} ${time}`).format("DD/MM/YYYY - HH:mm");
       },
     },
     {

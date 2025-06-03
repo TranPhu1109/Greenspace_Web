@@ -1,6 +1,18 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Layout, Typography, Row, Col, Card, Spin, Empty, Button, Breadcrumb, Space, Tag } from "antd";
+import {
+  Layout,
+  Typography,
+  Row,
+  Col,
+  Card,
+  Spin,
+  Empty,
+  Button,
+  Breadcrumb,
+  Space,
+  Tag,
+} from "antd";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -31,10 +43,9 @@ const DesignDetailPage = () => {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productError, setProductError] = useState(null);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
-  const [actionType, setActionType] = useState('');
+  const [actionType, setActionType] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
 
-  //console.log("currentDesign", currentDesign);
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -48,6 +59,10 @@ const DesignDetailPage = () => {
 
     try {
       const design = await fetchDesignIdeaById(id, componentId.current);
+      // Set the initial selected image when design is loaded
+      if (design?.image?.imageUrl) {
+        setSelectedImage(design.image.imageUrl);
+      }
     } catch (error) {
       if (error.name !== "CanceledError" && mountedRef.current) {
         // Handle error silently
@@ -58,10 +73,14 @@ const DesignDetailPage = () => {
   // Initial load of design
   useEffect(() => {
     loadDesign();
-    if (currentDesign?.image?.imageUrl) {
+  }, [loadDesign]);
+
+  // Update selected image when currentDesign changes
+  useEffect(() => {
+    if (currentDesign?.image?.imageUrl && !selectedImage) {
       setSelectedImage(currentDesign.image.imageUrl);
     }
-  }, [loadDesign]);
+  }, [currentDesign]);
 
   // Load products when design data is available
   useEffect(() => {
@@ -132,20 +151,24 @@ const DesignDetailPage = () => {
   const handleBuyDesign = (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      setActionType('buy');
+      setActionType("buy");
       setLoginModalVisible(true);
     } else {
-      navigate(`/order-service/${currentDesign.id}`, { state: { isCustom: false } });
+      navigate(`/order-service/${currentDesign.id}`, {
+        state: { isCustom: false },
+      });
     }
   };
 
   const handleCustomizeDesign = (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      setActionType('customize');
+      setActionType("customize");
       setLoginModalVisible(true);
     } else {
-      navigate(`/service-order-customize/${currentDesign.id}`, { state: { isCustom: true } });
+      navigate(`/service-order-customize/${currentDesign.id}`, {
+        state: { isCustom: true },
+      });
     }
   };
 
@@ -155,7 +178,7 @@ const DesignDetailPage = () => {
 
   if (designLoading) {
     return (
-      <Layout >
+      <Layout>
         <Header />
         <Content>
           <div className="container">
@@ -171,7 +194,7 @@ const DesignDetailPage = () => {
 
   if (designError || !currentDesign) {
     return (
-      <Layout >
+      <Layout>
         <Header />
         <Content>
           <div className="container">
@@ -183,6 +206,33 @@ const DesignDetailPage = () => {
     );
   }
 
+  const breadcrumbItems = [
+    {
+      title: (
+        <span style={{ cursor: "pointer" }} onClick={() => navigate("/Home")}>
+          <HomeOutlined /> Trang chủ
+        </span>
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate("/Designs")}
+        >
+          <AppstoreOutlined /> Ý tưởng thiết kế
+        </span>
+      ),
+    },
+    {
+      title: (
+        <span style={{ fontWeight: "bold" }}>
+          {currentDesign?.name || "Chi tiết thiết kế"}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <>
       <Layout className="design-detail-layout">
@@ -190,24 +240,16 @@ const DesignDetailPage = () => {
         <Content>
           <div className="design-detail-hero">
             <div className="container">
-              <Breadcrumb style={{
-                marginBottom: '20px',
-                padding: '12px 16px',
-                backgroundColor: '#fff',
-                borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}>
-                <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
-                  <HomeOutlined /> Trang chủ
-                </Breadcrumb.Item>
-                <Breadcrumb.Item onClick={() => navigate("/Designs")} style={{ cursor: 'pointer' }}>
-                  <AppstoreOutlined /> Ý tưởng thiết kế
-                </Breadcrumb.Item>
-                <Breadcrumb.Item>
-                  <span style={{ fontWeight: 'bold' }}>{currentDesign.name}</span>
-                </Breadcrumb.Item>
-              </Breadcrumb>
-
+              <Breadcrumb
+                style={{
+                  marginBottom: "20px",
+                  padding: "12px 16px",
+                  backgroundColor: "#fff",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+                items={breadcrumbItems}
+              />
             </div>
           </div>
 
@@ -217,22 +259,37 @@ const DesignDetailPage = () => {
                 <Col xs={24} md={16}>
                   <div className="design-images">
                     <Card>
-                      <div className="main-image-container" style={{ textAlign: 'center' }}>
+                      <div
+                        className="main-image-container"
+                        style={{ textAlign: "center" }}
+                      >
                         <img
                           src={selectedImage}
                           alt={currentDesign.name}
                           style={{
-                            width: '100%',
+                            width: "100%",
                             maxHeight: 500,
-                            objectFit: 'cover',
+                            objectFit: "cover",
                             borderRadius: 8,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                           }}
                         />
                       </div>
 
-                      <div className="thumbnail-container" style={{ marginTop: 16, display: 'flex', gap: 12, justifyContent: 'center' }}>
-                        {[currentDesign.image?.imageUrl, currentDesign.image?.image2, currentDesign.image?.image3]
+                      <div
+                        className="thumbnail-container"
+                        style={{
+                          marginTop: 16,
+                          display: "flex",
+                          gap: 12,
+                          justifyContent: "center",
+                        }}
+                      >
+                        {[
+                          currentDesign.image?.imageUrl,
+                          currentDesign.image?.image2,
+                          currentDesign.image?.image3,
+                        ]
                           .filter(Boolean)
                           .map((img, idx) => (
                             <img
@@ -242,17 +299,23 @@ const DesignDetailPage = () => {
                               style={{
                                 width: 80,
                                 height: 80,
-                                objectFit: 'cover',
-                                cursor: 'pointer',
+                                objectFit: "cover",
+                                cursor: "pointer",
                                 borderRadius: 4,
-                                border: selectedImage === img ? '2px solid #1890ff' : '1px solid #ddd'
+                                border:
+                                  selectedImage === img
+                                    ? "2px solid #1890ff"
+                                    : "1px solid #ddd",
                               }}
                               onClick={() => setSelectedImage(img)}
                             />
                           ))}
                       </div>
                     </Card>
-                    <Card title="Mô tả" style={{ marginTop: '16px', marginBottom: '16px' }}>
+                    <Card
+                      title="Mô tả"
+                      style={{ marginTop: "16px", marginBottom: "16px" }}
+                    >
                       <div
                         className="html-preview"
                         dangerouslySetInnerHTML={{
@@ -265,9 +328,11 @@ const DesignDetailPage = () => {
 
                 <Col xs={24} md={8}>
                   <Card className="design-info-card">
-                    <Title level={3} style={{ fontWeight: 'bold' }}>{currentDesign.name}</Title>
+                    <Title level={3} style={{ fontWeight: "bold" }}>
+                      {currentDesign.name}
+                    </Title>
                     <div className="price-info">
-                      <Title level={4} >Thông tin thiết kế</Title>
+                      <Title level={4}>Thông tin thiết kế</Title>
                       <div className="price-item">
                         <span>Giá thiết kế:</span>
                         <span>
@@ -297,17 +362,19 @@ const DesignDetailPage = () => {
                       </div>
                     </div>
 
-                    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <Space
+                      style={{
+                        width: "100%",
+                        justifyContent: "space-between",
+                        marginBottom: "14px",
+                      }}
+                    >
                       <Title level={4}>Danh mục</Title>
                       <Tag color="blue">{currentDesign.categoryName}</Tag>
                     </Space>
 
-                    <div style={{ marginBottom: '16px' }}>
-                      <Button
-                        type="primary"
-                        block
-                        onClick={handleBuyDesign}
-                      >
+                    <div style={{ marginBottom: "16px" }}>
+                      <Button type="primary" block onClick={handleBuyDesign}>
                         Mua thiết kế
                       </Button>
                       {/* <Button
@@ -343,9 +410,11 @@ const DesignDetailPage = () => {
                                   {product.name}
                                 </span>
                                 <span className="product-description">
-                                  <div dangerouslySetInnerHTML={{
-                                    __html: product.description,
-                                  }} />
+                                  <div
+                                    dangerouslySetInnerHTML={{
+                                      __html: product.description,
+                                    }}
+                                  />
                                 </span>
                               </div>
                             </div>

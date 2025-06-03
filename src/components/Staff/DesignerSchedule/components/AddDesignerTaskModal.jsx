@@ -18,6 +18,8 @@ const AddDesignerTaskModal = ({
   selectedDesignerId = null,
   preselectedOrderId = null,
   customerName = null,
+  customerPhone = null,
+  email = null,
   address = null
 }) => {
   const [form] = Form.useForm();
@@ -241,6 +243,8 @@ const AddDesignerTaskModal = ({
   const customOrderRender = (order) => {
     const orderId = order.id;
     const customerName = order.user?.name || order.userName || 'Khách hàng';
+    const customerPhone = order.user?.phone || 'Không có số điện thoại';
+    const email = order.user?.email || 'Không có email';
     const formattedDate = formatDate(order.creationDate);
     const statusClass = getStatusClass(order.status);
     const statusLabel = getOrderStatusLabel(order.status);

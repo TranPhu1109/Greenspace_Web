@@ -24,7 +24,7 @@ import {
   Checkbox,
   Tooltip,
   InputNumber,
-  Breadcrumb
+  Breadcrumb,
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -38,7 +38,7 @@ import {
   FilterOutlined,
   TagOutlined,
   AppstoreOutlined,
-  SwapOutlined
+  SwapOutlined,
 } from "@ant-design/icons";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -64,7 +64,13 @@ const OrderService = () => {
     fetchDesignIdeaById,
     isLoading: designLoading,
   } = useDesignIdeaStore();
-  const { getProductById, updateProduct, fetchProducts, fetchCategories, categories } = useProductStore();
+  const {
+    getProductById,
+    updateProduct,
+    fetchProducts,
+    fetchCategories,
+    categories,
+  } = useProductStore();
   const { user } = useAuthStore();
   const { createDesignOrder, isLoading: orderLoading } = useDesignOrderStore();
   const {
@@ -81,7 +87,7 @@ const OrderService = () => {
   const [orderData, setOrderData] = useState(null);
   const mountedRef = useRef(true);
   const [form] = Form.useForm();
-  const [activeKey, setActiveKey] = useState(['1', '2', '3']);
+  const [activeKey, setActiveKey] = useState(["1", "2", "3"]);
   const rightColumnRef = useRef(null);
   const leftColumnRef = useRef(null);
   const titleRef = useRef(null);
@@ -98,7 +104,8 @@ const OrderService = () => {
   const [loadingAllProducts, setLoadingAllProducts] = useState(false);
   const [existingCategories, setExistingCategories] = useState([]);
   const [originalProductDetails, setOriginalProductDetails] = useState([]);
-  const [isChangeProductModalOpen, setIsChangeProductModalOpen] = useState(false);
+  const [isChangeProductModalOpen, setIsChangeProductModalOpen] =
+    useState(false);
   const [selectedProductToChange, setSelectedProductToChange] = useState(null);
   const [productsForCategory, setProductsForCategory] = useState([]);
   const [materialPrice, setMaterialPrice] = useState(0);
@@ -141,8 +148,14 @@ const OrderService = () => {
 
       // Cập nhật thông tin người nhận từ AddressForm
       if (addressData.fullAddressData.recipientInfo) {
-        form.setFieldValue("fullName", addressData.fullAddressData.recipientInfo.name || user?.name || "");
-        form.setFieldValue("phone", addressData.fullAddressData.recipientInfo.phone || user?.phone || "");
+        form.setFieldValue(
+          "fullName",
+          addressData.fullAddressData.recipientInfo.name || user?.name || ""
+        );
+        form.setFieldValue(
+          "phone",
+          addressData.fullAddressData.recipientInfo.phone || user?.phone || ""
+        );
       }
     } else {
       setIsAddressValid(false);
@@ -152,14 +165,19 @@ const OrderService = () => {
   // Tính toán chiều cao và vị trí các phần tử
   useEffect(() => {
     const calculateHeights = () => {
-      if (leftColumnRef.current && rightColumnRef.current && footerRef.current && titleRef.current) {
+      if (
+        leftColumnRef.current &&
+        rightColumnRef.current &&
+        footerRef.current &&
+        titleRef.current
+      ) {
         setLeftColumnHeight(leftColumnRef.current.scrollHeight);
         setFooterTop(footerRef.current.offsetTop);
       }
     };
 
     calculateHeights();
-    window.addEventListener('resize', calculateHeights);
+    window.addEventListener("resize", calculateHeights);
 
     // Theo dõi sự kiện scroll để điều chỉnh sticky positioning
     const handleScroll = () => {
@@ -182,15 +200,15 @@ const OrderService = () => {
         const distance = Math.min(scrollY - scrollThreshold, maxOffset);
         rightColumn.style.transform = `translateY(-${distance}px)`;
       } else {
-        rightColumn.style.transform = 'translateY(0)';
+        rightColumn.style.transform = "translateY(0)";
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
 
     return () => {
-      window.removeEventListener('resize', calculateHeights);
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("resize", calculateHeights);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -236,10 +254,10 @@ const OrderService = () => {
     };
 
     // Lắng nghe sự kiện wheel trên toàn trang, không chỉ container
-    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
-      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener("wheel", handleWheel);
     };
   }, []);
 
@@ -261,10 +279,10 @@ const OrderService = () => {
 
     // Cập nhật khi component mount và khi resize window
     updateRightColumnHeight();
-    window.addEventListener('resize', updateRightColumnHeight);
+    window.addEventListener("resize", updateRightColumnHeight);
 
     return () => {
-      window.removeEventListener('resize', updateRightColumnHeight);
+      window.removeEventListener("resize", updateRightColumnHeight);
     };
   }, []);
 
@@ -311,41 +329,45 @@ const OrderService = () => {
         const allProductsData = await fetchProducts();
         if (!isMounted) return;
 
-        console.log("All products loaded:", allProductsData);
         setAllProducts(allProductsData || []);
 
         const productPromises = currentDesign.productDetails.map(
           async (detail) => {
             try {
               // Find product from all products instead of making separate API calls
-              const product = allProductsData.find(p => p.id === detail.productId);
+              const product = allProductsData.find(
+                (p) => p.id === detail.productId
+              );
 
               if (!isMounted) return null;
 
               if (product) {
                 // Find category name from categories
-                const category = categoriesData.find(cat => cat.id === product.categoryId);
-                const categoryName = category ? category.name : "Không xác định";
+                const category = categoriesData.find(
+                  (cat) => cat.id === product.categoryId
+                );
+                const categoryName = category
+                  ? category.name
+                  : "Không xác định";
 
                 // Add categoryId and categoryName to detail
                 const enhancedDetail = {
                   ...detail,
                   categoryId: product.categoryId,
-                  categoryName: categoryName
+                  categoryName: categoryName,
                 };
 
                 return {
                   detail: enhancedDetail,
                   product: {
                     ...product,
-                    categoryName: categoryName
-                  }
+                    categoryName: categoryName,
+                  },
                 };
               } else {
                 return null;
               }
             } catch (error) {
-              console.error("Error mapping product:", error);
               return null;
             }
           }
@@ -406,11 +428,10 @@ const OrderService = () => {
   useEffect(() => {
     if (productDetails && productDetails.length > 0) {
       // Extract unique categories from current products
-      const categoryIds = productDetails.map(({ detail }) => detail.categoryId).filter(Boolean);
+      const categoryIds = productDetails
+        .map(({ detail }) => detail.categoryId)
+        .filter(Boolean);
       const uniqueCategories = [...new Set(categoryIds)];
-
-      console.log("Unique categories from products:", uniqueCategories);
-      console.log("Available categories:", categories);
 
       setExistingCategories(uniqueCategories);
 
@@ -432,7 +453,6 @@ const OrderService = () => {
         setLoadingAllProducts(true);
         // Load categories
         const categoriesData = await fetchCategories();
-        console.log("Loaded categories:", categoriesData);
 
         if (mountedRef.current) {
           // We already loaded products in the previous effect
@@ -440,7 +460,6 @@ const OrderService = () => {
         }
       } catch (error) {
         if (mountedRef.current) {
-          console.error("Error loading categories:", error);
           setLoadingAllProducts(false);
         }
       }
@@ -452,20 +471,18 @@ const OrderService = () => {
   // Filter products by selected category
   useEffect(() => {
     if (selectedCategory && allProducts.length > 0) {
-      console.log("Filtering products by category:", selectedCategory);
-      console.log("All products count:", allProducts.length);
-
-      const filtered = allProducts.filter(product => product.categoryId === selectedCategory);
-      console.log("Filtered products count:", filtered.length);
+      const filtered = allProducts.filter(
+        (product) => product.categoryId === selectedCategory
+      );
       setFilteredProducts(filtered);
     } else if (existingCategories.length > 0 && allProducts.length > 0) {
       // If no category selected but there are existing categories, filter by all existing categories
-      console.log("Filtering products by all existing categories:", existingCategories);
-      const filtered = allProducts.filter(product => existingCategories.includes(product.categoryId));
-      console.log("Filtered products count (all categories):", filtered.length);
+
+      const filtered = allProducts.filter((product) =>
+        existingCategories.includes(product.categoryId)
+      );
       setFilteredProducts(filtered);
     } else {
-      console.log("No filtering applied, clearing filtered products");
       setFilteredProducts([]);
     }
   }, [selectedCategory, allProducts, existingCategories]);
@@ -496,14 +513,15 @@ const OrderService = () => {
         // Lấy thông tin từ fullAddressData nếu có
         if (fullAddressData.recipientInfo) {
           cusPhone = fullAddressData.recipientInfo.phone || values.phone || "";
-          userName = fullAddressData.recipientInfo.name || values.fullName || "";
+          userName =
+            fullAddressData.recipientInfo.name || values.fullName || "";
         }
       } else {
         message.error("Vui lòng cung cấp địa chỉ giao hàng");
         return;
       }
 
-      // Create a productDetails array from the current product details 
+      // Create a productDetails array from the current product details
       const updatedProductDetails = productDetails.map(({ detail }) => ({
         productId: detail.productId,
         quantity: detail.quantity,
@@ -525,7 +543,6 @@ const OrderService = () => {
       setOrderData(data);
       setIsModalOpen(true);
     } catch (error) {
-      console.error("Form validation error:", error);
       message.error("Vui lòng kiểm tra lại thông tin");
     }
   };
@@ -540,18 +557,21 @@ const OrderService = () => {
         productDetails: productDetails.map(({ detail }) => ({
           productId: detail.productId,
           quantity: detail.quantity,
-        }))
+        })),
       };
 
       // Nếu có yêu cầu lưu địa chỉ mới
       if (fullAddressData && fullAddressData.shippingInfo.saveAsDefault) {
         try {
           // Cập nhật địa chỉ người dùng thông qua API
-          await useAuthStore.getState().updateUserAddress(fullAddressData.fullAddressString);
+          await useAuthStore
+            .getState()
+            .updateUserAddress(fullAddressData.fullAddressString);
           message.success("Đã lưu địa chỉ mới");
         } catch (error) {
-          console.error("Error saving address:", error);
-          message.warning("Không thể lưu địa chỉ mới, nhưng đơn hàng vẫn được xử lý");
+          message.warning(
+            "Không thể lưu địa chỉ mới, nhưng đơn hàng vẫn được xử lý"
+          );
         }
       }
 
@@ -580,14 +600,17 @@ const OrderService = () => {
               image: {
                 imageUrl: product.image?.imageUrl || "",
                 image2: product.image?.image2 || "",
-                image3: product.image?.image3 || ""
-              }
+                image3: product.image?.image3 || "",
+              },
             };
 
             // Update product stock
             await updateProduct(product.id, updateData);
           } catch (error) {
-            console.error(`Error updating stock for product ${product.id}:`, error);
+            console.error(
+              `Error updating stock for product ${product.id}:`,
+              error
+            );
             // Continue with other products even if one fails
           }
         }
@@ -599,7 +622,6 @@ const OrderService = () => {
       setIsModalOpen(false);
       navigate("/serviceorderhistory");
     } catch (error) {
-      console.error("Order submission error:", error);
       message.error("Có lỗi xảy ra khi đặt hàng");
     }
   };
@@ -629,8 +651,8 @@ const OrderService = () => {
         detail: {
           ...currentDetail,
           quantity: currentDetail.quantity + 1,
-          price: product.price * (currentDetail.quantity + 1)
-        }
+          price: product.price * (currentDetail.quantity + 1),
+        },
       };
 
       setProductDetails(updatedProductDetails);
@@ -643,12 +665,14 @@ const OrderService = () => {
           quantity: 1,
           price: product.price,
           categoryId: product.categoryId,
-          categoryName: product.categoryName || categories.find(c => c.id === product.categoryId)?.name || "Không xác định"
+          categoryName:
+            product.categoryName ||
+            categories.find((c) => c.id === product.categoryId)?.name ||
+            "Không xác định",
         },
-        product
+        product,
       };
 
-      console.log("Adding new product:", newProductDetail);
       setProductDetails([...productDetails, newProductDetail]);
       message.success(`Đã thêm ${product.name} vào thiết kế`);
     }
@@ -664,7 +688,7 @@ const OrderService = () => {
     );
 
     setProductDetails(updatedProductDetails);
-    message.success('Đã xóa sản phẩm khỏi thiết kế');
+    message.success("Đã xóa sản phẩm khỏi thiết kế");
 
     // Recalculate total price
     updateTotalPrice();
@@ -693,8 +717,8 @@ const OrderService = () => {
         detail: {
           ...updatedProductDetails[productIndex].detail,
           quantity: newQuantity,
-          price: product.price * newQuantity
-        }
+          price: product.price * newQuantity,
+        },
       };
 
       setProductDetails(updatedProductDetails);
@@ -710,13 +734,15 @@ const OrderService = () => {
     const existingCategoryProductIndex = productDetails.findIndex(
       ({ detail, product: existingProduct }) =>
         (detail.categoryId && detail.categoryId === product.categoryId) ||
-        (existingProduct.categoryId && existingProduct.categoryId === product.categoryId)
+        (existingProduct.categoryId &&
+          existingProduct.categoryId === product.categoryId)
     );
 
     if (existingCategoryProductIndex >= 0) {
       // Replace the existing product with the new one
       const updatedProductDetails = [...productDetails];
-      const existingDetail = updatedProductDetails[existingCategoryProductIndex].detail;
+      const existingDetail =
+        updatedProductDetails[existingCategoryProductIndex].detail;
 
       // Preserve the quantity from the existing product
       const quantity = existingDetail.quantity || 1;
@@ -727,9 +753,12 @@ const OrderService = () => {
           quantity: quantity,
           price: product.price * quantity,
           categoryId: product.categoryId,
-          categoryName: product.categoryName || categories.find(c => c.id === product.categoryId)?.name || "Không xác định"
+          categoryName:
+            product.categoryName ||
+            categories.find((c) => c.id === product.categoryId)?.name ||
+            "Không xác định",
         },
-        product
+        product,
       };
 
       setProductDetails(updatedProductDetails);
@@ -746,9 +775,10 @@ const OrderService = () => {
   // Update filtered products when selected category changes
   useEffect(() => {
     if (selectedCategory) {
-      const filtered = allProducts.filter(product => product.categoryId === selectedCategory);
+      const filtered = allProducts.filter(
+        (product) => product.categoryId === selectedCategory
+      );
       setFilteredProducts(filtered);
-      console.log("Filtered products:", filtered);
     } else {
       setFilteredProducts([]);
     }
@@ -813,25 +843,22 @@ const OrderService = () => {
   // Hiển thị modal thay đổi sản phẩm
   const showChangeProductModal = (productId, categoryId) => {
     // Tìm product cần thay đổi
-    const productToChange = productDetails.find(({ detail }) => detail.productId === productId);
+    const productToChange = productDetails.find(
+      ({ detail }) => detail.productId === productId
+    );
     if (!productToChange) return;
 
     setSelectedProductToChange(productToChange);
 
     // Lọc các sản phẩm cùng category
-    const productsInSameCategory = allProducts.filter(product =>
-      product.categoryId === categoryId
+    const productsInSameCategory = allProducts.filter(
+      (product) => product.categoryId === categoryId
     );
-
-    console.log("Showing products of category:", categoryId);
-    console.log("Found products:", productsInSameCategory.length);
 
     // Lọc ra danh sách sản phẩm đã được sử dụng trong cùng category
     const usedProductIds = productDetails
-      .filter(item => item.detail.categoryId === categoryId)
-      .map(item => item.detail.productId);
-
-    console.log("Used product IDs in this category:", usedProductIds);
+      .filter((item) => item.detail.categoryId === categoryId)
+      .map((item) => item.detail.productId);
 
     setProductsForCategory(productsInSameCategory);
     setIsChangeProductModalOpen(true);
@@ -843,7 +870,8 @@ const OrderService = () => {
 
     // Tìm vị trí sản phẩm cần thay đổi trong productDetails
     const productIndex = productDetails.findIndex(
-      ({ detail }) => detail.productId === selectedProductToChange.detail.productId
+      ({ detail }) =>
+        detail.productId === selectedProductToChange.detail.productId
     );
 
     if (productIndex >= 0) {
@@ -863,9 +891,12 @@ const OrderService = () => {
           quantity: quantity,
           price: newPrice,
           categoryId: newProduct.categoryId,
-          categoryName: newProduct.categoryName || categories.find(c => c.id === newProduct.categoryId)?.name || "Không xác định"
+          categoryName:
+            newProduct.categoryName ||
+            categories.find((c) => c.id === newProduct.categoryId)?.name ||
+            "Không xác định",
         },
-        product: newProduct
+        product: newProduct,
       };
 
       // Cập nhật danh sách sản phẩm
@@ -874,11 +905,7 @@ const OrderService = () => {
       // Đóng modal
       setIsChangeProductModalOpen(false);
 
-      // Hiển thị thông báo thành công
       message.success(`Đã thay thế bằng ${newProduct.name}`);
-
-      // Không cần tính toán giá ở đây nữa vì useEffect sẽ tự động tính
-      // khi productDetails thay đổi
     }
   };
 
@@ -912,57 +939,91 @@ const OrderService = () => {
     );
   }
 
+  const breadcrumbItems = [
+    {
+      title: (
+        <span style={{ cursor: "pointer" }} onClick={() => navigate("/Home")}>
+          <HomeOutlined /> Trang chủ
+        </span>
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate("/Designs")}
+        >
+          <AppstoreOutlined /> Ý tưởng thiết kế
+        </span>
+      ),
+    },
+    {
+      title: (
+        <span
+          style={{ color: "#888" }}
+          onClick={() => navigate(`/designs/${currentDesign?.id}`)}
+        >
+          {currentDesign?.name || "Tên thiết kế"}
+        </span>
+      ),
+    },
+    {
+      title: (
+        <>
+          <ShoppingCartOutlined /> Đặt hàng
+        </>
+      ),
+    },
+  ];
+
   return (
     <Layout className="order-service-layout">
       <Header />
-      <Content style={{ paddingTop: '0px', paddingBottom: '0px' }}>
-        <div style={{ marginTop: '70px' }}>
+      <Content style={{ paddingTop: "0px", paddingBottom: "0px" }}>
+        <div style={{ marginTop: "60px"}}>
           <div className="container">
-            <Breadcrumb style={{
-              marginBottom: '20px',
-              padding: '12px 16px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
-                <HomeOutlined /> Trang chủ
-              </Breadcrumb.Item>
-              <Breadcrumb.Item onClick={() => navigate("/Designs")} style={{ cursor: 'pointer' }}>
-                <AppstoreOutlined /> Ý tưởng thiết kế
-              </Breadcrumb.Item>
-              <Breadcrumb.Item>
-                <span style={{ color: '#888' }}>{currentDesign.name}</span>
-              </Breadcrumb.Item>
-              <Breadcrumb.Item>
-                <ShoppingCartOutlined /> Đặt hàng
-              </Breadcrumb.Item>
-            </Breadcrumb>
+            <Breadcrumb
+              style={{
+                marginBottom: "20px",
+                padding: "12px 16px",
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+              items={breadcrumbItems}
+            />
           </div>
         </div>
-        <div className="order-service-content" ref={containerRef} style={{ paddingBottom: '50px' }}>
-          <div className="container order-service-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 15px' }}>
-            <Row gutter={[24, 24]} style={{ position: 'relative' }}>
+        <div
+          className="order-service-content"
+          ref={containerRef}
+          style={{ paddingBottom: "50px" }}
+        >
+          <div
+            className="container order-service-container"
+            style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 15px" }}
+          >
+            <Row gutter={[24, 24]} style={{ position: "relative" }}>
               {/* Cột trái (2/3) - Có thể cuộn */}
               <Col xs={24} md={16}>
                 <div
                   ref={leftColumnRef}
                   className="left-column-scrollable"
                   style={{
-                    height: 'calc(100vh - 200px)',
-                    overflowY: 'auto',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#d9d9d9 #f5f5f5',
-                    '&::-webkit-scrollbar': {
-                      width: '8px',
+                    height: "calc(100vh - 200px)",
+                    overflowY: "auto",
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "#d9d9d9 #f5f5f5",
+                    "&::-webkit-scrollbar": {
+                      width: "8px",
                     },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f5f5f5',
+                    "&::-webkit-scrollbar-track": {
+                      background: "#f5f5f5",
                     },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#d9d9d9',
-                      borderRadius: '4px',
-                    }
+                    "&::-webkit-scrollbar-thumb": {
+                      background: "#d9d9d9",
+                      borderRadius: "4px",
+                    },
                   }}
                 >
                   <div className="order-form">
@@ -973,13 +1034,19 @@ const OrderService = () => {
                           <div className="design-images-carousel">
                             <Title
                               level={3}
-                              style={{ fontSize: "24px", fontWeight: "bold", textAlign: "center" }}
+                              style={{
+                                fontSize: "24px",
+                                fontWeight: "bold",
+                                textAlign: "center",
+                              }}
                             >
                               {currentDesign?.name}
                             </Title>
 
                             {/* Ảnh chính */}
-                            <div style={{ textAlign: "center", marginBottom: 16 }}>
+                            <div
+                              style={{ textAlign: "center", marginBottom: 16 }}
+                            >
                               <img
                                 src={selectedImage}
                                 alt={currentDesign.name}
@@ -1002,7 +1069,11 @@ const OrderService = () => {
                                 marginBottom: 20,
                               }}
                             >
-                              {[currentDesign.image?.imageUrl, currentDesign.image?.image2, currentDesign.image?.image3]
+                              {[
+                                currentDesign.image?.imageUrl,
+                                currentDesign.image?.image2,
+                                currentDesign.image?.image3,
+                              ]
                                 .filter(Boolean)
                                 .map((img, idx) => (
                                   <img
@@ -1015,7 +1086,9 @@ const OrderService = () => {
                                       objectFit: "cover",
                                       borderRadius: 4,
                                       border:
-                                        selectedImage === img ? "2px solid #1890ff" : "1px solid #ddd",
+                                        selectedImage === img
+                                          ? "2px solid #1890ff"
+                                          : "1px solid #ddd",
                                       cursor: "pointer",
                                     }}
                                     onClick={() => setSelectedImage(img)}
@@ -1052,15 +1125,21 @@ const OrderService = () => {
                       defaultActiveKey={activeKey}
                       onChange={setActiveKey}
                       className="form-section"
-                      style={{ marginTop: '24px' }}
+                      style={{ marginTop: "24px" }}
                       expandIconPosition="end"
                     >
                       <Panel
                         header={
                           <div className="panel-header">
-                            <ReadOutlined style={{ marginRight: '8px' }} />
+                            <ReadOutlined style={{ marginRight: "8px" }} />
                             <span>Danh sách sản phẩm</span>
-                            <Badge count={productDetails.length} style={{ marginLeft: '8px', backgroundColor: '#4caf50' }} />
+                            <Badge
+                              count={productDetails.length}
+                              style={{
+                                marginLeft: "8px",
+                                backgroundColor: "#4caf50",
+                              }}
+                            />
                           </div>
                         }
                         key="1"
@@ -1074,12 +1153,25 @@ const OrderService = () => {
                           <Paragraph type="danger">{productError}</Paragraph>
                         ) : productDetails && productDetails.length > 0 ? (
                           <div className="product-list">
-                            <div className="product-summary" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f6ffed', borderRadius: '8px', border: '1px solid #b7eb8f' }}>
+                            <div
+                              className="product-summary"
+                              style={{
+                                marginBottom: "20px",
+                                padding: "15px",
+                                backgroundColor: "#f6ffed",
+                                borderRadius: "8px",
+                                border: "1px solid #b7eb8f",
+                              }}
+                            >
                               <Row gutter={16}>
                                 <Col span={8}>
                                   <Statistic
                                     title="Tổng sản phẩm"
-                                    value={productDetails.reduce((total, { detail }) => total + detail.quantity, 0)}
+                                    value={productDetails.reduce(
+                                      (total, { detail }) =>
+                                        total + detail.quantity,
+                                      0
+                                    )}
                                     prefix={<TagOutlined />}
                                   />
                                 </Col>
@@ -1093,27 +1185,42 @@ const OrderService = () => {
                                 <Col span={8}>
                                   <Statistic
                                     title="Tổng tiền vật liệu"
-                                    value={productDetails.reduce((total, { detail }) => total + detail.price, 0)}
+                                    value={productDetails.reduce(
+                                      (total, { detail }) =>
+                                        total + detail.price,
+                                      0
+                                    )}
                                     prefix={<DollarOutlined />}
-                                    formatter={(value) => value.toLocaleString("vi-VN", {
-                                      style: "currency",
-                                      currency: "VND",
-                                    })}
+                                    formatter={(value) =>
+                                      value.toLocaleString("vi-VN", {
+                                        style: "currency",
+                                        currency: "VND",
+                                      })
+                                    }
                                   />
                                 </Col>
                               </Row>
                             </div>
 
-                            <div className="categories-container" style={{ marginBottom: '20px' }}>
+                            <div
+                              className="categories-container"
+                              style={{ marginBottom: "20px" }}
+                            >
                               <Text strong>Danh mục hiện có:</Text>
-                              <div style={{ marginTop: '8px' }}>
-                                {existingCategories.map(categoryId => {
-                                  const category = categories.find(cat => cat.id === categoryId);
+                              <div style={{ marginTop: "8px" }}>
+                                {existingCategories.map((categoryId) => {
+                                  const category = categories.find(
+                                    (cat) => cat.id === categoryId
+                                  );
                                   return category ? (
                                     <Tag
                                       key={categoryId}
                                       color="blue"
-                                      style={{ marginBottom: '8px', fontSize: '14px', padding: '4px 8px' }}
+                                      style={{
+                                        marginBottom: "8px",
+                                        fontSize: "14px",
+                                        padding: "4px 8px",
+                                      }}
                                     >
                                       {category.name}
                                     </Tag>
@@ -1123,20 +1230,37 @@ const OrderService = () => {
                             </div>
 
                             {productDetails.map(({ detail, product }) => (
-                              <div key={detail.productId} className="product-item">
+                              <div
+                                key={detail.productId}
+                                className="product-item"
+                              >
                                 <Row gutter={16} align="middle">
                                   <Col span={4}>
                                     <img
                                       src={product.image?.imageUrl}
                                       alt={product.name}
                                       className="product-image"
-                                      style={{ borderRadius: '8px', maxWidth: '100%', height: 'auto' }}
+                                      style={{
+                                        borderRadius: "8px",
+                                        maxWidth: "100%",
+                                        height: "auto",
+                                      }}
                                     />
                                   </Col>
                                   <Col span={8}>
                                     <Title level={5}>{product.name}</Title>
-                                    <Paragraph ellipsis={{ rows: 2 }}><div dangerouslySetInnerHTML={{ __html: product.description }} /></Paragraph>
-                                    <Tag color="blue">{detail.categoryName || product.categoryName || "Không xác định"}</Tag>
+                                    <Paragraph ellipsis={{ rows: 2 }}>
+                                      <div
+                                        dangerouslySetInnerHTML={{
+                                          __html: product.description,
+                                        }}
+                                      />
+                                    </Paragraph>
+                                    <Tag color="blue">
+                                      {detail.categoryName ||
+                                        product.categoryName ||
+                                        "Không xác định"}
+                                    </Tag>
                                   </Col>
                                   <Col span={4}>
                                     <InputNumber
@@ -1145,20 +1269,36 @@ const OrderService = () => {
                                       value={detail.quantity}
                                       onChange={(value) => {
                                         // Đảm bảo value là một số trước khi xử lý
-                                        if (value !== null && value !== undefined) {
+                                        if (
+                                          value !== null &&
+                                          value !== undefined
+                                        ) {
                                           const numValue = parseInt(value);
                                           if (!isNaN(numValue)) {
-                                            handleQuantityChange(detail.productId, numValue);
+                                            handleQuantityChange(
+                                              detail.productId,
+                                              numValue
+                                            );
                                           }
                                         }
                                       }}
                                       onStep={(value) => {
                                         // Khi bấm mũi tên, đảm bảo value là số hợp lệ
-                                        handleQuantityChange(detail.productId, value);
+                                        handleQuantityChange(
+                                          detail.productId,
+                                          value
+                                        );
                                       }}
-                                      style={{ width: '100%' }}
+                                      style={{ width: "100%" }}
                                     />
-                                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#8c8c8c', textAlign: 'center' }}>
+                                    <div
+                                      style={{
+                                        marginTop: "4px",
+                                        fontSize: "12px",
+                                        color: "#8c8c8c",
+                                        textAlign: "center",
+                                      }}
+                                    >
                                       Kho: {product.stock}
                                     </div>
                                   </Col>
@@ -1174,13 +1314,18 @@ const OrderService = () => {
                                     <Button
                                       type="primary"
                                       icon={<FilterOutlined />}
-                                      onClick={() => showChangeProductModal(detail.productId, product.categoryId)}
+                                      onClick={() =>
+                                        showChangeProductModal(
+                                          detail.productId,
+                                          product.categoryId
+                                        )
+                                      }
                                     >
                                       Thay đổi
                                     </Button>
                                   </Col>
                                 </Row>
-                                <Divider style={{ margin: '12px 0' }} />
+                                <Divider style={{ margin: "12px 0" }} />
                               </div>
                             ))}
                           </div>
@@ -1193,16 +1338,17 @@ const OrderService = () => {
                       <Panel
                         header={
                           <div className="panel-header">
-                            <UserOutlined style={{ marginRight: '8px' }} />
+                            <UserOutlined style={{ marginRight: "8px" }} />
                             <span>Thông tin người đặt</span>
                           </div>
                         }
                         key="3"
                         forceRender
                       >
-                        <div style={{ marginBottom: '16px' }}>
+                        <div style={{ marginBottom: "16px" }}>
                           <Text type="secondary">
-                            Thông tin người nhận hàng sẽ được tự động điền từ địa chỉ bạn chọn.
+                            Thông tin người nhận hàng sẽ được tự động điền từ
+                            địa chỉ bạn chọn.
                           </Text>
                         </div>
                         <Form
@@ -1229,11 +1375,11 @@ const OrderService = () => {
                                 <Input
                                   disabled={true}
                                   style={{
-                                    backgroundColor: '#f5f5f5',
-                                    color: '#333',
+                                    backgroundColor: "#f5f5f5",
+                                    color: "#333",
                                     opacity: 1,
-                                    borderColor: '#d9d9d9',
-                                    cursor: 'not-allowed'
+                                    borderColor: "#d9d9d9",
+                                    cursor: "not-allowed",
                                   }}
                                 />
                               </Form.Item>
@@ -1249,14 +1395,16 @@ const OrderService = () => {
                                   },
                                 ]}
                               >
-                                <Input disabled={true}
+                                <Input
+                                  disabled={true}
                                   style={{
-                                    backgroundColor: '#f5f5f5',
-                                    color: '#333',
+                                    backgroundColor: "#f5f5f5",
+                                    color: "#333",
                                     opacity: 1,
-                                    borderColor: '#d9d9d9',
-                                    cursor: 'not-allowed'
-                                  }} />
+                                    borderColor: "#d9d9d9",
+                                    cursor: "not-allowed",
+                                  }}
+                                />
                               </Form.Item>
                             </Col>
                             <Col span={24}>
@@ -1264,18 +1412,26 @@ const OrderService = () => {
                                 name="email"
                                 label="Email"
                                 rules={[
-                                  { required: true, message: "Vui lòng nhập email" },
-                                  { type: "email", message: "Email không hợp lệ" },
+                                  {
+                                    required: true,
+                                    message: "Vui lòng nhập email",
+                                  },
+                                  {
+                                    type: "email",
+                                    message: "Email không hợp lệ",
+                                  },
                                 ]}
                               >
-                                <Input disabled={true}
+                                <Input
+                                  disabled={true}
                                   style={{
-                                    backgroundColor: '#f5f5f5',
-                                    color: '#333',
+                                    backgroundColor: "#f5f5f5",
+                                    color: "#333",
                                     opacity: 1,
-                                    borderColor: '#d9d9d9',
-                                    cursor: 'not-allowed'
-                                  }} />
+                                    borderColor: "#d9d9d9",
+                                    cursor: "not-allowed",
+                                  }}
+                                />
                               </Form.Item>
                             </Col>
                           </Row>
@@ -1286,17 +1442,26 @@ const OrderService = () => {
                       <Panel
                         header={
                           <div className="panel-header">
-                            <HomeOutlined style={{ marginRight: '8px' }} />
+                            <HomeOutlined style={{ marginRight: "8px" }} />
                             <span>Thông tin địa chỉ</span>
                           </div>
                         }
                         key="2"
                         forceRender
                       >
-                        <div style={{ marginBottom: '16px' }}>
-                          <Text strong style={{ fontSize: '16px', color: '#333' }}>Địa chỉ giao hàng</Text>
-                          <Text type="secondary" style={{ display: 'block', marginTop: '4px' }}>
-                            Vui lòng chọn địa chỉ giao hàng chính xác để đảm bảo đơn hàng được giao đúng nơi nhận
+                        <div style={{ marginBottom: "16px" }}>
+                          <Text
+                            strong
+                            style={{ fontSize: "16px", color: "#333" }}
+                          >
+                            Địa chỉ giao hàng
+                          </Text>
+                          <Text
+                            type="secondary"
+                            style={{ display: "block", marginTop: "4px" }}
+                          >
+                            Vui lòng chọn địa chỉ giao hàng chính xác để đảm bảo
+                            đơn hàng được giao đúng nơi nhận
                           </Text>
                         </div>
 
@@ -1318,43 +1483,59 @@ const OrderService = () => {
                   ref={rightColumnRef}
                   className="right-column-sticky"
                   style={{
-                    position: 'sticky',
-                    top: '80px',
-                    maxHeight: 'calc(100vh - 100px)',
-                    overflow: 'auto',
-                    display: 'block',
+                    position: "sticky",
+                    top: "80px",
+                    maxHeight: "calc(100vh - 100px)",
+                    overflow: "auto",
+                    display: "block",
                     zIndex: 10,
-                    backgroundColor: '#fff'
+                    backgroundColor: "#fff",
                   }}
                 >
                   <Card
                     className="order-summary-card"
                     title={
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <DollarOutlined style={{ marginRight: '8px', color: '#4caf50' }} />
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <DollarOutlined
+                          style={{ marginRight: "8px", color: "#4caf50" }}
+                        />
                         <span>Thông tin đơn hàng</span>
                       </div>
                     }
-                    style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                   >
                     <div className="price-summary">
                       {/* Tổng giá - hiển thị nổi bật nhất */}
-                      <div className="total-price-container" style={{
-                        background: 'linear-gradient(135deg, #f6ffed 0%, #e8f5e9 100%)',
-                        padding: '16px',
-                        borderRadius: '8px',
-                        textAlign: 'center',
-                        marginBottom: '16px'
-                      }}>
-                        <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>
+                      <div
+                        className="total-price-container"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #f6ffed 0%, #e8f5e9 100%)",
+                          padding: "16px",
+                          borderRadius: "8px",
+                          textAlign: "center",
+                          marginBottom: "16px",
+                        }}
+                      >
+                        <Text
+                          type="secondary"
+                          style={{
+                            fontSize: "14px",
+                            display: "block",
+                            marginBottom: "4px",
+                          }}
+                        >
                           Tổng giá
                         </Text>
-                        <Text strong style={{
-                          fontSize: '28px',
-                          color: '#4caf50',
-                          display: 'block',
-                          fontFamily: "'Roboto', sans-serif"
-                        }}>
+                        <Text
+                          strong
+                          style={{
+                            fontSize: "28px",
+                            color: "#4caf50",
+                            display: "block",
+                            fontFamily: "'Roboto', sans-serif",
+                          }}
+                        >
                           {totalPrice.toLocaleString("vi-VN", {
                             style: "currency",
                             currency: "VND",
@@ -1363,30 +1544,42 @@ const OrderService = () => {
                       </div>
 
                       {/* Chi tiết giá */}
-                      <div className="price-details" style={{
-                        background: '#fff',
-                        border: '1px solid #f0f0f0',
-                        borderRadius: '8px',
-                        padding: '12px 16px',
-                        marginBottom: '16px'
-                      }}>
-                        <div className="price-detail-item" style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: '8px'
-                        }}>
+                      <div
+                        className="price-details"
+                        style={{
+                          background: "#fff",
+                          border: "1px solid #f0f0f0",
+                          borderRadius: "8px",
+                          padding: "12px 16px",
+                          marginBottom: "16px",
+                        }}
+                      >
+                        <div
+                          className="price-detail-item"
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "8px",
+                          }}
+                        >
                           <Text type="secondary">Giá thiết kế:</Text>
                           <Text>
-                            {currentDesign?.designPrice?.toLocaleString("vi-VN", {
-                              style: "currency",
-                              currency: "VND",
-                            })}
+                            {currentDesign?.designPrice?.toLocaleString(
+                              "vi-VN",
+                              {
+                                style: "currency",
+                                currency: "VND",
+                              }
+                            )}
                           </Text>
                         </div>
-                        <div className="price-detail-item" style={{
-                          display: 'flex',
-                          justifyContent: 'space-between'
-                        }}>
+                        <div
+                          className="price-detail-item"
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
                           <Text type="secondary">Giá vật liệu:</Text>
                           <Text>
                             {materialPrice.toLocaleString("vi-VN", {
@@ -1397,28 +1590,45 @@ const OrderService = () => {
                         </div>
                       </div>
 
-
                       {/* Số dư ví */}
-                      <div className="wallet-balance-container" style={{
-                        background: balance >= totalPrice
-                          ? 'linear-gradient(135deg, #f6ffed 0%, #e8f5e9 100%)'
-                          : 'linear-gradient(135deg, #fff2f0 0%, #ffebee 100%)',
-                        padding: '16px',
-                        borderRadius: '8px',
-                        marginBottom: '16px',
-                        border: balance >= totalPrice
-                          ? '1px solid #b7eb8f'
-                          : '1px solid #ffccc7'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div
+                        className="wallet-balance-container"
+                        style={{
+                          background:
+                            balance >= totalPrice
+                              ? "linear-gradient(135deg, #f6ffed 0%, #e8f5e9 100%)"
+                              : "linear-gradient(135deg, #fff2f0 0%, #ffebee 100%)",
+                          padding: "16px",
+                          borderRadius: "8px",
+                          marginBottom: "16px",
+                          border:
+                            balance >= totalPrice
+                              ? "1px solid #b7eb8f"
+                              : "1px solid #ffccc7",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
                           <div>
-                            <Text type="secondary" style={{ display: 'block', marginBottom: '4px' }}>
+                            <Text
+                              type="secondary"
+                              style={{ display: "block", marginBottom: "4px" }}
+                            >
                               Số dư ví:
                             </Text>
-                            <Text strong style={{
-                              fontSize: '18px',
-                              color: balance >= totalPrice ? '#4caf50' : '#f5222d'
-                            }}>
+                            <Text
+                              strong
+                              style={{
+                                fontSize: "18px",
+                                color:
+                                  balance >= totalPrice ? "#4caf50" : "#f5222d",
+                              }}
+                            >
                               {walletLoading ? (
                                 <Spin size="small" />
                               ) : (
@@ -1432,14 +1642,21 @@ const OrderService = () => {
                           {balance >= totalPrice && (
                             <Badge
                               status="success"
-                              text={<Text style={{ color: '#4caf50' }}>Đủ để thanh toán</Text>}
+                              text={
+                                <Text style={{ color: "#4caf50" }}>
+                                  Đủ để thanh toán
+                                </Text>
+                              }
                             />
                           )}
                         </div>
 
                         {balance < totalPrice && (
-                          <div style={{ marginTop: '12px' }}>
-                            <Text type="danger" style={{ display: 'block', marginBottom: '8px' }}>
+                          <div style={{ marginTop: "12px" }}>
+                            <Text
+                              type="danger"
+                              style={{ display: "block", marginBottom: "8px" }}
+                            >
                               Số dư ví không đủ để thanh toán.
                             </Text>
                             <Button
@@ -1456,7 +1673,7 @@ const OrderService = () => {
                       </div>
 
                       {/* Nút đặt hàng */}
-                      <div style={{ margin: '20px 0' }}>
+                      <div style={{ margin: "20px 0" }}>
                         <Button
                           type="primary"
                           size="large"
@@ -1466,24 +1683,37 @@ const OrderService = () => {
                           disabled={balance < totalPrice || !isAddressValid}
                           block
                           style={{
-                            height: '48px',
-                            fontSize: '16px',
-                            background: balance >= totalPrice && isAddressValid ? '#4caf50' : '#d9d9d9',
-                            borderColor: balance >= totalPrice && isAddressValid ? '#3d9140' : '#d9d9d9'
+                            height: "48px",
+                            fontSize: "16px",
+                            background:
+                              balance >= totalPrice && isAddressValid
+                                ? "#4caf50"
+                                : "#d9d9d9",
+                            borderColor:
+                              balance >= totalPrice && isAddressValid
+                                ? "#3d9140"
+                                : "#d9d9d9",
                           }}
                         >
                           Xác nhận đặt hàng
                         </Button>
                         {!isAddressValid && (
-                          <Text type="danger" style={{ display: 'block', textAlign: 'center', marginTop: '8px' }}>
+                          <Text
+                            type="danger"
+                            style={{
+                              display: "block",
+                              textAlign: "center",
+                              marginTop: "8px",
+                            }}
+                          >
                             Vui lòng cung cấp địa chỉ giao hàng hợp lệ
                           </Text>
                         )}
                       </div>
 
-                      <div style={{ textAlign: 'center' }}>
+                      <div style={{ textAlign: "center" }}>
                         <Space>
-                          <CheckCircleOutlined style={{ color: '#4caf50' }} />
+                          <CheckCircleOutlined style={{ color: "#4caf50" }} />
                           <Text type="secondary">Đảm bảo 100% chính hãng</Text>
                         </Space>
                       </div>
@@ -1500,8 +1730,10 @@ const OrderService = () => {
       {/* Confirmation Modal */}
       <Modal
         title={
-          <div style={{ textAlign: 'center' }}>
-            <CheckCircleOutlined style={{ color: '#4caf50', fontSize: '24px', marginRight: '8px' }} />
+          <div style={{ textAlign: "center" }}>
+            <CheckCircleOutlined
+              style={{ color: "#4caf50", fontSize: "24px", marginRight: "8px" }}
+            />
             <span>Xác nhận đặt hàng</span>
           </div>
         }
@@ -1514,7 +1746,7 @@ const OrderService = () => {
         width={480}
       >
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ color: '#4caf50', marginBottom: "16px" }}>
+          <h2 style={{ color: "#4caf50", marginBottom: "16px" }}>
             Hoàn tất đơn hàng!
           </h2>
           <div style={{ marginBottom: "24px" }}>
@@ -1549,10 +1781,7 @@ const OrderService = () => {
                 style={{
                   fontSize: "20px",
                   fontWeight: "bold",
-                  color:
-                    balance >= totalPrice
-                      ? "#52c41a"
-                      : "#f5222d",
+                  color: balance >= totalPrice ? "#52c41a" : "#f5222d",
                 }}
               >
                 {walletLoading ? (
@@ -1588,9 +1817,24 @@ const OrderService = () => {
       {/* Change Product Modal */}
       <Modal
         title={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
-            <FilterOutlined style={{ color: '#1890ff', fontSize: '20px', marginRight: '12px' }} />
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>Thay đổi sản phẩm</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "12px 0",
+            }}
+          >
+            <FilterOutlined
+              style={{
+                color: "#1890ff",
+                fontSize: "20px",
+                marginRight: "12px",
+              }}
+            />
+            <span style={{ fontSize: "18px", fontWeight: "600" }}>
+              Thay đổi sản phẩm
+            </span>
           </div>
         }
         open={isChangeProductModalOpen}
@@ -1600,65 +1844,107 @@ const OrderService = () => {
         centered
         destroyOnClose
         className="change-product-modal"
-        bodyStyle={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}
+        styles={{
+          body: { padding: "24px", maxHeight: "70vh", overflowY: "auto" },
+        }}
       >
         <div>
           {selectedProductToChange && (
-            <div style={{
-              background: 'linear-gradient(to right, #e6f7ff, #f0f5ff)',
-              borderRadius: '8px',
-              padding: '16px',
-              marginBottom: '24px',
-              border: '1px solid #91d5ff'
-            }}>
-              <div style={{ marginBottom: '12px' }}>
-                <Text strong style={{ fontSize: '16px', color: '#0050b3' }}>
-                  <SwapOutlined style={{ marginRight: '8px' }} />
+            <div
+              style={{
+                background: "linear-gradient(to right, #e6f7ff, #f0f5ff)",
+                borderRadius: "8px",
+                padding: "16px",
+                marginBottom: "24px",
+                border: "1px solid #91d5ff",
+              }}
+            >
+              <div style={{ marginBottom: "12px" }}>
+                <Text strong style={{ fontSize: "16px", color: "#0050b3" }}>
+                  <SwapOutlined style={{ marginRight: "8px" }} />
                   Sản phẩm đang được thay thế
                 </Text>
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: 'white',
-                padding: '12px',
-                borderRadius: '6px'
-              }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  border: '1px solid #f0f0f0',
-                  flexShrink: 0
-                }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "white",
+                  padding: "12px",
+                  borderRadius: "6px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "80px",
+                    height: "80px",
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                    border: "1px solid #f0f0f0",
+                    flexShrink: 0,
+                  }}
+                >
                   <img
                     src={selectedProductToChange.product.image?.imageUrl}
                     alt={selectedProductToChange.product.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
                   />
                 </div>
-                <div style={{ marginLeft: '16px', flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Title level={5} style={{ margin: 0 }}>{selectedProductToChange.product.name}</Title>
+                <div style={{ marginLeft: "16px", flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Title level={5} style={{ margin: 0 }}>
+                      {selectedProductToChange.product.name}
+                    </Title>
                     <Badge
                       count={`x${selectedProductToChange.detail.quantity}`}
-                      style={{ backgroundColor: '#1890ff' }}
+                      style={{ backgroundColor: "#1890ff" }}
                     />
                   </div>
-                  <div style={{ display: 'flex', marginTop: '8px', alignItems: 'center' }}>
-                    <Tag color="blue">{selectedProductToChange.detail.categoryName}</Tag>
-                    <Text type="secondary" style={{ marginLeft: '12px', fontSize: '13px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      marginTop: "8px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Tag color="blue">
+                      {selectedProductToChange.detail.categoryName}
+                    </Tag>
+                    <Text
+                      type="secondary"
+                      style={{ marginLeft: "12px", fontSize: "13px" }}
+                    >
                       Kho: {selectedProductToChange.product.stock}
                     </Text>
                   </div>
-                  <div style={{ marginTop: '8px' }}>
-                    <Text style={{ color: '#f5222d', fontWeight: 'bold' }}>
-                      {selectedProductToChange.product.price.toLocaleString("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      })}
-                      <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#8c8c8c' }}>/đơn vị</span>
+                  <div style={{ marginTop: "8px" }}>
+                    <Text style={{ color: "#f5222d", fontWeight: "bold" }}>
+                      {selectedProductToChange.product.price.toLocaleString(
+                        "vi-VN",
+                        {
+                          style: "currency",
+                          currency: "VND",
+                        }
+                      )}
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: "normal",
+                          color: "#8c8c8c",
+                        }}
+                      >
+                        /đơn vị
+                      </span>
                     </Text>
                   </div>
                 </div>
@@ -1669,156 +1955,204 @@ const OrderService = () => {
           <Divider>
             <Space>
               <AppstoreOutlined />
-              <Text style={{ fontWeight: '500', color: '#595959' }}>Sản phẩm thay thế cùng loại</Text>
+              <Text style={{ fontWeight: "500", color: "#595959" }}>
+                Sản phẩm thay thế cùng loại
+              </Text>
             </Space>
           </Divider>
 
           {productsForCategory.length > 0 ? (
             <Row gutter={[16, 16]}>
-              {productsForCategory.map(product => {
+              {productsForCategory.map((product) => {
                 // Kiểm tra xem đây có phải là sản phẩm đang được sử dụng không
-                const isCurrentProduct = selectedProductToChange &&
+                const isCurrentProduct =
+                  selectedProductToChange &&
                   selectedProductToChange.detail.productId === product.id;
 
                 // Kiểm tra xem sản phẩm này đã được sử dụng trong danh sách sản phẩm hay chưa
-                const isUsedElsewhere = !isCurrentProduct && productDetails.some(
-                  ({ detail }) => detail.productId === product.id
-                );
+                const isUsedElsewhere =
+                  !isCurrentProduct &&
+                  productDetails.some(
+                    ({ detail }) => detail.productId === product.id
+                  );
 
                 return (
                   <Col key={product.id} xs={24} sm={12} md={8}>
                     <Card
-                      hoverable={!isCurrentProduct && !isUsedElsewhere && product.stock > 0}
+                      hoverable={
+                        !isCurrentProduct &&
+                        !isUsedElsewhere &&
+                        product.stock > 0
+                      }
                       style={{
-                        height: '100%',
-                        borderRadius: '8px',
+                        height: "100%",
+                        borderRadius: "8px",
                         opacity: isCurrentProduct || isUsedElsewhere ? 0.7 : 1,
                         border: isCurrentProduct
-                          ? '2px solid #d9d9d9'
+                          ? "2px solid #d9d9d9"
                           : isUsedElsewhere
-                            ? '2px solid #faad14'
-                            : '1px solid #f0f0f0',
-                        boxShadow: isCurrentProduct || isUsedElsewhere ? 'none' : '0 2px 8px rgba(0,0,0,0.09)',
-                        transition: 'all 0.3s'
+                          ? "2px solid #faad14"
+                          : "1px solid #f0f0f0",
+                        boxShadow:
+                          isCurrentProduct || isUsedElsewhere
+                            ? "none"
+                            : "0 2px 8px rgba(0,0,0,0.09)",
+                        transition: "all 0.3s",
                       }}
                       onClick={() => {
-                        if (!isCurrentProduct && !isUsedElsewhere && product.stock > 0) {
+                        if (
+                          !isCurrentProduct &&
+                          !isUsedElsewhere &&
+                          product.stock > 0
+                        ) {
                           handleChangeProduct(product);
                         }
                       }}
                       cover={
-                        <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            position: "relative",
+                            height: "180px",
+                            overflow: "hidden",
+                          }}
+                        >
                           <img
                             alt={product.name}
                             src={product.image?.imageUrl}
                             style={{
-                              height: '100%',
-                              width: '100%',
-                              objectFit: 'cover',
-                              transition: 'transform 0.3s',
-                              ...((!(isCurrentProduct || isUsedElsewhere) && product.stock > 0) ? {
-                                transform: 'scale(1)',
-                                '&:hover': {
-                                  transform: 'scale(1.05)'
-                                }
-                              } : {})
+                              height: "100%",
+                              width: "100%",
+                              objectFit: "cover",
+                              transition: "transform 0.3s",
+                              ...(!(isCurrentProduct || isUsedElsewhere) &&
+                              product.stock > 0
+                                ? {
+                                    transform: "scale(1)",
+                                    "&:hover": {
+                                      transform: "scale(1.05)",
+                                    },
+                                  }
+                                : {}),
                             }}
                           />
                           {isCurrentProduct && (
-                            <div style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: 'rgba(0,0,0,0.5)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              <div style={{
-                                background: 'rgba(255,255,255,0.85)',
-                                padding: '6px 16px',
-                                borderRadius: '20px'
-                              }}>
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: "rgba(0,0,0,0.5)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  background: "rgba(255,255,255,0.85)",
+                                  padding: "6px 16px",
+                                  borderRadius: "20px",
+                                }}
+                              >
                                 <Text strong>Đang sử dụng</Text>
                               </div>
                             </div>
                           )}
                           {isUsedElsewhere && (
-                            <div style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: 'rgba(0,0,0,0.5)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              <div style={{
-                                background: 'rgba(255,255,255,0.85)',
-                                padding: '6px 16px',
-                                borderRadius: '20px'
-                              }}>
-                                <Text strong style={{ color: '#faad14' }}>Đã được sử dụng</Text>
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: "rgba(0,0,0,0.5)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  background: "rgba(255,255,255,0.85)",
+                                  padding: "6px 16px",
+                                  borderRadius: "20px",
+                                }}
+                              >
+                                <Text strong style={{ color: "#faad14" }}>
+                                  Đã được sử dụng
+                                </Text>
                               </div>
                             </div>
                           )}
                           {product.stock <= 0 && (
-                            <div style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: 'rgba(0,0,0,0.5)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              <div style={{
-                                background: 'rgba(255,255,255,0.85)',
-                                padding: '6px 16px',
-                                borderRadius: '20px'
-                              }}>
-                                <Text type="danger" strong>Hết hàng</Text>
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: "rgba(0,0,0,0.5)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  background: "rgba(255,255,255,0.85)",
+                                  padding: "6px 16px",
+                                  borderRadius: "20px",
+                                }}
+                              >
+                                <Text type="danger" strong>
+                                  Hết hàng
+                                </Text>
                               </div>
                             </div>
                           )}
                         </div>
                       }
-                      bodyStyle={{ padding: '16px' }}
+                      styles={{ body: { padding: "16px" } }}
                     >
                       <Card.Meta
                         title={
                           <Tooltip title={product.name}>
-                            <div style={{
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              fontSize: '15px'
-                            }}>
+                            <div
+                              style={{
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                fontSize: "15px",
+                              }}
+                            >
                               {product.name}
                             </div>
                           </Tooltip>
                         }
                         description={
                           <div>
-                            <div style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              marginTop: '8px',
-                              alignItems: 'center'
-                            }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginTop: "8px",
+                                alignItems: "center",
+                              }}
+                            >
                               <Tag
-                                color={product.stock > 0 ? 'green' : 'red'}
+                                color={product.stock > 0 ? "green" : "red"}
                                 style={{ margin: 0 }}
                               >
                                 Kho: {product.stock}
                               </Tag>
-                              <Text strong style={{ color: '#f50', fontSize: '16px' }}>
+                              <Text
+                                strong
+                                style={{ color: "#f50", fontSize: "16px" }}
+                              >
                                 {product.price.toLocaleString("vi-VN", {
                                   style: "currency",
                                   currency: "VND",
@@ -1831,9 +2165,9 @@ const OrderService = () => {
                                 size="middle"
                                 block
                                 style={{
-                                  marginTop: '12px',
-                                  borderRadius: '4px',
-                                  height: '36px'
+                                  marginTop: "12px",
+                                  borderRadius: "4px",
+                                  height: "36px",
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1846,16 +2180,20 @@ const OrderService = () => {
                               </Button>
                             )}
                             {isUsedElsewhere && (
-                              <div style={{
-                                marginTop: '12px',
-                                textAlign: 'center',
-                                padding: '6px',
-                                background: '#fffbe6',
-                                border: '1px solid #ffe58f',
-                                borderRadius: '4px',
-                                fontSize: '13px'
-                              }}>
-                                <Text type="warning">Sản phẩm đã được thêm vào thiết kế</Text>
+                              <div
+                                style={{
+                                  marginTop: "12px",
+                                  textAlign: "center",
+                                  padding: "6px",
+                                  background: "#fffbe6",
+                                  border: "1px solid #ffe58f",
+                                  borderRadius: "4px",
+                                  fontSize: "13px",
+                                }}
+                              >
+                                <Text type="warning">
+                                  Sản phẩm đã được thêm vào thiết kế
+                                </Text>
                               </div>
                             )}
                           </div>
@@ -1871,7 +2209,7 @@ const OrderService = () => {
               description="Không tìm thấy sản phẩm cùng loại"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               style={{
-                margin: '40px 0'
+                margin: "40px 0",
               }}
             />
           )}

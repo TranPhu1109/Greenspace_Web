@@ -31,7 +31,6 @@ import {
   CloseCircleOutlined,
   EditOutlined,
   CopyOutlined,
-  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { format } from "date-fns";
 import useComplaintStore from "../../../stores/useComplaintStore";
@@ -581,7 +580,7 @@ const ComplaintsList = () => {
         isProductReturn &&
         status === "processing" &&
         (selectedComplaint.status === "1" ||
-          selectedComplaint.status === "1" ||
+          selectedComplaint.status === 1 ||
           selectedComplaint.status === "ItemArrivedAtWarehouse")
       ) {
         setIsShippingModalVisible(true);
@@ -1150,8 +1149,7 @@ const ComplaintsList = () => {
         return [
           <Button
             key="arrived"
-            // type={selectedStatus === "arrived" ? "primary" : "default"}
-            type="primary"
+            type={selectedStatus === "arrived" ? "primary" : "default"}
             onClick={() => handleStatusChange("arrived")}
           >
             Đã về kho kiểm tra
@@ -1178,10 +1176,7 @@ const ComplaintsList = () => {
             </Button>,
             <Button
               key="back"
-              onClick={() => {
-                setIsRejecting(false);
-                setSelectedStatus(null);
-              }}
+              onClick={() => setIsRejecting(false)}
             >
               Quay lại bước trước đó
             </Button>
@@ -1190,8 +1185,9 @@ const ComplaintsList = () => {
         return [
           <Button
             key="processing"
-            type="primary"
+            type={selectedStatus === "processing" ? "primary" : "default"}
             disabled={
+              // Disable nếu là trạng thái "arrived" mà chưa upload video
               !videoFile
             }
             onClick={() => handleStatusChange("processing")}
@@ -1200,9 +1196,10 @@ const ComplaintsList = () => {
           </Button>,
           <Button
             key="reject"
-            type="primary"
+            type={selectedStatus === "reject" ? "primary" : "default"}
             danger
             disabled={
+              // Disable nếu là trạng thái "arrived" mà chưa upload video
               !videoFile
             }
             onClick={() => {
@@ -1319,17 +1316,6 @@ const ComplaintsList = () => {
         if (isRejecting) {
           return [
             <Button
-              key="back"
-              type="dashed"
-              onClick={() => {
-                setIsRejecting(false);
-                setSelectedStatus(null);
-              }}
-              icon={<ArrowLeftOutlined />}
-            >
-              Quay lại bước trước đó
-            </Button>,
-            <Button
               key="confirmReject"
               type="primary"
               danger
@@ -1337,6 +1323,12 @@ const ComplaintsList = () => {
               onClick={() => handleStatusChange("reject")}
             >
               Xác nhận từ chối
+            </Button>,
+            <Button
+              key="back"
+              onClick={() => setIsRejecting(false)}
+            >
+              Quay lại bước trước đó
             </Button>
           ];
         }
@@ -1369,6 +1361,10 @@ const ComplaintsList = () => {
           </Button>
         ];
       }
+
+      // Staff chỉ được thay đổi status của đơn hoàn tiền đến Processing thôi
+      // Các bước tiếp theo sẽ do hệ thống xử lý
+      // Đã loại bỏ các option cho bước 4 và 5
     }
 
     return [];
@@ -1814,7 +1810,7 @@ const ComplaintsList = () => {
               {/* Show rejection reason field when: complete rejection OR approving with rejected products */}
               {(selectedStatus === "reject" ||
                 (selectedStatus === "approved" && hasRejectedProducts)) && (
-                <div style={{ marginTop: 0 }}>
+                <div style={{ marginTop: 24 }}>
                   <div style={{ marginBottom: 8 }}>
                     <Text strong style={{ fontSize: 14 }}>
                       {selectedStatus === "reject"
@@ -1852,7 +1848,7 @@ const ComplaintsList = () => {
                       }
                       style={{
                         borderRadius: 8,
-                        marginBottom: 16,
+                        padding: "10px 12px",
                         resize: "vertical",
                         fontSize: 14,
                       }}

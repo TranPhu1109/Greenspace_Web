@@ -11,7 +11,11 @@ import {
   Empty,
   Breadcrumb,
 } from "antd";
-import { AppstoreOutlined, HomeOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  AppstoreOutlined,
+  HomeOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -42,13 +46,11 @@ const DesignsPage = () => {
   }, []);
 
   useEffect(() => {
-    console.log("Fetching design ideas...");
     fetchDesignIdeas();
     fetchCategories();
   }, [fetchDesignIdeas, fetchCategories]);
 
   useEffect(() => {
-    console.log("Design ideas received:", designIdeas);
     let result = [...designIdeas];
 
     if (filters.search) {
@@ -99,6 +101,23 @@ const DesignsPage = () => {
     setFilters((prev) => ({ ...prev, sort: value }));
   };
 
+  const breadcrumbItems = [
+    {
+      title: (
+        <span style={{ cursor: "pointer" }} onClick={() => navigate("/Home")}>
+          <HomeOutlined /> Trang chủ
+        </span>
+      ),
+    },
+    {
+      title: (
+        <>
+          <AppstoreOutlined /> Ý tưởng thiết kế
+        </>
+      ),
+    },
+  ];
+
   return (
     <Layout className="designs-layout">
       <Header />
@@ -113,20 +132,16 @@ const DesignsPage = () => {
         </div> */}
         <div className="designs-hero">
           <div className="container">
-            <Breadcrumb style={{
-              marginBottom: '20px',
-              padding: '12px 16px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              <Breadcrumb.Item onClick={() => navigate("/Home")} style={{ cursor: 'pointer' }}>
-                <HomeOutlined /> Trang chủ
-              </Breadcrumb.Item>
-              <Breadcrumb.Item>
-                <AppstoreOutlined /> Ý tưởng thiết kế
-              </Breadcrumb.Item>
-            </Breadcrumb>
+            <Breadcrumb
+              style={{
+                marginBottom: "20px",
+                padding: "12px 16px",
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+              items={breadcrumbItems}
+            />
           </div>
         </div>
         <div className="designs-content">

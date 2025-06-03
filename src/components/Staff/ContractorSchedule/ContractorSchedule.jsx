@@ -24,7 +24,8 @@ import {
   Avatar,
   Tag,
   Drawer,
-  Descriptions
+  Descriptions,
+  notification
 } from 'antd';
 import {
   UserOutlined,
@@ -191,12 +192,39 @@ const ContractorSchedule = () => {
       return;
     }
 
+    const taskDateStr = values.dateAppointment.format('YYYY-MM-DD');
+    const newTime = values.timeAppointment.format('HH:mm:ss');
+    
+    // Lấy các task cùng ngày của contractor hiện tại
+    const sameDayTasks = contractorTasks.filter(task =>
+      dayjs(task.dateAppointment).format('YYYY-MM-DD') === taskDateStr
+    );
+    
+    // Nếu có ít nhất một task trong ngày
+    if (sameDayTasks.length > 0) {
+      const hasInvalidTask = sameDayTasks.some(task => {
+        const taskTime = task.timeAppointment;
+        const taskStatus = task.status;
+        return !(taskStatus === 'Completed' && taskTime < '13:30:00');
+      });
+    
+      if (hasInvalidTask) {
+        notification.error({
+          message: 'Không thể giao đơn hàng',
+          description: 'Đội lắp đặt đã có lịch làm việc trong ngày hoặc chưa hoàn tất trước 13h30.',
+          placement: 'topRight',
+          duration: 5
+        });
+        return;
+      }
+    }
+    
     try {
       const taskData = {
         serviceOrderId: values.serviceOrderId,
         userId: selectedContractor.id,
         dateAppointment: values.dateAppointment.format('YYYY-MM-DD'),
-        timeAppointment: values.timeAppointment.format('HH:mm:ss'),
+        timeAppointment: values.timeAppointment.format('HH:mm') + ':00',
         note: values.note || ''
       };
 
@@ -210,11 +238,11 @@ const ContractorSchedule = () => {
         try {
           // Determine the appropriate status based on the current status
           let newStatus = 8; // Default to Processing
-          
+
           if (currentStatusFromNav === 'DeliveryFail') {
             newStatus = 11; // ReDelivery status
           }
-          
+
           const updateStatusResponse = await api.put(`/api/serviceorder/status/${serviceOrderFromNav}`, {
             status: newStatus,
           });
@@ -1068,9 +1096,19 @@ const ContractorSchedule = () => {
           >
             <TimePicker
               style={{ width: '100%' }}
-              format="HH:mm:ss"
+              format="HH:mm"
               minuteStep={15}
+              showSecond={false} 
               disabled={Boolean(existingConstructionTime && serviceOrderFromNav)}
+              disabledHours={() => {
+                const hours = [];
+                for (let i = 0; i < 24; i++) {
+                  if (i < 7 || i > 16) {
+                    hours.push(i);
+                  }
+                }
+                return hours;
+              }}
             />
           </Form.Item>
 

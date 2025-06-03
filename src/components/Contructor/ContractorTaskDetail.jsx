@@ -22,7 +22,8 @@ import {
   Statistic,
   Empty,
   message,
-  List
+  List,
+  notification
 } from 'antd';
 import {
   CheckOutlined,
@@ -44,7 +45,9 @@ import {
   ToolOutlined,
   FileImageOutlined,
   FilePdfOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined
 } from '@ant-design/icons';
 import api from '@/api/api';
 import dayjs from 'dayjs';
@@ -86,8 +89,12 @@ const ContractorTaskDetail = () => {
       const designData = await fetchDesignIdeaById(designIdeaId);
       setDesignIdea(designData);
     } catch (err) {
-      console.error('Error fetching design idea:', err);
-      message.error('Không thể tải thông tin mẫu thiết kế');
+      notification.error({
+        message: 'Lỗi',
+        description: 'Không thể tải thông tin mẫu thiết kế',
+        icon: <CloseCircleOutlined style={{ color: '#f5222d' }} />,
+        placement: 'topRight',
+      });
     } finally {
       setLoadingDesignIdea(false);
     }
@@ -100,7 +107,6 @@ const ContractorTaskDetail = () => {
     try {
       // Fetch task details
       const taskResponse = await api.get(`/api/worktask/${id}`);
-      console.log('Task details:', taskResponse.data);
 
       if (taskResponse.status === 200) {
         setTask(taskResponse.data);
@@ -108,7 +114,6 @@ const ContractorTaskDetail = () => {
         // Fetch full order details
         if (taskResponse.data.serviceOrderId) {
           const orderResponse = await api.get(`/api/serviceorder/${taskResponse.data.serviceOrderId}`);
-          console.log('Order details:', orderResponse.data);
 
           if (orderResponse.status === 200) {
             const orderData = orderResponse.data;
@@ -135,7 +140,6 @@ const ContractorTaskDetail = () => {
         setError('Không thể tải thông tin công việc');
       }
     } catch (err) {
-      console.error('Error fetching task details:', err);
       setError('Đã xảy ra lỗi khi tải thông tin chi tiết công việc');
     } finally {
       setLoading(false);
@@ -170,22 +174,58 @@ const ContractorTaskDetail = () => {
       }
 
       if (taskResponse.status === 200) {
-        message.success('Cập nhật trạng thái thành công');
+        notification.success({
+          message: 'Thành công',
+          description: 'Cập nhật trạng thái thành công',
+          icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+          placement: 'topRight',
+        });
         // Refresh task data
         await fetchTaskDetails();
       } else {
         setError('Không thể cập nhật trạng thái công việc');
       }
     } catch (err) {
-      console.error('Error updating task status:', err);
       setError('Đã xảy ra lỗi khi cập nhật trạng thái công việc');
-      message.error('Cập nhật trạng thái thất bại: ' + err.message);
+      notification.error({
+        message: 'Lỗi',
+        description: 'Cập nhật trạng thái thất bại: ' + err.message,
+        icon: <CloseCircleOutlined style={{ color: '#f5222d' }} />,
+        placement: 'topRight',
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const isCurrentTimeMatchTaskTime = (task) => {
+    if (!task.dateAppointment || !task.timeAppointment) return false;
+  
+    const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
+    const now = dayjs();
+  
+    return now.isBefore(taskDateTime.add(30, 'minute'));
+  };  
+
   const handleStartInstallation = () => {
+    if (!task) {
+      notification.error({
+        message: 'Lỗi',
+        description: 'Không tìm thấy công việc',
+        placement: 'topRight',
+      });
+      return;
+    }
+    if (!isCurrentTimeMatchTaskTime(task)) {
+      notification.warning({
+        message: 'Chưa đến thời gian lắp đặt',
+        description: `Chỉ được phép bắt đầu lắp đặt từ ${dayjs(`${task.dateAppointment} ${task.timeAppointment}`).format('HH:mm')} ngày ${dayjs(task.dateAppointment).format('DD/MM/YYYY')}`,
+        placement: 'topRight',
+        duration: 5
+      });
+      return;
+    }
+
     Modal.confirm({
       title: 'Xác nhận bắt đầu lắp đặt',
       content: 'Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt cho khách hàng?',

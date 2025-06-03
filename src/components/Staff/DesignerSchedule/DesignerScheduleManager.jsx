@@ -23,6 +23,8 @@ const DesignerScheduleManager = () => {
   const serviceOrderFromNav = state?.serviceOrderId;
   const customerNameFromNav = state?.customerName;
   const addressFromNav = state?.address;
+  const customerPhoneFromNav = state?.customerPhone;
+  const customerEmailFromNav = state?.email;
   const autoOpenModal = state?.autoOpenModal;
 
   const [selectedDesignerId, setSelectedDesignerId] = useState(null);
@@ -517,6 +519,8 @@ const DesignerScheduleManager = () => {
             <div>
               <p><strong>Đơn hàng:</strong> #{serviceOrderFromNav}</p>
               <p><strong>Khách hàng:</strong> {customerNameFromNav}</p>
+              {customerPhoneFromNav && <p><strong>Sđt:</strong> {customerPhoneFromNav}</p>}
+              {customerEmailFromNav && <p><strong>Email:</strong> {customerEmailFromNav}</p>}
               {addressFromNav && <p><strong>Địa chỉ:</strong> {addressFromNav.replace(/\|/g, ', ')}</p>}
               <p>Vui lòng chọn một designer từ danh sách để xem lịch và tạo task thiết kế.</p>
             </div>

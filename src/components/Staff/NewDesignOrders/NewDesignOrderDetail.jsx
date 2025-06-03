@@ -22,6 +22,7 @@ import {
   Empty,
   Tooltip,
   Alert,
+  Typography,
 } from "antd";
 import {
   UserOutlined,
@@ -55,6 +56,7 @@ import dayjs from "dayjs";
 
 const { TextArea } = Input;
 const { Step } = Steps;
+const { Text } = Typography;
 const { confirm } = Modal;
 
 const NewDesignOrderDetail = () => {
@@ -870,16 +872,13 @@ const NewDesignOrderDetail = () => {
                   <Tag color="default">Chưa gán designer</Tag>
                 )}
               </Descriptions.Item>
-              {/* <Descriptions.Item label="Diện tích mẫu">
-                {selectedOrder.area} m²
-              </Descriptions.Item> */}
               <Descriptions.Item label="Diện tích yêu cầu">
                 {selectedOrder.length * selectedOrder.width} m²
               </Descriptions.Item>
             </Descriptions>
             <Divider />
-            {/* <div>
-              <h4>Mô tả yêu cầu:</h4>
+            <div>
+              <Text strong fontSize="24px">Mô tả yêu cầu:</Text>
               <p
                 dangerouslySetInnerHTML={{
                   __html:
@@ -888,7 +887,7 @@ const NewDesignOrderDetail = () => {
                 }}
                 style={{ fontSize: "15px", lineHeight: "1.6" }}
               ></p>
-            </div> */}
+            </div>
             {selectedOrder.attachments &&
               selectedOrder.attachments.length > 0 && (
                 <div className="attachments">
@@ -1337,6 +1336,8 @@ const NewDesignOrderDetail = () => {
                         serviceOrderId: selectedOrder.id,
                         customerName: selectedOrder.userName,
                         address: selectedOrder.address,
+                        email: selectedOrder.email,
+                        customerPhone: selectedOrder.cusPhone,
                         autoOpenModal: false,
                       },
                     });
