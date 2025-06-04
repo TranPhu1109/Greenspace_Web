@@ -14,6 +14,16 @@ const TransactionPercentageManagement = () => {
     fetchPercentage();
   }, [fetchPercentage]);
 
+  // Thêm useEffect này để cập nhật form values khi data thay đổi
+  useEffect(() => {
+    if (data) {
+      form.setFieldsValue({
+        depositPercentage: data.depositPercentage,
+        refundPercentage: data.refundPercentage,
+      });
+    }
+  }, [data, form]);
+
   const handleSubmit = async (values) => {
     setSaving(true);
     try {
@@ -82,83 +92,9 @@ const TransactionPercentageManagement = () => {
         <Form
           form={form}
           layout="vertical"
-          initialValues={{
-            depositPercentage: data?.depositPercentage ?? 30,
-            refundPercentage: data?.refundPercentage ?? 10,
-          }}
           onFinish={handleSubmit}
           size="large"
         >
-          {/* <Row gutter={[64, 32]}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={<span style={{ color: "#1890ff", fontWeight: 500 }}>🔵 Tỷ lệ Đặt cọc (%)</span>}
-                name="depositPercentage"
-                validateTrigger="onChange"
-                rules={[
-                  { required: true, message: "Vui lòng nhập tỷ lệ đặt cọc" },
-                  { type: "number", min: 30, max: 80, message: "Tỷ lệ từ 30% đến 80%" },
-                ]}
-              >
-                <Slider
-                  min={30}
-                  max={80}
-                  marks={{ 30: "30%", 40: "40%", 50: "50%", 60: "60%", 70: "70%", 80: "80%" }}
-                  tooltip={{ formatter: value => `${value}%` }}
-                  onChange={(value) => form.setFieldsValue({ depositPercentage: value })}
-                />
-              </Form.Item>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prev, current) => prev.depositPercentage !== current.depositPercentage}
-              >
-                {({ getFieldValue, setFieldsValue }) => (
-                  <InputNumber
-                    min={30}
-                    max={80}
-                    value={getFieldValue("depositPercentage")}
-                    onChange={(value) => setFieldsValue({ depositPercentage: value })}
-                    style={{ width: "100%", marginTop: 8 }}
-                    addonAfter="%"
-                  />
-                )}
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} md={12}>
-              <Form.Item
-                label={<span style={{ color: "#22c55e", fontWeight: 500 }}>🟢 Tỷ lệ Hoàn cọc (%)</span>}
-                name="refundPercentage"
-                rules={[
-                  { required: true, message: "Vui lòng nhập tỷ lệ hoàn cọc" },
-                  { type: "number", min: 10, max: 50, message: "Tỷ lệ từ 10% đến 50%" },
-                ]}
-              >
-                <Slider
-                  min={10}
-                  max={50}
-                  marks={{ 10: "10%", 20: "20%", 30: "30%", 40: "40%", 50: "50%" }}
-                  tooltip={{ formatter: value => `${value}%` }}
-                  onChange={(value) => form.setFieldsValue({ refundPercentage: value })}
-                />
-              </Form.Item>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prev, current) => prev.refundPercentage !== current.refundPercentage}
-              >
-                {({ getFieldValue, setFieldsValue }) => (
-                  <InputNumber
-                    min={10}
-                    max={50}
-                    value={getFieldValue("refundPercentage")}
-                    onChange={(value) => setFieldsValue({ refundPercentage: value })}
-                    style={{ width: "100%", marginTop: 8 }}
-                    addonAfter="%"
-                  />
-                )}
-              </Form.Item>
-            </Col>
-          </Row> */}
           <Row gutter={[64, 32]}>
             <Col xs={24} md={12}>
               <Form.Item

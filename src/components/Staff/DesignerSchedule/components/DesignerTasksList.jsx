@@ -371,7 +371,6 @@ const DesignerTasksList = ({ tasks, designers, selectedDesignerId, onRefresh }) 
           dataSource={filteredTasks}
           rowKey="id"
           pagination={{ 
-            pageSize: 10, 
             showSizeChanger: true,
             showTotal: (total) => `Tổng số ${total} công việc`
           }}

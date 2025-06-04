@@ -236,6 +236,7 @@ const DesignOrderHistory = () => {
             <Table
               columns={columns}
               dataSource={designOrders}
+              bordered
               rowKey="id"
               pagination={false}
               onRow={(record) => ({

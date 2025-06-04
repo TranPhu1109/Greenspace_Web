@@ -1,5 +1,6 @@
 import ContractorSchedule from "@/components/Staff/ContractorSchedule/ContractorSchedule";
 import Dashboard from "../pages/Admin/Dashboard";
+import WorkTaskDashboard from "../pages/WorkTask/Dashboard";
 import ContractorTasks from "@/components/Contructor/ContractorTasks";
 import ContractorTaskDetail from "@/components/Contructor/ContractorTaskDetail";
 // import UsersList from "../pages/Admin/Users/UsersList";
@@ -8,11 +9,11 @@ export const contructorRoutes = {
   children: [
     {
       index: true,
-      element: <Dashboard />,
+      element: <WorkTaskDashboard />,
     },
     {
       path: "dashboard",
-      element: <Dashboard />,
+      element: <WorkTaskDashboard />,
     },
     {
       path: "schedule",

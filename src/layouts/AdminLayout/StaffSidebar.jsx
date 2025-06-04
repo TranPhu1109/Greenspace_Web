@@ -91,8 +91,12 @@ const StaffSidebar = ({ collapsed }) => {
               </Menu.Item>
             </SubMenu>
 
-            <SubMenu key="orders" icon={<ShoppingCartOutlined />} title="Quản lý đơn hàng">
-              <Menu.Item key="/staff/orders" >
+            <SubMenu
+              key="orders"
+              icon={<ShoppingCartOutlined />}
+              title="Quản lý đơn hàng"
+            >
+              <Menu.Item key="/staff/orders">
                 <Link to="/staff/orders">Tất cả đơn hàng</Link>
               </Menu.Item>
               <Menu.Item key="/staff/complaints">
@@ -100,16 +104,30 @@ const StaffSidebar = ({ collapsed }) => {
               </Menu.Item>
             </SubMenu>
 
-            <Menu.Item key="/staff/products" icon={<AppstoreOutlined />}>
-              <Link to="/staff/products">Sản phẩm</Link>
-            </Menu.Item>
+            <SubMenu
+              key="products"
+              icon={<AppstoreOutlined />}
+              title="Quản lý sản phẩm"
+            >
+              <Menu.Item key="/staff/products">
+                <Link to="/staff/products">Sản phẩm website</Link>
+              </Menu.Item>
+              <Menu.Item key="/staff/external-products">
+                <Link to="/staff/external-products">Sản phẩm từ thiết kế</Link>
+              </Menu.Item>
+            </SubMenu>
 
             <Menu.Item key="/staff/schedule" icon={<CalendarOutlined />}>
               <Link to="/staff/schedule">Lịch làm việc designer</Link>
             </Menu.Item>
 
-            <Menu.Item key="/staff/schedule-contructor" icon={<CalendarOutlined />}>
-              <Link to="/staff/schedule-contructor">Lịch làm việc đội lắp đặt</Link>
+            <Menu.Item
+              key="/staff/schedule-contructor"
+              icon={<CalendarOutlined />}
+            >
+              <Link to="/staff/schedule-contructor">
+                Lịch làm việc đội lắp đặt
+              </Link>
             </Menu.Item>
 
             <Menu.Item key="/staff/feedback" icon={<MdOutlineFeedback />}>
@@ -123,7 +141,10 @@ const StaffSidebar = ({ collapsed }) => {
               <Menu.Item key="/staff/blog" icon={<UnorderedListOutlined />}>
                 <Link to="/staff/blog">Danh sách bài đăng</Link>
               </Menu.Item>
-              <Menu.Item key="/staff/blog/new-blog" icon={<SignatureOutlined />}>
+              <Menu.Item
+                key="/staff/blog/new-blog"
+                icon={<SignatureOutlined />}
+              >
                 <Link to="/staff/blog/new-blog">Tạo bài viết</Link>
               </Menu.Item>
             </SubMenu>

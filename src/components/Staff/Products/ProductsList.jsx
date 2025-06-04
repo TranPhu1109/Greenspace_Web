@@ -229,9 +229,9 @@ const ProductsList = () => {
       render: (text) => (
         <Tooltip 
         styles={{
-          root: { maxWidth: '1200px' },
+          root: { maxWidth: '1000px' },
           body: {
-            maxHeight: '300px',
+            maxHeight: '650px',
             overflowY: 'auto',
             scrollbarWidth: 'thin', // Firefox
             scrollbarColor: '#888 #f0f0f0', // Firefox

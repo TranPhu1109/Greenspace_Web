@@ -1,0 +1,200 @@
+// Dashboard Animation Styles
+
+// Statistics Cards Animation
+.statistics-cards {
+  .statistic-card {
+    animation: slideInUp 0.6s ease-out;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+      
+      .ant-card-body {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+      }
+    }
+    
+    // Staggered animation for each card
+    &:nth-child(1) {
+      animation-delay: 0.1s;
+    }
+    
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    &:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+    
+    &:nth-child(4) {
+      animation-delay: 0.4s;
+    }
+  }
+}
+
+// Work Tasks Container with Scroll
+.work-tasks-container {
+  max-height: calc(100vh - 340px);
+  overflow-y: auto;
+  padding-right: 8px;
+  
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+  
+  // Firefox scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+// Work Tasks List Animation
+.work-tasks-list {
+  animation: fadeInUp 0.8s ease-out;
+  
+  .work-task-item {
+    animation: slideInUp 0.6s ease-out both;
+    transition: transform 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-4px);
+    }
+  }
+}
+
+// Keyframe Animations
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .work-tasks-container {
+    max-height: calc(100vh - 350px);
+    padding-right: 4px;
+  }
+  
+  .statistics-cards {
+    .statistic-card {
+      &:hover {
+        transform: translateY(-4px);
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .work-tasks-container {
+    max-height: calc(100vh - 300px);
+  }
+  
+  .statistics-cards {
+    .statistic-card {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+  
+  .work-tasks-list {
+    .work-task-item {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+}
+
+// Loading animation enhancement
+.ant-spin-container {
+  transition: opacity 0.3s ease;
+}
+
+.ant-spin-blur {
+  opacity: 0.7;
+  filter: blur(1px);
+}
+
+// Enhanced card hover effects
+.ant-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    .ant-card-body {
+      background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+    }
+  }
+}
+
+// Smooth transitions for all interactive elements
+.ant-btn,
+.ant-input,
+.ant-select,
+.ant-picker {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// Enhanced focus states
+.ant-input:focus,
+.ant-select:focus .ant-select-selector,
+.ant-picker:focus {
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #40a9ff;
+}

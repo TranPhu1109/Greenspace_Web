@@ -15,6 +15,7 @@ import ComplaintsRefundList from "@/components/Manager/Complaints/ComplaintsRefu
 import TransactionPercentageManagement from "@/components/Manager/Percentage/TransactgionPercentageManagement";
 import ComplaintReasonManage from "@/components/Manager/Complaints/ComplaintsResion";
 import Policy from "@/components/Manager/Policy/Policy";
+import ContractList from "@/components/Manager/Contracts/ContractsList";
 
 export const managerRoutes = {
   path: "/manager",
@@ -93,6 +94,10 @@ export const managerRoutes = {
     {
       path: "deposit-management",
       element: <TransactionPercentageManagement />,
+    },
+    {
+      path: "contracts",
+      element: <ContractList />,
     },
     {
       path: "logo",

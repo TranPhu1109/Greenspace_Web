@@ -52,11 +52,6 @@ const ManagerSidebar = ({ collapsed }) => {
         ],
       },
       {
-        key: "/manager/products",
-        icon: <AppstoreOutlined />,
-        label: <Link to="/manager/products">Sản phẩm</Link>,
-      },
-      {
         key: "sales",
         icon: <ShoppingOutlined />,
         label: "Bán hàng",
@@ -65,10 +60,10 @@ const ManagerSidebar = ({ collapsed }) => {
             key: "/manager/orders",
             label: <Link to="/manager/orders">Đơn hàng</Link>,
           },
-          {
-            key: "/manager/promotions",
-            label: <Link to="/manager/promotions">Khuyến mãi</Link>,
-          },
+          // {
+          //   key: "/manager/promotions",
+          //   label: <Link to="/manager/promotions">Khuyến mãi</Link>,
+          // },
           {
             key: "/manager/complaints",
             label: <Link to="/manager/complaints">Xử lý khiếu nại hoàn tiền</Link>,
@@ -85,6 +80,10 @@ const ManagerSidebar = ({ collapsed }) => {
             label: <Link to="/manager/new-design-orders">Danh sách đơn thiết kế</Link>,
           },
           {
+            key: "/manager/contracts",
+            label: <Link to="/manager/contracts">Quản lý hợp đồng</Link>,
+          },
+          {
             key: "/manager/deposit-management",
             label: <div style={{ whiteSpace: 'normal', lineHeight: '1.2' }}>
             <Link to="/manager/deposit-management">
@@ -94,6 +93,11 @@ const ManagerSidebar = ({ collapsed }) => {
           },
         ],
       },      
+      {
+        key: "/manager/products",
+        icon: <AppstoreOutlined />,
+        label: <Link to="/manager/products">Sản phẩm</Link>,
+      },
       {
         key: "/manager/transactions",
         icon: <HistoryOutlined />,
