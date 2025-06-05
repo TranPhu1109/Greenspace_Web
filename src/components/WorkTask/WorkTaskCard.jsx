@@ -30,19 +30,31 @@ import {
   formatCurrency,
 } from "@/utils/statusUtils";
 import "./WorkTaskCard.scss";
+import { useNavigate } from "react-router-dom";
 
 const { Text, Title } = Typography;
 
 const WorkTaskCard = ({ workTask, onViewDetail }) => {
+  const navigate = useNavigate();
   const workTaskStatus = getWorkTaskStatus(workTask.status);
   const serviceOrderStatus = getServiceOrderStatus(
     workTask.serviceOrder?.status
   );
 
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : null;
+
+  const userRole = user?.roleName?.toLowerCase();
+
+  const handleCardClick = () => {
+    navigate(`/${userRole}/tasks/${workTask.id}`);
+  };
+
   return (
     <Card
       className="work-task-card"
       hoverable
+      onClick={handleCardClick}
       style={{
         borderRadius: "16px",
         boxShadow: "0 2px 16px rgba(24,144,255,0.08)",
