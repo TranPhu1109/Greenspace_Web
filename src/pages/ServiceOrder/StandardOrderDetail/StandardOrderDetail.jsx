@@ -685,7 +685,8 @@ const StandardOrderDetail = () => {
               )}
 
               {/* Design Images Section */}
-              {selectedOrder.status !== "Pending" && designIdea && (
+              {selectedOrder.status !== "Pending" &&
+                selectedOrder.status !== "OrderCancelled" && designIdea && (
                 <Card
                   title={
                     <Space>
