@@ -76,9 +76,9 @@ const DesignerSidebar = ({ collapsed }) => {
           <Link to="/designer/schedule">Lịch làm việc</Link>
         </Menu.Item>
 
-        <Menu.Item key="/designer/settings" icon={<SettingOutlined />}>
+        {/* <Menu.Item key="/designer/settings" icon={<SettingOutlined />}>
           <Link to="/designer/settings">Cài đặt</Link>
-        </Menu.Item>
+        </Menu.Item> */}
       </Menu>
     </Sider>
   );

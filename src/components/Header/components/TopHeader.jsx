@@ -1,12 +1,17 @@
-import React, { useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button, Badge } from 'antd';
-import { PhoneOutlined, ShoppingCartOutlined, LoginOutlined, UserAddOutlined } from '@ant-design/icons';
-import UserMenu from './UserMenu';
-import Notifications from '@/components/Notifications';
-import './styles/TopHeader.scss';
-import useCartStore from '@/stores/useCartStore';
+import React, { useEffect } from "react";
+import PropTypes from "prop-types";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button, Badge } from "antd";
+import {
+  PhoneOutlined,
+  ShoppingCartOutlined,
+  LoginOutlined,
+  UserAddOutlined,
+} from "@ant-design/icons";
+import UserMenu from "./UserMenu";
+import Notifications from "@/components/Notifications";
+import "./styles/TopHeader.scss";
+import useCartStore from "@/stores/useCartStore";
 
 function TopHeader({
   user,
@@ -21,6 +26,26 @@ function TopHeader({
   const navigate = useNavigate();
   const { getLocalCart } = useCartStore();
   const [localCartCount, setLocalCartCount] = React.useState(0);
+  const HIDDEN_CART_ROLES = [
+    "Staff",
+    "Admin",
+    "Designer",
+    "Accountant",
+    "Constructor",
+    "Manager",
+  ];
+  const localUser = getLocalUser();
+  const roleName = localUser?.roleName;
+  const shouldHideCart = HIDDEN_CART_ROLES.includes(roleName);
+
+  function getLocalUser() {
+    try {
+      const userStr = localStorage.getItem("user");
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   // Lắng nghe thay đổi của localStorage cho giỏ hàng guest
   useEffect(() => {
@@ -34,29 +59,29 @@ function TopHeader({
 
     // Lắng nghe sự kiện storage change
     const handleStorageChange = (e) => {
-      if (e.key === 'guest-cart-items') {
+      if (e.key === "guest-cart-items") {
         updateLocalCartCount();
       }
     };
 
     // Đăng ký event listener
-    window.addEventListener('storage', handleStorageChange);
-    
+    window.addEventListener("storage", handleStorageChange);
+
     // Lắng nghe sự kiện custom cho cùng một tab
-    window.addEventListener('localCartUpdated', updateLocalCartCount);
-    
+    window.addEventListener("localCartUpdated", updateLocalCartCount);
+
     // Khởi tạo giá trị ban đầu
     updateLocalCartCount();
-    
+
     // Cleanup
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('localCartUpdated', updateLocalCartCount);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("localCartUpdated", updateLocalCartCount);
     };
   }, [user, getLocalCart]);
 
   const getCartItemsCount = React.useMemo(() => {
-    return user ? (cartItems?.length || 0) : localCartCount;
+    return user ? cartItems?.length || 0 : localCartCount;
   }, [cartItems, user, localCartCount]);
 
   const handleCartClick = (e) => {
@@ -99,13 +124,15 @@ function TopHeader({
         </div>
         <div className="auth-links">
           {renderAuthButtons()}
-          <Link to="/cart" className="cart-link" onClick={handleCartClick}>
-            <Badge count={getCartItemsCount} showZero>
-              <Button type="text" icon={<ShoppingCartOutlined />}>
-                Giỏ hàng
-              </Button>
-            </Badge>
-          </Link>
+          {!shouldHideCart && (
+            <Link to="/cart" className="cart-link" onClick={handleCartClick}>
+              <Badge count={getCartItemsCount} showZero>
+                <Button type="text" icon={<ShoppingCartOutlined />}>
+                  Giỏ hàng
+                </Button>
+              </Badge>
+            </Link>
+          )}
           {user && (
             <Notifications
               count={notificationCount}

@@ -53,14 +53,14 @@ const ContructorSidebar = ({ collapsed }) => {
               <Link to="/contructor/tasks">Quản lý công việc</Link>
             </Menu.Item>
 
-            <SubMenu key="account" icon={<SettingOutlined />} title="Tài khoản">
+            {/* <SubMenu key="account" icon={<SettingOutlined />} title="Tài khoản">
               <Menu.Item key={getAccountPath("profile")}>
                 <Link to={getAccountPath("profile")}>Thông tin cá nhân</Link>
               </Menu.Item>
               <Menu.Item key={getAccountPath("settings")}>
                 <Link to={getAccountPath("settings")}>Cài đặt tài khoản</Link>
               </Menu.Item>
-            </SubMenu>
+            </SubMenu> */}
           </Menu>
         </div>
       </Sider>

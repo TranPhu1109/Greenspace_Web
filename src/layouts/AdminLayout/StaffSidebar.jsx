@@ -148,9 +148,9 @@ const StaffSidebar = ({ collapsed }) => {
                 <Link to="/staff/blog/new-blog">Tạo bài viết</Link>
               </Menu.Item>
             </SubMenu>
-            <Menu.Item key="/staff/settings" icon={<SettingOutlined />}>
+            {/* <Menu.Item key="/staff/settings" icon={<SettingOutlined />}>
               <Link to="/staff/settings">Cài đặt</Link>
-            </Menu.Item>
+            </Menu.Item> */}
           </Menu>
         </div>
       </Sider>

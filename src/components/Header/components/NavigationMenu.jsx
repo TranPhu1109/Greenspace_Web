@@ -16,6 +16,27 @@ import "./styles/NavigationMenu.scss";
 function NavigationMenu({ user }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const HIDDEN_ROLES = [
+    "Staff",
+    "Admin",
+    "Designer",
+    "Accountant",
+    "Contructor",
+    "Manager",
+  ];
+  const localUser = getLocalUser();
+  const roleName = localUser?.roleName;
+  const shouldHide = HIDDEN_ROLES.includes(roleName);
+
+  // Lấy user từ localStorage (bạn có thể để ngoài component hoặc trong component)
+  function getLocalUser() {
+    try {
+      const userStr = localStorage.getItem("user");
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   const historyMenuItems = [
     {
@@ -24,11 +45,17 @@ function NavigationMenu({ user }) {
     },
     {
       key: "service-history",
-      label: <Link to="/serviceorderhistory">Lịch sử đặt thiết kế mẫu kèm sản phẩm</Link>,
+      label: (
+        <Link to="/serviceorderhistory">
+          Lịch sử đặt thiết kế mẫu kèm sản phẩm
+        </Link>
+      ),
     },
     {
       key: "booking-history",
-      label: <Link to="/history-booking-services">Lịch sử đặt thiết kế mới</Link>,
+      label: (
+        <Link to="/history-booking-services">Lịch sử đặt thiết kế mới</Link>
+      ),
     },
   ];
 
@@ -37,11 +64,13 @@ function NavigationMenu({ user }) {
       { key: "home", label: "Trang chủ", path: "/home" },
       { key: "products", label: "Sản phẩm", path: "/products" },
       { key: "designs", label: "Thiết kế mẫu", path: "/designs" },
-      { key: "create-design", label: "Tạo thiết kế mới", path: "/create-design" },
+      ...(!shouldHide
+        ? [{ key: "create-design", label: "Tạo thiết kế mới", path: "/create-design" }]
+        : []),
       { key: "about", label: "Giới thiệu", path: "/about" },
     ];
 
-    if (user) {
+    if (user && !shouldHide) {
       items.splice(4, 0, {
         key: "orderHistory",
         label: (
@@ -72,22 +101,26 @@ function NavigationMenu({ user }) {
         return true; // Chỉ active khi đúng là trang /create-design
       }
       // Không active /designs nếu đang ở /create-design và ngược lại
-      if ((path === "/designs" && location.pathname === "/create-design") || 
-          (path === "/create-design" && location.pathname === "/designs")) {
+      if (
+        (path === "/designs" && location.pathname === "/create-design") ||
+        (path === "/create-design" && location.pathname === "/designs")
+      ) {
         return false;
       }
       // Nếu là trang chi tiết thiết kế, vẫn active mục "Thiết kế mẫu"
       if (path === "/designs" && location.pathname.startsWith("/design/")) {
         return true;
       }
-      
+
       // Cập nhật logic cho lịch sử
       if (path === "/orderhistory") {
-        return location.pathname.includes("/orderhistory") || 
-               location.pathname.includes("/order/") || 
-               location.pathname.includes("/serviceorderhistory") || 
-               location.pathname.includes("/service-order/") ||
-               location.pathname.includes("/history-booking-services");
+        return (
+          location.pathname.includes("/orderhistory") ||
+          location.pathname.includes("/order/") ||
+          location.pathname.includes("/serviceorderhistory") ||
+          location.pathname.includes("/service-order/") ||
+          location.pathname.includes("/history-booking-services")
+        );
       }
 
       return location.pathname === path;
@@ -146,7 +179,7 @@ function NavigationMenu({ user }) {
           {/* Right section with wallet and support */}
           <div className="right-nav-section">
             {/* Wallet link */}
-            {user && (
+            {user && !shouldHide && (
               <Link to="/userwallets" className="wallet-link">
                 <WalletOutlined />
                 <span>Ví tiền</span>
