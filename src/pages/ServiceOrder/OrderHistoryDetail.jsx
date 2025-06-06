@@ -88,7 +88,8 @@ const OrderHistoryDetail = () => {
   const [signatureUrl, setSignatureUrl] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
-  const [isSignAndPayModalVisible, setIsSignAndPayModalVisible] = useState(false);
+  const [isSignAndPayModalVisible, setIsSignAndPayModalVisible] =
+    useState(false);
 
   const [designIdea, setDesignIdea] = useState(null);
   //console.log("designIdea",designIdea);
@@ -295,7 +296,11 @@ const OrderHistoryDetail = () => {
 
     // If contract exists but showContractButton is false, set it to true
     // This ensures the button appears as soon as contract data is available
-    if (contract && !showContractButton && selectedOrder?.status === "WaitDeposit") {
+    if (
+      contract &&
+      !showContractButton &&
+      selectedOrder?.status === "WaitDeposit"
+    ) {
       setShowContractButton(true);
     }
   }, [contract, selectedOrder?.status, showContractButton]);
@@ -406,11 +411,15 @@ const OrderHistoryDetail = () => {
       // Try to fetch the contract if it's not already loaded
       try {
         if (selectedOrder?.id) {
-          const contractData = await getContractByServiceOrder(selectedOrder.id);
+          const contractData = await getContractByServiceOrder(
+            selectedOrder.id
+          );
           if (contractData?.description) {
             setIsContractModalVisible(true);
           } else {
-            message.error("Không tìm thấy hợp đồng hoặc hợp đồng chưa được tạo");
+            message.error(
+              "Không tìm thấy hợp đồng hoặc hợp đồng chưa được tạo"
+            );
           }
         } else {
           message.error("Không tìm thấy thông tin đơn hàng");
@@ -492,7 +501,6 @@ const OrderHistoryDetail = () => {
     },
   ];
 
-
   const openSignAndPayModal = () => {
     setIsSignAndPayModalVisible(true);
   };
@@ -514,10 +522,10 @@ const OrderHistoryDetail = () => {
 
       // First upload the signature image but don't sign the contract yet
       const uploadedUrls = await uploadImages([previewImage]);
-      console.log('Uploaded URLs:', uploadedUrls);
+      console.log("Uploaded URLs:", uploadedUrls);
 
       if (!uploadedUrls || uploadedUrls.length === 0) {
-        throw new Error('Không nhận được URL hình ảnh sau khi tải lên');
+        throw new Error("Không nhận được URL hình ảnh sau khi tải lên");
       }
 
       // Store the signature URL temporarily
@@ -529,7 +537,9 @@ const OrderHistoryDetail = () => {
         // Get walletId from localStorage and parse it correctly
         const walletStorage = localStorage.getItem("wallet-storage");
         if (!walletStorage) {
-          throw new Error("Không tìm thấy thông tin ví. Vui lòng đăng nhập lại.");
+          throw new Error(
+            "Không tìm thấy thông tin ví. Vui lòng đăng nhập lại."
+          );
         }
 
         // Parse the JSON string to get the walletId
@@ -571,7 +581,10 @@ const OrderHistoryDetail = () => {
       } catch (error) {
         console.error("Payment error:", error);
         // If payment fails, don't sign the contract
-        throw new Error("Thanh toán thất bại: " + (error.response?.data?.error || error.message));
+        throw new Error(
+          "Thanh toán thất bại: " +
+            (error.response?.data?.error || error.message)
+        );
       }
     } catch (error) {
       message.error(error.message || "Xử lý thất bại");
@@ -825,7 +838,6 @@ const OrderHistoryDetail = () => {
         <div className="order-detail-content">
           <Card className="order-detail-card">
             <Space direction="vertical" size={24} style={{ width: "100%" }}>
-
               <Space
                 direction="horizontal"
                 align="center"
@@ -1062,7 +1074,8 @@ const OrderHistoryDetail = () => {
 
               {/* Design Images Section */}
               {!selectedOrder.isCustom &&
-                (selectedOrder.status !== "Pending" || selectedOrder.status !== "OrderCancelled") && (
+                selectedOrder.status !== "Pending" &&
+                selectedOrder.status !== "OrderCancelled" && (
                   <Card
                     title={
                       <Space>
@@ -1320,12 +1333,12 @@ const OrderHistoryDetail = () => {
                       <Empty description="Chưa có bản vẽ chi tiết nào" />
                     ) : (selectedOrder.status === "DoneDesign" ||
                       selectedOrder.status === "DeterminingMaterialPrice"
-                      ? designRecords
-                      : designRecords.filter((record) => record.isSelected)
-                    ).length > 0 ? (
+                        ? designRecords
+                        : designRecords.filter((record) => record.isSelected)
+                      ).length > 0 ? (
                       <div>
                         {(selectedOrder.status === "DoneDesign" ||
-                          selectedOrder.status === "DeterminingMaterialPrice"
+                        selectedOrder.status === "DeterminingMaterialPrice"
                           ? designRecords
                           : designRecords.filter((record) => record.isSelected)
                         ).map((record, index) => (
@@ -1588,7 +1601,7 @@ const OrderHistoryDetail = () => {
                           >
                             {formatPrice(
                               selectedOrder.designPrice +
-                              calculateMaterialPrice(selectedOrder)
+                                calculateMaterialPrice(selectedOrder)
                             )}
                           </Text>
                         </Descriptions.Item>
@@ -1612,7 +1625,7 @@ const OrderHistoryDetail = () => {
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                            calculateMaterialPrice(selectedOrder)
+                              calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1620,7 +1633,7 @@ const OrderHistoryDetail = () => {
                         <Text type="danger" strong style={{ fontSize: "16px" }}>
                           {formatPrice(
                             selectedOrder.designPrice +
-                            calculateMaterialPrice(selectedOrder)
+                              calculateMaterialPrice(selectedOrder)
                           )}
                         </Text>
                       </Descriptions.Item>
@@ -1637,7 +1650,8 @@ const OrderHistoryDetail = () => {
               {/* Actions */}
               <div style={{ textAlign: "right" }}>
                 <Space>
-                  {(showContractButton || selectedOrder?.status === "WaitDeposit") && (
+                  {(showContractButton ||
+                    selectedOrder?.status === "WaitDeposit") && (
                     <Space
                       direction="vertical"
                       size={8}
@@ -1667,18 +1681,19 @@ const OrderHistoryDetail = () => {
                         </Text>
                       </div>
 
-                      {!contract?.modificationDate && selectedOrder?.status === "WaitDeposit" && (
-                        <>
-                          <Button
-                            type="primary"
-                            icon={<FileTextOutlined />}
-                            onClick={openSignAndPayModal}
-                            style={{ width: "100%" }}
-                          >
-                            Ký hợp đồng
-                          </Button>
-                        </>
-                      )}
+                      {!contract?.modificationDate &&
+                        selectedOrder?.status === "WaitDeposit" && (
+                          <>
+                            <Button
+                              type="primary"
+                              icon={<FileTextOutlined />}
+                              onClick={openSignAndPayModal}
+                              style={{ width: "100%" }}
+                            >
+                              Ký hợp đồng
+                            </Button>
+                          </>
+                        )}
                     </Space>
                   )}
                   {selectedOrder.status === "DeliveredSuccessfully" && (
@@ -1814,7 +1829,10 @@ const OrderHistoryDetail = () => {
               width={600}
             >
               <div style={{ marginBottom: "20px" }}>
-                <Text>Bạn cần ký hợp đồng và thanh toán 50% phí thiết kế ({formatPrice(selectedOrder?.designPrice * 0.5)}) để tiếp tục.</Text>
+                <Text>
+                  Bạn cần ký hợp đồng và thanh toán 50% phí thiết kế (
+                  {formatPrice(selectedOrder?.designPrice * 0.5)}) để tiếp tục.
+                </Text>
               </div>
 
               <Divider />
@@ -1860,8 +1878,10 @@ const OrderHistoryDetail = () => {
                               setPreviewImage(e.target.result);
                             };
                             reader.onerror = (error) => {
-                              console.error('Error reading file:', error);
-                              message.error('Không thể đọc tệp hình ảnh. Vui lòng thử lại.');
+                              console.error("Error reading file:", error);
+                              message.error(
+                                "Không thể đọc tệp hình ảnh. Vui lòng thử lại."
+                              );
                             };
                             reader.readAsDataURL(file);
                           }
@@ -1880,14 +1900,26 @@ const OrderHistoryDetail = () => {
               <div style={{ marginBottom: "10px" }}>
                 <Text strong>Thông tin thanh toán:</Text>
                 <ul style={{ marginTop: "10px" }}>
-                  <li>Phí thiết kế: {formatPrice(selectedOrder?.designPrice)}</li>
-                  <li>Thanh toán đợt này (50%): {formatPrice(selectedOrder?.designPrice * 0.5)}</li>
+                  <li>
+                    Phí thiết kế: {formatPrice(selectedOrder?.designPrice)}
+                  </li>
+                  <li>
+                    Thanh toán đợt này (50%):{" "}
+                    {formatPrice(selectedOrder?.designPrice * 0.5)}
+                  </li>
                 </ul>
               </div>
 
-              <div style={{ backgroundColor: "#f5f5f5", padding: "10px", borderRadius: "4px" }}>
+              <div
+                style={{
+                  backgroundColor: "#f5f5f5",
+                  padding: "10px",
+                  borderRadius: "4px",
+                }}
+              >
                 <Text type="secondary">
-                  Bằng việc nhấn nút "Xác nhận", bạn đồng ý với các điều khoản trong hợp đồng và đồng ý thanh toán 50% phí thiết kế.
+                  Bằng việc nhấn nút "Xác nhận", bạn đồng ý với các điều khoản
+                  trong hợp đồng và đồng ý thanh toán 50% phí thiết kế.
                 </Text>
               </div>
             </Modal>
@@ -1932,7 +1964,7 @@ const OrderHistoryDetail = () => {
                   Tổng thanh toán:{" "}
                   {formatPrice(
                     selectedOrder.designPrice * 0.5 +
-                    calculateMaterialPrice(selectedOrder)
+                      calculateMaterialPrice(selectedOrder)
                   )}
                 </Text>
               </p>
