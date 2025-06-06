@@ -47,6 +47,7 @@ const ContractorTasks = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [currentTime, setCurrentTime] = useState(dayjs());
 
   const { user } = useAuthStore();
   const userId = user?.id;
@@ -60,29 +61,38 @@ const ContractorTasks = () => {
 
   useEffect(() => {
     if (!userId) return;
-  
+
     // Kết nối SignalR
     const initSignalR = async () => {
       try {
         const connection = await signalRService.startConnection();
-  
+
         // Đăng ký listener khi có task cập nhật
         signalRService.on("messageReceived", async () => {
           await fetchContractorTasks();
         });
-  
+
       } catch (err) {
         console.error("Không thể kết nối SignalR", err);
       }
     };
-  
+
     initSignalR();
-  
+
     return () => {
       signalRService.off("messageReceived");
       signalRService.stopConnection();
     };
   }, [userId]);
+
+  // Update current time every second for real-time checking
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(dayjs());
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, []);
   
 
   const fetchContractorTasks = async () => {
@@ -168,14 +178,27 @@ const ContractorTasks = () => {
 
   const isCurrentTimeMatchTaskTime = (task) => {
     if (!task.dateAppointment || !task.timeAppointment) return false;
-  
-    const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
-    const now = dayjs();
-  
-    return now.isBefore(taskDateTime.add(30, 'minute'));
-  };  
 
-  const handleStartInstallation = async (taskId) => {
+    const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
+    const now = currentTime;
+    const taskDate = dayjs(task.dateAppointment);
+
+    // Kiểm tra xem có phải từ ngày hẹn trở đi không
+    // Nếu là ngày hẹn: phải từ giờ hẹn trở đi
+    // Nếu là sau ngày hẹn: được phép bất cứ lúc nào
+    if (now.isSame(taskDate, 'day')) {
+      // Cùng ngày: phải từ giờ hẹn trở đi
+      return now.isAfter(taskDateTime) || now.isSame(taskDateTime);
+    } else if (now.isAfter(taskDate, 'day')) {
+      // Sau ngày hẹn: được phép bất cứ lúc nào
+      return true;
+    } else {
+      // Trước ngày hẹn: không được phép
+      return false;
+    }
+  };
+
+  const checkTimeAndStartInstallation = (taskId, isReinstall = false) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) {
       notification.error({
@@ -185,24 +208,52 @@ const ContractorTasks = () => {
       });
       return;
     }
-  
+
     if (!isCurrentTimeMatchTaskTime(task)) {
+      const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
+      const now = currentTime;
+      const taskDate = dayjs(task.dateAppointment);
+
+      let message = isReinstall ? "Chưa đến thời gian lắp đặt lại" : "Chưa đến thời gian lắp đặt";
+      let description = "";
+
+      if (now.isBefore(taskDate, 'day')) {
+        // Trước ngày hẹn
+        description = `Chỉ được phép bắt đầu ${isReinstall ? 'lắp đặt lại' : 'lắp đặt'} từ ngày ${taskDate.format("DD/MM/YYYY")} lúc ${taskDateTime.format("HH:mm")} trở đi`;
+      } else if (now.isSame(taskDate, 'day')) {
+        // Cùng ngày nhưng chưa đến giờ
+        description = `Chỉ được phép bắt đầu ${isReinstall ? 'lắp đặt lại' : 'lắp đặt'} từ ${taskDateTime.format("HH:mm")} hôm nay trở đi`;
+      }
+
       notification.warning({
-        message: 'Chưa đến thời gian lắp đặt',
-        description: `Chỉ được phép bắt đầu lắp đặt từ ${dayjs(`${task.dateAppointment} ${task.timeAppointment}`).format('HH:mm')} ngày ${dayjs(task.dateAppointment).format('DD/MM/YYYY')}`,
+        message,
+        description,
         placement: 'topRight',
         duration: 5
       });
       return;
     }
 
+    const title = isReinstall ? 'Xác nhận bắt đầu lắp đặt lại' : 'Xác nhận bắt đầu lắp đặt';
+    const content = isReinstall
+      ? 'Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt lại cho khách hàng?'
+      : 'Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt cho khách hàng?';
+
     Modal.confirm({
-      title: 'Xác nhận bắt đầu lắp đặt',
-      content: 'Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt cho khách hàng?',
+      title,
+      content,
       okText: 'Xác nhận',
       cancelText: 'Hủy',
       onOk: () => updateTaskStatus(taskId, 8, 27) // 8 = Installing for task, 27 = Installing for order
     });
+  };
+
+  const handleStartInstallation = async (taskId) => {
+    checkTimeAndStartInstallation(taskId, false);
+  };
+
+  const handleStartReinstallation = async (taskId) => {
+    checkTimeAndStartInstallation(taskId, true);
   };
 
   const handleCompleteInstallation = async (taskId) => {
@@ -340,6 +391,17 @@ const ContractorTasks = () => {
             </Button>
           )}
 
+          {(record.status === 'ReInstall') && (
+            <Button
+              type="primary"
+              icon={<ToolOutlined />}
+              style={{ backgroundColor: '#ff7a00', borderColor: '#ff7a00' }}
+              onClick={() => handleStartReinstallation(record.id)}
+            >
+              Bắt đầu lắp đặt lại
+            </Button>
+          )}
+
           {(record.status === 'Installing' || record.status === 8) && (
             <Button
               type="primary"
@@ -460,6 +522,20 @@ const ContractorTasks = () => {
               }}
             >
               Bắt đầu lắp đặt
+            </Button>
+          ),
+          selectedTask && selectedTask.status === 'ReInstall' && (
+            <Button
+              key="start-reinstall"
+              type="primary"
+              icon={<ToolOutlined />}
+              style={{ backgroundColor: '#ff7a00', borderColor: '#ff7a00' }}
+              onClick={() => {
+                handleStartReinstallation(selectedTask.id);
+                closeDetailModal();
+              }}
+            >
+              Bắt đầu lắp đặt lại
             </Button>
           ),
           selectedTask && (selectedTask.status === 'Installing' || selectedTask.status === 8) && (

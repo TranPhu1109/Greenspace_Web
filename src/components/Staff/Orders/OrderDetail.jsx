@@ -121,7 +121,7 @@ const OrderDetail = () => {
         throw new Error("Tạo đơn vận chuyển thất bại");
       }
     } catch (error) {
-      message.error(error.message || "Có lỗi xảy ra khi xác nhận đơn hàng");
+      // message.error(error.message || "Có lỗi xảy ra khi xác nhận đơn hàng");
     }
   };
 

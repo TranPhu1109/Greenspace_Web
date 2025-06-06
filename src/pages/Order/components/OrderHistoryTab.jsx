@@ -25,8 +25,8 @@ import { ShoppingOutlined, LoadingOutlined } from "@ant-design/icons";
 import useOrderHistoryStore from "../../../stores/useOrderHistoryStore";
 import useProductStore from "../../../stores/useProductStore";
 import useAuthStore from "../../../stores/useAuthStore";
-import ComplaintModal from './ComplaintModal';
-import useComplaintStore from '../../../stores/useComplaintStore';
+import ComplaintModal from "./ComplaintModal";
+import useComplaintStore from "../../../stores/useComplaintStore";
 import { checkToxicContent } from "../../../services/moderationService";
 
 const { TextArea } = Input;
@@ -34,7 +34,14 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const OrderHistoryTab = ({ complaints: propsComplaints }) => {
-  const { orders, loading: ordersLoading, error, fetchOrderHistory, cancelOrder, confirmDelivery } = useOrderHistoryStore();
+  const {
+    orders,
+    loading: ordersLoading,
+    error,
+    fetchOrderHistory,
+    cancelOrder,
+    confirmDelivery,
+  } = useOrderHistoryStore();
   const { getProductById, createProductFeedback } = useProductStore();
   const { user } = useAuthStore();
   const { fetchUserComplaints } = useComplaintStore();
@@ -42,10 +49,12 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
   const [productDetails, setProductDetails] = React.useState({});
   const [feedbackForm] = Form.useForm();
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-  const [selectedProductForFeedback, setSelectedProductForFeedback] = useState(null);
+  const [selectedProductForFeedback, setSelectedProductForFeedback] =
+    useState(null);
   const [complaintModalVisible, setComplaintModalVisible] = useState(false);
   const [selectedComplaintType, setSelectedComplaintType] = useState(null);
-  const [selectedProductForComplaint, setSelectedProductForComplaint] = useState(null);
+  const [selectedProductForComplaint, setSelectedProductForComplaint] =
+    useState(null);
   const [complaints, setComplaints] = useState([]);
   const [complaintsLoading, setComplaintsLoading] = useState(false);
   const [dataInitialized, setDataInitialized] = useState(false);
@@ -65,9 +74,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
   // Update the map of orders with complaints for quick lookup
   const updateOrderComplaintsMap = (complaintsData) => {
     if (!complaintsData || !Array.isArray(complaintsData)) return;
-    
+
     const newMap = {};
-    complaintsData.forEach(complaint => {
+    complaintsData.forEach((complaint) => {
       if (complaint.orderId) {
         newMap[complaint.orderId] = true;
       }
@@ -84,13 +93,13 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       try {
         // Fetch order history first
         await fetchOrderHistory();
-        
+
         // Only fetch complaints if not provided via props and user is logged in
         let complaintsData = propsComplaints || [];
         if (!propsComplaints && user?.id) {
           setComplaintsLoading(true);
           try {
-            complaintsData = await fetchUserComplaints(user.id) || [];
+            complaintsData = (await fetchUserComplaints(user.id)) || [];
             setComplaints(complaintsData);
           } catch (err) {
             console.error("Error fetching complaints:", err);
@@ -98,10 +107,10 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
             setComplaintsLoading(false);
           }
         }
-        
+
         // Update the map of orders with complaints
         updateOrderComplaintsMap(complaintsData);
-        
+
         setDataInitialized(true);
       } catch (err) {
         console.error("Error initializing data:", err);
@@ -126,7 +135,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       );
 
       const uniqueProductIds = [...new Set(productIds)];
-      const missingProductIds = uniqueProductIds.filter(id => !productDetails[id]);
+      const missingProductIds = uniqueProductIds.filter(
+        (id) => !productDetails[id]
+      );
 
       if (missingProductIds.length === 0) {
         setIsDataFullyLoaded(true);
@@ -151,7 +162,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       if (hasNewData) {
         setProductDetails(newDetails);
       }
-      
+
       setIsDataFullyLoaded(true);
     };
 
@@ -160,11 +171,16 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
 
   // Refresh complaints after closing the complaint modal
   useEffect(() => {
-    if (!complaintModalVisible && user?.id && dataInitialized && !propsComplaints) {
+    if (
+      !complaintModalVisible &&
+      user?.id &&
+      dataInitialized &&
+      !propsComplaints
+    ) {
       const refreshComplaints = async () => {
         setComplaintsLoading(true);
         try {
-          const data = await fetchUserComplaints(user.id) || [];
+          const data = (await fetchUserComplaints(user.id)) || [];
           setComplaints(data);
           updateOrderComplaintsMap(data);
         } catch (err) {
@@ -176,7 +192,13 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
 
       refreshComplaints();
     }
-  }, [complaintModalVisible, user?.id, fetchUserComplaints, dataInitialized, propsComplaints]);
+  }, [
+    complaintModalVisible,
+    user?.id,
+    fetchUserComplaints,
+    dataInitialized,
+    propsComplaints,
+  ]);
 
   const getStatusTag = (status) => {
     const statusMap = {
@@ -201,7 +223,11 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       dataIndex: "id",
       key: "id",
       width: 140, // Adjusted width
-      render: (id) => <Text copyable={{ text: id }} strong>#{id.slice(0, 8)}...</Text>,
+      render: (id) => (
+        <Text copyable={{ text: id }} strong>
+          #{id.slice(0, 8)}...
+        </Text>
+      ),
     },
     {
       title: "Ngày đặt",
@@ -216,7 +242,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       key: "userName",
       width: 180, // Adjusted width
       render: (userName, record) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <Text strong>{userName || "--"}</Text>
           <Text type="secondary">{record.phone || "--"}</Text>
         </div>
@@ -227,18 +253,21 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       dataIndex: "address",
       key: "address",
       width: 260, // Adjusted width
-      render: (address) => address.replace(/\|/g, ', '),
+      render: (address) => address.replace(/\|/g, ", "),
     },
     {
       title: "Mã vận đơn",
       dataIndex: "deliveryCode",
       key: "deliveryCode",
       width: 190, // Adjusted width
-      render: (deliveryCode) => (
-        deliveryCode
-          ? <Text copyable strong type="success">{deliveryCode}</Text>
-          : '-----'
-      ),
+      render: (deliveryCode) =>
+        deliveryCode ? (
+          <Text copyable strong type="success">
+            {deliveryCode}
+          </Text>
+        ) : (
+          "-----"
+        ),
     },
     {
       title: "Phí ship",
@@ -271,9 +300,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
           <Tag
             color={color}
             style={{
-              whiteSpace: "normal",     // Cho phép xuống dòng
-              wordBreak: "break-word",  // Ngắt từ nếu quá dài
-              textAlign: "center",      // Căn giữa chữ trong thẻ tag
+              whiteSpace: "normal", // Cho phép xuống dòng
+              wordBreak: "break-word", // Ngắt từ nếu quá dài
+              textAlign: "center", // Căn giữa chữ trong thẻ tag
               lineHeight: 1.3,
               fontSize: 13,
               maxWidth: 90,
@@ -294,9 +323,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
 
         if (!isDataFullyLoaded) {
           return (
-            <Spin 
-              indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} 
-              size="small" 
+            <Spin
+              indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />}
+              size="small"
             />
           );
         }
@@ -318,7 +347,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                       try {
                         const success = await cancelOrder(record.id);
                         if (success) {
-                          message.success("Đã hủy đơn hàng và hoàn tiền thành công");
+                          message.success(
+                            "Đã hủy đơn hàng và hoàn tiền thành công"
+                          );
                           await fetchOrderHistory();
                         } else if (error) {
                           message.error(error);
@@ -340,7 +371,10 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                     type="primary"
                     block
                     onClick={async () => {
-                      const success = await confirmDelivery(record.id, record.deliveryCode);
+                      const success = await confirmDelivery(
+                        record.id,
+                        record.deliveryCode
+                      );
                       if (success) {
                         message.success("Đã xác nhận giao hàng thành công");
                         await fetchOrderHistory();
@@ -362,7 +396,9 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                     setPolicyModalVisible(true);
                   }}
                 >
-                  {hasExistingComplaint ? 'Đã gửi yêu cầu' : 'Yêu cầu trả/đổi hàng'}
+                  {hasExistingComplaint
+                    ? "Đã gửi yêu cầu"
+                    : "Yêu cầu trả/đổi hàng"}
                 </Button>
               </>
             )}
@@ -385,8 +421,18 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
           if (!product) {
             return (
               <Space>
-                <div style={{ width: 50, height: 50, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
-                  <ShoppingOutlined style={{ fontSize: 20, color: '#bbb' }} />
+                <div
+                  style={{
+                    width: 50,
+                    height: 50,
+                    backgroundColor: "#f5f5f5",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 4,
+                  }}
+                >
+                  <ShoppingOutlined style={{ fontSize: 20, color: "#bbb" }} />
                 </div>
                 <Space direction="vertical" size={0}>
                   <Text type="secondary">Đang tải thông tin sản phẩm...</Text>
@@ -405,11 +451,26 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                 <img
                   src={product.image.imageUrl}
                   alt={product.name}
-                  style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 4 }}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    objectFit: "cover",
+                    borderRadius: 4,
+                  }}
                 />
               ) : (
-                <div style={{ width: 50, height: 50, backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
-                  <ShoppingOutlined style={{ fontSize: 20, color: '#999' }} />
+                <div
+                  style={{
+                    width: 50,
+                    height: 50,
+                    backgroundColor: "#f0f0f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 4,
+                  }}
+                >
+                  <ShoppingOutlined style={{ fontSize: 20, color: "#999" }} />
                 </div>
               )}
               <Space direction="vertical" size={0}>
@@ -450,32 +511,55 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
         title: "Thao tác",
         render: (_, record) => {
           const orderStatus = record?.parentOrder?.status;
-          if (orderStatus === 9 || orderStatus === "9" || orderStatus === 10 || orderStatus === "10") {
+          const isFeedbackSubmitted = record?.parentOrder?.orderDetails?.find(
+            (item) => item.productId === record.productId
+          )?.isFeedBack;
+          console.log(record?.parentOrder);
+          console.log(isFeedbackSubmitted);
+          if (
+            orderStatus === 9 ||
+            orderStatus === "9" ||
+            orderStatus === 10 ||
+            orderStatus === "10"
+          ) {
             if (!isDataFullyLoaded) {
               return <Spin size="small" />;
             }
-            
-            return (
-              <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
-                <Button
-                  type="dashed"
-                  onClick={() => {
-                    const product = productDetails[record.productId];
-                    if (!product) {
-                      message.warning("Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.");
-                      return;
-                    }
-                    setSelectedProductForFeedback({
-                      ...record,
-                      productId: record.productId,
-                      product: product,
-                    });
-                  }}
+            if (!isFeedbackSubmitted) {
+              return (
+                <div
+                  style={{ display: "flex", gap: 10, flexDirection: "column" }}
                 >
-                  ✨ Đánh giá sản phẩm
-                </Button>
-              </div>
-            );
+                  <Button
+                    type="dashed"
+                    onClick={() => {
+                      const product = productDetails[record.productId];
+                      if (!product) {
+                        message.warning(
+                          "Không thể tải thông tin sản phẩm. Vui lòng thử lại sau."
+                        );
+                        return;
+                      }
+                      setSelectedProductForFeedback({
+                        ...record,
+                        orderId: record.parentOrder.id,
+                        productId: record.productId,
+                        product: product,
+                      });
+                    }}
+                  >
+                    ✨ Đánh giá sản phẩm
+                  </Button>
+                </div>
+              );
+            } else {
+              // Đã feedback: Hiển thị thông báo cảm ơn
+              return (
+                <div style={{ color: "green", fontWeight: 500, maxWidth: 200, textAlign: "center", margin: "0 auto" }}>
+                  🎉 Cảm ơn bạn đã gửi đánh giá. Ý kiến của bạn giúp chúng tôi ngày càng hoàn thiện hơn!
+                </div>
+              );
+            }
           }
           return null;
         },
@@ -527,6 +611,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
       await createProductFeedback({
         userId: user.id,
         productId: selectedProductForFeedback.productId,
+        orderId: selectedProductForFeedback.orderId,
         rating: values.rating,
         description: values.description,
       });
@@ -554,26 +639,30 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     }
   };
 
-  const isLoading = ordersLoading || complaintsLoading || !dataInitialized || !isDataFullyLoaded;
+  const isLoading =
+    ordersLoading ||
+    complaintsLoading ||
+    !dataInitialized ||
+    !isDataFullyLoaded;
 
   if (error) {
-    return (
-      <Alert
-        message="Lỗi"
-        description={error}
-        type="error"
-        showIcon
-      />
-    );
+    return <Alert message="Lỗi" description={error} type="error" showIcon />;
   }
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "300px" }}>
-        <Spin 
-          size="large" 
-          tip="Đang tải dữ liệu..." 
-          indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} 
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "300px",
+        }}
+      >
+        <Spin
+          size="large"
+          tip="Đang tải dữ liệu..."
+          indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
         />
       </div>
     );
@@ -583,9 +672,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     <div>
       <Row gutter={[0, 24]}>
         <Col span={24}>
-          <Space
-            style={{ width: "100%", justifyContent: "space-between" }}
-          >
+          <Space style={{ width: "100%", justifyContent: "space-between" }}>
             <Title level={4} style={{ margin: 0 }}>
               Lịch sử đặt sản phẩm
             </Title>
@@ -620,10 +707,12 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
             locale={{
               emptyText: (
                 <div style={{ padding: "24px 0" }}>
-                  <ShoppingOutlined style={{ fontSize: 24, marginBottom: 16 }} />
+                  <ShoppingOutlined
+                    style={{ fontSize: 24, marginBottom: 16 }}
+                  />
                   <p>Chưa có đơn hàng nào</p>
                 </div>
-              )
+              ),
             }}
           />
         </Col>
@@ -677,16 +766,20 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                   borderTopRightRadius: "8px",
                 }}
               />
-              <Descriptions
-                column={1}
-              >
-                <Descriptions.Item >
-                  <Text strong style={{ fontSize: "16px", textAlign: "center" }}>{selectedProductForFeedback.product.name}</Text>
+              <Descriptions column={1}>
+                <Descriptions.Item>
+                  <Text
+                    strong
+                    style={{ fontSize: "16px", textAlign: "center" }}
+                  >
+                    {selectedProductForFeedback.product.name}
+                  </Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Đơn giá">
-                  <Text type="success" strong>{
-                    selectedProductForFeedback.product.price?.toLocaleString()
-                  }đ</Text>
+                  <Text type="success" strong>
+                    {selectedProductForFeedback.product.price?.toLocaleString()}
+                    đ
+                  </Text>
                 </Descriptions.Item>
               </Descriptions>
             </Col>
@@ -699,9 +792,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                 <Form.Item
                   name="rating"
                   label="Đánh giá"
-                  rules={[
-                    { required: true, message: "Vui lòng chọn số sao" },
-                  ]}
+                  rules={[{ required: true, message: "Vui lòng chọn số sao" }]}
                 >
                   <Rate />
                 </Form.Item>
@@ -716,7 +807,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                     rows={4}
                     placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
+                      if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         feedbackForm.submit();
                       }
@@ -732,9 +823,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                     >
                       Gửi đánh giá
                     </Button>
-                    <Button
-                      onClick={() => setSelectedProductForFeedback(null)}
-                    >
+                    <Button onClick={() => setSelectedProductForFeedback(null)}>
                       Hủy
                     </Button>
                   </Space>
@@ -771,53 +860,82 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
         width={700}
         centered
       >
-        <div style={{
-          maxHeight: '60vh',
-          overflowY: 'auto',
-          paddingRight: 8,
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#d9d9d9 transparent',
-        }}>
-          <Card style={{ marginBottom: 16, backgroundColor: '#e6f7ff', borderColor: '#91d5ff' }}>
+        <div
+          style={{
+            maxHeight: "60vh",
+            overflowY: "auto",
+            paddingRight: 8,
+            scrollbarWidth: "thin",
+            scrollbarColor: "#d9d9d9 transparent",
+          }}
+        >
+          <Card
+            style={{
+              marginBottom: 16,
+              backgroundColor: "#e6f7ff",
+              borderColor: "#91d5ff",
+            }}
+          >
             <Title level={5}>📜 Chính sách Trả hàng & Hoàn tiền</Title>
             <Text type="secondary">
-              • Sản phẩm trả về phải còn nguyên vẹn, chưa sử dụng, còn đủ phụ kiện.<br />
-              • Hoàn tiền 100% với sản phẩm lỗi hoặc giao sai.<br />
-              • Không hỗ trợ hoàn tiền cho sản phẩm hư hỏng do sử dụng.<br />
-              • Xử lý hoàn tiền trong 3-7 ngày sau khi nhận sản phẩm.
+              • Sản phẩm trả về phải còn nguyên vẹn, chưa sử dụng, còn đủ phụ
+              kiện.
+              <br />
+              • Hoàn tiền 100% với sản phẩm lỗi hoặc giao sai.
+              <br />
+              • Không hỗ trợ hoàn tiền cho sản phẩm hư hỏng do sử dụng.
+              <br />• Xử lý hoàn tiền trong 3-7 ngày sau khi nhận sản phẩm.
             </Text>
           </Card>
 
-          <Card style={{ marginBottom: 16, backgroundColor: '#fff0f6', borderColor: '#ffadd2' }}>
+          <Card
+            style={{
+              marginBottom: 16,
+              backgroundColor: "#fff0f6",
+              borderColor: "#ffadd2",
+            }}
+          >
             <Title level={5}>🔄 Chính sách Đổi hàng</Title>
             <Text type="secondary">
-              • Đổi sản phẩm nếu lỗi kỹ thuật, giao nhầm, hỏng hóc.<br />
-              • Đổi sang sản phẩm cùng hoặc cao hơn giá trị.<br />
-              • Không đổi sản phẩm đã qua sử dụng hoặc thiếu phụ kiện.
+              • Đổi sản phẩm nếu lỗi kỹ thuật, giao nhầm, hỏng hóc.
+              <br />
+              • Đổi sang sản phẩm cùng hoặc cao hơn giá trị.
+              <br />• Không đổi sản phẩm đã qua sử dụng hoặc thiếu phụ kiện.
             </Text>
           </Card>
 
-          <Card style={{ backgroundColor: '#fefefe', border: '1px solid #d9d9d9', padding: 20 }}>
+          <Card
+            style={{
+              backgroundColor: "#fefefe",
+              border: "1px solid #d9d9d9",
+              padding: 20,
+            }}
+          >
             <Title level={5}>📦 Hướng dẫn Gửi Trả/Đổi Hàng</Title>
             <Space direction="vertical" size="small">
               <Text>1️⃣ Chuẩn bị sản phẩm còn mới, đủ hộp, phụ kiện.</Text>
-              <Text>2️⃣ Đóng gói bằng màng chống sốc, thùng carton chắc chắn.</Text>
+              <Text>
+                2️⃣ Đóng gói bằng màng chống sốc, thùng carton chắc chắn.
+              </Text>
               <Text>3️⃣ Ghi mã đơn hàng, số điện thoại vào trong gói hàng.</Text>
               <Text>4️⃣ Gửi hàng tới:</Text>
               <div style={{ paddingLeft: 16 }}>
-                <Text strong>Bộ phận Kho hàng GreenSpace</Text><br />
-                <Text>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, TP. Hồ Chí Minh</Text><br />
+                <Text strong>Bộ phận Kho hàng GreenSpace</Text>
+                <br />
+                <Text>7 Đ. D1, Long Thạnh Mỹ, Thủ Đức, TP. Hồ Chí Minh</Text>
+                <br />
                 <Text>Số điện thoại: 0909 999 888</Text>
               </div>
               <Text>5️⃣ Gửi hàng trong vòng 2 ngày từ khi gửi yêu cầu.</Text>
-              <Text type="danger">* Bắt buộc chụp ảnh sản phẩm và gói hàng trước khi gửi *</Text>
+              <Text type="danger">
+                * Bắt buộc chụp ảnh sản phẩm và gói hàng trước khi gửi *
+              </Text>
             </Space>
           </Card>
         </div>
       </Modal>
-
     </div>
   );
 };
 
-export default OrderHistoryTab; 
+export default OrderHistoryTab;
