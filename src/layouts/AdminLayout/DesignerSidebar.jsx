@@ -42,9 +42,9 @@ const DesignerSidebar = ({ collapsed }) => {
         selectedKeys={[getSelectedKey()]}
         defaultOpenKeys={collapsed ? [] : ['submenu-projects', 'submenu-designs']}
       >
-        {/* <Menu.Item key="/designer/dashboard" icon={<DashboardOutlined />}>
+        <Menu.Item key="/designer/dashboard" icon={<DashboardOutlined />}>
           <Link to="/designer/dashboard">Dashboard</Link>
-        </Menu.Item> */}
+        </Menu.Item>
         
         <SubMenu key="submenu-projects" icon={<ProjectOutlined />} title="Dự án">
           <Menu.Item key="/designer/tasks">

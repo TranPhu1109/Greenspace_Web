@@ -1,4 +1,5 @@
 import Dashboard from "../pages/Admin/Dashboard";
+import WorkTaskDashboard from "../pages/WorkTask/Dashboard";
 import OrdersList from "../components/Staff/Orders/OrdersList";
 import OrderDetail from "../components/Staff/Orders/OrderDetail";
 import DesignOrdersList from "../pages/Admin/DesignOrders/DesignOrdersList";
@@ -21,6 +22,7 @@ import BlogDetail from "@/components/Staff/Blog/BlogDetail";
 import DesignerScheduleManager from "@/components/Staff/DesignerSchedule/DesignerScheduleManager";
 import ComplaintsList from "@/components/Staff/Complaints/ComplaintsList";
 import ContractorSchedule from "@/components/Staff/ContractorSchedule/ContractorSchedule";
+import ExternalProductList from "@/components/Staff/ExternalProduct/ExternalProductList";
 
 export const staffRoutes = {
   path: "/staff",
@@ -124,6 +126,10 @@ export const staffRoutes = {
           element: <Categories />,
         },
       ],
+    },
+    {
+      path: "external-products",
+      element: <ExternalProductList />,
     },
     {
       path: "feedback",

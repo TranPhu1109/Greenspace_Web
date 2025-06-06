@@ -1,4 +1,5 @@
 import Dashboard from "../pages/Admin/Dashboard";
+import WorkTaskDashboard from "../pages/WorkTask/Dashboard";
 import DesignerScheduleView from "../pages/Admin/Designer/Schedule/DesignerScheduleView";
 import TaskList from "@/components/Designer/Tasks/TaskList";
 import TaskDetail from "@/components/Designer/Tasks/TaskDetail";
@@ -11,11 +12,11 @@ export const designerRoutes = {
   children: [
     {
       index: true,
-      element: <Dashboard />,
+      element: <WorkTaskDashboard />,
     },
     {
       path: "dashboard",
-      element: <Dashboard />,
+      element: <WorkTaskDashboard />,
     },
     {
       path: "designs",
