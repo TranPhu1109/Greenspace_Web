@@ -456,6 +456,7 @@ const useProductStore = create(persist((set, get) => ({
       const response = await axios.post("/api/productfeedback", {
         userId: feedbackData.userId,
         productId: feedbackData.productId,
+        orderId: feedbackData.orderId,
         rating: feedbackData.rating,
         description: feedbackData.description
       });
