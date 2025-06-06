@@ -1062,7 +1062,7 @@ const OrderHistoryDetail = () => {
 
               {/* Design Images Section */}
               {!selectedOrder.isCustom &&
-                selectedOrder.status !== "Pending" && (
+                (selectedOrder.status !== "Pending" || selectedOrder.status !== "OrderCancelled") && (
                   <Card
                     title={
                       <Space>
