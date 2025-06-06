@@ -24,19 +24,20 @@ const useOrderHistoryStore = create((set) => ({
     }
   },
 
-  fetchOrderHistorySilent: async () => {
+  fetchOrderHistorySilent: async (componentId = null) => {
     try {
       const response = await axios.get('/api/orderproducts/user?pageNumber=0&pageSize=100');
       set((state) => {
         // Chỉ cập nhật nếu dữ liệu thay đổi
         if (JSON.stringify(state.orders) !== JSON.stringify(response.data)) {
+          console.log(`[${componentId || 'OrderHistory'}] Silent fetch: Data updated`);
           return { orders: response.data };
         }
         return {};
       });
       return response.data;
     } catch (error) {
-      console.error("Silent fetch failed:", error);
+      console.error(`[${componentId || 'OrderHistory'}] Silent fetch failed:`, error);
       return [];
     }
   },

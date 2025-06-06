@@ -18,7 +18,7 @@ import {
   DatePicker,
   TimePicker,
   Input,
-  Select
+  Select,
 } from "antd";
 import { format } from "date-fns";
 import dayjs from "dayjs";
@@ -35,10 +35,12 @@ import {
   ToolOutlined,
   CheckOutlined,
   SearchOutlined,
-  FilterOutlined
+  FilterOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import api from "@/api/api";
 import useNotificationStore from "@/stores/useNotificationStore";
+import signalRService from "@/services/signalRService";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -53,7 +55,8 @@ const ServiceOrderHistory = () => {
     loading,
     error,
     getServiceOrdersNoUsingIdea,
-    cancelServiceOrder
+    getServiceOrdersNoUsingIdeaSilent,
+    cancelServiceOrder,
   } = useServiceOrderStore();
   const { notifications, markAsRead } = useNotificationStore();
   const [localError, setLocalError] = useState(null);
@@ -65,13 +68,17 @@ const ServiceOrderHistory = () => {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [reinstallForm] = Form.useForm();
   const [reinstallLoading, setReinstallLoading] = useState(false);
+
   const [allOrders, setAllOrders] = useState([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
   });
+
+  // Component ID for SignalR tracking
+  const componentId = useRef("service-order-history");
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -91,16 +98,52 @@ const ServiceOrderHistory = () => {
     fetchOrders();
   }, [user?.id, getServiceOrdersNoUsingIdea]);
 
+  // SignalR integration for real-time updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const initSignalR = async () => {
+      try {
+        
+
+        // Kết nối SignalR
+        const connection = await signalRService.startConnection();
+
+        // Đăng ký listener khi có service order cập nhật
+        signalRService.on("messageReceived", async () => {
+          // Sử dụng silent fetch để không làm re-render loading state
+          const updatedOrders = await getServiceOrdersNoUsingIdeaSilent(
+            user.id,
+            componentId.current
+          );
+        });
+      } catch (err) {
+        console.error(
+          `[${componentId.current}] ❌ Không thể kết nối SignalR`,
+          err
+        );
+      }
+    };
+
+    initSignalR();
+
+    return () => {
+      console.log(`[${componentId.current}] Cleaning up SignalR connection`);
+      signalRService.off("messageReceived");
+      signalRService.stopConnection();
+    };
+  }, [user?.id, getServiceOrdersNoUsingIdeaSilent, serviceOrders?.length]);
+
   const updatedOrderIds = notifications
-    .filter(n => !n.isSeen)
-    .map(n => {
+    .filter((n) => !n.isSeen)
+    .map((n) => {
       const match = n.content.match(/Mã đơn\s*:\s*([a-f0-9-]{36})/i);
       return match?.[1];
     })
     .filter(Boolean);
 
   const markNotificationByOrderId = async (orderId) => {
-    const relatedNotification = notifications.find(n => {
+    const relatedNotification = notifications.find((n) => {
       const match = n.content.match(/Mã đơn\s*:\s*([a-f0-9-]{36})/i);
       return match?.[1] === orderId && !n.isSeen;
     });
@@ -112,20 +155,20 @@ const ServiceOrderHistory = () => {
 
   // Apply both filters and get the filtered data
   const getFilteredOrders = () => {
-    let filtered = [...allOrders];
+    // Use serviceOrders from store instead of allOrders
+    const ordersToFilter = serviceOrders || [];
+    let filtered = [...ordersToFilter];
 
     // Apply search by ID if keyword exists
     if (searchKeyword) {
-      filtered = filtered.filter(order =>
+      filtered = filtered.filter((order) =>
         order.id?.toLowerCase().includes(searchKeyword.toLowerCase())
       );
     }
 
     // Apply status filter if selected
     if (statusFilter) {
-      filtered = filtered.filter(order =>
-        order.status === statusFilter
-      );
+      filtered = filtered.filter((order) => order.status === statusFilter);
     }
 
     return filtered;
@@ -136,39 +179,40 @@ const ServiceOrderHistory = () => {
 
   // Handle search by order ID
   const handleSearch = (value) => {
-    const keyword = value.trim().toLowerCase().replace('#', '');
+    const keyword = value.trim().toLowerCase().replace("#", "");
     setSearchKeyword(keyword);
-    setPagination(prev => ({ ...prev, current: 1 }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   // Handle filter by status
   const handleStatusFilter = (value) => {
     setStatusFilter(value);
-    setPagination(prev => ({ ...prev, current: 1 }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   // Clear all filters
   const clearFilters = () => {
-    setSearchKeyword('');
+    setSearchKeyword("");
     setStatusFilter(null);
-    setPagination(prev => ({ ...prev, current: 1 }));
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   const handleCancelOrder = (orderId) => {
     confirm({
-      title: 'Xác nhận hủy đơn hàng',
+      title: "Xác nhận hủy đơn hàng",
       icon: <ExclamationCircleOutlined />,
-      content: 'Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.',
-      okText: 'Hủy đơn hàng',
-      okType: 'danger',
-      cancelText: 'Hủy',
+      content:
+        "Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.",
+      okText: "Hủy đơn hàng",
+      okType: "danger",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
           setCancellingOrderId(orderId);
           await cancelServiceOrder(orderId);
-          message.success('Đã hủy đơn hàng thành công');
+          message.success("Đã hủy đơn hàng thành công");
         } catch (err) {
-          message.error(err.message || 'Không thể hủy đơn hàng');
+          message.error(err.message || "Không thể hủy đơn hàng");
         } finally {
           setCancellingOrderId(null);
         }
@@ -178,43 +222,50 @@ const ServiceOrderHistory = () => {
 
   const handleCompleteInstallation = async (orderId, worktaskId) => {
     confirm({
-      title: 'Xác nhận hoàn thành đơn hàng',
-      content: 'Bạn có chắc chắn muốn xác nhận đơn hàng đã được lắp đặt hoàn tất và hài lòng?',
-      icon: <CheckOutlined style={{ color: '#52c41a' }} />,
-      okText: 'Xác nhận',
-      cancelText: 'Hủy',
+      title: "Xác nhận hoàn thành đơn hàng",
+      content:
+        "Bạn có chắc chắn muốn xác nhận đơn hàng đã được lắp đặt hoàn tất và hài lòng?",
+      icon: <CheckOutlined style={{ color: "#52c41a" }} />,
+      okText: "Xác nhận",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
           setProcessingOrder(orderId);
 
           // First update order status to Successfully (31)
-          const orderResponse = await api.put(`/api/serviceorder/status/${orderId}`, {
-            status: 31, // Successfully
-            reportManger: "",
-            reportAccoutant: ""
-          });
+          const orderResponse = await api.put(
+            `/api/serviceorder/status/${orderId}`,
+            {
+              status: 31, // Successfully
+              reportManger: "",
+              reportAccoutant: "",
+            }
+          );
 
           // Find the order to get work tasks and other information
-          const order = serviceOrders.find(order => order.id === orderId);
+          const order = serviceOrders.find((order) => order.id === orderId);
 
           // Find most recent workTask if available
           if (order?.workTasks && order.workTasks.length > 0) {
             // Sort by creationDate (newest first)
-            const sortedTasks = [...order.workTasks].sort((a, b) =>
-              new Date(b.creationDate) - new Date(a.creationDate)
+            const sortedTasks = [...order.workTasks].sort(
+              (a, b) => new Date(b.creationDate) - new Date(a.creationDate)
             );
 
             const latestTask = sortedTasks[0];
 
             // Update the latest task to Completed (6)
-            const taskResponse = await api.put(`/api/worktask/${latestTask.id}`, {
-              serviceOrderId: orderId,
-              userId: latestTask.userId,
-              dateAppointment: order.contructionDate,
-              timeAppointment: order.contructionTime,
-              status: 6, // Completed
-              note: "Khách hàng đã xác nhận hoàn thành lắp đặt và hài lòng với sản phẩm" // Standard completion message
-            });
+            const taskResponse = await api.put(
+              `/api/worktask/${latestTask.id}`,
+              {
+                serviceOrderId: orderId,
+                userId: latestTask.userId,
+                dateAppointment: order.contructionDate,
+                timeAppointment: order.contructionTime,
+                status: 6, // Completed
+                note: "Khách hàng đã xác nhận hoàn thành lắp đặt và hài lòng với sản phẩm", // Standard completion message
+              }
+            );
           }
           // Fallback to using worktaskId if workTasks array not available
           else if (worktaskId) {
@@ -224,16 +275,16 @@ const ServiceOrderHistory = () => {
               dateAppointment: order.contructionDate,
               timeAppointment: order.contructionTime,
               status: 6, // Completed
-              note: "Khách hàng đã xác nhận hoàn thành lắp đặt và hài lòng với sản phẩm" // Standard completion message
+              note: "Khách hàng đã xác nhận hoàn thành lắp đặt và hài lòng với sản phẩm", // Standard completion message
             });
           }
 
-          // Refresh service orders
-          await getServiceOrdersNoUsingIdea(user.id);
+          // Refresh service orders using silent fetch
+          await getServiceOrdersNoUsingIdeaSilent(user.id, componentId.current);
 
-          message.success('Xác nhận hoàn thành đơn hàng thành công');
+          message.success("Xác nhận hoàn thành đơn hàng thành công");
         } catch (err) {
-          message.error(err.message || 'Không thể hoàn thành đơn hàng');
+          message.error(err.message || "Không thể hoàn thành đơn hàng");
         } finally {
           setProcessingOrder(null);
         }
@@ -248,12 +299,12 @@ const ServiceOrderHistory = () => {
 
     // Set default date/time values based on current time
     const today = dayjs();
-    const defaultDate = today.add(2, 'day'); // Mặc định là 2 ngày sau ngày hiện tại
-    const defaultTime = dayjs('09:00', 'HH:mm');
+    const defaultDate = today.add(2, "day"); // Mặc định là 2 ngày sau ngày hiện tại
+    const defaultTime = dayjs("09:00", "HH:mm");
 
     reinstallForm.setFieldsValue({
       date: defaultDate,
-      time: defaultTime
+      time: defaultTime,
     });
 
     setReinstallModalVisible(true);
@@ -271,36 +322,42 @@ const ServiceOrderHistory = () => {
       setReinstallLoading(true);
 
       // Format the date and time for API
-      const contructionDate = values.date.format('YYYY-MM-DD');
-      const contructionTime = values.time.format('HH:mm:00'); // Format giống DeliveryScheduler
+      const contructionDate = values.date.format("YYYY-MM-DD");
+      const contructionTime = values.time.format("HH:mm:00"); // Format giống DeliveryScheduler
       const reason = values.reason; // Get reason from form
 
       // Step 1: Set construction date and time
-      const contructorResponse = await api.put(`/api/serviceorder/contructor/${selectedOrderId}`, {
-        contructionDate: contructionDate,
-        contructionTime: contructionTime,
-        contructionPrice: 0
-      });
+      const contructorResponse = await api.put(
+        `/api/serviceorder/contructor/${selectedOrderId}`,
+        {
+          contructionDate: contructionDate,
+          contructionTime: contructionTime,
+          contructionPrice: 0,
+        }
+      );
 
       if (contructorResponse.status !== 200) {
-        throw new Error('Không thể cập nhật thời gian lắp đặt lại');
+        throw new Error("Không thể cập nhật thời gian lắp đặt lại");
       }
 
       // Step 2: Update order status to ReInstall (29)
-      const orderResponse = await api.put(`/api/serviceorder/status/${selectedOrderId}`, {
-        status: 29, // ReInstall
-        reportManger: "",
-        reportAccoutant: ""
-      });
+      const orderResponse = await api.put(
+        `/api/serviceorder/status/${selectedOrderId}`,
+        {
+          status: 29, // ReInstall
+          reportManger: "",
+          reportAccoutant: "",
+        }
+      );
 
       // Find the order to get work tasks and other information
-      const order = serviceOrders.find(order => order.id === selectedOrderId);
+      const order = serviceOrders.find((order) => order.id === selectedOrderId);
 
       // Step 3: Find most recent workTask and update it to ReInstall (10)
       if (order?.workTasks && order.workTasks.length > 0) {
         // Sort by creationDate (newest first)
-        const sortedTasks = [...order.workTasks].sort((a, b) =>
-          new Date(b.creationDate) - new Date(a.creationDate)
+        const sortedTasks = [...order.workTasks].sort(
+          (a, b) => new Date(b.creationDate) - new Date(a.creationDate)
         );
 
         const latestTask = sortedTasks[0];
@@ -311,7 +368,7 @@ const ServiceOrderHistory = () => {
           dateAppointment: contructionDate,
           timeAppointment: contructionTime,
           status: 10, // ReInstall
-          note: reason // Use the reason provided in the form
+          note: reason, // Use the reason provided in the form
         });
       }
       // Fallback to using workTaskId if workTasks array not available
@@ -322,19 +379,19 @@ const ServiceOrderHistory = () => {
           dateAppointment: contructionDate,
           timeAppointment: contructionTime,
           status: 10, // ReInstall
-          note: reason // Use the reason provided in the form
+          note: reason, // Use the reason provided in the form
         });
       }
 
-      // Refresh service orders
-      await getServiceOrdersNoUsingIdea(user.id);
+      // Refresh service orders using silent fetch
+      await getServiceOrdersNoUsingIdeaSilent(user.id, componentId.current);
 
-      message.success('Đã gửi yêu cầu lắp đặt lại thành công');
+      message.success("Đã gửi yêu cầu lắp đặt lại thành công");
       setReinstallModalVisible(false);
       setSelectedOrderId(null);
       setSelectedTaskId(null);
     } catch (err) {
-      message.error(err.message || 'Không thể gửi yêu cầu lắp đặt lại');
+      message.error(err.message || "Không thể gửi yêu cầu lắp đặt lại");
     } finally {
       setReinstallLoading(false);
     }
@@ -346,14 +403,17 @@ const ServiceOrderHistory = () => {
 
   // Function to scroll to top of table
   const scrollToTop = () => {
-    const tableContainer = document.getElementById('service-orders-table');
+    const tableContainer = document.getElementById("service-orders-table");
     if (tableContainer) {
       const yOffset = -120; // Adjust this value to account for header or other fixed elements
-      const y = tableContainer.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      const y =
+        tableContainer.getBoundingClientRect().top +
+        window.pageYOffset +
+        yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
     } else {
       // Fallback
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -374,7 +434,10 @@ const ServiceOrderHistory = () => {
       <Layout>
         <Header />
         <Content>
-          <div className="container mx-auto px-4 py-8" style={{ marginTop: "200px" }}>
+          <div
+            className="container mx-auto px-4 py-8"
+            style={{ marginTop: "200px" }}
+          >
             <Alert
               type="error"
               message="Lỗi"
@@ -473,23 +536,23 @@ const ServiceOrderHistory = () => {
 
   // Create status options for the filter dropdown
   const statusOptions = [
-    { value: 'Pending', label: 'Chờ xử lý' },
-    { value: 'ConsultingAndSketching', label: 'Đang tư vấn & phác thảo' },
-    { value: 'DeterminingDesignPrice', label: 'Đang xác định giá thiết kế' },
-    { value: 'DepositSuccessful', label: 'Đặt cọc thành công' },
-    { value: 'AssignToDesigner', label: 'Đang trong quá trình thiết kế' },
-    { value: 'DeterminingMaterialPrice', label: 'Đang xác định giá vật liệu' },
-    { value: 'DoneDesign', label: 'Hoàn thành thiết kế' },
-    { value: 'PaymentSuccess', label: 'Thanh toán thành công' },
-    { value: 'Processing', label: 'Đang xử lý' },
-    { value: 'PickedPackageAndDelivery', label: 'Đang giao hàng' },
-    { value: 'DeliveryFail', label: 'Giao hàng thất bại' },
-    { value: 'DeliveredSuccessfully', label: 'Đã giao hàng thành công' },
-    { value: 'Installing', label: 'Đang lắp đặt' },
-    { value: 'DoneInstalling', label: 'Đã lắp đặt xong' },
-    { value: 'ReInstall', label: 'Yêu cầu lắp đặt lại' },
-    { value: 'OrderCancelled', label: 'Đã hủy' },
-    { value: 'Successfully', label: 'Hoàn tất' },
+    { value: "Pending", label: "Chờ xử lý" },
+    { value: "ConsultingAndSketching", label: "Đang tư vấn & phác thảo" },
+    { value: "DeterminingDesignPrice", label: "Đang xác định giá thiết kế" },
+    { value: "DepositSuccessful", label: "Đặt cọc thành công" },
+    { value: "AssignToDesigner", label: "Đang trong quá trình thiết kế" },
+    { value: "DeterminingMaterialPrice", label: "Đang xác định giá vật liệu" },
+    { value: "DoneDesign", label: "Hoàn thành thiết kế" },
+    { value: "PaymentSuccess", label: "Thanh toán thành công" },
+    { value: "Processing", label: "Đang xử lý" },
+    { value: "PickedPackageAndDelivery", label: "Đang giao hàng" },
+    { value: "DeliveryFail", label: "Giao hàng thất bại" },
+    { value: "DeliveredSuccessfully", label: "Đã giao hàng thành công" },
+    { value: "Installing", label: "Đang lắp đặt" },
+    { value: "DoneInstalling", label: "Đã lắp đặt xong" },
+    { value: "ReInstall", label: "Yêu cầu lắp đặt lại" },
+    { value: "OrderCancelled", label: "Đã hủy" },
+    { value: "Successfully", label: "Hoàn tất" },
   ];
 
   const columns = [
@@ -498,9 +561,7 @@ const ServiceOrderHistory = () => {
       dataIndex: "id",
       key: "id",
       width: 150,
-      render: (id) => (
-        <Text copyable={{ text: id }}>#{id.slice(0, 8)}</Text>
-      ),
+      render: (id) => <Text copyable={{ text: id }}>#{id.slice(0, 8)}</Text>,
     },
     {
       title: "Ngày tạo",
@@ -512,7 +573,9 @@ const ServiceOrderHistory = () => {
         return (
           <div>
             <div>{format(dateObj, "dd/MM/yyyy")}</div>
-            <div style={{ color: '#888', fontSize: '12px' }}>{format(dateObj, "HH:mm")}</div>
+            <div style={{ color: "#888", fontSize: "12px" }}>
+              {format(dateObj, "HH:mm")}
+            </div>
           </div>
         );
       },
@@ -543,7 +606,11 @@ const ServiceOrderHistory = () => {
       render: (status) => (
         <Tag
           color={getStatusColor(status)}
-          style={{ maxWidth: '120px', whiteSpace: 'normal', wordBreak: 'break-word' }}
+          style={{
+            maxWidth: "120px",
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+          }}
         >
           {getStatusText(status)}
         </Tag>
@@ -556,7 +623,7 @@ const ServiceOrderHistory = () => {
       render: (_, record) => {
         const items = [
           {
-            key: 'view',
+            key: "view",
             label: (
               <Space
                 onClick={async () => {
@@ -572,9 +639,9 @@ const ServiceOrderHistory = () => {
         ];
 
         // Add cancel option for pending orders
-        if (record.status === 'Pending') {
+        if (record.status === "Pending") {
           items.push({
-            key: 'cancel',
+            key: "cancel",
             label: (
               <Space onClick={() => handleCancelOrder(record.id)}>
                 <ExclamationCircleOutlined />
@@ -586,22 +653,30 @@ const ServiceOrderHistory = () => {
         }
 
         // Add complete installation and reinstall options for DoneInstalling orders
-        if (record.status === 'DoneInstalling' || record.status === 28) {
+        if (record.status === "DoneInstalling" || record.status === 28) {
           items.push({
-            key: 'complete',
+            key: "complete",
             label: (
-              <Space onClick={() => handleCompleteInstallation(record.id, record.worktaskId)}>
+              <Space
+                onClick={() =>
+                  handleCompleteInstallation(record.id, record.worktaskId)
+                }
+              >
                 <CheckOutlined />
                 <span>Xác nhận hoàn thành</span>
               </Space>
             ),
-            style: { color: '#52c41a' },
+            style: { color: "#52c41a" },
           });
 
           items.push({
-            key: 'reinstall',
+            key: "reinstall",
             label: (
-              <Space onClick={() => handleRequestReinstall(record.id, record.worktaskId)}>
+              <Space
+                onClick={() =>
+                  handleRequestReinstall(record.id, record.worktaskId)
+                }
+              >
                 <ToolOutlined />
                 <span>Yêu cầu lắp đặt lại</span>
               </Space>
@@ -614,14 +689,19 @@ const ServiceOrderHistory = () => {
           <div onClick={(e) => e.stopPropagation()}>
             <Dropdown
               menu={{ items }}
-              trigger={['click']}
+              trigger={["click"]}
               placement="bottomRight"
-              disabled={cancellingOrderId === record.id || processingOrder === record.id}
+              disabled={
+                cancellingOrderId === record.id || processingOrder === record.id
+              }
             >
               <Button
                 type="text"
                 icon={<MoreOutlined />}
-                loading={cancellingOrderId === record.id || processingOrder === record.id}
+                loading={
+                  cancellingOrderId === record.id ||
+                  processingOrder === record.id
+                }
               />
             </Dropdown>
           </div>
@@ -632,23 +712,26 @@ const ServiceOrderHistory = () => {
 
   // Disable dates before today + 2 days (match DeliveryScheduler logic)
   const disabledDate = (current) => {
-    const minAllowedDate = dayjs().add(2, 'day');
-    return current && current < minAllowedDate.startOf('day');
+    const minAllowedDate = dayjs().add(2, "day");
+    return current && current < minAllowedDate.startOf("day");
   };
 
   return (
     <Layout>
       <Header />
       <Content>
-        <div className="container mx-auto px-4 py-8" style={{ marginTop: "200px" }}>
+        <div
+          className="container mx-auto px-4 py-8"
+          style={{ marginTop: "200px" }}
+        >
           <Breadcrumb
             items={[
               {
                 title: (
                   <Link to="/Home">
                     <Space>
-                      <HomeOutlined style={{ fontSize: '16px' }} />
-                      <span style={{ fontSize: '16px' }}>Trang chủ</span>
+                      <HomeOutlined style={{ fontSize: "16px" }} />
+                      <span style={{ fontSize: "16px" }}>Trang chủ</span>
                     </Space>
                   </Link>
                 ),
@@ -656,30 +739,37 @@ const ServiceOrderHistory = () => {
               {
                 title: (
                   <Space>
-                    <HistoryOutlined style={{ fontSize: '16px' }} />
-                    <span style={{ fontSize: '16px' }}>Lịch sử đơn đặt thiết kế mới</span>
+                    <HistoryOutlined style={{ fontSize: "16px" }} />
+                    <span style={{ fontSize: "16px" }}>
+                      Lịch sử đơn đặt thiết kế mới
+                    </span>
                   </Space>
                 ),
               },
             ]}
             style={{
-              marginBottom: '16px',
-              padding: '12px 16px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              marginBottom: "16px",
+              padding: "12px 16px",
+              backgroundColor: "#fff",
+              borderRadius: "8px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             }}
           />
-          <div id="service-orders-section" style={{
-            marginBottom: "16px"
-          }}>
-            <div style={{
-              marginBottom: 16,
-              padding: '12px 16px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
-            }}>
+          <div
+            id="service-orders-section"
+            style={{
+              marginBottom: "16px",
+            }}
+          >
+            <div
+              style={{
+                marginBottom: 16,
+                padding: "12px 16px",
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
+              }}
+            >
               <Space wrap size="middle">
                 <Input.Search
                   prefix={<SearchOutlined />}
@@ -721,35 +811,36 @@ const ServiceOrderHistory = () => {
               rowKey="id"
               tableLayout="fixed"
               locale={{
-                emptyText: filteredOrders.length === 0
-                  ? (searchKeyword || statusFilter)
-                    ? 'Không tìm thấy đơn hàng phù hợp với điều kiện lọc'
-                    : 'Bạn chưa có đơn đặt thiết kế nào'
-                  : undefined
+                emptyText:
+                  filteredOrders.length === 0
+                    ? searchKeyword || statusFilter
+                      ? "Không tìm thấy đơn hàng phù hợp với điều kiện lọc"
+                      : "Bạn chưa có đơn đặt thiết kế nào"
+                    : undefined,
               }}
               pagination={{
                 current: pagination.current,
                 pageSize: pagination.pageSize,
                 total: filteredOrders.length,
                 showSizeChanger: true,
-                pageSizeOptions: ['5', '10', '20', '50'],
+                pageSizeOptions: ["5", "10", "20", "50"],
                 onChange: (page, pageSize) => {
                   setPagination({ current: page, pageSize });
                   setTimeout(() => {
                     scrollToTop();
                   }, 100);
                 },
-                style: { marginRight: '16px' }
+                style: { marginRight: "16px" },
               }}
               className="shadow-md"
               onRow={(record) => ({
                 onClick: async (e) => {
                   const isClickingAction =
-                    e.target.tagName === 'BUTTON' ||
-                    e.target.closest('button') ||
-                    e.target.tagName === 'A' ||
-                    e.target.closest('a') ||
-                    e.target.closest('.ant-dropdown-trigger');
+                    e.target.tagName === "BUTTON" ||
+                    e.target.closest("button") ||
+                    e.target.tagName === "A" ||
+                    e.target.closest("a") ||
+                    e.target.closest(".ant-dropdown-trigger");
 
                   if (!isClickingAction) {
                     await markNotificationByOrderId(record.id); // ✅ update notification
@@ -758,9 +849,9 @@ const ServiceOrderHistory = () => {
                 },
                 style: updatedOrderIds.includes(record.id)
                   ? {
-                    backgroundColor: '#fff7e6', // Màu vàng nhạt cho dòng có thông báo mới
-                    transition: 'background-color 0.3s ease',
-                  }
+                      backgroundColor: "#fff7e6", // Màu vàng nhạt cho dòng có thông báo mới
+                      transition: "background-color 0.3s ease",
+                    }
                   : {},
               })}
             />
@@ -784,21 +875,24 @@ const ServiceOrderHistory = () => {
               message="Lưu ý về thời gian lắp đặt lại"
               description={
                 <Text>
-                  Để chuẩn bị sản phẩm và sắp xếp đội thi công, thời gian lắp đặt sớm nhất là sau 2 ngày kể từ ngày yêu cầu.
+                  Để chuẩn bị sản phẩm và sắp xếp đội thi công, thời gian lắp
+                  đặt sớm nhất là sau 2 ngày kể từ ngày yêu cầu.
                 </Text>
               }
               type="info"
               showIcon
-              style={{ marginBottom: '20px' }}
+              style={{ marginBottom: "20px" }}
             />
             <Form.Item
               name="date"
               label="Ngày lắp đặt lại"
-              rules={[{ required: true, message: 'Vui lòng chọn ngày lắp đặt lại!' }]}
+              rules={[
+                { required: true, message: "Vui lòng chọn ngày lắp đặt lại!" },
+              ]}
             >
               <DatePicker
                 format="DD/MM/YYYY"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
                 placeholder="Chọn ngày"
                 disabledDate={disabledDate}
               />
@@ -806,11 +900,13 @@ const ServiceOrderHistory = () => {
             <Form.Item
               name="time"
               label="Giờ lắp đặt lại"
-              rules={[{ required: true, message: 'Vui lòng chọn giờ lắp đặt lại!' }]}
+              rules={[
+                { required: true, message: "Vui lòng chọn giờ lắp đặt lại!" },
+              ]}
             >
               <TimePicker
                 format="HH:mm"
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
                 placeholder="Chọn giờ"
                 minuteStep={15}
               />
@@ -818,14 +914,16 @@ const ServiceOrderHistory = () => {
             <Form.Item
               name="reason"
               label="Lý do lắp đặt lại"
-              rules={[{ required: true, message: 'Vui lòng nhập lý do lắp đặt lại!' }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập lý do lắp đặt lại!" },
+              ]}
             >
               <TextArea
                 rows={4}
                 placeholder="Vui lòng nhập lý do cần lắp đặt lại"
               />
             </Form.Item>
-            <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
               <Space>
                 <Button onClick={handleReinstallCancel}>Hủy</Button>
                 <Button

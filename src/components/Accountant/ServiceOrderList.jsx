@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -15,6 +15,7 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import useAccountantStore from "../../stores/useAccountantStore";
+import signalRService from "../../services/signalRService";
 import dayjs from "dayjs";
 
 const ServiceOrderList = () => {
@@ -29,15 +30,7 @@ const ServiceOrderList = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [allOrders, setAllOrders] = useState([]);
 
-  useEffect(() => {
-    loadAllOrders();
-  }, []);
-
-  useEffect(() => {
-    filterOrders();
-  }, [filterStatus, serviceOrders, materialPriceOrders]);
-
-  const loadAllOrders = async () => {
+  const loadAllOrders = useCallback(async () => {
     try {
       await Promise.all([
         // fetchServiceOrders(),
@@ -46,7 +39,36 @@ const ServiceOrderList = () => {
     } catch (error) {
       // message.error("Không thể tải danh sách đơn hàng");
     }
-  };
+  }, [fetchMaterialPriceOrders]);
+
+  useEffect(() => {
+    loadAllOrders();
+  }, [loadAllOrders]);
+
+  useEffect(() => {
+    filterOrders();
+  }, [filterStatus, serviceOrders, materialPriceOrders]);
+
+  // SignalR integration
+  useEffect(() => {
+    const initializeSignalR = async () => {
+      try {
+        await signalRService.startConnection();
+
+        signalRService.on("messageReceived", () => {
+          loadAllOrders();
+        });
+      } catch (error) {
+        // Silent fail for SignalR connection
+      }
+    };
+
+    initializeSignalR();
+
+    return () => {
+      signalRService.off("messageReceived");
+    };
+  }, [loadAllOrders]);
 
   const filterOrders = () => {
     let filteredOrders = [];

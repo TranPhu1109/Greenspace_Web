@@ -140,39 +140,59 @@ export function getFormattedNotificationContent(notification) {
     
       return `Đơn thiết kế #${orderId}\nĐã cập nhật trạng thái: ${emoji} ${statusText}`;
     }    
-    case "order_update_staff": {
-      const orderIdMatch = notification.content.match(
-        /Mã đơn\s*:\s*([a-f0-9-]+)/i
-      );
-      const orderStatusMatch = notification.content.match(
-        /Trạng thái đơn\s*:\s*(\w+)/i
-      );
-      const orderStatus = orderStatusMatch?.[1] || "";
-      const orderId = orderIdMatch?.[1] || "";
-      const statusText = orderStatusDescriptionMap[orderStatus] || "Trạng thái không xác định";
+    // case "order_update_staff": {
+    //   const orderIdMatch = notification.content.match(
+    //     /Mã đơn\s*:\s*([a-f0-9-]+)/i
+    //   );
+    //   const orderStatusMatch = notification.content.match(
+    //     /Trạng thái đơn\s*:\s*(\w+)/i
+    //   );
+    //   const orderStatusStaff = (orderStatusMatch?.[1] || "").trim();
+    //   console.log("orderstatus",orderStatusStaff);
+    //   const orderId = orderIdMatch?.[1] || "";
+    //   const statusText = orderStatusDescriptionMap[orderStatusStaff] || "Trạng thái không xác định";
+      
+    //   // Chọn emoji phù hợp theo status
+    //   const emojiMap = {
+    //     Pending: "🕒",                        // Chờ xử lý
+    //     ConsultingAndSketching: "📝",         // Đang tư vấn & phác thảo
+    //     DeterminingDesignPrice: "💲",         // Đang xác định giá thiết kế
+    //     DepositSuccessful: "💰",              // Đặt cọc thành công
+    //     AssignToDesigner: "✍️",               // Đã giao cho nhà thiết kế
+    //     DeterminingMaterialPrice: "📋",       // Đang xác định giá vật liệu
+    //     DoneDesign: "🎨",                     // Hoàn thành thiết kế
+    //     PaymentSuccess: "💳",                 // Thanh toán thành công
+    //     Processing: "🔄",                     // Đang xử lý
+    //     PickedPackageAndDelivery: "🚚",       // Đã lấy hàng & đang giao
+    //     DeliveryFail: "❌",                   // Giao hàng thất bại
+    //     ReDelivery: "🔁",                     // Giao lại
+    //     DeliveredSuccessfully: "📦",          // Đã giao hàng thành công
+    //     CompleteOrder: "✅",                  // Hoàn thành đơn hàng
+    //     OrderCancelled: "🛑",                 // Đơn hàng đã bị hủy
+    //     DesignPriceConfirm: "📑",             // Xác nhận giá thiết kế của manager
+    //     Refund: "🔄",                         // Đang hoàn tiền
+    //     DoneRefund: "💸",                     // Đã hoàn tiền xong
+    //     StopService: "⛔",                    // Dừng dịch vụ
+    //     ReConsultingAndSketching: "🔄📝",     // Phác thảo lại
+    //     ReDesign: "🔄🎨",                     // Thiết kế lại
+    //     WaitDeposit: "⏳💰",                  // Chờ đặt cọc
+    //     DoneDeterminingDesignPrice: "✅💲",   // Hoàn thành xác định giá thiết kế
+    //     DoneDeterminingMaterialPrice: "✅📋", // Hoàn thành xác định giá vật liệu
+    //     ReDeterminingDesignPrice: "🔄💲",     // Xác định lại giá thiết kế
+    //     ExchangeProdcut: "🔁📦",              // Đổi sản phẩm
+    //     WaitForScheduling: "📅",              // Chờ lên lịch
+    //     Installing: "🛠️",                    // Đang lắp đặt
+    //     DoneInstalling: "✅🛠️",               // Đã lắp đặt xong
+    //     ReInstall: "🔄🛠️",                   // Lắp đặt lại
+    //     CustomerConfirm: "🙋‍♂️",              // Khách hàng xác nhận
+    //     Successfully: "🎉",                   // Thành công
+    //     ReDetermineMaterialPrice: "🔄📋",     // Xác định lại giá vật liệu
+    //     MaterialPriceConfirmed: "👍📋"        // Đã xác nhận giá vật liệu
+    //   };      
+    //   const emoji = emojiMap[orderStatusStaff] || "ℹ️";
     
-      // Chọn emoji phù hợp theo status
-      const emojiMap = {
-        Pending: "🕒",
-        DepositSuccessful: "💰",
-        AssignToDesigner: "✍️",
-        DoneDesign: "🎨",
-        DoneInstalling: "🛠️",
-        DeliveredSuccessfully: "📦",
-        Successfully: "✅",
-        OrderCancelled: "❌",
-        Warning: "⚠️",
-        Refund: "🔄",
-        DoneRefund: "💸",
-        PaymentSuccess: "💰",
-        DoneDeterminingDesignPrice: "🎨",
-        DoneDeterminingMaterialPrice: "🎨",
-        MaterialPriceConfirmed: "🎨",
-      };
-      const emoji = emojiMap[orderStatus] || "ℹ️";
-    
-      return `Đơn thiết kế #${orderId}\nĐã cập nhật trạng thái: ${emoji} ${statusText}`;
-    }
+    //   return `Đơn thiết kế #${orderId}\nĐã cập nhật trạng thái: ${emoji} ${statusText}`;
+    // }
     case "warning":
       return "Cảnh báo: Có thay đổi quan trọng trong tiến trình đơn hàng hoặc thiết kế.";
     case "payment":
