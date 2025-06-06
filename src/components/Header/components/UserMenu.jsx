@@ -23,6 +23,7 @@ function UserMenu({ user }) {
 
 
   const rolesWithDashboard = ["staff", "manager", "designer", "accountant", "contructor", "admin"];
+  const rolesHideWallet = ["staff", "admin", "designer", "accountant", "contructor", "manager"];
 
   const userMenuItems = React.useMemo(() => {
     const items = [
@@ -32,13 +33,22 @@ function UserMenu({ user }) {
         label: "Thông tin tài khoản",
         onClick: () => navigate("/profile"),
       },
-      {
+      // {
+      //   key: "userwallets",
+      //   icon: <WalletOutlined />,
+      //   label: "Ví tiền",
+      //   onClick: () => navigate("/userwallets"),
+      // },
+    ];
+
+    if (!savedRole || !rolesHideWallet.includes(savedRole.toLowerCase())) {
+      items.push({
         key: "userwallets",
         icon: <WalletOutlined />,
         label: "Ví tiền",
         onClick: () => navigate("/userwallets"),
-      },
-    ];
+      });
+    }
 
     if (savedRole && rolesWithDashboard.includes(savedRole.toLowerCase())) {
       items.push({

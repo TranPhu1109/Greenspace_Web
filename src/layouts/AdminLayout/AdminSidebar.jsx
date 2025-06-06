@@ -127,14 +127,14 @@ const AdminSidebar = ({ collapsed }) => {
             {/* <Menu.Item key="/admin/reports" icon={<FileTextOutlined />}>
               <Link to="/admin/reports">Báo cáo</Link>
             </Menu.Item> */}
-            <SubMenu key="account" icon={<SettingOutlined />} title="Tài khoản">
+            {/* <SubMenu key="account" icon={<SettingOutlined />} title="Tài khoản">
               <Menu.Item key={getAccountPath("profile")}>
                 <Link to={getAccountPath("profile")}>Thông tin cá nhân</Link>
               </Menu.Item>
               <Menu.Item key={getAccountPath("settings")}>
                 <Link to={getAccountPath("settings")}>Cài đặt tài khoản</Link>
               </Menu.Item>
-            </SubMenu>
+            </SubMenu> */}
           </Menu>
         </div>
       </Sider>

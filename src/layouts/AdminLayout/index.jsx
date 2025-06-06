@@ -159,17 +159,17 @@ const AdminLayout = () => {
       <Menu.Item
         key="profile"
         icon={<UserOutlined />}
-        onClick={() => navigate(getAccountPath("profile"))}
+        onClick={() => navigate("profile")}
       >
         Thông tin cá nhân
       </Menu.Item>
-      <Menu.Item
+      {/* <Menu.Item
         key="settings"
         icon={<SettingOutlined />}
         onClick={() => navigate(getAccountPath("settings"))}
       >
         Cài đặt tài khoản
-      </Menu.Item>
+      </Menu.Item> */}
       <Menu.Divider />
       <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
         Đăng xuất

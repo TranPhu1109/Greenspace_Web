@@ -233,7 +233,7 @@ export const contractVisibleStatuses = [
   'DesignPriceConfirm',         // 15 - Xác nhận giá thiết kế của manager
   'Refund',                     // 16 - Đang hoàn tiền
   'DoneRefund',                 // 17 - Hoàn thành hoàn tiền
-  'StopService',                // 18 - Dừng dịch vụ
+  // 'StopService',                // 18 - Dừng dịch vụ
   'ReDesign',                   // 20 - Thiết kế lại
   'WaitDeposit',                // 21 - Chờ đặt cọc
   'DoneDeterminingMaterialPrice', // 23 - Đã xác định xong giá vật liệu
