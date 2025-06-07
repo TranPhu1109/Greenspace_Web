@@ -119,7 +119,7 @@ const ContractorTaskDetail = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(dayjs());
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(timer);
   }, []);

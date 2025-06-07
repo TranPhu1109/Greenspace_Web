@@ -59,25 +59,29 @@ const useDesignOrderStore = create((set, get) => ({
       //console.log('Fetching orders for user:', userId);
       const response = await api.get(`/api/serviceorder/userid-usingidea/${userId}`, {
         componentId,
-        allowDuplicate: false
+        allowDuplicate: false,
+        params: {
+          pageNumber: 0,
+          pageSize: 1000
+        }
       });
-      
+
       // Skip processing if the request was canceled
       if (response.status === 'canceled') {
         set({ isLoading: false });
         return;
       }
-      
+
       console.log('Orders received:', response.data);
-      set({ 
+      set({
         designOrders: Array.isArray(response.data) ? response.data : [],
-        isLoading: false 
+        isLoading: false
       });
     } catch (error) {
       // Only handle non-cancellation errors
       if (!isCancel(error)) {
         console.error("Error fetching design orders:", error);
-        set({ 
+        set({
           error: error.message,
           isLoading: false,
           designOrders: [] // Clear orders on error
@@ -85,6 +89,37 @@ const useDesignOrderStore = create((set, get) => ({
       } else {
         // Reset loading state for cancellations
         set({ isLoading: false });
+      }
+    }
+  },
+
+  // Silent fetch - không hiển thị loading state để tránh re-render
+  fetchDesignOrdersForCusSilent: async (userId, componentId) => {
+    try {
+      const response = await api.get(`/api/serviceorder/userid-usingidea/${userId}`, {
+        componentId,
+        allowDuplicate: false,
+        params: {
+          pageNumber: 0,
+          pageSize: 1000
+        }
+      });
+
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        return;
+      }
+
+      console.log('Orders received (silent):', response.data);
+      set({
+        designOrders: Array.isArray(response.data) ? response.data : [],
+        error: null // Clear any previous errors
+      });
+    } catch (error) {
+      // Only handle non-cancellation errors
+      if (!isCancel(error)) {
+        console.error("Error fetching design orders (silent):", error);
+        // Không set error state để tránh hiển thị lỗi khi fetch silent
       }
     }
   },

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Layout,
   Typography,
@@ -10,26 +10,46 @@ import {
   Button,
   Breadcrumb,
   Modal,
+  Input,
+  Select,
+  Row,
+  Col,
+  Card,
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useAuthStore from "@/stores/useAuthStore";
+import signalRService from "@/services/signalRService";
 import "./styles.scss";
-import { AppstoreOutlined, CopyOutlined, HomeOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, CopyOutlined, HomeOutlined, MailOutlined, PhoneOutlined, SearchOutlined } from "@ant-design/icons";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const DesignOrderHistory = () => {
   const navigate = useNavigate();
-  const { designOrders, isLoading, fetchDesignOrdersForCus, cancelOrder } =
+  const { designOrders, isLoading, fetchDesignOrdersForCus, fetchDesignOrdersForCusSilent, cancelOrder } =
     useDesignOrderStore();
   const { user } = useAuthStore();
   //console.log(user);
 
   const componentId = React.useRef('design-order-history');
+
+  // Search and filter states
+  const [searchText, setSearchText] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+
+  // Debounce search text
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
   useEffect(() => {
     if (user?.id) {
@@ -41,6 +61,35 @@ const DesignOrderHistory = () => {
       designOrderStore.reset();
     }
   }, [fetchDesignOrdersForCus, user?.id]);
+
+  // SignalR connection for real-time updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Kết nối SignalR
+    const initSignalR = async () => {
+      try {
+        const connection = await signalRService.startConnection();
+
+        // Đăng ký listener khi có order cập nhật
+        signalRService.on("messageReceived", async () => {
+          console.log("SignalR message received - refreshing design orders");
+          // Sử dụng silent fetch để không làm re-render loading state
+          await fetchDesignOrdersForCusSilent(user.id, componentId.current);
+        });
+
+      } catch (err) {
+        console.error("Không thể kết nối SignalR", err);
+      }
+    };
+
+    initSignalR();
+
+    return () => {
+      signalRService.off("messageReceived");
+      signalRService.stopConnection();
+    };
+  }, [user?.id, fetchDesignOrdersForCusSilent]);
 
   // Add cleanup on unmount
   useEffect(() => {
@@ -73,6 +122,78 @@ const DesignOrderHistory = () => {
       },
     });
   };
+
+  // Helper function to get status text
+  const getStatusText = (status) => {
+    const statusConfig = {
+      'Pending': 'Chờ xử lý',
+      'ConsultingAndSketching': 'Đang tư vấn & phác thảo',
+      'DeterminingDesignPrice': 'Đang xác định giá',
+      'DepositSuccessful': 'Đặt cọc thành công',
+      'AssignToDesigner': 'Đã giao cho nhà thiết kế',
+      'DeterminingMaterialPrice': 'Xác định giá vật liệu',
+      'DoneDesign': 'Hoàn thành thiết kế',
+      'PaymentSuccess': 'Thanh toán thành công',
+      'Processing': 'Đang xử lý',
+      'PickedPackageAndDelivery': 'Đã lấy hàng & đang giao',
+      'DeliveryFail': 'Giao hàng thất bại',
+      'ReDelivery': 'Giao lại',
+      'DeliveredSuccessfully': 'Đã giao hàng thành công',
+      'CompleteOrder': 'Hoàn thành đơn hàng',
+      'OrderCancelled': 'Đơn hàng đã bị hủy',
+      'Warning': 'Cảnh báo vượt 30%',
+      'Refund': 'Hoàn tiền',
+      'DoneRefund': 'Đã hoàn tiền',
+      'Completed': 'Hoàn thành',
+      'Installing': 'Đang lắp đặt',
+      'ReInstall': 'Lắp đặt lại',
+      'DoneInstalling': 'Hoàn tất lắp đặt',
+      'Successfully': 'Hoàn tất đơn hàng',
+      'ReConsultingAndSketching': 'Phác thảo lại',
+      'ReDesign': 'Thiết kế lại',
+      'WaitDeposit': 'Chờ đặt cọc'
+    };
+    return statusConfig[status] || status;
+  };
+
+  // Filter and search logic
+  const filteredOrders = useMemo(() => {
+    if (!designOrders || designOrders.length === 0) return [];
+
+    let filtered = [...designOrders];
+
+    // Filter by status
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(order => order.status === selectedStatus);
+    }
+
+    // Search by order ID, phone, or customer name
+    if (debouncedSearchText.trim()) {
+      const searchLower = debouncedSearchText.toLowerCase().trim();
+      filtered = filtered.filter(order => {
+        const orderId = order.id?.toLowerCase() || '';
+        const phone = order.cusPhone?.toLowerCase() || '';
+        const customerName = order.userName?.toLowerCase() || '';
+
+        return orderId.includes(searchLower) ||
+               phone.includes(searchLower) ||
+               customerName.includes(searchLower);
+      });
+    }
+
+    return filtered;
+  }, [designOrders, selectedStatus, debouncedSearchText]);
+
+  // Get unique statuses for filter options
+  const statusOptions = useMemo(() => {
+    if (!designOrders || designOrders.length === 0) return [];
+
+    const uniqueStatuses = [...new Set(designOrders.map(order => order.status))];
+    return uniqueStatuses.map(status => ({
+      value: status,
+      label: getStatusText(status)
+    }));
+  }, [designOrders]);
 
   const columns = [
     {
@@ -232,15 +353,71 @@ const DesignOrderHistory = () => {
               Lịch sử đặt thiết kế mẫu kèm sản phẩm đã đặt
             </Breadcrumb.Item>
           </Breadcrumb>
-          {designOrders && designOrders.length > 0 ? (
+
+          {/* Search and Filter Section */}
+          <Card
+            style={{
+              marginBottom: 16,
+              borderRadius: 8,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}
+            title="Tìm kiếm và lọc đơn hàng"
+            size="small"
+          >
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} sm={12} md={8}>
+                <Input.Search
+                  placeholder="Tìm kiếm theo mã đơn hàng, số điện thoại, tên khách hàng..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  style={{ width: '100%' }}
+                  loading={searchText !== debouncedSearchText}
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8}>
+                <Select
+                  placeholder="Lọc theo trạng thái"
+                  value={selectedStatus}
+                  onChange={setSelectedStatus}
+                  style={{ width: '100%' }}
+                  allowClear
+                  onClear={() => setSelectedStatus('all')}
+                >
+                  <Select.Option value="all">Tất cả trạng thái</Select.Option>
+                  {statusOptions.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={24} md={8}>
+                <Space>
+                  <Text type="secondary">
+                    Hiển thị {filteredOrders.length} / {designOrders?.length || 0} đơn hàng
+                  </Text>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {filteredOrders && filteredOrders.length > 0 ? (
             <Table
               columns={columns}
-              dataSource={designOrders}
+              dataSource={filteredOrders}
               bordered
               rowKey="id"
-              pagination={false}
+              pagination={{
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} của ${total} đơn hàng`,
+                size: 'small'
+              }}
               onRow={(record) => ({
-                onClick: () => handleViewOrderDetail(record)
+                onClick: () => handleViewOrderDetail(record),
+                style: { cursor: 'pointer' }
               })}
               components={{
                 body: {
@@ -256,10 +433,16 @@ const DesignOrderHistory = () => {
                   },
                 },
               }}
+              scroll={{ x: 1200 }}
+              size="small"
             />
           ) : (
             <Empty
-              description="Chưa có đơn hàng nào"
+              description={
+                debouncedSearchText || selectedStatus !== 'all'
+                  ? "Không tìm thấy đơn hàng nào phù hợp với bộ lọc"
+                  : "Chưa có đơn hàng nào"
+              }
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}

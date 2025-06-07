@@ -521,7 +521,7 @@ const ServiceOrderDetail = () => {
           },
         }} title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />} color="white">
           <div 
-            className="html-preview" 
+            // className="html-preview" 
             dangerouslySetInnerHTML={{ __html: text }} 
             style={{ 
               display: '-webkit-box',

@@ -145,6 +145,63 @@ const useServiceOrderStore = create((set) => ({
     }
   },
 
+  // Silent fetch for SignalR updates - không hiển thị loading state
+  getServiceOrdersNoUsingIdeaSilent: async (userId, componentId = null) => {
+    try {
+      console.log(`[${componentId || 'ServiceOrderHistory'}] 🔄 Starting silent fetch for userId: ${userId}`);
+
+      const response = await api.get(
+        `/api/serviceorder/userid-nousingidea/${userId}`,
+        {
+          params: {
+            pageNumber: 0,
+            pageSize: 1000,
+          },
+        }
+      );
+
+      console.log(`[${componentId || 'ServiceOrderHistory'}] 📡 API Response:`, response);
+
+      // Check if response exists and has data property
+      if (!response || !response.data) {
+        console.error(`[${componentId || 'ServiceOrderHistory'}] ❌ Invalid API response:`, response);
+        return get().serviceOrders || []; // Return current state if API fails
+      }
+
+      // Ensure we're setting an array
+      const orders = Array.isArray(response.data) ? response.data : [];
+      console.log(`[${componentId || 'ServiceOrderHistory'}] 📦 Processed orders:`, orders.length);
+
+      // Always update the store with fresh data
+      set((state) => {
+        const currentOrdersStr = JSON.stringify(state.serviceOrders?.map(o => ({ id: o.id, status: o.status })) || []);
+        const newOrdersStr = JSON.stringify(orders?.map(o => ({ id: o.id, status: o.status })) || []);
+
+        console.log(`[${componentId || 'ServiceOrderHistory'}] 🔄 Updating store with ${orders.length} orders`);
+
+        if (currentOrdersStr !== newOrdersStr) {
+          console.log(`[${componentId || 'ServiceOrderHistory'}] ✅ Status changes detected:`, {
+            before: state.serviceOrders?.map(o => ({ id: o.id, status: o.status })) || [],
+            after: orders?.map(o => ({ id: o.id, status: o.status })) || []
+          });
+        } else {
+          console.log(`[${componentId || 'ServiceOrderHistory'}] ℹ️ No status changes, but updating data anyway`);
+        }
+
+        return {
+          serviceOrders: orders,
+          error: null // Clear any previous errors
+        };
+      });
+
+      return orders;
+    } catch (error) {
+      console.error(`[${componentId || 'ServiceOrderHistory'}] ❌ Silent fetch failed:`, error);
+      // Return current state instead of empty array
+      return get().serviceOrders || [];
+    }
+  },
+
   // Hủy đơn hàng
   cancelServiceOrder: async (orderId) => {
     set({ loading: true, error: null });

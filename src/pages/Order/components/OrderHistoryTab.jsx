@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Table,
   Tag,
@@ -28,6 +28,7 @@ import useAuthStore from "../../../stores/useAuthStore";
 import ComplaintModal from "./ComplaintModal";
 import useComplaintStore from "../../../stores/useComplaintStore";
 import { checkToxicContent } from "../../../services/moderationService";
+import signalRService from "../../../services/signalRService";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -39,6 +40,7 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     loading: ordersLoading,
     error,
     fetchOrderHistory,
+    fetchOrderHistorySilent,
     cancelOrder,
     confirmDelivery,
   } = useOrderHistoryStore();
@@ -46,7 +48,53 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
   const { user } = useAuthStore();
   const { fetchUserComplaints } = useComplaintStore();
   const [statusFilter, setStatusFilter] = React.useState("all");
+
+  // Search and filter states
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+
+  // Component ID for SignalR
+  const componentId = useRef('order-history-tab');
   const [productDetails, setProductDetails] = React.useState({});
+
+  // Debounce search text
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // SignalR integration for real-time updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const initSignalR = async () => {
+      try {
+        // Kết nối SignalR
+        const connection = await signalRService.startConnection();
+
+        // Đăng ký listener khi có order cập nhật
+        signalRService.on("messageReceived", async () => {
+          console.log(`[${componentId.current}] SignalR message received - refreshing orders`);
+          // Sử dụng silent fetch để không làm re-render loading state
+          await fetchOrderHistorySilent(componentId.current);
+        });
+
+      } catch (err) {
+        console.error(`[${componentId.current}] Không thể kết nối SignalR`, err);
+      }
+    };
+
+    initSignalR();
+
+    return () => {
+      signalRService.off("messageReceived");
+      signalRService.stopConnection();
+    };
+  }, [user?.id, fetchOrderHistorySilent]);
+
   const [feedbackForm] = Form.useForm();
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [selectedProductForFeedback, setSelectedProductForFeedback] =
@@ -582,11 +630,35 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     );
   };
 
-  const filteredOrders = React.useMemo(() => {
+  // Filter and search logic
+  const filteredOrders = useMemo(() => {
     if (!orders) return [];
-    if (statusFilter === "all") return orders;
-    return orders.filter((order) => order.status === statusFilter);
-  }, [orders, statusFilter]);
+
+    let filtered = [...orders];
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((order) => order.status.toString() === statusFilter);
+    }
+
+    // Search by order ID, phone, customer name, or delivery code
+    if (debouncedSearchText.trim()) {
+      const searchLower = debouncedSearchText.toLowerCase().trim();
+      filtered = filtered.filter(order => {
+        const orderId = order.id?.toLowerCase() || '';
+        const phone = order.phone?.toLowerCase() || '';
+        const customerName = order.userName?.toLowerCase() || '';
+        const deliveryCode = order.deliveryCode?.toLowerCase() || '';
+
+        return orderId.includes(searchLower) ||
+               phone.includes(searchLower) ||
+               customerName.includes(searchLower) ||
+               deliveryCode.includes(searchLower);
+      });
+    }
+
+    return filtered;
+  }, [orders, statusFilter, debouncedSearchText]);
 
   const handleFeedbackSubmit = async (values) => {
     if (!user) {
@@ -672,23 +744,48 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     <div>
       <Row gutter={[0, 24]}>
         <Col span={24}>
-          <Space style={{ width: "100%", justifyContent: "space-between" }}>
-            <Title level={4} style={{ margin: 0 }}>
-              Lịch sử đặt sản phẩm
-            </Title>
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: 200 }}
-              disabled={isLoading}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="1">Đang xử lý</Option>
-              <Option value="2">Đang giao hàng</Option>
-              <Option value="9">Đã giao hàng</Option>
-              <Option value="4">Đã hủy</Option>
-            </Select>
-          </Space>
+          <Card
+            style={{
+              marginBottom: 16,
+              borderRadius: 8,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}
+            size="small"
+          >
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} md={8}>
+                <Title level={4} style={{ margin: 0 }}>
+                  Lịch sử đặt sản phẩm
+                </Title>
+              </Col>
+              <Col xs={24} md={10}>
+                <Input.Search
+                  placeholder="Tìm kiếm theo mã đơn hàng, tên khách hàng, SĐT, mã vận đơn..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  style={{ width: '100%' }}
+                  loading={searchText !== debouncedSearchText}
+                  disabled={isLoading}
+                />
+              </Col>
+              <Col xs={24} md={6}>
+                <Select
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  style={{ width: '100%' }}
+                  disabled={isLoading}
+                  placeholder="Lọc theo trạng thái"
+                >
+                  <Option value="all">Tất cả trạng thái</Option>
+                  <Option value="1">Đang xử lý</Option>
+                  <Option value="2">Đang giao hàng</Option>
+                  <Option value="9">Đã giao hàng</Option>
+                  <Option value="4">Đã hủy</Option>
+                </Select>
+              </Col>
+            </Row>
+          </Card>
         </Col>
         <Col span={24}>
           <Table
@@ -700,9 +797,16 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
             }}
             rowKey="id"
             pagination={{
-              // pageSize: 10,
               showSizeChanger: true,
-              showTotal: (total) => `Tổng ${total} đơn hàng`,
+              showQuickJumper: true,
+              showTotal: (total, range) => {
+                const totalOrders = orders?.length || 0;
+                if (debouncedSearchText || statusFilter !== 'all') {
+                  return `Hiển thị ${range[0]}-${range[1]} của ${total} đơn hàng (${totalOrders} tổng)`;
+                }
+                return `${range[0]}-${range[1]} của ${total} đơn hàng`;
+              },
+              size: 'small'
             }}
             locale={{
               emptyText: (
@@ -710,7 +814,12 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
                   <ShoppingOutlined
                     style={{ fontSize: 24, marginBottom: 16 }}
                   />
-                  <p>Chưa có đơn hàng nào</p>
+                  <p>
+                    {debouncedSearchText || statusFilter !== 'all'
+                      ? "Không tìm thấy đơn hàng nào phù hợp với bộ lọc"
+                      : "Chưa có đơn hàng nào"
+                    }
+                  </p>
                 </div>
               ),
             }}
