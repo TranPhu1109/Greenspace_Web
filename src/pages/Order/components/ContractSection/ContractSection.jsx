@@ -756,7 +756,7 @@ const ContractSection = ({
               <div style={{ textAlign: 'right', marginTop: 20 }}>
                 <Button onClick={handleCloseModal} style={{ marginRight: 8 }}>Hủy</Button>
                 <Button type="primary" onClick={handleGenerateContract} loading={generatingContract}>
-                  Tạo hợp đồng
+                  Xác nhận thông tin
                 </Button>
               </div>
             </div>

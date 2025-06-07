@@ -67,12 +67,17 @@ import dayjs from "dayjs";
 import useDesignerTask from "@/stores/useDesignerTask";
 import useProductStore from "@/stores/useProductStore";
 import useAuthStore from "@/stores/useAuthStore";
+import useTimeAdjustmentStore from "@/stores/useTimeAdjustmentStore";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useRecordStore from "@/stores/useRecordStore";
 import useExternalProductStore from "@/stores/useExternalProductStore";
 import api from "@/api/api";
 import EditorComponent from "@/components/Common/EditorComponent";
+import {
+  getRealCurrentTime,
+  getCurrentTime
+} from '@/utils/timeConfig';
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -172,6 +177,7 @@ const TaskDetail = () => {
     categories,
   } = useProductStore();
   const { user } = useAuthStore();
+  const { isEnabled: isTestModeEnabled } = useTimeAdjustmentStore();
   const {
     sketchRecords,
     designRecords,
@@ -1248,7 +1254,8 @@ const TaskDetail = () => {
 
     const currentOrderStatus = task?.serviceOrder?.status;
 
-    const now = new Date();
+    // Use Test Mode time if enabled, otherwise use real time
+    const now = isTestModeEnabled ? getCurrentTime().toDate() : getRealCurrentTime().toDate();
     const appointmentDate = new Date(task.serviceOrder.dateAppointment);
 
     if (now < appointmentDate) {
@@ -2762,7 +2769,8 @@ const TaskDetail = () => {
                         </Button> */}
                         <Tooltip
                           title={
-                            new Date() < new Date(task?.dateAppointment)
+                            // Use Test Mode time if enabled, otherwise use real time
+                            (isTestModeEnabled ? getCurrentTime().toDate() : getRealCurrentTime().toDate()) < new Date(task?.dateAppointment)
                               ? "Chưa đến ngày hẹn, không thể lưu ghi chú"
                               : ""
                           }
@@ -2772,7 +2780,8 @@ const TaskDetail = () => {
                             onClick={handleUpdateSketchReport}
                             icon={<SaveOutlined />}
                             disabled={
-                              new Date() < new Date(task?.dateAppointment)
+                              // Use Test Mode time if enabled, otherwise use real time
+                              (isTestModeEnabled ? getCurrentTime().toDate() : getRealCurrentTime().toDate()) < new Date(task?.dateAppointment)
                             }
                           >
                             Lưu ghi chú

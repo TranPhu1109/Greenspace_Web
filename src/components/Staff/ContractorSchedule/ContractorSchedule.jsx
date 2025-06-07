@@ -804,10 +804,10 @@ const ContractorSchedule = () => {
                                   <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
                                   {contractor.email}
                                 </p>
-                                <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
+                                {/* <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
                                   <HomeOutlined style={{ marginRight: '8px', marginTop: '3px', color: '#1890ff' }} />
                                   <span style={{ flex: 1 }}>{contractor.address?.replace(/\|/g, ', ')}</span>
-                                </p>
+                                </p> */}
 
                                 {/* Show existing tasks if any */}
                                 {tasksOnDeliveryDate.length > 0 && (
@@ -1004,10 +1004,10 @@ const ContractorSchedule = () => {
                           <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
                           {contractor.email}
                         </p>
-                        <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
+                        {/* <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
                           <HomeOutlined style={{ marginRight: '8px', marginTop: '3px', color: '#1890ff' }} />
                           <span style={{ flex: 1 }}>{contractor.address}</span>
-                        </p>
+                        </p> */}
                       </div>
                     </Card>
                   </Col>

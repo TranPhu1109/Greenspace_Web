@@ -20,6 +20,8 @@ import useNotificationStore from "@/stores/useNotificationStore";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import ContructorSidebar from "./ContructorSidebar";
 import { setupForegroundFCMListener } from "@/firebase/firebase-messaging-handler";
+import TimeAdjustmentControl from "@/components/TimeAdjustmentControl";
+import TestModeIndicator from "@/components/TestModeIndicator";
 
 const { Header, Content } = Layout;
 
@@ -191,8 +193,16 @@ const AdminLayout = () => {
             <div className="trigger" onClick={toggleCollapsed}>
               {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </div>
+            {/* Only show TimeAdjustmentControl for Contructor and Designer roles */}
+            {(role === "contructor" || role === "designer") && (
+              <TimeAdjustmentControl compact={true} />
+            )}
           </div>
           <div className="header-right">
+            {/* Only show TestModeIndicator for Contructor and Designer roles */}
+            {(role === "contructor" || role === "designer") && (
+              <TestModeIndicator/>
+            )}
             <Notifications onNotificationClick={handleNotificationClick} />
             <Dropdown
               overlay={userMenu}

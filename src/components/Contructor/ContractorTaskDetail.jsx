@@ -53,6 +53,15 @@ import api from "@/api/api";
 import dayjs from "dayjs";
 import useProductStore from "@/stores/useProductStore";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
+import useTimeAdjustmentStore from "@/stores/useTimeAdjustmentStore";
+
+import {
+  getCurrentTime,
+  isCurrentTimeMatchTaskTime,
+  isTestModeTimeMatchTaskTime,
+  getTimeValidationMessage,
+  getTestModeTimeValidationMessage
+} from '@/utils/timeConfig';
 import "./ContractorTasks.scss";
 
 const { Title, Text, Paragraph } = Typography;
@@ -61,12 +70,13 @@ const { TabPane } = Tabs;
 const ContractorTaskDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isEnabled: isTestModeEnabled } = useTimeAdjustmentStore();
 
   const [task, setTask] = useState(null);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentTime, setCurrentTime] = useState(dayjs());
+  const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const { products, fetchProducts, getProductById } = useProductStore();
   const { fetchDesignIdeaById } = useDesignIdeaStore();
   const [designIdea, setDesignIdea] = useState(null);
@@ -118,7 +128,7 @@ const ContractorTaskDetail = () => {
   // Update current time every second for real-time checking
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(dayjs());
+      setCurrentTime(getCurrentTime());
     }, 500);
 
     return () => clearInterval(timer);
@@ -248,28 +258,9 @@ const ContractorTaskDetail = () => {
     }
   };
 
-  const isCurrentTimeMatchTaskTime = (task) => {
-    if (!task.dateAppointment || !task.timeAppointment) return false;
-
-    const taskDateTime = dayjs(
-      `${task.dateAppointment} ${task.timeAppointment}`
-    );
-    const now = dayjs();
-    const taskDate = dayjs(task.dateAppointment);
-
-    // Kiểm tra xem có phải từ ngày hẹn trở đi không
-    // Nếu là ngày hẹn: phải từ giờ hẹn trở đi
-    // Nếu là sau ngày hẹn: được phép bất cứ lúc nào
-    if (now.isSame(taskDate, 'day')) {
-      // Cùng ngày: phải từ giờ hẹn trở đi
-      return now.isAfter(taskDateTime) || now.isSame(taskDateTime);
-    } else if (now.isAfter(taskDate, 'day')) {
-      // Sau ngày hẹn: được phép bất cứ lúc nào
-      return true;
-    } else {
-      // Trước ngày hẹn: không được phép
-      return false;
-    }
+  // Use the utility function from timeConfig
+  const checkTaskTimeMatch = (task) => {
+    return isCurrentTimeMatchTaskTime(task);
   };
 
   const checkTimeAndStartInstallation = (isReinstall = false) => {
@@ -282,25 +273,16 @@ const ContractorTaskDetail = () => {
       return;
     }
 
-    if (!isCurrentTimeMatchTaskTime(task)) {
-      const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
-      const now = dayjs();
-      const taskDate = dayjs(task.dateAppointment);
+    // Use Test Mode functions if Test Mode is enabled, otherwise use real time functions
+    const timeMatchFunction = isTestModeEnabled ? isTestModeTimeMatchTaskTime : isCurrentTimeMatchTaskTime;
+    const validationMessageFunction = isTestModeEnabled ? getTestModeTimeValidationMessage : getTimeValidationMessage;
 
-      let message = isReinstall ? "Chưa đến thời gian lắp đặt lại" : "Chưa đến thời gian lắp đặt";
-      let description = "";
-
-      if (now.isBefore(taskDate, 'day')) {
-        // Trước ngày hẹn
-        description = `Chỉ được phép bắt đầu ${isReinstall ? 'lắp đặt lại' : 'lắp đặt'} từ ngày ${taskDate.format("DD/MM/YYYY")} lúc ${taskDateTime.format("HH:mm")} trở đi`;
-      } else if (now.isSame(taskDate, 'day')) {
-        // Cùng ngày nhưng chưa đến giờ
-        description = `Chỉ được phép bắt đầu ${isReinstall ? 'lắp đặt lại' : 'lắp đặt'} từ ${taskDateTime.format("HH:mm")} hôm nay trở đi`;
-      }
+    if (!timeMatchFunction(task)) {
+      const validationMessage = validationMessageFunction(task, isReinstall);
 
       notification.warning({
-        message,
-        description,
+        message: validationMessage.message,
+        description: validationMessage.description,
         placement: "topRight",
         duration: 5,
       });
