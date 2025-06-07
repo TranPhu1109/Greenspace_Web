@@ -75,6 +75,19 @@
     .header-left {
       display: flex;
       align-items: center;
+      flex: 0 0 auto;
+
+      .trigger {
+        font-size: 18px;
+        line-height: 64px;
+        padding: 0 24px;
+        cursor: pointer;
+        transition: color 0.3s;
+
+        &:hover {
+          color: #4caf50;
+        }
+      }
 
       .ant-select {
         .ant-select-selector {
@@ -90,10 +103,18 @@
       }
     }
 
+    .header-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 auto;
+    }
+
     .header-right {
       display: flex;
       align-items: center;
       gap: 24px;
+      flex: 0 0 auto;
 
       .notification-badge {
         cursor: pointer;

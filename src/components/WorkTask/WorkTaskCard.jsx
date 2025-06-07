@@ -269,9 +269,13 @@ const WorkTaskCard = ({ workTask, onViewDetail }) => {
             <Col xs={24} sm={12}>
               <Text strong>Kích thước: </Text>
               <Text>
-                {workTask.serviceOrder?.length} x {workTask.serviceOrder?.width}{" "}
-                m
+                {workTask.serviceOrder?.length}m x {workTask.serviceOrder?.width}m x {workTask.serviceOrder?.hight}m
               </Text>
+              {/* <div style={{ display: "flex", flexDirection: "column" }}>
+                <Text>Chiều dài: {workTask.serviceOrder?.length}m</Text>
+                <Text>Chiều rộng: {workTask.serviceOrder?.width}m</Text>
+                <Text>Chiều cao: {workTask.serviceOrder?.hight}m</Text>
+              </div> */}
             </Col>
           )}
         </Row>

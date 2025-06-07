@@ -595,8 +595,9 @@ const ServiceOrderHistory = () => {
     {
       title: "Kích thước",
       key: "dimensions",
-      width: 150,
-      render: (_, record) => `${record.length}m x ${record.width}m`,
+      width: 200,
+      render: (_, record) =>
+        `Dài: ${record.length}m | Rộng: ${record.width}m | Cao: ${record.hight}m`,      
     },
     {
       title: "Trạng thái",

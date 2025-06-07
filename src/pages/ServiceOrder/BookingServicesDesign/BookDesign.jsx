@@ -18,7 +18,11 @@ import {
   Spin,
   Tooltip,
 } from "antd";
-import { UploadOutlined, WarningOutlined, QuestionCircleOutlined } from "@ant-design/icons";
+import {
+  UploadOutlined,
+  WarningOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -42,7 +46,13 @@ const BookDesign = () => {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const { createServiceOrder } = useServiceOrderStore();
-  const { products, categories, fetchProducts, fetchCategories, isLoading: productLoading } = useProductStore();
+  const {
+    products,
+    categories,
+    fetchProducts,
+    fetchCategories,
+    isLoading: productLoading,
+  } = useProductStore();
   const [showProductSelection, setShowProductSelection] = useState(false);
   const [selectedProductDetails, setSelectedProductDetails] = useState([]);
 
@@ -148,23 +158,25 @@ const BookDesign = () => {
       }
 
       // Get user name from address data or user profile
-      let userName = '';
+      let userName = "";
       if (addressData.name) {
         userName = addressData.name;
       } else if (addressData.fullAddressData?.recipientInfo?.name) {
         userName = addressData.fullAddressData.recipientInfo.name;
       } else {
-        userName = userObj.name || '';
+        userName = userObj.name || "";
       }
-      
+
       // Get phone from address data or user profile
-      let phone = '';
+      let phone = "";
       if (addressData.phone) {
         phone = addressData.phone;
       } else if (user.phone) {
         phone = user.phone;
       } else {
-        message.error('Không tìm thấy số điện thoại. Vui lòng chọn địa chỉ khác.');
+        message.error(
+          "Không tìm thấy số điện thoại. Vui lòng chọn địa chỉ khác."
+        );
         return;
       }
 
@@ -188,11 +200,11 @@ const BookDesign = () => {
       }
 
       // Định dạng lại serviceOrderDetails nếu có sản phẩm được chọn
-      const serviceOrderDetails = showProductSelection 
-        ? selectedProductDetails.map(detail => ({
+      const serviceOrderDetails = showProductSelection
+        ? selectedProductDetails.map((detail) => ({
             productId: detail.productId,
             quantity: detail.quantity,
-          })) 
+          }))
         : [];
 
       // Tạo object request
@@ -203,13 +215,14 @@ const BookDesign = () => {
         cusPhone: phone,
         length: values.length,
         width: values.width,
+        hight: values.hight,
         description: values.description,
         image: {
           imageUrl: imageUrls[0] || "",
           image2: imageUrls[1] || "",
           image3: imageUrls[2] || "",
         },
-        serviceOrderDetails: serviceOrderDetails // Thêm chi tiết đơn hàng
+        serviceOrderDetails: serviceOrderDetails, // Thêm chi tiết đơn hàng
       };
 
       // Log dữ liệu request để kiểm tra
@@ -265,16 +278,33 @@ const BookDesign = () => {
               onFinish={handleFinish}
               initialValues={{}}
             >
-              <Title level={4} style={{ marginBottom: '16px', color: '#555' }}>1. Thông tin kích thước không gian</Title>
+              <Title level={4} style={{ marginBottom: "16px", color: "#555" }}>
+                1. Thông tin kích thước không gian
+                <Tooltip title="Vui lòng nhập chiều dài, chiều rộng và chiều cao ước tính của khu vực cần thiết kế.">
+                  <QuestionCircleOutlined
+                    style={{ color: "rgba(0, 0, 0, 0.45)", marginLeft: 8 }}
+                  />
+                </Tooltip>
+              </Title>
+              <Alert
+                type="info"
+                // message="Hướng dẫn nhập kích thước"
+                description="Vui lòng nhập chiều dài, chiều rộng và chiều cao ước tính của khu vực cần thiết kế. 
+  Thông tin này sẽ giúp nhà thiết kế có cơ sở để tư vấn phương án phù hợp với diện tích, chiều cao và bố cục thực tế."
+                showIcon
+                style={{ marginBottom: 24 }}
+              />
               <Row gutter={24}>
-                <Col xs={24} md={12}>
+                <Col xs={24} md={8}>
                   <Form.Item
                     name="length"
                     label={
                       <Space>
                         Chiều dài (m)
                         <Tooltip title="Nhập chiều dài ước tính của khu vực bạn muốn thiết kế.">
-                          <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)' }} />
+                          <QuestionCircleOutlined
+                            style={{ color: "rgba(0, 0, 0, 0.45)" }}
+                          />
                         </Tooltip>
                       </Space>
                     }
@@ -290,15 +320,16 @@ const BookDesign = () => {
                     />
                   </Form.Item>
                 </Col>
-
-                <Col xs={24} md={12}>
+                <Col xs={24} md={8}>
                   <Form.Item
                     name="width"
                     label={
                       <Space>
                         Chiều rộng (m)
                         <Tooltip title="Nhập chiều rộng ước tính của khu vực bạn muốn thiết kế.">
-                          <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)' }} />
+                          <QuestionCircleOutlined
+                            style={{ color: "rgba(0, 0, 0, 0.45)" }}
+                          />
                         </Tooltip>
                       </Space>
                     }
@@ -314,15 +345,51 @@ const BookDesign = () => {
                     />
                   </Form.Item>
                 </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name="hight"
+                    label={
+                      <Space>
+                        Chiều cao (m)
+                        <Tooltip title="Nhập chiều cao ước tính của khu vực bạn muốn thiết kế.">
+                          <QuestionCircleOutlined
+                            style={{ color: "rgba(0, 0, 0, 0.45)" }}
+                          />
+                        </Tooltip>
+                      </Space>
+                    }
+                    rules={[
+                      { required: true, message: "Vui lòng nhập chiều cao" },
+                    ]}
+                  >
+                    <InputNumber
+                      min={0}
+                      step={0.1}
+                      style={{ width: "100%" }}
+                      placeholder="Nhập chiều cao"
+                    />
+                  </Form.Item>
+                </Col>
               </Row>
 
-              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>2. Hình ảnh hiện trạng & Mô tả yêu cầu</Title>
+              <Title
+                level={4}
+                style={{
+                  marginTop: "24px",
+                  marginBottom: "16px",
+                  color: "#555",
+                }}
+              >
+                2. Hình ảnh hiện trạng & Mô tả yêu cầu
+              </Title>
               <Form.Item
                 label={
                   <Space>
                     Hình ảnh tham khảo (tối đa 3 ảnh)
                     <Tooltip title="Tải lên hình ảnh hiện trạng của khu vực hoặc ảnh mẫu thiết kế bạn mong muốn.">
-                      <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)' }} />
+                      <QuestionCircleOutlined
+                        style={{ color: "rgba(0, 0, 0, 0.45)" }}
+                      />
                     </Tooltip>
                   </Space>
                 }
@@ -353,7 +420,9 @@ const BookDesign = () => {
                   <Space>
                     Mô tả yêu cầu thiết kế
                     <Tooltip title="Mô tả chi tiết về mong muốn thiết kế của bạn: phong cách, màu sắc, loại cây yêu thích, mục đích sử dụng,...">
-                      <QuestionCircleOutlined style={{ color: 'rgba(0, 0, 0, 0.45)' }} />
+                      <QuestionCircleOutlined
+                        style={{ color: "rgba(0, 0, 0, 0.45)" }}
+                      />
                     </Tooltip>
                   </Space>
                 }
@@ -398,8 +467,17 @@ const BookDesign = () => {
                 )
               )} */}
 
-              <Title level={4} style={{ marginTop: '24px', marginBottom: '16px', color: '#555' }}>3. Thông tin liên hệ & Địa chỉ</Title>
-              
+              <Title
+                level={4}
+                style={{
+                  marginTop: "24px",
+                  marginBottom: "16px",
+                  color: "#555",
+                }}
+              >
+                3. Thông tin liên hệ & Địa chỉ
+              </Title>
+
               <Alert
                 message="Thông tin liên hệ"
                 description="Chọn địa chỉ từ danh sách hoặc thêm địa chỉ mới. Số điện thoại sẽ được lấy từ thông tin địa chỉ đã chọn."
@@ -407,10 +485,10 @@ const BookDesign = () => {
                 showIcon
                 style={{ marginBottom: 16 }}
               />
-              
+
               <AddressForm form={form} onAddressChange={handleAddressChange} />
 
-              <Form.Item style={{ marginTop: '24px' }}>
+              <Form.Item style={{ marginTop: "24px" }}>
                 <Button
                   type="primary"
                   htmlType="submit"

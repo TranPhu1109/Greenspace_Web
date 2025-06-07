@@ -872,8 +872,9 @@ const NewDesignOrderDetail = () => {
                   <Tag color="default">Chưa gán designer</Tag>
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label="Diện tích yêu cầu">
-                {selectedOrder.length * selectedOrder.width} m²
+              <Descriptions.Item label="Kích thước không gian yêu cầu">
+                {/* {selectedOrder.length * selectedOrder.width} m² */}
+                Dài: {selectedOrder.length}m x Rộng: {selectedOrder.width}m x Cao: {selectedOrder.hight}m
               </Descriptions.Item>
             </Descriptions>
             <Divider />

@@ -33,6 +33,15 @@ import {
 import api from '@/api/api';
 import dayjs from 'dayjs';
 import useAuthStore from '@/stores/useAuthStore';
+import useTimeAdjustmentStore from '@/stores/useTimeAdjustmentStore';
+
+import {
+  getCurrentTime,
+  isCurrentTimeMatchTaskTime,
+  isTestModeTimeMatchTaskTime,
+  getTimeValidationMessage,
+  getTestModeTimeValidationMessage
+} from '@/utils/timeConfig';
 import './ContractorTasks.scss';
 import { useNavigate } from 'react-router-dom';
 import signalRService from '@/services/signalRService';
@@ -47,9 +56,10 @@ const ContractorTasks = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [currentTime, setCurrentTime] = useState(dayjs());
+  const [currentTime, setCurrentTime] = useState(getCurrentTime());
 
   const { user } = useAuthStore();
+  const { isEnabled: isTestModeEnabled } = useTimeAdjustmentStore();
   const userId = user?.id;
   const navigate = useNavigate();
 
@@ -88,7 +98,7 @@ const ContractorTasks = () => {
   // Update current time every second for real-time checking
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(dayjs());
+      setCurrentTime(getCurrentTime());
     }, 500);
 
     return () => clearInterval(timer);
@@ -176,26 +186,9 @@ const ContractorTasks = () => {
     }
   };
 
-  const isCurrentTimeMatchTaskTime = (task) => {
-    if (!task.dateAppointment || !task.timeAppointment) return false;
-
-    const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
-    const now = currentTime;
-    const taskDate = dayjs(task.dateAppointment);
-
-    // Kiểm tra xem có phải từ ngày hẹn trở đi không
-    // Nếu là ngày hẹn: phải từ giờ hẹn trở đi
-    // Nếu là sau ngày hẹn: được phép bất cứ lúc nào
-    if (now.isSame(taskDate, 'day')) {
-      // Cùng ngày: phải từ giờ hẹn trở đi
-      return now.isAfter(taskDateTime) || now.isSame(taskDateTime);
-    } else if (now.isAfter(taskDate, 'day')) {
-      // Sau ngày hẹn: được phép bất cứ lúc nào
-      return true;
-    } else {
-      // Trước ngày hẹn: không được phép
-      return false;
-    }
+  // Use the utility function from timeConfig
+  const checkTaskTimeMatch = (task) => {
+    return isCurrentTimeMatchTaskTime(task);
   };
 
   const checkTimeAndStartInstallation = (taskId, isReinstall = false) => {
@@ -209,25 +202,16 @@ const ContractorTasks = () => {
       return;
     }
 
-    if (!isCurrentTimeMatchTaskTime(task)) {
-      const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
-      const now = currentTime;
-      const taskDate = dayjs(task.dateAppointment);
+    // Use Test Mode functions if Test Mode is enabled, otherwise use real time functions
+    const timeMatchFunction = isTestModeEnabled ? isTestModeTimeMatchTaskTime : isCurrentTimeMatchTaskTime;
+    const validationMessageFunction = isTestModeEnabled ? getTestModeTimeValidationMessage : getTimeValidationMessage;
 
-      let message = isReinstall ? "Chưa đến thời gian lắp đặt lại" : "Chưa đến thời gian lắp đặt";
-      let description = "";
-
-      if (now.isBefore(taskDate, 'day')) {
-        // Trước ngày hẹn
-        description = `Chỉ được phép bắt đầu ${isReinstall ? 'lắp đặt lại' : 'lắp đặt'} từ ngày ${taskDate.format("DD/MM/YYYY")} lúc ${taskDateTime.format("HH:mm")} trở đi`;
-      } else if (now.isSame(taskDate, 'day')) {
-        // Cùng ngày nhưng chưa đến giờ
-        description = `Chỉ được phép bắt đầu ${isReinstall ? 'lắp đặt lại' : 'lắp đặt'} từ ${taskDateTime.format("HH:mm")} hôm nay trở đi`;
-      }
+    if (!timeMatchFunction(task)) {
+      const validationMessage = validationMessageFunction(task, isReinstall);
 
       notification.warning({
-        message,
-        description,
+        message: validationMessage.message,
+        description: validationMessage.description,
         placement: 'topRight',
         duration: 5
       });
@@ -420,7 +404,9 @@ const ContractorTasks = () => {
   return (
     <div className="contractor-tasks-container">
       <Card className="tasks-card">
-        <Title level={3}>Quản lý công việc</Title>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Title level={3} style={{ margin: 0 }}>Quản lý công việc</Title>
+        </div>
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane
