@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, Card, Row, Col, Image, Typography, InputNumber, Checkbox, Empty } from 'antd';
 
-const { TabPane } = Tabs;
+
 const { Text } = Typography;
 
 const ProductSelection = ({ products = [], categories = [], selectedProducts = [], onChange }) => {
@@ -69,9 +69,13 @@ const ProductSelection = ({ products = [], categories = [], selectedProducts = [
   return (
     <Card title="Chọn vật liệu" type="inner" style={{ marginTop: 16 }}>
       {categories.length > 0 && products.length > 0 ? (
-        <Tabs defaultActiveKey={categories[0]?.id} tabPosition="left">
-          {categories.map(category => (
-            <TabPane tab={category.name} key={category.id}>
+        <Tabs
+          defaultActiveKey={categories[0]?.id}
+          tabPosition="left"
+          items={categories.map(category => ({
+            key: category.id,
+            label: category.name,
+            children: (
               <Row gutter={[16, 16]}>
                 {productsByCategory[category.id]?.length > 0 ? (
                   productsByCategory[category.id].map(product => (
@@ -103,7 +107,7 @@ const ProductSelection = ({ products = [], categories = [], selectedProducts = [
                             </div>
                           }
                         />
-                        <div 
+                        <div
                           style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -135,9 +139,9 @@ const ProductSelection = ({ products = [], categories = [], selectedProducts = [
                   </Col>
                 )}
               </Row>
-            </TabPane>
-          ))}
-        </Tabs>
+            )
+          }))}
+        />
       ) : (
         <Empty description="Không có sản phẩm hoặc danh mục nào" />
       )}

@@ -227,17 +227,48 @@ const TaskDetail = () => {
   const [selectedExternalProductIds, setSelectedExternalProductIds] = useState(
     []
   );
-  // Add state to track if design was just uploaded
   const [justUploadedDesign, setJustUploadedDesign] = useState(false);
 
-  // Debug log để kiểm tra các hàm
-  useEffect(() => {
-    console.log("Task state:", { task });
-    console.log(
-      "Set task function:",
-      typeof setTask === "function" ? "Available" : "Not a function"
-    );
-  }, [task, setTask]);
+  // State to preserve scroll position during silent updates
+  const [savedScrollPosition, setSavedScrollPosition] = useState(0);
+
+  // Helper functions for scroll position management
+  const saveScrollPosition = () => {
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    setSavedScrollPosition(scrollY);
+    console.log('💾 Saved scroll position:', scrollY);
+    return scrollY;
+  };
+
+  const restoreScrollPosition = (position = savedScrollPosition) => {
+    setTimeout(() => {
+      window.scrollTo({
+        top: position,
+        behavior: 'auto' // Use 'auto' for instant scroll, 'smooth' for animated
+      });
+      console.log('📍 Restored scroll position:', position);
+    }, 100); // Small delay to ensure DOM is updated
+  };
+
+  // Silent fetch function that doesn't trigger loading state
+  const silentFetchTaskDetail = async (taskId) => {
+    try {
+      console.log('🔄 Silent fetch task detail for ID:', taskId);
+
+      // Call the store function directly without triggering loading state
+      // We'll use the store's fetch function but handle loading state manually
+      const currentLoadingState = loading;
+
+      // Temporarily prevent loading state changes during silent fetch
+      await fetchTaskDetail(taskId);
+
+      console.log('✅ Silent fetch completed successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Silent fetch failed:', error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     const loadTaskDetail = async () => {
@@ -459,20 +490,12 @@ const TaskDetail = () => {
         }
 
         if (sketchFiles.length > 0) {
-          // Upload ảnh
-          // message.loading({
-          //   content: `Đang tải lên ${sketchFiles.length} ảnh...`,
-          //   key: "upload",
-          //   duration: 0,
-          // });
           uploadedUrls = await uploadImages(sketchFiles);
-          // message.destroy("upload");
 
           if (!uploadedUrls || uploadedUrls.length !== sketchFiles.length) {
             throw new Error("Tải ảnh thất bại. Vui lòng thử lại.");
           }
         } else {
-          // Không upload mới => dùng ảnh cũ nếu có
           uploadedUrls = [
             task.serviceOrder.image?.imageUrl,
             task.serviceOrder.image?.image2,
@@ -480,7 +503,6 @@ const TaskDetail = () => {
           ].filter(Boolean);
         }
       } else {
-        // Nếu chỉ update giá, giữ nguyên ảnh cũ
         uploadedUrls = [
           task.serviceOrder.image?.imageUrl,
           task.serviceOrder.image?.image2,
@@ -722,7 +744,7 @@ const TaskDetail = () => {
       setAllCategories(categories);
 
       // Khởi tạo danh sách sản phẩm đã chọn từ serviceOrderDetails
-      const initialSelectedProducts = task.serviceOrder.serviceOrderDetails.map(
+      const initialSelectedProducts = (task.serviceOrder.serviceOrderDetails || []).map(
         (detail) => ({
           productId: detail.productId,
           quantity: detail.quantity || 1,
@@ -868,11 +890,12 @@ const TaskDetail = () => {
       // Đảm bảo mỗi sản phẩm có đầy đủ thông tin
       const updatedServiceOrderDetails = tempServiceOrderDetails.map((item) => {
         const product = allProducts.find((p) => p.id === item.productId);
+        const price = product?.price || 0;
         return {
           productId: item.productId,
           quantity: item.quantity,
-          // price: product?.price || 0,
-          // totalPrice: (product?.price || 0) * item.quantity
+          price: price,
+          totalPrice: price * item.quantity
         };
       });
 
@@ -890,12 +913,49 @@ const TaskDetail = () => {
       };
 
       try {
-        const response = await updateProductOrder(
-          task.serviceOrder.id,
-          serviceOrderUpdateData
-        );
+        console.log('🔄 Updating product order with data:', serviceOrderUpdateData);
+
+        // Retry mechanism for optimistic concurrency issues
+        let retryCount = 0;
+        const maxRetries = 3;
+        let response;
+
+        while (retryCount < maxRetries) {
+          try {
+            response = await updateProductOrder(
+              task.serviceOrder.id,
+              serviceOrderUpdateData
+            );
+            console.log('✅ Update product order response:', response);
+            break; // Success, exit retry loop
+          } catch (retryError) {
+            retryCount++;
+            console.warn(`⚠️ Retry attempt ${retryCount}/${maxRetries} failed:`, retryError.message);
+
+            if (retryCount >= maxRetries) {
+              throw retryError; // Re-throw if max retries reached
+            }
+
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+
+            // Refetch latest task data before retry
+            console.log('🔄 Refetching latest task data before retry...');
+            const latestTask = await fetchTaskDetail(id);
+            if (latestTask?.serviceOrder) {
+              // Update serviceOrderUpdateData with latest data
+              serviceOrderUpdateData.designPrice = latestTask.serviceOrder.designPrice;
+              serviceOrderUpdateData.description = latestTask.serviceOrder.description;
+              serviceOrderUpdateData.report = latestTask.serviceOrder.report || "";
+              serviceOrderUpdateData.reportManger = latestTask.serviceOrder.reportManger || "";
+              serviceOrderUpdateData.reportAccoutant = materialRequirements; // Keep user input
+              serviceOrderUpdateData.skecthReport = latestTask.serviceOrder.skecthReport || "";
+            }
+          }
+        }
 
         // Làm mới dữ liệu sau khi cập nhật
+        console.log('🔄 Loading product details for updated products:', updatedServiceOrderDetails);
         await loadProductDetails(updatedServiceOrderDetails);
 
         notification.success({
@@ -907,9 +967,38 @@ const TaskDetail = () => {
         });
         setIsProductModalVisible(false); // Tự động tắt modal sau khi cập nhật thành công
 
-        // Làm mới dữ liệu task sau khi cập nhật
-        fetchTaskDetail(id);
+        // Update local task state instead of refetching to avoid page reload and scroll position loss
+        if (task && task.serviceOrder) {
+          // Create updated service order details with complete price information
+          const updatedServiceOrderDetailsWithPrices = updatedServiceOrderDetails.map((item) => {
+            const product = allProducts.find((p) => p.id === item.productId);
+            const price = product?.price || item.price || 0;
+            return {
+              ...item,
+              price: price,
+              totalPrice: price * item.quantity
+            };
+          });
+
+          // Update the task's serviceOrder with new data
+          const updatedTask = {
+            ...task,
+            serviceOrder: {
+              ...task.serviceOrder,
+              serviceOrderDetails: updatedServiceOrderDetailsWithPrices,
+              reportAccoutant: materialRequirements,
+            }
+          };
+
+          console.log('🔄 Updating local task state with:', updatedTask.serviceOrder.serviceOrderDetails);
+          // Update the current task in store to reflect changes without refetching
+          setTask(updatedTask);
+        }
       } catch (apiError) {
+        console.error('❌ Update product order failed:', apiError);
+        console.error('❌ Error response:', apiError.response?.data);
+        console.error('❌ Error status:', apiError.response?.status);
+
         // Xử lý các trường hợp lỗi cụ thể
         if (
           apiError.response?.data?.error?.includes("maximum number of edits")
@@ -921,10 +1010,36 @@ const TaskDetail = () => {
             placement: "topRight",
             duration: 4,
           });
+        } else if (
+          apiError.response?.data?.message?.includes("database operation was expected to affect") ||
+          apiError.response?.data?.message?.includes("optimistic concurrency") ||
+          apiError.message?.includes("database operation was expected to affect")
+        ) {
+          notification.error({
+            message: "Xung đột dữ liệu",
+            description: "Dữ liệu đã được cập nhật bởi người khác. Vui lòng tải lại trang và thử lại.",
+            icon: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
+            placement: "topRight",
+            duration: 6,
+            btn: (
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => window.location.reload()}
+              >
+                Tải lại trang
+              </Button>
+            ),
+          });
         } else {
+          const errorMessage = apiError.response?.data?.message ||
+                              apiError.response?.data?.error ||
+                              apiError.message ||
+                              'Cập nhật danh sách sản phẩm thất bại';
+
           notification.error({
             message: "Cập nhật thất bại",
-            description: `Cập nhật danh sách sản phẩm thất bại`,
+            description: errorMessage,
             icon: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
             placement: "topRight",
             duration: 5,
@@ -1080,7 +1195,9 @@ const TaskDetail = () => {
   }, [products, task]);
 
   const loadProductDetails = async (orderDetails) => {
+    console.log('🔄 loadProductDetails called with:', orderDetails);
     if (!orderDetails || orderDetails.length === 0) {
+      console.log('⚠️ No order details to load');
       return;
     }
 
@@ -1110,6 +1227,7 @@ const TaskDetail = () => {
         productMap[result.productId] = result;
       });
 
+      console.log('✅ Product details loaded:', productMap);
       setProductDetails(productMap);
     } catch (error) {
       notification.error({
@@ -1568,6 +1686,9 @@ const TaskDetail = () => {
   // Handle external products save
   const handleSaveExternalProducts = async () => {
     try {
+      // Save current scroll position before starting save process
+      const currentScrollPosition = saveScrollPosition();
+
       // Set loading state
       setIsSavingExternalProducts(true);
 
@@ -1623,8 +1744,23 @@ const TaskDetail = () => {
       setTempExternalProducts([]);
       setIsExternalProductModalVisible(false);
 
-      // Refresh task to get updated data
-      fetchTaskDetail(id);
+      // Silent fetch to update data without loading state and restore scroll position
+      console.log('🔄 Starting silent data refresh after saving external products...');
+
+      // Fetch updated task data silently (without loading state)
+      try {
+        // Use the silent fetch function that doesn't trigger loading state
+        await silentFetchTaskDetail(id);
+
+        // Restore scroll position after data is updated
+        restoreScrollPosition(currentScrollPosition);
+
+        console.log('✅ Silent data refresh completed, scroll position restored');
+      } catch (silentFetchError) {
+        console.warn('⚠️ Silent fetch failed, but save was successful:', silentFetchError);
+        // Still restore scroll position even if silent fetch fails
+        restoreScrollPosition(currentScrollPosition);
+      }
     } catch (error) {
       message.error(
         "Có lỗi xảy ra khi lưu sản phẩm: " +
@@ -2094,13 +2230,16 @@ const TaskDetail = () => {
 
   // Prepare product data for table
   const productData =
-    task.serviceOrder.serviceOrderDetails?.map((detail, index) => ({
+    (task?.serviceOrder?.serviceOrderDetails || []).map((detail, index) => ({
       key: index,
       productId: detail.productId,
       quantity: detail.quantity,
       price: detail.price,
       totalPrice: detail.totalPrice,
-    })) || [];
+    }));
+
+  console.log('📊 Current productData for table:', productData);
+  console.log('📊 Current task.serviceOrder.serviceOrderDetails:', task?.serviceOrder?.serviceOrderDetails);
 
   // Check if there are images to display
   const hasImages =
@@ -2153,6 +2292,40 @@ const TaskDetail = () => {
     }
     return null;
   };
+
+  // Guard clause to prevent errors when task or serviceOrder is null/undefined
+  if (loading) {
+    return (
+      <div className="p-6 max-w-10xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!task || !task.serviceOrder) {
+    return (
+      <div className="p-6 max-w-10xl mx-auto">
+        <div className="flex items-center mb-6">
+          <Button
+            type="primary"
+            onClick={() => navigate(-1)}
+            icon={<ArrowLeftOutlined />}
+            className="flex items-center mr-4"
+          >
+            Quay lại
+          </Button>
+          <Title level={4} style={{ margin: 0 }}>
+            Chi tiết task
+          </Title>
+        </div>
+        <Card>
+          <Empty description="Không tìm thấy thông tin task hoặc đơn hàng" />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-10xl mx-auto">

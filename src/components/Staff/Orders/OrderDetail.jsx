@@ -36,6 +36,7 @@ import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useShippingStore from "@/stores/useShippingStore";
 import useOrderStore from "@/stores/orderStore";
 import useProductStore from "@/stores/useProductStore";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
@@ -67,6 +68,37 @@ const OrderDetail = () => {
     };
     fetchOrderDetail();
   }, [id, getOrderById, navigate, fetchProducts]);
+
+  // SignalR integration using optimized hook for real-time updates
+  useSignalRMessage(
+    (messageType, messageData) => {
+      console.log(
+        `SignalR received in OrderDetail - Type: ${messageType}, Data: ${messageData}, Current Order ID: ${id}`
+      );
+
+      // Define relevant message types that should trigger a refresh for this specific order
+      const relevantUpdateTypes = [
+        "OrderUpdated",
+        "OrderStatusChanged",
+        "OrderAccepted",
+        "OrderCancelled",
+        "ShippingUpdated",
+        "DeliveryStatusChanged",
+        "PaymentUpdated",
+        "OrderDetailsUpdated",
+        "ProductUpdated",
+      ];
+
+      // Check if the message type is relevant AND the message data matches the current order ID
+      if (relevantUpdateTypes.includes(messageType) && messageData === id) {
+        console.log(
+          `Relevant SignalR message received for order ${id} (${messageType}), refreshing details.`
+        );
+        getOrderById(id); // Refresh the order details
+      }
+    },
+    [id, getOrderById]
+  );
 
   const { getBasePath } = useRoleBasedPath();
 

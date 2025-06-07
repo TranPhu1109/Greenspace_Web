@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   Table,
   Card,
@@ -35,7 +35,7 @@ import {
 import { format } from "date-fns";
 import useComplaintStore from "../../../stores/useComplaintStore";
 import useProductStore from "../../../stores/useProductStore";
-import signalRService from "../../../services/signalRService";
+import { useSignalRMessage } from "../../../hooks/useSignalR";
 import "./ComplaintsList.scss";
 import axios from "../../../api/api";
 import { useCloudinaryStorage } from "@/hooks/useCloudinaryStorage";
@@ -54,6 +54,7 @@ const ComplaintsList = () => {
     updateComplaintStatus,
     createShippingOrder,
     updateComplaintDetail,
+    silentFetchComplaints,
   } = useComplaintStore();
   const { getProductById } = useProductStore();
 
@@ -89,30 +90,59 @@ const ComplaintsList = () => {
     error: uploadError,
   } = useCloudinaryStorage();
 
-  // Initialize SignalR connection
-  useEffect(() => {
-    const initializeSignalR = async () => {
-      try {
-        // Start the SignalR connection
-        await signalRService.startConnection();
+  // Debounce timer ref for silent fetch
+  const silentFetchTimeoutRef = useRef(null);
+  // Flag to track if we're in silent update mode
+  const isSilentUpdatingRef = useRef(false);
 
-        // Register for the messageReceived event - automatically fetch data on any message
-        signalRService.on("messageReceived", (data) => {
-          console.log("SignalR message received:", data);
-          fetchComplaints();
-        });
+  // Create debounced silent fetch function to avoid loading states during SignalR updates
+  const silentFetch = useCallback(async () => {
+    // Prevent multiple simultaneous silent fetches
+    if (isSilentUpdatingRef.current) {
+      return;
+    }
+
+    // Clear any existing timeout
+    if (silentFetchTimeoutRef.current) {
+      clearTimeout(silentFetchTimeoutRef.current);
+    }
+
+    // Set a new timeout to debounce the fetch
+    silentFetchTimeoutRef.current = setTimeout(async () => {
+      try {
+        isSilentUpdatingRef.current = true;
+
+        if (silentFetchComplaints) {
+          await silentFetchComplaints();
+        } else {
+          // Fallback to regular fetch if silent fetch is not available
+          await fetchComplaints();
+        }
       } catch (error) {
-        console.error("Failed to initialize SignalR connection:", error);
+        console.error("Silent fetch error:", error);
+      } finally {
+        isSilentUpdatingRef.current = false;
+      }
+    }, 300); // 300ms debounce
+  }, [silentFetchComplaints, fetchComplaints]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (silentFetchTimeoutRef.current) {
+        clearTimeout(silentFetchTimeoutRef.current);
       }
     };
+  }, []);
 
-    initializeSignalR();
-
-    // Clean up SignalR connection when component unmounts
-    return () => {
-      signalRService.off("messageReceived");
-    };
-  }, [fetchComplaints]);
+  // SignalR integration using optimized hook with silent fetch
+  useSignalRMessage(
+    (data) => {
+      console.log("SignalR message received:", data);
+      silentFetch();
+    },
+    [silentFetch]
+  );
 
   useEffect(() => {
     fetchComplaints();
@@ -421,13 +451,13 @@ const ComplaintsList = () => {
 
           message.success("Đã lưu đánh giá sản phẩm thành công!");
 
-          // Also update complaints list to keep it consistent
-          fetchComplaints();
+          // Also update complaints list to keep it consistent - use silent fetch
+          silentFetch();
         }
       } catch (fetchError) {
         console.error("Error fetching updated complaint:", fetchError);
-        // Fallback to refreshing all complaints
-        await fetchComplaints();
+        // Fallback to refreshing all complaints - use silent fetch
+        await silentFetch();
         message.success(
           "Đã lưu đánh giá sản phẩm thành công (nhưng không lấy được dữ liệu mới)!"
         );
@@ -664,7 +694,7 @@ const ComplaintsList = () => {
       }
 
       message.success(`Cập nhật trạng thái khiếu nại thành công!`);
-      await fetchComplaints(); // Refresh data
+      await silentFetch(); // Refresh data silently
       setIsDetailModalVisible(false);
       setSelectedComplaint(null);
       setSelectedStatus(null);
@@ -795,7 +825,7 @@ const ComplaintsList = () => {
       message.success(
         `Đã tạo đơn vận chuyển và chuyển sang xử lý thành công! Mã vận đơn: ${deliveryCode}`
       );
-      await fetchComplaints(); // Refresh data
+      await silentFetch(); // Refresh data silently
       setIsShippingModalVisible(false);
       setIsDetailModalVisible(false);
       setSelectedComplaint(null);
@@ -810,9 +840,9 @@ const ComplaintsList = () => {
     }
   };
 
-  // Filter complaints based on search text, status, type, and date range
-  const filteredComplaints =
-    complaints?.filter((complaint) => {
+  // Memoized filtered complaints to prevent unnecessary re-renders
+  const filteredComplaints = useMemo(() => {
+    return complaints?.filter((complaint) => {
       // Filter by search text
       const searchMatch =
         !searchText ||
@@ -838,6 +868,7 @@ const ComplaintsList = () => {
 
       return searchMatch && statusMatch && typeMatch && dateMatch;
     }) || [];
+  }, [complaints, searchText, filterStatus, filterType, dateRange]);
 
   const getStatusTag = (status) => {
     const statusConfig = {

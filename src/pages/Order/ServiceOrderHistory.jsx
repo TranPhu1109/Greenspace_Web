@@ -40,7 +40,7 @@ import {
 } from "@ant-design/icons";
 import api from "@/api/api";
 import useNotificationStore from "@/stores/useNotificationStore";
-import signalRService from "@/services/signalRService";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -98,41 +98,19 @@ const ServiceOrderHistory = () => {
     fetchOrders();
   }, [user?.id, getServiceOrdersNoUsingIdea]);
 
-  // SignalR integration for real-time updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const initSignalR = async () => {
-      try {
-        
-
-        // Kết nối SignalR
-        const connection = await signalRService.startConnection();
-
-        // Đăng ký listener khi có service order cập nhật
-        signalRService.on("messageReceived", async () => {
-          // Sử dụng silent fetch để không làm re-render loading state
-          const updatedOrders = await getServiceOrdersNoUsingIdeaSilent(
-            user.id,
-            componentId.current
-          );
-        });
-      } catch (err) {
-        console.error(
-          `[${componentId.current}] ❌ Không thể kết nối SignalR`,
-          err
+  // SignalR integration using optimized hook
+  useSignalRMessage(
+    async () => {
+      if (user?.id) {
+        // Sử dụng silent fetch để không làm re-render loading state
+        await getServiceOrdersNoUsingIdeaSilent(
+          user.id,
+          componentId.current
         );
       }
-    };
-
-    initSignalR();
-
-    return () => {
-      console.log(`[${componentId.current}] Cleaning up SignalR connection`);
-      signalRService.off("messageReceived");
-      signalRService.stopConnection();
-    };
-  }, [user?.id, getServiceOrdersNoUsingIdeaSilent, serviceOrders?.length]);
+    },
+    [user?.id, getServiceOrdersNoUsingIdeaSilent]
+  );
 
   const updatedOrderIds = notifications
     .filter((n) => !n.isSeen)

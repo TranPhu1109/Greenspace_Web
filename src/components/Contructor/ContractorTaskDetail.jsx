@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Spin,
@@ -54,18 +54,19 @@ import dayjs from "dayjs";
 import useProductStore from "@/stores/useProductStore";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
 import useTimeAdjustmentStore from "@/stores/useTimeAdjustmentStore";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 
 import {
   getCurrentTime,
   isCurrentTimeMatchTaskTime,
   isTestModeTimeMatchTaskTime,
   getTimeValidationMessage,
-  getTestModeTimeValidationMessage
-} from '@/utils/timeConfig';
+  getTestModeTimeValidationMessage,
+} from "@/utils/timeConfig";
 import "./ContractorTasks.scss";
 
 const { Title, Text, Paragraph } = Typography;
-const { TabPane } = Tabs;
+
 
 const ContractorTaskDetail = () => {
   const { id } = useParams();
@@ -106,52 +107,7 @@ const ContractorTaskDetail = () => {
   const images = getImages();
   const [mainImage, setMainImage] = useState(images[0] || null);
 
-  useEffect(() => {
-    fetchTaskDetails();
-  }, [id]);
-
-  useEffect(() => {
-    setMainImage(images[0] || null);
-  }, [order, designIdea]);
-
-  useEffect(() => {
-    // Fetch design idea if order is UsingDesignIdea and has designIdeaId
-    if (
-      order &&
-      order.serviceType === "UsingDesignIdea" &&
-      order.designIdeaId
-    ) {
-      fetchDesignIdeaDetails(order.designIdeaId);
-    }
-  }, [order]);
-
-  // Update current time every second for real-time checking
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(getCurrentTime());
-    }, 500);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const fetchDesignIdeaDetails = async (designIdeaId) => {
-    try {
-      setLoadingDesignIdea(true);
-      const designData = await fetchDesignIdeaById(designIdeaId);
-      setDesignIdea(designData);
-    } catch (err) {
-      notification.error({
-        message: "Lỗi",
-        description: "Không thể tải thông tin mẫu thiết kế",
-        icon: <CloseCircleOutlined style={{ color: "#f5222d" }} />,
-        placement: "topRight",
-      });
-    } finally {
-      setLoadingDesignIdea(false);
-    }
-  };
-
-  const fetchTaskDetails = async () => {
+  const fetchTaskDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -200,6 +156,56 @@ const ContractorTaskDetail = () => {
       setError("Đã xảy ra lỗi khi tải thông tin chi tiết công việc");
     } finally {
       setLoading(false);
+    }
+  }, [id, fetchProducts, getProductById]);
+
+  useEffect(() => {
+    fetchTaskDetails();
+  }, [fetchTaskDetails]);
+
+  // SignalR integration using optimized hook for real-time updates
+  useSignalRMessage(() => {
+    fetchTaskDetails(); // Refresh the task details
+  }, [fetchTaskDetails]);
+
+  useEffect(() => {
+    setMainImage(images[0] || null);
+  }, [order, designIdea]);
+
+  useEffect(() => {
+    // Fetch design idea if order is UsingDesignIdea and has designIdeaId
+    if (
+      order &&
+      order.serviceType === "UsingDesignIdea" &&
+      order.designIdeaId
+    ) {
+      fetchDesignIdeaDetails(order.designIdeaId);
+    }
+  }, [order]);
+
+  // Update current time every second for real-time checking
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(getCurrentTime());
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const fetchDesignIdeaDetails = async (designIdeaId) => {
+    try {
+      setLoadingDesignIdea(true);
+      const designData = await fetchDesignIdeaById(designIdeaId);
+      setDesignIdea(designData);
+    } catch (err) {
+      notification.error({
+        message: "Lỗi",
+        description: "Không thể tải thông tin mẫu thiết kế",
+        icon: <CloseCircleOutlined style={{ color: "#f5222d" }} />,
+        placement: "topRight",
+      });
+    } finally {
+      setLoadingDesignIdea(false);
     }
   };
 
@@ -274,8 +280,12 @@ const ContractorTaskDetail = () => {
     }
 
     // Use Test Mode functions if Test Mode is enabled, otherwise use real time functions
-    const timeMatchFunction = isTestModeEnabled ? isTestModeTimeMatchTaskTime : isCurrentTimeMatchTaskTime;
-    const validationMessageFunction = isTestModeEnabled ? getTestModeTimeValidationMessage : getTimeValidationMessage;
+    const timeMatchFunction = isTestModeEnabled
+      ? isTestModeTimeMatchTaskTime
+      : isCurrentTimeMatchTaskTime;
+    const validationMessageFunction = isTestModeEnabled
+      ? getTestModeTimeValidationMessage
+      : getTimeValidationMessage;
 
     if (!timeMatchFunction(task)) {
       const validationMessage = validationMessageFunction(task, isReinstall);
@@ -289,7 +299,9 @@ const ContractorTaskDetail = () => {
       return;
     }
 
-    const title = isReinstall ? "Xác nhận bắt đầu lắp đặt lại" : "Xác nhận bắt đầu lắp đặt";
+    const title = isReinstall
+      ? "Xác nhận bắt đầu lắp đặt lại"
+      : "Xác nhận bắt đầu lắp đặt";
     const content = isReinstall
       ? "Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt lại cho khách hàng?"
       : "Bạn đã đến nơi và sẵn sàng bắt đầu lắp đặt cho khách hàng?";
@@ -393,35 +405,37 @@ const ContractorTaskDetail = () => {
       return { canStart: false, message: "Chưa có lịch hẹn", color: "default" };
     }
 
-    const taskDateTime = dayjs(`${task.dateAppointment} ${task.timeAppointment}`);
+    const taskDateTime = dayjs(
+      `${task.dateAppointment} ${task.timeAppointment}`
+    );
     const now = currentTime;
     const taskDate = dayjs(task.dateAppointment);
 
-    if (now.isBefore(taskDate, 'day')) {
+    if (now.isBefore(taskDate, "day")) {
       return {
         canStart: false,
         message: `Chưa đến ngày hẹn (${taskDate.format("DD/MM/YYYY")})`,
-        color: "orange"
+        color: "orange",
       };
-    } else if (now.isSame(taskDate, 'day')) {
+    } else if (now.isSame(taskDate, "day")) {
       if (now.isBefore(taskDateTime)) {
         return {
           canStart: false,
           message: `Chưa đến giờ hẹn (${taskDateTime.format("HH:mm")})`,
-          color: "orange"
+          color: "orange",
         };
       } else {
         return {
           canStart: true,
           message: "Có thể bắt đầu lắp đặt",
-          color: "green"
+          color: "green",
         };
       }
     } else {
       return {
         canStart: true,
         message: "Có thể bắt đầu lắp đặt",
-        color: "green"
+        color: "green",
       };
     }
   };
@@ -515,7 +529,11 @@ const ContractorTaskDetail = () => {
                   <Button
                     type="primary"
                     icon={<ToolOutlined />}
-                    onClick={task.status === "ReInstall" ? handleStartReinstallation : handleStartInstallation}
+                    onClick={
+                      task.status === "ReInstall"
+                        ? handleStartReinstallation
+                        : handleStartInstallation
+                    }
                     style={{
                       backgroundColor: "#1890ff",
                       borderColor: "#1890ff",
@@ -556,56 +574,62 @@ const ContractorTaskDetail = () => {
         </Row>
       </Card>
 
-      <Tabs defaultActiveKey="overview" className="task-detail-tabs">
-        <TabPane tab="Tổng quan" key="overview">
-          <Row gutter={[16, 16]}>
-            <Col xs={24} lg={16}>
-              <Card title="Thông tin công việc" className="task-info-card">
-                <Descriptions
-                  bordered
-                  column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
-                >
-                  <Descriptions.Item label="Mã đơn hàng">
-                    <Text
-                      copyable={{
-                        text: task.serviceOrderId,
-                        icon: <CopyOutlined />,
-                      }}
-                      strong
+      <Tabs
+        defaultActiveKey="overview"
+        className="task-detail-tabs"
+        items={[
+          {
+            key: "overview",
+            label: "Tổng quan",
+            children: (
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={16}>
+                  <Card title="Thông tin công việc" className="task-info-card">
+                    <Descriptions
+                      bordered
+                      column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
                     >
-                      #{task.serviceOrderId}
-                    </Text>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Trạng thái đơn hàng">
-                    <Tag color={getStatusColor(task.serviceOrder.status)}>
-                      {getStatusText(task.serviceOrder.status)}
-                    </Tag>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngày giao hàng và lắp đặt">
-                    <CalendarOutlined style={{ marginRight: 8 }} />
-                    {task.dateAppointment
-                      ? dayjs(task.dateAppointment).format("DD/MM/YYYY")
-                      : "Chưa có lịch"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Giờ giao hàng và lắp đặt">
-                    <ClockCircleOutlined style={{ marginRight: 8 }} />
-                    {task.timeAppointment || "Chưa có lịch"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngày tạo" span={2}>
-                    {task.creationDate
-                      ? dayjs(task.creationDate).format("DD/MM/YYYY - HH:mm:ss")
-                      : "Không có thông tin"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ghi chú" span={2}>
-                    {task.note || "Không có ghi chú"}
-                  </Descriptions.Item>
-                  {order?.serviceType === "UsingDesignIdea" && (
-                    <Descriptions.Item label="Loại dịch vụ" span={2}>
-                      <Tag color="green">Sử dụng mẫu thiết kế có sẵn</Tag>
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Card>
+                      <Descriptions.Item label="Mã đơn hàng">
+                        <Text
+                          copyable={{
+                            text: task.serviceOrderId,
+                            icon: <CopyOutlined />,
+                          }}
+                          strong
+                        >
+                          #{task.serviceOrderId}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Trạng thái đơn hàng">
+                        <Tag color={getStatusColor(task.serviceOrder.status)}>
+                          {getStatusText(task.serviceOrder.status)}
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ngày giao hàng và lắp đặt">
+                        <CalendarOutlined style={{ marginRight: 8 }} />
+                        {task.dateAppointment
+                          ? dayjs(task.dateAppointment).format("DD/MM/YYYY")
+                          : "Chưa có lịch"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Giờ giao hàng và lắp đặt">
+                        <ClockCircleOutlined style={{ marginRight: 8 }} />
+                        {task.timeAppointment || "Chưa có lịch"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ngày tạo" span={2}>
+                        {task.creationDate
+                          ? dayjs(task.creationDate).format("DD/MM/YYYY - HH:mm:ss")
+                          : "Không có thông tin"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Ghi chú" span={2}>
+                        {task.note || "Không có ghi chú"}
+                      </Descriptions.Item>
+                      {order?.serviceType === "UsingDesignIdea" && (
+                        <Descriptions.Item label="Loại dịch vụ" span={2}>
+                          <Tag color="green">Sử dụng mẫu thiết kế có sẵn</Tag>
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+                  </Card>
 
               <Card title="Danh sách sản phẩm" className="products-card">
                 {order &&
@@ -846,11 +870,14 @@ const ContractorTaskDetail = () => {
                   ))}
                 </Row>
               </Card>
-            </Col>
-          </Row>
-        </TabPane>
-
-        <TabPane tab="Mô tả đơn hàng" key="description">
+                </Col>
+              </Row>
+            )
+          },
+          {
+            key: "description",
+            label: "Mô tả đơn hàng",
+            children: (
           <Card className="description-card">
             <Title level={4}>Mô tả chi tiết</Title>
             {order?.serviceType === "UsingDesignIdea" && designIdea ? (
@@ -880,12 +907,13 @@ const ContractorTaskDetail = () => {
                 }}
               />
             )}
-          </Card>
-        </TabPane>
-
-        {/* Add the new design guides tab */}
-        {hasDesignGuides() && (
-          <TabPane tab="Tài liệu hướng dẫn thiết kế" key="design-guides">
+              </Card>
+            )
+          },
+          ...(hasDesignGuides() ? [{
+            key: "design-guides",
+            label: "Tài liệu hướng dẫn thiết kế",
+            children: (
             <Card className="design-guides-card">
               <Row gutter={[24, 24]}>
                 {/* Design Guide Images */}
@@ -1143,22 +1171,24 @@ const ContractorTaskDetail = () => {
                     </Col>
                   )}
               </Row>
-            </Card>
-          </TabPane>
-        )}
-
-        {order?.report && (
-          <TabPane tab="Báo cáo đơn hàng" key="report">
+              </Card>
+            )
+          }] : []),
+          ...(order?.report ? [{
+            key: "report",
+            label: "Báo cáo đơn hàng",
+            children: (
             <Card className="report-card">
               <Title level={4}>Báo cáo</Title>
               <div
                 className="html-content"
                 dangerouslySetInnerHTML={{ __html: order.report }}
               />
-            </Card>
-          </TabPane>
-        )}
-      </Tabs>
+              </Card>
+            )
+          }] : [])
+        ]}
+      />
 
       {/* Add CSS for design guides */}
       <style jsx>{`

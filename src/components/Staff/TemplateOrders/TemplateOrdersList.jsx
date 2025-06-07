@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Table,
   Card,
@@ -33,6 +33,7 @@ import { message } from "antd";
 import { Popover } from "antd";
 import { useRoleBasedPath } from "@/hooks/useRoleBasedPath";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 import api from "@/api/api";
 
 const { Option } = Select;
@@ -50,21 +51,41 @@ const TemplateOrdersList = () => {
   const componentId = useRef(`template-orders-list-${Date.now()}`).current;
 
   const { getBasePath } = useRoleBasedPath();
-  const { designOrders, isLoading, error, fetchDesignOrders } =
+  const { designOrders, isLoading, error, fetchDesignOrders, fetchDesignOrdersSilent } =
     useDesignOrderStore();
 
   const handleViewDetail = (id) => {
     navigate(`${getBasePath()}/design-orders/template-orders/${id}`);
   };
 
+  // Silent fetch function for SignalR updates (no loading state) - using store function
+  const fetchDesignOrdersSilentWrapper = useCallback(async () => {
+    try {
+      console.log(`[${componentId}] Fetching template orders silently...`);
+      await fetchDesignOrdersSilent(componentId, 0, 1000);
+    } catch (err) {
+      console.error(`[${componentId}] Error fetching template orders silently:`, err);
+    }
+  }, [fetchDesignOrdersSilent, componentId]);
+
   useEffect(() => {
     fetchDesignOrders(componentId, 0, 1000);
-    
+
     // Cleanup function to abort any pending requests when component unmounts
     return () => {
       api.clearPendingRequests(componentId);
     };
   }, [fetchDesignOrders, componentId]);
+
+  // SignalR integration using optimized hook for real-time updates
+  useSignalRMessage(
+    async () => {
+      console.log(`[${componentId}] SignalR message received - refreshing template orders`);
+      // Refresh template orders data silently to avoid loading state flicker
+      await fetchDesignOrdersSilentWrapper();
+    },
+    [fetchDesignOrdersSilentWrapper]
+  );
 
   // Filter design orders to only get non-custom orders
   const filteredOrders = (designOrders || [])

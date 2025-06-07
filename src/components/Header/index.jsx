@@ -5,7 +5,7 @@ import NavigationMenu from "./components/NavigationMenu";
 import MobileMenu from "./components/MobileMenu";
 import useAuthStore from "../../stores/useAuthStore";
 import useCartStore from "../../stores/useCartStore";
-import signalRService from "@/services/signalRService";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 import "./styles.scss";
 
 const Header = () => {
@@ -39,40 +39,26 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [prevScrollPos]);
 
-  useEffect(() => {
-    if (!user) return;
+  // SignalR integration using optimized hook
+  useSignalRMessage(
+    (messageType, messageData) => {
+      if (!user) return;
 
-    const connectSignalR = async () => {
-      try {
-        await signalRService.startConnection();
+      console.log(`Customer Header SignalR received - Type: ${messageType}, Data: ${messageData}`);
 
-        signalRService.on("messageReceived", (messageType, messageData) => {
-          console.log(`Customer Header SignalR received - Type: ${messageType}, Data: ${messageData}`);
-
-          const newNotification = {
-            id: Date.now(),
-            title: messageType === 'UpdateOrderService' ? "Cập nhật đơn hàng" : "Thông báo",
-            message: `Cập nhật cho ID: ${messageData}`,
-            relatedId: messageData,
-            timestamp: new Date().toLocaleTimeString(),
-            read: false,
-          };
-          setNotifications((prev) => [newNotification, ...prev.slice(0, 9)]);
-          setNotificationCount((prev) => prev + 1);
-        });
-
-      } catch (err) {
-        console.error("Customer Header SignalR connection failed: ", err);
-      }
-    };
-
-    connectSignalR();
-
-    return () => {
-      signalRService.off("messageReceived");
-      signalRService.stopConnection();
-    };
-  }, [user]);
+      const newNotification = {
+        id: Date.now(),
+        title: messageType === 'UpdateOrderService' ? "Cập nhật đơn hàng" : "Thông báo",
+        message: `Cập nhật cho ID: ${messageData}`,
+        relatedId: messageData,
+        timestamp: new Date().toLocaleTimeString(),
+        read: false,
+      };
+      setNotifications((prev) => [newNotification, ...prev.slice(0, 9)]);
+      setNotificationCount((prev) => prev + 1);
+    },
+    [user]
+  );
 
   const showDrawer = () => {
     setOpen(true);

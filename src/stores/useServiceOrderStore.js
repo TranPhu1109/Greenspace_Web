@@ -1,7 +1,7 @@
 import api from "@/api/api";
 import { create } from "zustand";
 
-const useServiceOrderStore = create((set) => ({
+const useServiceOrderStore = create((set, get) => ({
   loading: false,
   error: null,
   serviceOrders: [],

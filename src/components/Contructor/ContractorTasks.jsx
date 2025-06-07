@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -44,10 +44,10 @@ import {
 } from '@/utils/timeConfig';
 import './ContractorTasks.scss';
 import { useNavigate } from 'react-router-dom';
-import signalRService from '@/services/signalRService';
+import { useSignalRMessage } from '@/hooks/useSignalR';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+
 
 const ContractorTasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -63,49 +63,7 @@ const ContractorTasks = () => {
   const userId = user?.id;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (userId) {
-      fetchContractorTasks();
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    // Kết nối SignalR
-    const initSignalR = async () => {
-      try {
-        const connection = await signalRService.startConnection();
-
-        // Đăng ký listener khi có task cập nhật
-        signalRService.on("messageReceived", async () => {
-          await fetchContractorTasks();
-        });
-
-      } catch (err) {
-        console.error("Không thể kết nối SignalR", err);
-      }
-    };
-
-    initSignalR();
-
-    return () => {
-      signalRService.off("messageReceived");
-      signalRService.stopConnection();
-    };
-  }, [userId]);
-
-  // Update current time every second for real-time checking
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(getCurrentTime());
-    }, 500);
-
-    return () => clearInterval(timer);
-  }, []);
-  
-
-  const fetchContractorTasks = async () => {
+  const fetchContractorTasks = useCallback(async () => {
     if (!userId) return;
 
     setLoading(true);
@@ -125,7 +83,57 @@ const ContractorTasks = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Silent fetch function for SignalR updates (no loading state)
+  const fetchContractorTasksSilent = useCallback(async () => {
+    if (!userId) return;
+
+    // Không set loading state để tránh hiển thị loading spinner
+    try {
+      console.log(`[ContractorTasks] 🔄 Starting silent fetch for contractor tasks`);
+      const response = await api.get(`/api/worktask/${userId}/users`);
+
+      if (response.status === 200) {
+        setTasks(response.data || []);
+        console.log(`[ContractorTasks] ✅ Silent fetch completed, received ${response.data?.length || 0} tasks`);
+      } else {
+        console.warn(`[ContractorTasks] ⚠️ Silent fetch warning: ${response.status}`);
+        // Không set error state để tránh hiển thị lỗi khi fetch silent
+      }
+    } catch (err) {
+      console.error(`[ContractorTasks] ❌ Error fetching tasks (silent):`, err);
+      // Không set error state để tránh hiển thị lỗi khi fetch silent
+    }
+    // Không có finally block để set loading = false vì không set loading = true
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchContractorTasks();
+    }
+  }, [userId, fetchContractorTasks]);
+
+  // SignalR integration using optimized hook
+  useSignalRMessage(
+    async () => {
+      if (userId) {
+        console.log(`[ContractorTasks] SignalR message received - refreshing contractor tasks silently`);
+        // Use silent fetch to avoid loading state flicker
+        await fetchContractorTasksSilent();
+      }
+    },
+    [userId, fetchContractorTasksSilent]
+  );
+
+  // Update current time every second for real-time checking
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(getCurrentTime());
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const goToTaskDetail = (taskId) => {
     navigate(`/contructor/tasks/${taskId}`);
@@ -408,59 +416,63 @@ const ContractorTasks = () => {
           <Title level={3} style={{ margin: 0 }}>Quản lý công việc</Title>
         </div>
 
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane
-            tab={
-              <span>
-                {/* <Badge count={tasks.length} offset={[10, 0]}> */}
-                <span>Tất cả</span>
-                {/* </Badge> */}
-              </span>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: "all",
+              label: (
+                <span>
+                  {/* <Badge count={tasks.length} offset={[10, 0]}> */}
+                  <span>Tất cả</span>
+                  {/* </Badge> */}
+                </span>
+              )
+            },
+            {
+              key: "upcoming",
+              label: (
+                <span>
+                  <Badge
+                    count={tasks.filter(task => task.status === 'Installing').length}
+                    offset={[10, 0]}
+                  >
+                    <span>Đang thực hiện</span>
+                  </Badge>
+                </span>
+              )
+            },
+            {
+              key: "completed",
+              label: (
+                <span>
+                  <Badge
+                    count={tasks.filter(task => task.status === 'DoneInstalling' || task.status === 'Completed').length}
+                    offset={[10, 0]}
+                    style={{ backgroundColor: '#52c41a' }}
+                  >
+                    <span>Đã hoàn thành</span>
+                  </Badge>
+                </span>
+              )
+            },
+            {
+              key: "reinstall",
+              label: (
+                <span>
+                  <Badge
+                    count={tasks.filter(task => task.status === 'ReInstall').length}
+                    offset={[10, 0]}
+                    style={{ backgroundColor: '#f5222d' }}
+                  >
+                    <span>Yêu cầu lắp đặt lại</span>
+                  </Badge>
+                </span>
+              )
             }
-            key="all"
-          />
-          <TabPane
-            tab={
-              <span>
-                <Badge
-                  count={tasks.filter(task => task.status === 'Installing').length}
-                  offset={[10, 0]}
-                >
-                  <span>Đang thực hiện</span>
-                </Badge>
-              </span>
-            }
-            key="upcoming"
-          />
-          <TabPane
-            tab={
-              <span>
-                <Badge
-                  count={tasks.filter(task => task.status === 'DoneInstalling' || task.status === 'Completed').length}
-                  offset={[10, 0]}
-                  style={{ backgroundColor: '#52c41a' }}
-                >
-                  <span>Đã hoàn thành</span>
-                </Badge>
-              </span>
-            }
-            key="completed"
-          />
-          <TabPane
-            tab={
-              <span>
-                <Badge
-                  count={tasks.filter(task => task.status === 'ReInstall').length}
-                  offset={[10, 0]}
-                  style={{ backgroundColor: '#f5222d' }}
-                >
-                  <span>Yêu cầu lắp đặt lại</span>
-                </Badge>
-              </span>
-            }
-            key="reinstall"
-          />
-        </Tabs>
+          ]}
+        />
 
         {loading ? (
           <div className="loading-container">

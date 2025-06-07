@@ -41,6 +41,7 @@ import dayjs from "dayjs";
 import CreateProductModal from "@/components/Staff/Products/components/CreateProductModal";
 import api from "@/api/api";
 import { formatPrice } from "@/utils/helpers";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 
 const { Title, Text } = Typography;
 
@@ -88,6 +89,37 @@ const ServiceOrderDetail = () => {
     };
     fetchData();
   }, [id, getServiceOrderById, fetchProducts, fetchCategories]);
+
+  // SignalR integration using optimized hook for real-time updates
+  useSignalRMessage(
+    (messageType, messageData) => {
+      console.log(
+        `SignalR received in ServiceOrderDetail - Type: ${messageType}, Data: ${messageData}, Current Order ID: ${id}`
+      );
+
+      // Define relevant message types that should trigger a refresh for this specific order
+      const relevantUpdateTypes = [
+        "UpdateOrderService",
+        "OrderCancelled",
+        "StatusUpdated",
+        "PriceUpdated",
+        "MaterialPriceUpdated",
+        "ExternalProductPriceUpdated",
+        "ServiceOrderDetailsUpdated",
+        "PaymentSuccess",
+        "ShippingUpdate",
+      ];
+
+      // Check if the message type is relevant AND the message data matches the current order ID
+      if (relevantUpdateTypes.includes(messageType) && messageData === id) {
+        console.log(
+          `Relevant SignalR message received for order ${id} (${messageType}), refreshing details.`
+        );
+        getServiceOrderById(id); // Refresh the order details
+      }
+    },
+    [id, getServiceOrderById]
+  );
 
   useEffect(() => {
     if (selectedOrder?.serviceOrderDetails && products.length > 0) {

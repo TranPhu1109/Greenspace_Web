@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   Table,
   Card,
@@ -30,7 +30,7 @@ import {
 import { format } from "date-fns";
 import useComplaintStore from "../../../stores/useComplaintStore";
 import useProductStore from "../../../stores/useProductStore";
-import signalRService from "../../../services/signalRService";
+import { useSignalRMessage } from "../../../hooks/useSignalR";
 import "./ComplaintsRefundList.scss"; // You'll need to create this file
 import ComplaintReasonManage from "./ComplaintsResion";
 
@@ -42,11 +42,11 @@ const { confirm } = Modal;
 const ComplaintsRefundList = () => {
   const {
     refundComplaints,
-    loading,
     error,
     fetchRefundComplaints,
     updateComplaintStatus,
-    processRefund
+    processRefund,
+    silentFetchRefundComplaints
   } = useComplaintStore();
   const { getProductById } = useProductStore();
   const [isReasonDrawerOpen, setIsReasonDrawerOpen] = useState(false);
@@ -59,34 +59,71 @@ const ComplaintsRefundList = () => {
   const [productDetails, setProductDetails] = useState({});
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [processingAction, setProcessingAction] = useState(false);
+  // Local loading state for initial load only
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  // Initialize SignalR connection
-  useEffect(() => {
-    const initializeSignalR = async () => {
+  // Debounce timer ref for silent fetch
+  const silentFetchTimeoutRef = useRef(null);
+  // Flag to track if we're in silent update mode
+  const isSilentUpdatingRef = useRef(false);
+
+  // Create debounced silent fetch function to avoid loading states during SignalR updates
+  const silentFetch = useCallback(async () => {
+    // Prevent multiple simultaneous silent fetches
+    if (isSilentUpdatingRef.current) {
+      return;
+    }
+
+    // Clear any existing timeout
+    if (silentFetchTimeoutRef.current) {
+      clearTimeout(silentFetchTimeoutRef.current);
+    }
+
+    // Set a new timeout to debounce the fetch
+    silentFetchTimeoutRef.current = setTimeout(async () => {
       try {
-        // Start the SignalR connection
-        await signalRService.startConnection();
+        isSilentUpdatingRef.current = true;
 
-        // Register for the messageReceived event - automatically fetch data on any message
-        signalRService.on("messageReceived", (data) => {
-          console.log("SignalR message received:", data);
-          fetchRefundComplaints();
-        });
+        if (silentFetchRefundComplaints) {
+          await silentFetchRefundComplaints();
+        } else {
+          // Fallback to regular fetch if silent fetch is not available
+          await fetchRefundComplaints();
+        }
       } catch (error) {
-        console.error("Failed to initialize SignalR connection:", error);
+        console.error("Silent fetch error:", error);
+      } finally {
+        isSilentUpdatingRef.current = false;
+      }
+    }, 300); // 300ms debounce
+  }, [silentFetchRefundComplaints, fetchRefundComplaints]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (silentFetchTimeoutRef.current) {
+        clearTimeout(silentFetchTimeoutRef.current);
       }
     };
+  }, []);
 
-    initializeSignalR();
-
-    // Clean up SignalR connection when component unmounts
-    return () => {
-      signalRService.off("messageReceived");
-    };
-  }, [fetchRefundComplaints]);
+  // SignalR integration using optimized hook with silent fetch
+  useSignalRMessage(
+    () => {
+      silentFetch();
+    },
+    [silentFetch]
+  );
 
   useEffect(() => {
-    fetchRefundComplaints();
+    const loadInitialData = async () => {
+      try {
+        await fetchRefundComplaints();
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    loadInitialData();
   }, [fetchRefundComplaints]);
 
   useEffect(() => {
@@ -135,7 +172,7 @@ const ComplaintsRefundList = () => {
       await processRefund(complaintId);
 
       message.success("Đã hoàn tiền thành công!");
-      await fetchRefundComplaints(); // Refresh data
+      await silentFetch(); // Refresh data silently
       setIsDetailModalVisible(false);
       setSelectedComplaint(null);
       setSelectedStatus(null);
@@ -187,7 +224,7 @@ const ComplaintsRefundList = () => {
       );
 
       message.success(`Cập nhật trạng thái khiếu nại thành công!`);
-      await fetchRefundComplaints(); // Refresh data
+      await silentFetch(); // Refresh data silently
       setIsDetailModalVisible(false);
       setSelectedComplaint(null);
       setSelectedStatus(null);
@@ -198,29 +235,31 @@ const ComplaintsRefundList = () => {
     }
   };
 
-  // Filter complaints based on search text, status, and date range
-  const filteredComplaints = refundComplaints?.filter(complaint => {
-    // Filter by search text
-    const searchMatch = !searchText ||
-      complaint.id.toLowerCase().includes(searchText.toLowerCase()) ||
-      complaint.orderId?.toLowerCase().includes(searchText.toLowerCase()) ||
-      complaint.userName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      complaint.reason?.toLowerCase().includes(searchText.toLowerCase());
+  // Memoized filtered complaints to prevent unnecessary re-renders
+  const filteredComplaints = useMemo(() => {
+    return refundComplaints?.filter(complaint => {
+      // Filter by search text
+      const searchMatch = !searchText ||
+        complaint.id.toLowerCase().includes(searchText.toLowerCase()) ||
+        complaint.orderId?.toLowerCase().includes(searchText.toLowerCase()) ||
+        complaint.userName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        complaint.reason?.toLowerCase().includes(searchText.toLowerCase());
 
-    // Filter by status
-    const statusMatch = !filterStatus || complaint.status === filterStatus;
+      // Filter by status
+      const statusMatch = !filterStatus || complaint.status === filterStatus;
 
-    // Filter by date range
-    let dateMatch = true;
-    if (dateRange && dateRange[0] && dateRange[1]) {
-      const complaintDate = new Date(complaint.creationDate);
-      const startDate = dateRange[0].startOf('day').toDate();
-      const endDate = dateRange[1].endOf('day').toDate();
-      dateMatch = complaintDate >= startDate && complaintDate <= endDate;
-    }
+      // Filter by date range
+      let dateMatch = true;
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        const complaintDate = new Date(complaint.creationDate);
+        const startDate = dateRange[0].startOf('day').toDate();
+        const endDate = dateRange[1].endOf('day').toDate();
+        dateMatch = complaintDate >= startDate && complaintDate <= endDate;
+      }
 
-    return searchMatch && statusMatch && dateMatch;
-  }) || [];
+      return searchMatch && statusMatch && dateMatch;
+    }) || [];
+  }, [refundComplaints, searchText, filterStatus, dateRange]);
 
   const getStatusTag = (status) => {
     const statusConfig = {
@@ -760,7 +799,7 @@ const ComplaintsRefundList = () => {
           dataSource={filteredComplaints}
           columns={columns}
           rowKey="id"
-          loading={loading}
+          loading={initialLoading}
           scroll={{ x: 'max-content' }}
         />
       </Card>

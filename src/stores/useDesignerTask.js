@@ -74,6 +74,11 @@ const useDesignerTask = create((set, get) => ({
     }
   },
 
+  // Set current task manually (for local updates without API call)
+  setCurrentTask: (task) => {
+    set({ currentTask: task });
+  },
+
   // Reset state
   resetState: () => {
     set({

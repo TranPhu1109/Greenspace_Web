@@ -124,6 +124,42 @@ const useDesignOrderStore = create((set, get) => ({
     }
   },
 
+  // Silent fetch for template orders - không hiển thị loading state để tránh re-render
+  fetchDesignOrdersSilent: async (componentId, pageNumber = 0, pageSize = 1000) => {
+    try {
+      console.log(`[${componentId}] 🔄 Starting silent fetch for template orders`);
+      const response = await api.get('/api/serviceorder/usingidea', {
+        componentId,
+        allowDuplicate: false,
+        params: {
+          pageNumber,
+          pageSize
+        }
+      });
+
+      // Skip processing if the request was canceled
+      if (response.status === 'canceled') {
+        console.log(`[${componentId}] ⏹️ Silent fetch canceled`);
+        return;
+      }
+
+      console.log(`[${componentId}] ✅ Silent fetch completed, received ${response.data?.length || 0} orders`);
+      set({
+        designOrders: Array.isArray(response.data) ? response.data : [],
+        error: null // Clear any previous errors
+        // Không set isLoading để tránh hiển thị loading state
+      });
+    } catch (error) {
+      // Only handle non-cancellation errors
+      if (!isCancel(error)) {
+        console.error(`[${componentId}] ❌ Error fetching design orders (silent):`, error);
+        // Không set error state để tránh hiển thị lỗi khi fetch silent
+      } else {
+        console.log(`[${componentId}] ⏹️ Silent fetch canceled due to component unmount`);
+      }
+    }
+  },
+
   updateStatus: async (orderId, newStatus, deliveryCode = "", reportManger = "", reportAccoutant = "") => {
     try {
       set({ isLoading: true, error: null });

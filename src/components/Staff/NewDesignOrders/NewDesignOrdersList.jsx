@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Card,
   Table,
@@ -29,7 +29,7 @@ import dayjs from "dayjs";
 import "./NewDesignOrdersList.scss";
 import { Tooltip } from "antd";
 import { Popover } from "antd";
-import signalRService from "@/services/signalRService";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 import useNotificationStore from "@/stores/useNotificationStore";
 
 const { Option } = Select;
@@ -41,21 +41,76 @@ const NewDesignOrdersList = () => {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
-  const { serviceOrders, loading, getServiceOrdersNoIdea, cancelServiceOrder } =
+  // Local loading state for initial load only
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const { serviceOrders, getServiceOrdersNoIdea, cancelServiceOrder } =
     useServiceOrderStore();
   const { markAsRead, notifications } = useNotificationStore();
 
+  // Debounce timer ref for silent fetch
+  const silentFetchTimeoutRef = useRef(null);
+  // Flag to track if we're in silent update mode
+  const isSilentUpdatingRef = useRef(false);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      await getServiceOrdersNoIdea();
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
+  }, [getServiceOrdersNoIdea]);
+
+  // Create debounced silent fetch function to avoid loading states during SignalR updates
+  const silentFetch = useCallback(async () => {
+    // Prevent multiple simultaneous silent fetches
+    if (isSilentUpdatingRef.current) {
+      return;
+    }
+
+    // Clear any existing timeout
+    if (silentFetchTimeoutRef.current) {
+      clearTimeout(silentFetchTimeoutRef.current);
+    }
+
+    // Set a new timeout to debounce the fetch
+    silentFetchTimeoutRef.current = setTimeout(async () => {
+      try {
+        isSilentUpdatingRef.current = true;
+
+        // Use silent parameter to avoid loading state
+        await getServiceOrdersNoIdea(true);
+      } catch (error) {
+        console.error("Silent fetch error:", error);
+      } finally {
+        isSilentUpdatingRef.current = false;
+      }
+    }, 300); // 300ms debounce
+  }, [getServiceOrdersNoIdea]);
+
+  // Cleanup timeout on unmount
   useEffect(() => {
-    fetchOrders();
+    return () => {
+      if (silentFetchTimeoutRef.current) {
+        clearTimeout(silentFetchTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
-    const handleOrderUpdate = (messageType, messageData) => {
-      // Log all messages received for debugging
-      console.log(
-        `SignalR received in NewDesignOrdersList - Type: ${messageType}, Data: ${messageData}`
-      );
+    const loadInitialData = async () => {
+      try {
+        await fetchOrders();
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    loadInitialData();
+  }, [fetchOrders]);
 
+  // SignalR integration using optimized hook for real-time updates with silent fetch
+  useSignalRMessage(
+    (messageType, messageData) => {
       const relevantUpdateTypes = [
         "UpdateOrderService", // From previous context
         "OrderCancelled", // Example: If cancellation affects this list
@@ -63,48 +118,11 @@ const NewDesignOrdersList = () => {
       ];
 
       if (relevantUpdateTypes.includes(messageType)) {
-        console.log(
-          `Relevant SignalR message received (${messageType}), refreshing order list.`
-        );
-        fetchOrders(); // Refetch the data
+        silentFetch(); // Use silent fetch to avoid loading states
       }
-    };
-
-    try {
-      signalRService
-        .startConnection()
-        .then(() => {
-          // Ensure connection is attempted
-          console.log(
-            "SignalR connection ready for NewDesignOrdersList listener."
-          );
-          signalRService.on("messageReceived", handleOrderUpdate);
-        })
-        .catch((err) => {
-          console.error(
-            "SignalR connection failed in NewDesignOrdersList:",
-            err
-          );
-        });
-    } catch (err) {
-      console.error(
-        "Error initiating SignalR connection for NewDesignOrdersList:",
-        err
-      );
-    }
-    return () => {
-      console.log("Removing SignalR listener from NewDesignOrdersList.");
-      signalRService.off("messageReceived", handleOrderUpdate);
-    };
-  }, []); // Empty dependency array ensures this runs once on mount
-
-  const fetchOrders = async () => {
-    try {
-      await getServiceOrdersNoIdea();
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    }
-  };
+    },
+    [silentFetch]
+  );
 
   const getHighlightedOrderIds = () => {
     const orderIds = notifications
@@ -152,7 +170,7 @@ const NewDesignOrdersList = () => {
         try {
           await cancelServiceOrder(id);
           message.success("Đã từ chối đơn hàng thành công");
-          fetchOrders(); // Refresh the list
+          silentFetch(); // Refresh the list silently
         } catch (error) {
           message.error("Không thể từ chối đơn hàng: " + error.message);
         }
@@ -197,8 +215,13 @@ const NewDesignOrdersList = () => {
     return filteredOrders;
   };
 
-  // Cập nhật dataSource cho Table
-  const filteredData = applyFilters();
+  // Memoized filtered data to prevent unnecessary re-renders
+  const filteredData = useMemo(() => applyFilters(), [
+    serviceOrders,
+    searchText,
+    statusFilter,
+    dateRange
+  ]);
 
   const resetFilters = () => {
     setStatusFilter("all");
@@ -543,7 +566,7 @@ const NewDesignOrdersList = () => {
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
-          loading={loading}
+          loading={initialLoading}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
