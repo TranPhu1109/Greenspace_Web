@@ -39,7 +39,7 @@ import "./ProductDetail.scss";
 import api from "../../../api/api";
 
 const { Title } = Typography;
-const { TabPane } = Tabs;
+
 const { Option } = Select;
 const { TextArea } = Input;
 
@@ -307,202 +307,210 @@ const ProductDetail = () => {
 
           <Col span={14}>
             <Card>
-              <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                <TabPane tab="Thông tin cơ bản" key="info">
-                  {!isEditing ? (
-                    <Descriptions bordered column={1}>
-                      <Descriptions.Item label="Tên sản phẩm">
-                        {productData.name}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Danh mục">
-                        {/* {categories.find(
-                          (c) => c.id === productData.category_id
-                        )?.name || "Không xác định"} */}
-                        {productData.categoryName || "Không xác định"}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Giá bán">
-                        {productData.price.toLocaleString()}đ
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Tồn kho">
-                        {productData.stock}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Kích thước">
-                        {productData.size}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="File hướng dẫn PDF">
-                        <Space>
-                          <Button
-                            type="primary"
-                            // icon={<EyeOutlined />}
-                            onClick={() => setIsPdfModalVisible(true)}
-                          >
-                            Xem chi tiết PDF
-                          </Button>
-                        </Space>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Mô tả">
-                      <div className="html-preview" dangerouslySetInnerHTML={{ __html: productData.description }} />
-                      </Descriptions.Item>
-                    </Descriptions>
-                  ) : (
-                    <>
-                      <Form.Item
-                        name="name"
-                        label="Tên sản phẩm"
-                        rules={[{ required: true }]}
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name="categoryId"
-                        label="Danh mục"
-                        rules={[{ required: true }]}
-                      >
-                        <Select>
-                          {categories.map((c) => (
-                            <Option key={c.id} value={c.id}>
-                              {c.name}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                      <Form.Item
-                        name="size"
-                        label="Kích thước"
-                      >
-                        <Input style={{ width: "100%" }} />
-                      </Form.Item>
-                      <Form.Item
-                        name="price"
-                        label="Giá bán"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber style={{ width: "100%" }} />
-                      </Form.Item>
-                      <Form.Item
-                        name="stock"
-                        label="Tồn kho"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber style={{ width: "100%" }} />
-                      </Form.Item>
-                      <Form.Item name="description" label="Mô tả">
-                        <EditorComponent
-                          value={form.getFieldValue('description')}
-                          onChange={(content) => form.setFieldValue('description', content)}
-                          height={400}
-                        />
-                      </Form.Item>
-                    </>
-                  )}
-                </TabPane>
-                
-                <TabPane tab="Thông số kỹ thuật" key="specifications">
-                  {!isEditing ? (
-                    <Descriptions bordered column={1}>
-                      <Descriptions.Item label="Chất liệu">
-                        {productData.specifications?.material}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Kích thước">
-                        {productData.specifications?.dimensions}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Trọng lượng">
-                        {productData.specifications?.weight}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Bảo hành">
-                        {productData.specifications?.warranty}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Xuất xứ">
-                        {productData.specifications?.origin}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Hướng dẫn bảo quản">
-                        {productData.specifications?.care_instructions}
-                      </Descriptions.Item>
-                    </Descriptions>
-                  ) : (
-                    <>
-                      <Form.Item
-                        name={["specifications", "material"]}
-                        label="Chất liệu"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "dimensions"]}
-                        label="Kích thước"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "weight"]}
-                        label="Trọng lượng"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "warranty"]}
-                        label="Bảo hành"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "origin"]}
-                        label="Xuất xứ"
-                      >
-                        <Input />
-                      </Form.Item>
-                      <Form.Item
-                        name={["specifications", "care_instructions"]}
-                        label="Hướng dẫn bảo quản"
-                      >
-                        <TextArea rows={3} />
-                      </Form.Item>
-                    </>
-                  )}
-                </TabPane>
-                
-                <TabPane tab="Điểm nổi bật" key="highlights">
-                  {!isEditing ? (
-                    <ul className="highlights-list">
-                      {productData.highlights?.map((highlight, index) => (
-                        <li key={index}>{highlight}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <Form.List name="highlights">
-                      {(fields, { add, remove }) => (
-                        <>
-                          {fields.map((field, index) => (
-                            <Form.Item required={false} key={field.key}>
-                              <Form.Item
-                                {...field}
-                                validateTrigger={["onChange", "onBlur"]}
-                                noStyle
-                              >
-                                <Input
-                                  style={{ width: "95%" }}
-                                  placeholder="Nhập điểm nổi bật"
-                                />
+              <Tabs
+                activeKey={activeTab}
+                onChange={setActiveTab}
+                items={[
+                  {
+                    key: "info",
+                    label: "Thông tin cơ bản",
+                    children: !isEditing ? (
+                      <Descriptions bordered column={1}>
+                        <Descriptions.Item label="Tên sản phẩm">
+                          {productData.name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Danh mục">
+                          {/* {categories.find(
+                            (c) => c.id === productData.category_id
+                          )?.name || "Không xác định"} */}
+                          {productData.categoryName || "Không xác định"}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Giá bán">
+                          {productData.price.toLocaleString()}đ
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Tồn kho">
+                          {productData.stock}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Kích thước">
+                          {productData.size}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="File hướng dẫn PDF">
+                          <Space>
+                            <Button
+                              type="primary"
+                              // icon={<EyeOutlined />}
+                              onClick={() => setIsPdfModalVisible(true)}
+                            >
+                              Xem chi tiết PDF
+                            </Button>
+                          </Space>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Mô tả">
+                        <div className="html-preview" dangerouslySetInnerHTML={{ __html: productData.description }} />
+                        </Descriptions.Item>
+                      </Descriptions>
+                    ) : (
+                      <>
+                        <Form.Item
+                          name="name"
+                          label="Tên sản phẩm"
+                          rules={[{ required: true }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name="categoryId"
+                          label="Danh mục"
+                          rules={[{ required: true }]}
+                        >
+                          <Select>
+                            {categories.map((c) => (
+                              <Option key={c.id} value={c.id}>
+                                {c.name}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                        <Form.Item
+                          name="size"
+                          label="Kích thước"
+                        >
+                          <Input style={{ width: "100%" }} />
+                        </Form.Item>
+                        <Form.Item
+                          name="price"
+                          label="Giá bán"
+                          rules={[{ required: true }]}
+                        >
+                          <InputNumber style={{ width: "100%" }} />
+                        </Form.Item>
+                        <Form.Item
+                          name="stock"
+                          label="Tồn kho"
+                          rules={[{ required: true }]}
+                        >
+                          <InputNumber style={{ width: "100%" }} />
+                        </Form.Item>
+                        <Form.Item name="description" label="Mô tả">
+                          <EditorComponent
+                            value={form.getFieldValue('description')}
+                            onChange={(content) => form.setFieldValue('description', content)}
+                            height={400}
+                          />
+                        </Form.Item>
+                      </>
+                    )
+                  },
+                  {
+                    key: "specifications",
+                    label: "Thông số kỹ thuật",
+                    children: !isEditing ? (
+                      <Descriptions bordered column={1}>
+                        <Descriptions.Item label="Chất liệu">
+                          {productData.specifications?.material}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Kích thước">
+                          {productData.specifications?.dimensions}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trọng lượng">
+                          {productData.specifications?.weight}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Bảo hành">
+                          {productData.specifications?.warranty}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Xuất xứ">
+                          {productData.specifications?.origin}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Hướng dẫn bảo quản">
+                          {productData.specifications?.care_instructions}
+                        </Descriptions.Item>
+                      </Descriptions>
+                    ) : (
+                      <>
+                        <Form.Item
+                          name={["specifications", "material"]}
+                          label="Chất liệu"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "dimensions"]}
+                          label="Kích thước"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "weight"]}
+                          label="Trọng lượng"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "warranty"]}
+                          label="Bảo hành"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "origin"]}
+                          label="Xuất xứ"
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          name={["specifications", "care_instructions"]}
+                          label="Hướng dẫn bảo quản"
+                        >
+                          <TextArea rows={3} />
+                        </Form.Item>
+                      </>
+                    )
+                  },
+                  {
+                    key: "highlights",
+                    label: "Điểm nổi bật",
+                    children: !isEditing ? (
+                      <ul className="highlights-list">
+                        {productData.highlights?.map((highlight, index) => (
+                          <li key={index}>{highlight}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <Form.List name="highlights">
+                        {(fields, { add, remove }) => (
+                          <>
+                            {fields.map((field, index) => (
+                              <Form.Item required={false} key={field.key}>
+                                <Form.Item
+                                  {...field}
+                                  validateTrigger={["onChange", "onBlur"]}
+                                  noStyle
+                                >
+                                  <Input
+                                    style={{ width: "95%" }}
+                                    placeholder="Nhập điểm nổi bật"
+                                  />
+                                </Form.Item>
+                                <Button
+                                  type="link"
+                                  onClick={() => remove(field.name)}
+                                >
+                                  Xóa
+                                </Button>
                               </Form.Item>
-                              <Button
-                                type="link"
-                                onClick={() => remove(field.name)}
-                              >
-                                Xóa
+                            ))}
+                            <Form.Item>
+                              <Button type="dashed" onClick={() => add()} block>
+                                Thêm điểm nổi bật
                               </Button>
                             </Form.Item>
-                          ))}
-                          <Form.Item>
-                            <Button type="dashed" onClick={() => add()} block>
-                              Thêm điểm nổi bật
-                            </Button>
-                          </Form.Item>
-                        </>
-                      )}
-                    </Form.List>
-                  )}
-                </TabPane>
-              </Tabs>
+                          </>
+                        )}
+                      </Form.List>
+                    )
+                  }
+                ]}
+              />
             </Card>
           </Col>
         </Row>

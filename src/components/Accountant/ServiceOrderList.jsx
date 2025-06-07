@@ -15,20 +15,36 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import useAccountantStore from "../../stores/useAccountantStore";
-import signalRService from "../../services/signalRService";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 import dayjs from "dayjs";
 
 const ServiceOrderList = () => {
   const navigate = useNavigate();
-  const { 
-    serviceOrders, 
-    materialPriceOrders, 
-    isLoading, 
-    fetchServiceOrders, 
-    fetchMaterialPriceOrders 
+  const {
+    serviceOrders,
+    materialPriceOrders,
+    isLoading,
+    fetchServiceOrders,
+    fetchMaterialPriceOrders,
+    fetchServiceOrdersSilent,
+    fetchMaterialPriceOrdersSilent
   } = useAccountantStore();
   const [filterStatus, setFilterStatus] = useState("all");
   const [allOrders, setAllOrders] = useState([]);
+
+  // Silent fetch functions that don't trigger loading state
+  const silentLoadAllOrders = useCallback(async () => {
+    try {
+      console.log('🔄 Silent load all orders...');
+      await Promise.all([
+        fetchMaterialPriceOrdersSilent()
+        // fetchServiceOrdersSilent() // Uncomment if needed
+      ]);
+      console.log('✅ Silent load all orders completed');
+    } catch (error) {
+      console.warn('⚠️ Silent load all orders failed:', error);
+    }
+  }, [fetchMaterialPriceOrdersSilent]);
 
   const loadAllOrders = useCallback(async () => {
     try {
@@ -49,26 +65,14 @@ const ServiceOrderList = () => {
     filterOrders();
   }, [filterStatus, serviceOrders, materialPriceOrders]);
 
-  // SignalR integration
-  useEffect(() => {
-    const initializeSignalR = async () => {
-      try {
-        await signalRService.startConnection();
-
-        signalRService.on("messageReceived", () => {
-          loadAllOrders();
-        });
-      } catch (error) {
-        // Silent fail for SignalR connection
-      }
-    };
-
-    initializeSignalR();
-
-    return () => {
-      signalRService.off("messageReceived");
-    };
-  }, [loadAllOrders]);
+  // SignalR integration using optimized hook with silent fetch
+  useSignalRMessage(
+    () => {
+      console.log('📡 SignalR message received, performing silent data refresh...');
+      silentLoadAllOrders();
+    },
+    [silentLoadAllOrders]
+  );
 
   const filterOrders = () => {
     let filteredOrders = [];

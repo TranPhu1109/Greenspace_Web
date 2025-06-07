@@ -374,32 +374,51 @@ const DayDetail = ({ selectedDate, noIdeaOrders, usingIdeaOrders }) => {
                     </Space>
                   </div>
                   <div className="tasks-section">
-                    <Tabs defaultActiveKey="all">
-                      <Tabs.TabPane tab={`Tất cả (${designer.tasks.length})`} key="all">
-                        <List
-                          dataSource={designer.tasks}
-                          renderItem={renderTaskItem}
-                        />
-                      </Tabs.TabPane>
-                      <Tabs.TabPane tab={`Đang tư vấn (${designer.consultingTasks.length})`} key="consulting">
-                        <List
-                          dataSource={designer.consultingTasks}
-                          renderItem={renderTaskItem}
-                        />
-                      </Tabs.TabPane>
-                      <Tabs.TabPane tab={`Đang thiết kế (${designer.designTasks.length})`} key="design">
-                        <List
-                          dataSource={designer.designTasks}
-                          renderItem={renderTaskItem}
-                        />
-                      </Tabs.TabPane>
-                      <Tabs.TabPane tab={`Hoàn thành (${designer.completedTasks.length})`} key="completed">
-                        <List
-                          dataSource={designer.completedTasks}
-                          renderItem={renderTaskItem}
-                        />
-                      </Tabs.TabPane>
-                    </Tabs>
+                    <Tabs
+                      defaultActiveKey="all"
+                      items={[
+                        {
+                          key: "all",
+                          label: `Tất cả (${designer.tasks.length})`,
+                          children: (
+                            <List
+                              dataSource={designer.tasks}
+                              renderItem={renderTaskItem}
+                            />
+                          )
+                        },
+                        {
+                          key: "consulting",
+                          label: `Đang tư vấn (${designer.consultingTasks.length})`,
+                          children: (
+                            <List
+                              dataSource={designer.consultingTasks}
+                              renderItem={renderTaskItem}
+                            />
+                          )
+                        },
+                        {
+                          key: "design",
+                          label: `Đang thiết kế (${designer.designTasks.length})`,
+                          children: (
+                            <List
+                              dataSource={designer.designTasks}
+                              renderItem={renderTaskItem}
+                            />
+                          )
+                        },
+                        {
+                          key: "completed",
+                          label: `Hoàn thành (${designer.completedTasks.length})`,
+                          children: (
+                            <List
+                              dataSource={designer.completedTasks}
+                              renderItem={renderTaskItem}
+                            />
+                          )
+                        }
+                      ]}
+                    />
                   </div>
                 </Card>
               </List.Item>

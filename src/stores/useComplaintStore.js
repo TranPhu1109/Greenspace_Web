@@ -104,6 +104,39 @@ const useComplaintStore = create((set, get) => ({
     }
   },
 
+  // Silent fetch complaints without loading state for SignalR updates
+  silentFetchComplaints: async () => {
+    try {
+      const response = await axios.get("/api/complaint", {
+        params: {
+          pageNumber: 0,
+          pageSize: 100,
+        },
+      });
+
+      const newData = response.data || [];
+      const currentState = get();
+
+      // Shallow comparison to avoid unnecessary updates
+      const hasChanged = currentState.complaints?.length !== newData.length ||
+        !currentState.complaints?.every((item, index) =>
+          item.id === newData[index]?.id &&
+          item.status === newData[index]?.status
+        );
+
+      if (hasChanged) {
+        // Use a more granular update approach
+        set({ complaints: newData }, false, 'silentFetchComplaints');
+      }
+
+      return newData;
+    } catch (error) {
+      console.error("Error silently fetching complaints:", error);
+      // Don't update error state to avoid UI disruption
+      return get().complaints || []; // Return current complaints on error
+    }
+  },
+
   // Fetch refund complaints
   fetchRefundComplaints: async () => {
     try {
@@ -124,6 +157,41 @@ const useComplaintStore = create((set, get) => ({
       console.error("Error fetching refund complaints:", error);
       set({ refundComplaints: [], error: error.message, loading: false });
       throw error;
+    }
+  },
+
+  // Silent fetch refund complaints without loading state for SignalR updates
+  silentFetchRefundComplaints: async () => {
+    try {
+      const response = await axios.get("/api/complaint/refund");
+
+      const responseData = response.data || [];
+      // Filter complaints with status 'Processing', 'refund', or 'Complete'
+      const filteredComplaints = responseData.filter(
+        (complaint) =>
+          complaint.status === "Processing" ||
+          complaint.status === "refund" ||
+          complaint.status === "Complete"
+      );
+      const currentState = get();
+
+      // Shallow comparison to avoid unnecessary updates
+      const hasChanged = currentState.refundComplaints?.length !== filteredComplaints.length ||
+        !currentState.refundComplaints?.every((item, index) =>
+          item.id === filteredComplaints[index]?.id &&
+          item.status === filteredComplaints[index]?.status
+        );
+
+      if (hasChanged) {
+        // Use a more granular update approach
+        set({ refundComplaints: filteredComplaints }, false, 'silentFetchRefundComplaints');
+      }
+
+      return filteredComplaints;
+    } catch (error) {
+      console.error("Error silently fetching refund complaints:", error);
+      // Don't update error state to avoid UI disruption
+      return get().refundComplaints || []; // Return current refund complaints on error
     }
   },
 

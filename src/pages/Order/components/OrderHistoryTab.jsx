@@ -28,7 +28,7 @@ import useAuthStore from "../../../stores/useAuthStore";
 import ComplaintModal from "./ComplaintModal";
 import useComplaintStore from "../../../stores/useComplaintStore";
 import { checkToxicContent } from "../../../services/moderationService";
-import signalRService from "../../../services/signalRService";
+import { useSignalRMessage } from "../../../hooks/useSignalR";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -66,34 +66,17 @@ const OrderHistoryTab = ({ complaints: propsComplaints }) => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  // SignalR integration for real-time updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const initSignalR = async () => {
-      try {
-        // Kết nối SignalR
-        const connection = await signalRService.startConnection();
-
-        // Đăng ký listener khi có order cập nhật
-        signalRService.on("messageReceived", async () => {
-          console.log(`[${componentId.current}] SignalR message received - refreshing orders`);
-          // Sử dụng silent fetch để không làm re-render loading state
-          await fetchOrderHistorySilent(componentId.current);
-        });
-
-      } catch (err) {
-        console.error(`[${componentId.current}] Không thể kết nối SignalR`, err);
+  // SignalR integration using optimized hook
+  useSignalRMessage(
+    async () => {
+      if (user?.id) {
+        console.log(`[${componentId.current}] SignalR message received - refreshing orders`);
+        // Sử dụng silent fetch để không làm re-render loading state
+        await fetchOrderHistorySilent(componentId.current);
       }
-    };
-
-    initSignalR();
-
-    return () => {
-      signalRService.off("messageReceived");
-      signalRService.stopConnection();
-    };
-  }, [user?.id, fetchOrderHistorySilent]);
+    },
+    [user?.id, fetchOrderHistorySilent]
+  );
 
   const [feedbackForm] = Form.useForm();
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);

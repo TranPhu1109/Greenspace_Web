@@ -34,7 +34,7 @@ import ComplaintModal from '@/pages/Order/components/ComplaintModal';
 import useComplaintStore from '../../stores/useComplaintStore';
 import OrderHistoryTab from "./components/OrderHistoryTab";
 import ComplaintHistoryTab from "./components/ComplaintHistoryTab";
-import signalRService from "../../services/signalRService";
+import { useSignalRMessage } from "../../hooks/useSignalR";
 
 const { TextArea } = Input;
 
@@ -59,55 +59,36 @@ const OrderHistory = () => {
   const [complaints, setComplaints] = useState([]);
   const [activeTab, setActiveTab] = useState("1");
 
-  // SignalR message handler
-  const handleSignalRMessage = async (...args) => {
+  // SignalR integration using optimized hook with debouncing
+  useSignalRMessage(
+    async () => {
+      if (!user?.id) return;
 
-    if (!user?.id) return;
+      // Use a timeout to debounce multiple updates that might come in rapid succession
+      if (window.orderHistoryUpdateTimer) {
+        clearTimeout(window.orderHistoryUpdateTimer);
+      }
 
-    // Use a timeout to debounce multiple updates that might come in rapid succession
-    if (window.orderHistoryUpdateTimer) {
-      clearTimeout(window.orderHistoryUpdateTimer);
-    }
+      window.orderHistoryUpdateTimer = setTimeout(async () => {
+        try {
+          // Refresh order history data
+          await fetchOrderHistorySilent();
 
-    window.orderHistoryUpdateTimer = setTimeout(async () => {
-      try {
-        // Refresh order history data
-        const newOrders = await fetchOrderHistorySilent();
-        
-        // Refresh complaints data if user is logged in
-        if (user?.id) {
-          const freshComplaintsData = await fetchUserComplaintsSilent(user.id);
-          // Only update if we got actual data back
-          if (freshComplaintsData && Array.isArray(freshComplaintsData)) {
-            setComplaints(freshComplaintsData);
+          // Refresh complaints data if user is logged in
+          if (user?.id) {
+            const freshComplaintsData = await fetchUserComplaintsSilent(user.id);
+            // Only update if we got actual data back
+            if (freshComplaintsData && Array.isArray(freshComplaintsData)) {
+              setComplaints(freshComplaintsData);
+            }
           }
+        } catch (err) {
+          console.error("Error refreshing data after SignalR update:", err);
         }
-      } catch (err) {
-        console.error("Error refreshing data after SignalR update:", err);
-      }
-    }, 1000); // Shorter debounce time to ensure responsiveness
-  };
-
-  // Set up SignalR connection
-  useEffect(() => {
-    const initializeSignalR = async () => {
-      try {
-        await signalRService.startConnection();
-
-        // Only register for messageReceived - this will catch all events
-        signalRService.on("messageReceived", handleSignalRMessage);
-      } catch (err) {
-        console.error("Error connecting to SignalR:", err);
-      }
-    };
-
-    initializeSignalR();
-
-    // Cleanup
-    return () => {
-      signalRService.off("messageReceived", handleSignalRMessage);
-    };
-  }, [user, fetchUserComplaintsSilent, fetchOrderHistorySilent]);
+      }, 1000); // Shorter debounce time to ensure responsiveness
+    },
+    [user?.id, fetchUserComplaintsSilent, fetchOrderHistorySilent]
+  );
 
   useEffect(() => {
     fetchOrderHistory();

@@ -21,7 +21,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useAuthStore from "@/stores/useAuthStore";
-import signalRService from "@/services/signalRService";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 import "./styles.scss";
 import { AppstoreOutlined, CopyOutlined, HomeOutlined, MailOutlined, PhoneOutlined, SearchOutlined } from "@ant-design/icons";
 
@@ -62,34 +62,17 @@ const DesignOrderHistory = () => {
     }
   }, [fetchDesignOrdersForCus, user?.id]);
 
-  // SignalR connection for real-time updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    // Kết nối SignalR
-    const initSignalR = async () => {
-      try {
-        const connection = await signalRService.startConnection();
-
-        // Đăng ký listener khi có order cập nhật
-        signalRService.on("messageReceived", async () => {
-          console.log("SignalR message received - refreshing design orders");
-          // Sử dụng silent fetch để không làm re-render loading state
-          await fetchDesignOrdersForCusSilent(user.id, componentId.current);
-        });
-
-      } catch (err) {
-        console.error("Không thể kết nối SignalR", err);
+  // SignalR integration using optimized hook
+  useSignalRMessage(
+    async () => {
+      if (user?.id) {
+        console.log("SignalR message received - refreshing design orders");
+        // Sử dụng silent fetch để không làm re-render loading state
+        await fetchDesignOrdersForCusSilent(user.id, componentId.current);
       }
-    };
-
-    initSignalR();
-
-    return () => {
-      signalRService.off("messageReceived");
-      signalRService.stopConnection();
-    };
-  }, [user?.id, fetchDesignOrdersForCusSilent]);
+    },
+    [user?.id, fetchDesignOrdersForCusSilent]
+  );
 
   // Add cleanup on unmount
   useEffect(() => {

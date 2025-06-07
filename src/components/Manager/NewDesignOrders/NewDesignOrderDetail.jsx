@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import useServiceOrderStore from "@/stores/useServiceOrderStore";
 import useProductStore from "@/stores/useProductStore";
 import useRecordStore from "@/stores/useRecordStore";
 import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import EditorComponent from "@/components/Common/EditorComponent";
-import signalRService from '@/services/signalRService';
+import { useSignalRMessage } from '@/hooks/useSignalR';
 import {
   Typography,
   Spin,
@@ -98,29 +98,35 @@ const NewDesignOrderDetail = () => {
     fetchPercentage();
   }, [fetchPercentage]);
 
-  // Set up SignalR connection
-  useEffect(() => {
-    const setupSignalR = async () => {
-      try {
-        await signalRService.startConnection();
-        signalRService.on("messageReceived", () => {
-          if (id) {
-            getServiceOrderById(id, true);
-            // getRecordSketch(id, true);
-            // getRecordDesign(id, true);
-          }
-        });
-      } catch (error) {
-        console.error("Failed to connect to SignalR hub:", error);
+  // Silent fetch function for SignalR updates
+  const silentRefreshOrderData = useCallback(async () => {
+    if (!id) return;
+
+    try {
+      console.log('📡 SignalR message received, performing silent data refresh for order:', id);
+
+      // Only refresh if the current selectedOrder ID matches the URL ID
+      const currentOrder = selectedOrder;
+      if (currentOrder && currentOrder.id !== id) {
+        console.warn('⚠️ ID mismatch detected, skipping silent refresh. URL ID:', id, 'Current Order ID:', currentOrder.id);
+        return;
       }
-    };
 
-    setupSignalR();
+      // Silent fetch without loading state
+      await getServiceOrderById(id, true);
+      console.log('✅ Silent order data refresh completed');
+    } catch (error) {
+      console.warn('⚠️ Silent order refresh failed:', error);
+    }
+  }, [id, selectedOrder, getServiceOrderById]);
 
-    return () => {
-      signalRService.off("messageReceived");
-    };
-  }, [id, getServiceOrderById]); // ❌ không thêm selectedOrder vào đây
+  // SignalR integration using optimized hook with silent fetch
+  useSignalRMessage(
+    () => {
+      silentRefreshOrderData();
+    },
+    [silentRefreshOrderData]
+  );
 
 
   useEffect(() => {
@@ -400,7 +406,7 @@ const NewDesignOrderDetail = () => {
       CustomerConfirm: "Khách hàng đã xác nhận",
       Successfully: "Đơn hàng thành công",
       CompleteOrder: "Đã hoàn thành đơn hàng",
-      MaterialPriceConfirmed: "Đã điều chỉnh giá vật liệu từ kế toán",
+      MaterialPriceConfirmed: "Xác nhận giá vật liệu",
       // Trạng thái lỗi/cảnh báo
       DeliveryFail: "Giao hàng thất bại",
       Warning: "Cảnh báo vượt 30%",
@@ -673,13 +679,20 @@ ${externalProductsTable}
   //   );
   // }
 
-  if (!selectedOrder || selectedOrder.id !== id) {
-    console.warn(`Render: Data not ready or mismatch. URL ID: ${id}, selectedOrder ID: ${selectedOrder?.id}. Showing loading/wait state.`);
+  // Only show loading if we're actually loading and don't have any order data
+  if (!selectedOrder && orderLoading) {
+    console.log("Render: No order data and loading state (orderLoading is true)");
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
         <Spin size="large" tip={`Đang tải dữ liệu cho đơn hàng ${id ? id.substring(0, 8) : ''}...`} />
       </div>
     );
+  }
+
+  // If we have an order but ID mismatch, don't render anything (silent)
+  if (!selectedOrder || selectedOrder.id !== id) {
+    console.warn(`Render: Data not ready or mismatch. URL ID: ${id}, selectedOrder ID: ${selectedOrder?.id}. Not rendering anything.`);
+    return null;
   }
 
   const currentOrder = selectedOrder;

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Table, Tag, Space, Tooltip, Popover, Input, DatePicker, Select, Row, Col } from "antd";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
@@ -8,12 +8,12 @@ import useAuthStore from "@/stores/useAuthStore";
 import useNotificationStore from "@/stores/useNotificationStore";
 import { BellOutlined } from "@ant-design/icons";
 import { getFormattedNotificationContent, getNotificationType } from "@/utils/notificationUtils";
-import signalRService from "@/services/signalRService";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 
 dayjs.extend(isBetween);
 
 const TaskList = () => {
-  const { tasks: rawTasks, isLoading, fetchTasks, fetchTasksSilent } = useDesignerTask();
+  const { tasks: rawTasks, fetchTasks, fetchTasksSilent } = useDesignerTask();
   const { notifications } = useNotificationStore();
   const { user } = useAuthStore();
 
@@ -22,37 +22,83 @@ const TaskList = () => {
   const [selectedTaskStatuses, setSelectedTaskStatuses] = useState([]);
   const [appointmentDateRange, setAppointmentDateRange] = useState(null);
   const [creationDateRange, setCreationDateRange] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isSilentUpdating, setIsSilentUpdating] = useState(false);
+  const [cachedTasks, setCachedTasks] = useState([]);
+
+  const silentFetchTimeoutRef = useRef(null);
+  const isSilentUpdatingRef = useRef(false);
+  const latestTasksRef = useRef([]);
 
   const userId = user?.id;
 
   useEffect(() => {
-    if (userId) {
-      fetchTasks(userId);
+    if (rawTasks) {
+      latestTasksRef.current = rawTasks;
+
+      if (!isSilentUpdatingRef.current) {
+        setCachedTasks(rawTasks);
+      } else {
+        setTimeout(() => {
+          setCachedTasks(rawTasks);
+        }, 50);
+      }
     }
-  }, [userId]);
-  
-  useEffect(() => {
-    const setupSignalR = async () => {
+  }, [rawTasks]);
+
+  const silentFetch = useCallback(async () => {
+    if (isSilentUpdatingRef.current || !userId) {
+      return;
+    }
+
+    if (silentFetchTimeoutRef.current) {
+      clearTimeout(silentFetchTimeoutRef.current);
+    }
+
+    silentFetchTimeoutRef.current = setTimeout(async () => {
       try {
-        await signalRService.startConnection();
-  
-        signalRService.on("messageReceived", async (message) => {
-          console.log("SignalR message received:", message);
-          if (user?.id) {
-            await fetchTasksSilent(user.id); // Không làm nháy
-          }
-        });
+        isSilentUpdatingRef.current = true;
+        setIsSilentUpdating(true);
+
+        await fetchTasksSilent(userId);
       } catch (error) {
-        console.error("Failed to connect to SignalR hub:", error);
+        console.error("Silent fetch error:", error);
+      } finally {
+        isSilentUpdatingRef.current = false;
+        setIsSilentUpdating(false);
+      }
+    }, 100); // 100ms debounce for faster response
+  }, [userId, fetchTasksSilent]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (silentFetchTimeoutRef.current) {
+        clearTimeout(silentFetchTimeoutRef.current);
       }
     };
-  
-    setupSignalR();
-  
-    return () => {
-      signalRService.off("messageReceived");
+  }, []);
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (userId) {
+        try {
+          await fetchTasks(userId);
+        } finally {
+          setInitialLoading(false);
+        }
+      }
     };
-  }, [user?.id]);
+    loadInitialData();
+  }, [userId, fetchTasks]);
+
+  // SignalR integration using optimized hook with silent fetch
+  useSignalRMessage(
+    () => {
+      silentFetch();
+    },
+    [silentFetch]
+  );
   
   
 
@@ -91,9 +137,14 @@ const TaskList = () => {
   };
   
 
-  const allTasks = useMemo(() => rawTasks ?? [], [rawTasks]);
+  // Use cached tasks to prevent table clearing during updates
+  const allTasks = useMemo(() => {
+    // Use cached tasks if available, otherwise fallback to raw tasks
+    const tasksToUse = cachedTasks.length > 0 ? cachedTasks : (rawTasks || []);
+    return tasksToUse;
+  }, [cachedTasks, rawTasks]);
 
-  // Giữ riêng dữ liệu đã filter search chung
+  // Memoize filtered tasks to prevent re-computation on every render
   const tasks = useMemo(() => {
     let filteredTasks = allTasks;
 
@@ -441,7 +492,11 @@ const TaskList = () => {
         columns={columns}
         dataSource={tasks}
         rowKey="id"
-        loading={isLoading}
+        loading={initialLoading}
+        style={{
+          opacity: isSilentUpdating ? 0.8 : 1,
+          transition: 'opacity 0.2s ease'
+        }}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,

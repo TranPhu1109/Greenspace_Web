@@ -49,7 +49,7 @@ import useProductStore from '@/stores/useProductStore';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
+
 
 const ContractorSchedule = () => {
   const location = useLocation();
@@ -877,149 +877,150 @@ const ContractorSchedule = () => {
         }
         style={{ marginBottom: '20px' }}
       >
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-
-
-          <TabPane
-            tab={
-              <span>
-                <CalendarOutlined /> Lịch làm việc
-              </span>
-            }
-            key="calendar"
-          >
-            {isLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <Spin size="large" />
-              </div>
-            ) : !viewingContractor && !selectedContractor ? (
-              <Alert
-                message="Vui lòng chọn đội lắp đặt"
-                description={serviceOrderFromNav ?
-                  "Hãy chọn một đội lắp đặt từ danh sách bên trên để xem lịch làm việc và tạo lịch giao hàng." :
-                  "Hãy chọn một đội lắp đặt để xem lịch làm việc của họ"}
-                type="info"
-                showIcon
-                style={{ marginBottom: '20px' }}
-              />
-            ) : (
-              <>
-                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: "calendar",
+              label: (
+                <span>
+                  <CalendarOutlined /> Lịch làm việc
+                </span>
+              ),
+              children: isLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <Spin size="large" />
                 </div>
-
-                <div style={{
-                  /* Add a container with styles to apply to its children */
-                }}>
-                  <style>
-                    {`
-                    /* Custom scrollbar styling for calendar */
-                    .ant-picker-calendar-date-content::-webkit-scrollbar {
-                      width: 4px;
-                      height: 4px;
-                    }
-                    .ant-picker-calendar-date-content::-webkit-scrollbar-thumb {
-                      background: #d9d9d9;
-                      borderRadius: 4px;
-                    }
-                    .ant-picker-calendar-date-content::-webkit-scrollbar-track {
-                      background: #f0f0f0;
-                      borderRadius: 4px;
-                    }
-                    /* General scrollbar styling */
-                    ::-webkit-scrollbar {
-                      width: 4px;
-                      height: 4px;
-                    }
-                    ::-webkit-scrollbar-thumb {
-                      background: #d9d9d9;
-                      borderRadius: 4px;
-                    }
-                    ::-webkit-scrollbar-track {
-                      background: #f0f0f0;
-                      borderRadius: 4px;
-                    }
-                    `}
-                  </style>
-                  <Calendar
-                    dateCellRender={dateCellRender}
-                    onSelect={handleDateSelect}
-                    locale={locale}
-                  />
-                </div>
-              </>
-            )}
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <TeamOutlined /> Thông tin đội lắp đặt
-              </span>
-            }
-            key="contractors"
-          >
-            <Row gutter={[16, 16]}>
-              {contractors && contractors.length > 0 ? (
-                contractors.map(contractor => (
-                  <Col xs={24} sm={12} md={8} key={contractor.id}>
-                    <Card
-                      hoverable
-                      style={{
-                        borderRadius: '8px',
-                        boxShadow: viewingContractor?.id === contractor.id ? '0 0 8px rgba(24,144,255,0.5)' : 'none',
-                        border: viewingContractor?.id === contractor.id ? '1px solid #1890ff' : '1px solid #e8e8e8'
-                      }}
-                      actions={[
-                        <Button
-                          type="primary"
-                          onClick={() => {
-                            setViewingContractor(contractor);
-                            fetchContractorTasks(contractor.id);
-                            setActiveTab('calendar');
-                          }}
-                        >
-                          Xem lịch
-                        </Button>
-                      ]}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                        <Avatar
-                          size={64}
-                          icon={<UserOutlined />}
-                          src={contractor.avatarUrl}
-                          style={{ marginRight: '16px', backgroundColor: '#1890ff' }}
-                        />
-                        <div>
-                          <Title level={5} style={{ margin: 0 }}>{contractor.name}</Title>
-                          <Tag color="blue">Đội lắp đặt</Tag>
-                        </div>
-                      </div>
-
-                      <div style={{ color: '#666', fontSize: '14px' }}>
-                        <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
-                          <PhoneOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                          {contractor.phone}
-                        </p>
-                        <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
-                          <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                          {contractor.email}
-                        </p>
-                        {/* <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
-                          <HomeOutlined style={{ marginRight: '8px', marginTop: '3px', color: '#1890ff' }} />
-                          <span style={{ flex: 1 }}>{contractor.address}</span>
-                        </p> */}
-                      </div>
-                    </Card>
-                  </Col>
-                ))
+              ) : !viewingContractor && !selectedContractor ? (
+                <Alert
+                  message="Vui lòng chọn đội lắp đặt"
+                  description={serviceOrderFromNav ?
+                    "Hãy chọn một đội lắp đặt từ danh sách bên trên để xem lịch làm việc và tạo lịch giao hàng." :
+                    "Hãy chọn một đội lắp đặt để xem lịch làm việc của họ"}
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: '20px' }}
+                />
               ) : (
-                <Col span={24}>
-                  <Empty description="Không có đội lắp đặt nào" />
-                </Col>
-              )}
-            </Row>
-          </TabPane>
-        </Tabs>
+                <>
+                  <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  </div>
+
+                  <div style={{
+                    /* Add a container with styles to apply to its children */
+                  }}>
+                    <style>
+                      {`
+                      /* Custom scrollbar styling for calendar */
+                      .ant-picker-calendar-date-content::-webkit-scrollbar {
+                        width: 4px;
+                        height: 4px;
+                      }
+                      .ant-picker-calendar-date-content::-webkit-scrollbar-thumb {
+                        background: #d9d9d9;
+                        borderRadius: 4px;
+                      }
+                      .ant-picker-calendar-date-content::-webkit-scrollbar-track {
+                        background: #f0f0f0;
+                        borderRadius: 4px;
+                      }
+                      /* General scrollbar styling */
+                      ::-webkit-scrollbar {
+                        width: 4px;
+                        height: 4px;
+                      }
+                      ::-webkit-scrollbar-thumb {
+                        background: #d9d9d9;
+                        borderRadius: 4px;
+                      }
+                      ::-webkit-scrollbar-track {
+                        background: #f0f0f0;
+                        borderRadius: 4px;
+                      }
+                      `}
+                    </style>
+                    <Calendar
+                      dateCellRender={dateCellRender}
+                      onSelect={handleDateSelect}
+                      locale={locale}
+                    />
+                  </div>
+                </>
+              )
+            },
+            {
+              key: "contractors",
+              label: (
+                <span>
+                  <TeamOutlined /> Thông tin đội lắp đặt
+                </span>
+              ),
+              children: (
+                <Row gutter={[16, 16]}>
+                  {contractors && contractors.length > 0 ? (
+                    contractors.map(contractor => (
+                      <Col xs={24} sm={12} md={8} key={contractor.id}>
+                        <Card
+                          hoverable
+                          style={{
+                            borderRadius: '8px',
+                            boxShadow: viewingContractor?.id === contractor.id ? '0 0 8px rgba(24,144,255,0.5)' : 'none',
+                            border: viewingContractor?.id === contractor.id ? '1px solid #1890ff' : '1px solid #e8e8e8'
+                          }}
+                          actions={[
+                            <Button
+                              type="primary"
+                              onClick={() => {
+                                setViewingContractor(contractor);
+                                fetchContractorTasks(contractor.id);
+                                setActiveTab('calendar');
+                              }}
+                            >
+                              Xem lịch
+                            </Button>
+                          ]}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                            <Avatar
+                              size={64}
+                              icon={<UserOutlined />}
+                              src={contractor.avatarUrl}
+                              style={{ marginRight: '16px', backgroundColor: '#1890ff' }}
+                            />
+                            <div>
+                              <Title level={5} style={{ margin: 0 }}>{contractor.name}</Title>
+                              <Tag color="blue">Đội lắp đặt</Tag>
+                            </div>
+                          </div>
+
+                          <div style={{ color: '#666', fontSize: '14px' }}>
+                            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                              <PhoneOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                              {contractor.phone}
+                            </p>
+                            <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                              <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                              {contractor.email}
+                            </p>
+                            {/* <p style={{ margin: '4px 0', display: 'flex', alignItems: 'flex-start' }}>
+                              <HomeOutlined style={{ marginRight: '8px', marginTop: '3px', color: '#1890ff' }} />
+                              <span style={{ flex: 1 }}>{contractor.address}</span>
+                            </p> */}
+                          </div>
+                        </Card>
+                      </Col>
+                    ))
+                  ) : (
+                    <Col span={24}>
+                      <Empty description="Không có đội lắp đặt nào" />
+                    </Col>
+                  )}
+                </Row>
+              )
+            }
+          ]}
+        />
       </Card>
 
       {/* Task Creation Modal */}

@@ -47,6 +47,35 @@ const useAccountantStore = create((set, get) => ({
     }
   },
 
+  // Silent fetch functions that don't trigger loading state
+  fetchServiceOrdersSilent: async () => {
+    try {
+      const response = await api.get("/api/serviceorder/accountant");
+      if (response.data) {
+        set({ serviceOrders: response.data });
+        return response.data;
+      }
+      throw new Error("Không thể lấy danh sách đơn thiết kế");
+    } catch (error) {
+      console.warn("Silent fetch service orders failed:", error);
+      throw error;
+    }
+  },
+
+  fetchMaterialPriceOrdersSilent: async () => {
+    try {
+      const response = await api.get("/api/serviceorder/materialprice");
+      if (response.data) {
+        set({ materialPriceOrders: response.data });
+        return response.data;
+      }
+      throw new Error("Không thể lấy danh sách đơn thiết kế đang xác định giá vật liệu");
+    } catch (error) {
+      console.warn("Silent fetch material price orders failed:", error);
+      throw error;
+    }
+  },
+
   getServiceOrderById: async (id) => {
     set({ isLoading: true, error: null });
     try {

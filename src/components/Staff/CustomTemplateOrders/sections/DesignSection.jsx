@@ -4,7 +4,7 @@ import { UploadOutlined, SendOutlined, CheckOutlined } from '@ant-design/icons';
 import './DesignSection.scss';
 
 const { TextArea } = Input;
-const { TabPane } = Tabs;
+
 
 const DesignSection = ({ order, onUpdateStatus }) => {
   const [form] = Form.useForm();
@@ -98,18 +98,30 @@ const DesignSection = ({ order, onUpdateStatus }) => {
 
   return (
     <Card title="Quản lý thiết kế" className="design-section">
-      <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        <TabPane tab="Bản phác thảo" key="draft">
-          <div className="design-history">
-            {renderDesignHistory('draft')}
-          </div>
-        </TabPane>
-        <TabPane tab="Bản thiết kế" key="design">
-          <div className="design-history">
-            {renderDesignHistory('design')}
-          </div>
-        </TabPane>
-      </Tabs>
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: "draft",
+            label: "Bản phác thảo",
+            children: (
+              <div className="design-history">
+                {renderDesignHistory('draft')}
+              </div>
+            )
+          },
+          {
+            key: "design",
+            label: "Bản thiết kế",
+            children: (
+              <div className="design-history">
+                {renderDesignHistory('design')}
+              </div>
+            )
+          }
+        ]}
+      />
 
       <Form
         form={form}

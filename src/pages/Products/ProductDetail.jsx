@@ -466,77 +466,86 @@ const ProductDetail = () => {
                 boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                 padding: "0 16px",
               }}
-            >
-              <Tabs.TabPane tab="Mô tả sản phẩm" key="1">
-                <Card style={{ marginBottom: "16px" }}>
-                  <div
-                    className="html-preview"
-                    dangerouslySetInnerHTML={{ __html: product?.description }}
-                    style={{
-                      marginBottom: 16,
-                      color: "#666",
-                    }}
-                  />
-                </Card>
-              </Tabs.TabPane>
-              <Tabs.TabPane tab="Đánh giá" key="2">
-                <Card
-                  bordered={false}
-                  className="feedback-section"
-                  style={{ marginBottom: "16px" }}
-                >
-                  <List
-                    className="feedback-list"
-                    itemLayout="horizontal"
-                    dataSource={feedbacks}
-                    locale={{ emptyText: "Chưa có đánh giá nào" }}
-                    renderItem={(item) => (
-                      <List.Item>
-                        <div className="feedback-item">
-                          <div className="feedback-item-header">
-                            <Avatar
-                              icon={<UserOutlined />}
-                              style={{ backgroundColor: "#52c41a" }}
-                            />
-                            <div
-                              className="feedback-item-meta"
-                              style={{ marginRight: "8px" }}
-                            >
-                              <Text strong>{item.userName}</Text>
-                              <Text type="secondary">
-                                {dayjs(item.creationDate).format(
-                                  "DD/MM/YYYY HH:mm"
-                                )}
-                              </Text>
-                            </div>
-                            <Rate disabled defaultValue={item.rating} />
-                          </div>
-                          <div className="feedback-content">
-                            <Paragraph>{item.description}</Paragraph>
-                            {item.reply && (
-                              <div className="feedback-reply">
-                                <div className="reply-header">
-                                  <Avatar
-                                    src="https://img.icons8.com/color/48/000000/shop.png"
-                                    style={{ backgroundColor: "white" }}
-                                  />
-                                  <Text type="success" strong>
-                                    Phản hồi từ shop
+              items={[
+                {
+                  key: "1",
+                  label: "Mô tả sản phẩm",
+                  children: (
+                    <Card style={{ marginBottom: "16px" }}>
+                      <div
+                        className="html-preview"
+                        dangerouslySetInnerHTML={{ __html: product?.description }}
+                        style={{
+                          marginBottom: 16,
+                          color: "#666",
+                        }}
+                      />
+                    </Card>
+                  )
+                },
+                {
+                  key: "2",
+                  label: "Đánh giá",
+                  children: (
+                    <Card
+                      bordered={false}
+                      className="feedback-section"
+                      style={{ marginBottom: "16px" }}
+                    >
+                      <List
+                        className="feedback-list"
+                        itemLayout="horizontal"
+                        dataSource={feedbacks}
+                        locale={{ emptyText: "Chưa có đánh giá nào" }}
+                        renderItem={(item) => (
+                          <List.Item>
+                            <div className="feedback-item">
+                              <div className="feedback-item-header">
+                                <Avatar
+                                  icon={<UserOutlined />}
+                                  style={{ backgroundColor: "#52c41a" }}
+                                />
+                                <div
+                                  className="feedback-item-meta"
+                                  style={{ marginRight: "8px" }}
+                                >
+                                  <Text strong>{item.userName}</Text>
+                                  <Text type="secondary">
+                                    {dayjs(item.creationDate).format(
+                                      "DD/MM/YYYY HH:mm"
+                                    )}
                                   </Text>
                                 </div>
-                                <div className="reply-content">
-                                  <Paragraph>{item.reply}</Paragraph>
-                                </div>
+                                <Rate disabled defaultValue={item.rating} />
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </List.Item>
-                    )}
-                  />
-                </Card>
-              </Tabs.TabPane>
-            </Tabs>
+                              <div className="feedback-content">
+                                <Paragraph>{item.description}</Paragraph>
+                                {item.reply && (
+                                  <div className="feedback-reply">
+                                    <div className="reply-header">
+                                      <Avatar
+                                        src="https://img.icons8.com/color/48/000000/shop.png"
+                                        style={{ backgroundColor: "white" }}
+                                      />
+                                      <Text type="success" strong>
+                                        Phản hồi từ shop
+                                      </Text>
+                                    </div>
+                                    <div className="reply-content">
+                                      <Paragraph>{item.reply}</Paragraph>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </List.Item>
+                        )}
+                      />
+                    </Card>
+                  )
+                }
+              ]}
+            />
           </div>
         </div>
       </Content>

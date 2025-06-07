@@ -13,7 +13,7 @@ import './DesignerScheduleManager.scss';
 import api from '@/api/api';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+
 
 const DesignerScheduleManager = () => {
   const location = useLocation();
@@ -562,290 +562,295 @@ const DesignerScheduleManager = () => {
         />
       )}
 
-      <Tabs activeKey={activeView} onChange={setActiveView}>
-        <TabPane
-          tab={
-            <span>
-              <CalendarOutlined /> Lịch làm việc
-            </span>
-          }
-          key="calendar"
-        >
-          <Card className="designer-schedule-manager" bordered={false}>
-            <div className="header-section">
-              <Title level={3}>
-                <Space>
-                  <CalendarOutlined />
-                  Quản lý lịch làm việc Designer
-                </Space>
-              </Title>
-              
-              <Space className="action-buttons">
-                <Tooltip title="Đồng bộ lại task với trạng thái đơn hàng">
-                  <Button 
-                    icon={<SyncOutlined spin={isSyncing} />} 
-                    onClick={handleSyncTasks}
-                    loading={isSyncing}
-                  >
-                    Đồng bộ
-                  </Button>
-                </Tooltip>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddTask}
-                >
-                  Giao việc mới
-                </Button>
-              </Space>
-            </div>
+      <Tabs
+        activeKey={activeView}
+        onChange={setActiveView}
+        items={[
+          {
+            key: "calendar",
+            label: (
+              <span>
+                <CalendarOutlined /> Lịch làm việc
+              </span>
+            ),
+            children: (
+              <Card className="designer-schedule-manager" bordered={false}>
+                <div className="header-section">
+                  <Title level={3}>
+                    <Space>
+                      <CalendarOutlined />
+                      Quản lý lịch làm việc Designer
+                    </Space>
+                  </Title>
 
-            <Row className="filter-section" gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Select
-                  placeholder="Chọn Designer..."
-                  style={{ width: '100%' }}
-                  onChange={handleDesignerChange}
-                  value={selectedDesignerId}
-                  allowClear
-                  showSearch
-                  optionFilterProp="children"
-                  loading={isLoading}
-                  disabled={isLoading}
-                >
-                  {Array.isArray(designers) && designers.map(designer => (
-                    <Select.Option key={designer.id} value={designer.id}>
-                      <Space>
-                        <UserOutlined />
-                        {designer.name}
-                      </Space>
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Col>
-            </Row>
-            
-            {isLoading ? (
-              <div className="loading-container">
-                <Spin size="large" tip="Đang tải dữ liệu..." />
-              </div>
-            ) : error ? (
-              <div className="error-container">
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={<span>Lỗi: {error}</span>}
-                />
-              </div>
-            ) : !selectedDesignerId ? (
-              <Alert
-                message="Vui lòng chọn designer"
-                description="Hãy chọn một designer để xem lịch làm việc của họ."
-                type="info"
-                showIcon
-                style={{ marginBottom: '20px' }}
-              />
-            ) : (
-              <div className="content-container">
-                <style>
-                  {`
-                    /* Custom scrollbar styling for calendar */
-                    .ant-picker-calendar-date-content::-webkit-scrollbar {
-                      width: 4px;
-                      height: 4px;
-                    }
-                    .ant-picker-calendar-date-content::-webkit-scrollbar-thumb {
-                      background: #d9d9d9;
-                      borderRadius: 4px;
-                    }
-                    .ant-picker-calendar-date-content::-webkit-scrollbar-track {
-                      background: #f0f0f0;
-                      borderRadius: 4px;
-                    }
-                    /* General scrollbar styling */
-                    ::-webkit-scrollbar {
-                      width: 4px;
-                      height: 4px;
-                    }
-                    ::-webkit-scrollbar-thumb {
-                      background: #d9d9d9;
-                      borderRadius: 4px;
-                    }
-                    ::-webkit-scrollbar-track {
-                      background: #f0f0f0;
-                      borderRadius: 4px;
-                    }
-                  `}
-                </style>
-                <Calendar
-                  dateCellRender={dateCellRender}
-                  onSelect={handleDateSelect}
-                  locale={locale}
-                />
-              </div>
-            )}
-          </Card>
-        </TabPane>
-
-        <TabPane
-          tab={
-            <span>
-              <UserOutlined /> Thông tin Designer
-            </span>
-          }
-          key="designers"
-        >
-          <Card bordered={false} title="Danh sách Designer">
-            <Row gutter={[16, 16]}>
-              {designers && designers.length > 0 ? (
-                designers.map(designer => {
-                  const availability = calculateDesignerAvailability(designer.id);
-                  const todayTasks = getDesignerTasksOnDate(designer.id, dayjs('2025-05-20'));
-                  
-                  return (
-                    <Col xs={24} sm={12} md={8} key={designer.id}>
-                      <Card
-                        hoverable
-                        style={{
-                          borderRadius: '8px',
-                          boxShadow: viewingDesigner?.id === designer.id ? '0 0 8px rgba(24,144,255,0.5)' : 'none',
-                          border: viewingDesigner?.id === designer.id ? '1px solid #1890ff' : '1px solid #e8e8e8',
-                          height: '100%'
-                        }}
-                        actions={[
-                          <Button
-                            type="primary"
-                            onClick={() => {
-                              setViewingDesigner(designer);
-                              setSelectedDesignerId(designer.id);
-                              setActiveView('calendar');
-                            }}
-                          >
-                            Xem lịch
-                          </Button>,
-                          <Button
-                            onClick={() => {
-                              setSelectedDesignerId(designer.id);
-                              setIsAddTaskModalVisible(true);
-                            }}
-                          >
-                            Giao việc
-                          </Button>
-                        ]}
+                  <Space className="action-buttons">
+                    <Tooltip title="Đồng bộ lại task với trạng thái đơn hàng">
+                      <Button
+                        icon={<SyncOutlined spin={isSyncing} />}
+                        onClick={handleSyncTasks}
+                        loading={isSyncing}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                          <Avatar
-                            size={64}
-                            icon={<UserOutlined />}
-                            src={designer.avatarUrl}
-                            style={{ marginRight: '16px', backgroundColor: '#1890ff' }}
-                          />
-                          <div>
-                            <Title level={5} style={{ margin: 0 }}>{designer.name}</Title>
-                            <Tag color="blue">Designer</Tag>
-                            <Tag color={availability.color}>{availability.text}</Tag>
-                          </div>
-                        </div>
+                        Đồng bộ
+                      </Button>
+                    </Tooltip>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddTask}
+                    >
+                      Giao việc mới
+                    </Button>
+                  </Space>
+                </div>
 
-                        <div style={{ color: '#666', fontSize: '14px' }}>
-                          <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
-                            <PhoneOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                            {designer.phone || 'Không có thông tin'}
-                          </p>
-                          <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
-                            <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                            {designer.email || 'Không có thông tin'}
-                          </p>
-                          
-                          {/* Hiển thị lịch làm việc hôm nay */}
-                          {todayTasks.length > 0 && (
-                            <div style={{ marginTop: '10px' }}>
-                              <Text strong>Lịch làm việc mẫu:</Text>
-                              <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
-                                {todayTasks.map((task, idx) => (
-                                  <li key={idx} style={{ marginBottom: '5px' }}>
-                                    <Text>{task.timeAppointment?.substring(0, 5) || '--:--'} - Đơn #{task.serviceOrderId?.substring(0, 8)}</Text>
-                                  </li>
-                                ))}
-                              </ul>
+                <Row className="filter-section" gutter={[16, 16]}>
+                  <Col xs={24} sm={12} md={8} lg={6}>
+                    <Select
+                      placeholder="Chọn Designer..."
+                      style={{ width: '100%' }}
+                      onChange={handleDesignerChange}
+                      value={selectedDesignerId}
+                      allowClear
+                      showSearch
+                      optionFilterProp="children"
+                      loading={isLoading}
+                      disabled={isLoading}
+                    >
+                      {Array.isArray(designers) && designers.map(designer => (
+                        <Select.Option key={designer.id} value={designer.id}>
+                          <Space>
+                            <UserOutlined />
+                            {designer.name}
+                          </Space>
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                </Row>
+
+                {isLoading ? (
+                  <div className="loading-container">
+                    <Spin size="large" tip="Đang tải dữ liệu..." />
+                  </div>
+                ) : error ? (
+                  <div className="error-container">
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={<span>Lỗi: {error}</span>}
+                    />
+                  </div>
+                ) : !selectedDesignerId ? (
+                  <Alert
+                    message="Vui lòng chọn designer"
+                    description="Hãy chọn một designer để xem lịch làm việc của họ."
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: '20px' }}
+                  />
+                ) : (
+                  <div className="content-container">
+                    <style>
+                      {`
+                        /* Custom scrollbar styling for calendar */
+                        .ant-picker-calendar-date-content::-webkit-scrollbar {
+                          width: 4px;
+                          height: 4px;
+                        }
+                        .ant-picker-calendar-date-content::-webkit-scrollbar-thumb {
+                          background: #d9d9d9;
+                          borderRadius: 4px;
+                        }
+                        .ant-picker-calendar-date-content::-webkit-scrollbar-track {
+                          background: #f0f0f0;
+                          borderRadius: 4px;
+                        }
+                        /* General scrollbar styling */
+                        ::-webkit-scrollbar {
+                          width: 4px;
+                          height: 4px;
+                        }
+                        ::-webkit-scrollbar-thumb {
+                          background: #d9d9d9;
+                          borderRadius: 4px;
+                        }
+                        ::-webkit-scrollbar-track {
+                          background: #f0f0f0;
+                          borderRadius: 4px;
+                        }
+                      `}
+                    </style>
+                    <Calendar
+                      dateCellRender={dateCellRender}
+                      onSelect={handleDateSelect}
+                      locale={locale}
+                    />
+                  </div>
+                )}
+              </Card>
+            )
+          },
+          {
+            key: "designers",
+            label: (
+              <span>
+                <UserOutlined /> Thông tin Designer
+              </span>
+            ),
+            children: (
+              <Card bordered={false} title="Danh sách Designer">
+                <Row gutter={[16, 16]}>
+                  {designers && designers.length > 0 ? (
+                    designers.map(designer => {
+                      const availability = calculateDesignerAvailability(designer.id);
+                      const todayTasks = getDesignerTasksOnDate(designer.id, dayjs('2025-05-20'));
+
+                      return (
+                        <Col xs={24} sm={12} md={8} key={designer.id}>
+                          <Card
+                            hoverable
+                            style={{
+                              borderRadius: '8px',
+                              boxShadow: viewingDesigner?.id === designer.id ? '0 0 8px rgba(24,144,255,0.5)' : 'none',
+                              border: viewingDesigner?.id === designer.id ? '1px solid #1890ff' : '1px solid #e8e8e8',
+                              height: '100%'
+                            }}
+                            actions={[
+                              <Button
+                                type="primary"
+                                onClick={() => {
+                                  setViewingDesigner(designer);
+                                  setSelectedDesignerId(designer.id);
+                                  setActiveView('calendar');
+                                }}
+                              >
+                                Xem lịch
+                              </Button>,
+                              <Button
+                                onClick={() => {
+                                  setSelectedDesignerId(designer.id);
+                                  setIsAddTaskModalVisible(true);
+                                }}
+                              >
+                                Giao việc
+                              </Button>
+                            ]}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                              <Avatar
+                                size={64}
+                                icon={<UserOutlined />}
+                                src={designer.avatarUrl}
+                                style={{ marginRight: '16px', backgroundColor: '#1890ff' }}
+                              />
+                              <div>
+                                <Title level={5} style={{ margin: 0 }}>{designer.name}</Title>
+                                <Tag color="blue">Designer</Tag>
+                                <Tag color={availability.color}>{availability.text}</Tag>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </Card>
+
+                            <div style={{ color: '#666', fontSize: '14px' }}>
+                              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                                <PhoneOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                                {designer.phone || 'Không có thông tin'}
+                              </p>
+                              <p style={{ margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                                <MailOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                                {designer.email || 'Không có thông tin'}
+                              </p>
+
+                              {/* Hiển thị lịch làm việc hôm nay */}
+                              {todayTasks.length > 0 && (
+                                <div style={{ marginTop: '10px' }}>
+                                  <Text strong>Lịch làm việc mẫu:</Text>
+                                  <ul style={{ paddingLeft: '20px', margin: '5px 0' }}>
+                                    {todayTasks.map((task, idx) => (
+                                      <li key={idx} style={{ marginBottom: '5px' }}>
+                                        <Text>{task.timeAppointment?.substring(0, 5) || '--:--'} - Đơn #{task.serviceOrderId?.substring(0, 8)}</Text>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        </Col>
+                      );
+                    })
+                  ) : (
+                    <Col span={24}>
+                      <Empty description="Không có designer nào" />
                     </Col>
-                  );
-                })
-              ) : (
-                <Col span={24}>
-                  <Empty description="Không có designer nào" />
-                </Col>
-              )}
-            </Row>
-          </Card>
-        </TabPane>
-        
-        <TabPane
-          tab={
-            <span>
-              <UnorderedListOutlined /> Danh sách công việc
-            </span>
+                  )}
+                </Row>
+              </Card>
+            )
+          },
+          {
+            key: "list",
+            label: (
+              <span>
+                <UnorderedListOutlined /> Danh sách công việc
+              </span>
+            ),
+            children: (
+              <Card className="designer-schedule-manager" bordered={false}>
+                <div className="header-section">
+                  <Title level={3}>
+                    <Space>
+                      <UnorderedListOutlined />
+                      Danh sách công việc Designer
+                    </Space>
+                  </Title>
+
+                  <Space className="action-buttons">
+                    <Select
+                      placeholder="Lọc theo Designer..."
+                      style={{ width: '200px' }}
+                      onChange={handleDesignerChange}
+                      value={selectedDesignerId}
+                      allowClear
+                      showSearch
+                      optionFilterProp="children"
+                    >
+                      {Array.isArray(designers) && designers.map(designer => (
+                        <Select.Option key={designer.id} value={designer.id}>
+                          <Space>
+                            <UserOutlined />
+                            {designer.name}
+                          </Space>
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Space>
+                </div>
+
+                {isLoading ? (
+                  <div className="loading-container">
+                    <Spin size="large" tip="Đang tải dữ liệu..." />
+                  </div>
+                ) : error ? (
+                  <div className="error-container">
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={<span>Lỗi: {error}</span>}
+                    />
+                  </div>
+                ) : (
+                  <div className="content-container">
+                    <DesignerTasksList
+                      tasks={filteredTasks}
+                      designers={designers || []}
+                      selectedDesignerId={selectedDesignerId}
+                      onRefresh={() => setRefreshTrigger(prev => prev + 1)}
+                    />
+                  </div>
+                )}
+              </Card>
+            )
           }
-          key="list"
-        >
-          <Card className="designer-schedule-manager" bordered={false}>
-            <div className="header-section">
-              <Title level={3}>
-                <Space>
-                  <UnorderedListOutlined />
-                  Danh sách công việc Designer
-                </Space>
-              </Title>
-              
-              <Space className="action-buttons">
-                <Select
-                  placeholder="Lọc theo Designer..."
-                  style={{ width: '200px' }}
-                  onChange={handleDesignerChange}
-                  value={selectedDesignerId}
-                  allowClear
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {Array.isArray(designers) && designers.map(designer => (
-                    <Select.Option key={designer.id} value={designer.id}>
-                      <Space>
-                        <UserOutlined />
-                        {designer.name}
-                      </Space>
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Space>
-            </div>
-            
-            {isLoading ? (
-              <div className="loading-container">
-                <Spin size="large" tip="Đang tải dữ liệu..." />
-              </div>
-            ) : error ? (
-              <div className="error-container">
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={<span>Lỗi: {error}</span>}
-                />
-              </div>
-            ) : (
-              <div className="content-container">
-                <DesignerTasksList 
-                  tasks={filteredTasks}
-                  designers={designers || []}
-                  selectedDesignerId={selectedDesignerId}
-                  onRefresh={() => setRefreshTrigger(prev => prev + 1)}
-                />
-              </div>
-            )}
-          </Card>
-        </TabPane>
-      </Tabs>
+        ]}
+      />
 
       <AddDesignerTaskModal
         visible={isAddTaskModalVisible}

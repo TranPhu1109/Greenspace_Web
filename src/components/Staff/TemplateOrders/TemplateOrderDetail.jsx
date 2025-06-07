@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Card,
   Row,
@@ -30,6 +30,7 @@ import useDesignOrderStore from "@/stores/useDesignOrderStore";
 import useProductStore from "@/stores/useProductStore";
 import useShippingStore from "@/stores/useShippingStore";
 import useDesignIdeaStore from "@/stores/useDesignIdeaStore";
+import { useSignalRMessage } from "@/hooks/useSignalR";
 const { Step } = Steps;
 
 const TemplateOrderDetail = () => {
@@ -69,6 +70,26 @@ const TemplateOrderDetail = () => {
     fetchOrderDetail();
   }, [id]);
 
+  const refreshOrderDetails = useCallback(async () => {
+    try {
+      await getDesignOrderById(id);
+    } catch (error) {
+      message.error("Không thể tải lại thông tin đơn hàng");
+    }
+  }, [getDesignOrderById, id]);
+
+  // SignalR integration using optimized hook for real-time updates
+  useSignalRMessage(
+    async () => {
+      if (id) {
+        console.log(`[TemplateOrderDetail] SignalR message received - refreshing order ${id}`);
+        // Refresh order details silently to avoid loading state flicker
+        await refreshOrderDetails();
+      }
+    },
+    [id, refreshOrderDetails]
+  );
+
   // Add a new effect to fetch design idea when order is loaded
   useEffect(() => {
     const fetchDesignIdea = async () => {
@@ -88,14 +109,6 @@ const TemplateOrderDetail = () => {
 
     fetchDesignIdea();
   }, [selectedOrder, fetchDesignIdeaById]);
-
-  const refreshOrderDetails = async () => {
-    try {
-      await getDesignOrderById(id);
-    } catch (error) {
-      message.error("Không thể tải lại thông tin đơn hàng");
-    }
-  };
 
   const handleConfirmOrder = async () => {
     try {

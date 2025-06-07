@@ -5,7 +5,7 @@ import useServiceOrderStore from '@/stores/useServiceOrderStore';
 import { format } from 'date-fns';
 import { EyeOutlined, ReloadOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import signalRService from '@/services/signalRService';
+import { useSignalRMessage } from '@/hooks/useSignalR';
 import useNotificationStore from '@/stores/useNotificationStore';
 
 const { Title } = Typography;
@@ -56,28 +56,13 @@ const NewDesignOrdersList = () => {
     fetchData();
   }, [getServiceOrdersNoIdea]);
 
-  useEffect(() => {
-    const setupSignalR = async () => {
-      try {
-        await signalRService.startConnection();
-  
-        signalRService.on("messageReceived", (message) => {
-          console.log("SignalR message received:", message);
-          // Gọi lại API để cập nhật danh sách
-          getServiceOrdersNoIdea(true);
-        });
-      } catch (error) {
-        console.error("Failed to connect to SignalR hub:", error);
-      }
-    };
-  
-    setupSignalR();
-  
-    // Cleanup khi component unmount
-    return () => {
-      signalRService.off("messageReceived");
-    };
-  }, [getServiceOrdersNoIdea]);
+  // SignalR integration using optimized hook
+  useSignalRMessage(
+    () => {
+      getServiceOrdersNoIdea(true);
+    },
+    [getServiceOrdersNoIdea]
+  );
   
 
   // Apply filters and sorting whenever serviceOrders, searchText, statusFilter, or dateRange changes
@@ -252,7 +237,7 @@ const NewDesignOrdersList = () => {
       ReInstall : "Đang lắp đặt lại",
       CustomerConfirm : "Khách hàng xác nhận",
       Successfully : "Thành công",
-      MaterialPriceConfirmed: "Đã xác định giá vật liệu ngoài",
+      MaterialPriceConfirmed: "Yêu cầu xác định giá vật liệu ngoài",
       ReDetermineMaterialPrice: "Đang điều chỉnh giá vật liệu",
       // Thêm các text khác nếu cần
     };

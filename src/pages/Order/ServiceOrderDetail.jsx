@@ -1073,9 +1073,11 @@ const ServiceOrderDetail = () => {
 
             {/* Contract Section */}
             {(showContractButton || contractVisibleStatuses.includes(order?.status) ||
-              contractVisibleStatusCodes.includes(order?.status) ||
-              contractVisibleStatusCodes.includes(selectedOrder?.status) ||
-              contractVisibleStatuses.includes(selectedOrder?.status)) && (
+              contractVisibleStatusCodes.includes(order?.status) 
+              // ||
+              // contractVisibleStatusCodes.includes(selectedOrder?.status) ||
+              // contractVisibleStatuses.includes(selectedOrder?.status)
+            ) && (
                 <ContractSection
                   contract={contract}
                   selectedOrder={selectedOrder || order}

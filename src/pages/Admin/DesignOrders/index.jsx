@@ -6,7 +6,7 @@ import CustomTemplateOrdersList from '../../../components/Staff/CustomTemplateOr
 import CustomOrdersList from './CustomOrders/CustomOrdersList';
 import NewDesignOrdersList from '../../../components/Staff/NewDesignOrders/NewDesignOrdersList';
 
-const { TabPane } = Tabs;
+
 
 const DesignOrders = () => {
   const navigate = useNavigate();
@@ -33,24 +33,33 @@ const DesignOrders = () => {
 
   return (
     <div className="design-orders-container">
-      <Tabs 
+      <Tabs
         defaultActiveKey="template"
         onChange={handleTabChange}
         type="card"
-      >
-        <TabPane tab="Đơn đặt theo mẫu" key="template">
-          <TemplateOrdersList />
-        </TabPane>
-        <TabPane tab="Đơn custom từ mẫu" key="custom-template">
-          <CustomTemplateOrdersList />
-        </TabPane>
-        <TabPane tab="Đơn thiết kế mới" key="custom">
-          <CustomOrdersList />
-        </TabPane>
-        <TabPane tab="Đơn thiết kế mới" key="new-design">
-          <NewDesignOrdersList />
-        </TabPane>
-      </Tabs>
+        items={[
+          {
+            key: "template",
+            label: "Đơn đặt theo mẫu",
+            children: <TemplateOrdersList />
+          },
+          {
+            key: "custom-template",
+            label: "Đơn custom từ mẫu",
+            children: <CustomTemplateOrdersList />
+          },
+          {
+            key: "custom",
+            label: "Đơn thiết kế mới",
+            children: <CustomOrdersList />
+          },
+          {
+            key: "new-design",
+            label: "Đơn thiết kế mới",
+            children: <NewDesignOrdersList />
+          }
+        ]}
+      />
     </div>
   );
 };
