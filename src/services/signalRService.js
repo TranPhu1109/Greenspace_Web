@@ -73,6 +73,14 @@ class SignalRService {
       accessTokenFactory: () => {
         // Add any auth token if needed
         return null;
+      },
+      // Add timeout configurations to handle connection ID issues
+      timeout: 30000, // 30 seconds timeout
+      // Add headers to help with connection tracking
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       }
     };
 
@@ -99,6 +107,14 @@ class SignalRService {
       .withUrl(HUB_URL, transportConfig)
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: retryContext => {
+          console.log(`🔄 SignalR Auto-reconnect attempt ${retryContext.previousRetryCount + 1}`);
+
+          // Handle "No Connection with that ID" errors by creating fresh connection
+          if (retryContext.retryReason?.message?.includes('No Connection with that ID')) {
+            console.log('🔄 Connection ID issue detected, creating fresh connection...');
+            return 0; // Immediate retry with fresh connection
+          }
+
           // Exponential backoff: 0, 2, 10, 30 seconds, then every 30 seconds
           if (retryContext.previousRetryCount === 0) return 0;
           if (retryContext.previousRetryCount === 1) return 2000;
@@ -179,8 +195,40 @@ class SignalRService {
       stack: error.stack,
       hubUrl: HUB_URL,
       isProduction: this.isProduction,
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent,
+      currentUser: this.getCurrentUser()
     });
+
+    // Check for specific error types and provide helpful messages
+    if (error.message?.includes('Unable to connect to the server')) {
+      console.error("❌ SignalR Server Connection Failed:");
+      console.error("   - Check if backend server is running");
+      console.error("   - Verify SignalR Hub URL:", HUB_URL);
+      console.error("   - Check CORS configuration on server");
+      console.error("   - Verify network connectivity");
+    }
+
+    if (error.message?.includes('WebSocket failed to connect')) {
+      console.error("❌ WebSocket Connection Failed:");
+      console.error("   - WebSocket may be blocked by proxy/firewall");
+      console.error("   - Server may not support WebSocket transport");
+      console.error("   - Check if sticky sessions are enabled (load balancer)");
+    }
+
+    if (error.message?.includes('No Connection with that ID')) {
+      console.error("❌ Connection ID Not Found:");
+      console.error("   - Server may have restarted (common with Azure Container Apps)");
+      console.error("   - Connection may have timed out during negotiate");
+      console.error("   - Check server connection management");
+      console.error("   - Will attempt to create new connection...");
+    }
+
+    if (error.message?.includes('404')) {
+      console.error("❌ SignalR Hub Not Found (404):");
+      console.error("   - Verify SignalR Hub endpoint:", HUB_URL);
+      console.error("   - Check if SignalR is properly configured on server");
+      console.error("   - Verify routing configuration");
+    }
   };
 
   _reregisterListeners = () => {
@@ -313,6 +361,57 @@ class SignalRService {
       userId: this.currentUserId,
       userRole: this.currentUserRole
     };
+  };
+
+  // Health check for SignalR connection
+  healthCheck = async () => {
+    try {
+      if (!this.connection) {
+        return { status: 'disconnected', message: 'No connection instance' };
+      }
+
+      const state = this.getConnectionState();
+      const isConnected = this.isConnected();
+
+      return {
+        status: isConnected ? 'healthy' : 'unhealthy',
+        connectionState: state,
+        connectionId: this.connection.connectionId,
+        hubUrl: HUB_URL,
+        user: this.getCurrentUser(),
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  };
+
+  // Test connection to server
+  testConnection = async () => {
+    try {
+      console.log('🔍 Testing SignalR connection to:', HUB_URL);
+
+      // Try to fetch the hub endpoint to check if server is reachable
+      const response = await fetch(HUB_URL.replace('/hub', '/api/health'), {
+        method: 'GET',
+        mode: 'cors'
+      });
+
+      if (response.ok) {
+        console.log('✅ Server is reachable');
+        return { reachable: true, status: response.status };
+      } else {
+        console.warn('⚠️ Server responded with error:', response.status);
+        return { reachable: false, status: response.status };
+      }
+    } catch (error) {
+      console.error('❌ Server is not reachable:', error.message);
+      return { reachable: false, error: error.message };
+    }
   };
 
 }
