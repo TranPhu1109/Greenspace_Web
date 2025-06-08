@@ -93,11 +93,48 @@ export const useSignalR = (eventName, callback, options = {}) => {
     let isMounted = true;
 
     const initConnection = async () => {
-      try {
-        await connect();
-      } catch (error) {
-        if (isMounted) {
-          console.error(`[${componentId.current}] ❌ Auto-connect failed:`, error);
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (isMounted && retryCount < maxRetries) {
+        try {
+          console.log(`[${componentId.current}] 🔌 Connection attempt ${retryCount + 1}/${maxRetries}`);
+
+          // Test server reachability first
+          const healthCheck = await signalRService.testConnection();
+          if (!healthCheck.reachable) {
+            throw new Error(`Server not reachable: ${healthCheck.error || 'Unknown error'}`);
+          }
+
+          await connect();
+          console.log(`[${componentId.current}] ✅ Connected successfully on attempt ${retryCount + 1}`);
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          if (isMounted) {
+            console.error(`[${componentId.current}] ❌ Connection attempt ${retryCount} failed:`, error.message);
+
+            // Special handling for "No Connection with that ID" errors
+            if (error.message?.includes('No Connection with that ID')) {
+              console.log(`[${componentId.current}] 🔄 Connection ID issue detected, resetting connection...`);
+              try {
+                await signalRService.resetConnection();
+              } catch (resetError) {
+                console.error(`[${componentId.current}] ❌ Failed to reset connection:`, resetError);
+              }
+            }
+
+            if (retryCount < maxRetries) {
+              // Shorter delay for connection ID issues
+              const baseDelay = error.message?.includes('No Connection with that ID') ? 500 : 1000;
+              const delay = Math.min(baseDelay * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10s
+              console.log(`[${componentId.current}] ⏳ Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+              console.error(`[${componentId.current}] ❌ All connection attempts failed. SignalR will not be available.`);
+              // Could emit an event here for UI to show offline state
+            }
+          }
         }
       }
     };
