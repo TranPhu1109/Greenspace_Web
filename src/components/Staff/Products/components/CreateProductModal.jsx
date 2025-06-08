@@ -62,7 +62,7 @@ const CreateProductModal = ({
 
   const handleSubmit = async (values) => {
     try {
-      const loadingMessage = message.loading("Đang xử lý...", 0);
+      // const loadingMessage = message.loading("Đang xử lý...", 0);
 
       // Upload images only when form is submitted
       const uploadPromises = [];
