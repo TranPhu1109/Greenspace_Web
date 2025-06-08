@@ -114,9 +114,9 @@ const CreateProductModal = ({
         price: parseFloat(values.price),
         stock: parseInt(values.stock),
         description: values.description || "",
-        size: parseFloat(values.size) || 0,
+        size: values.size || 0,
         image: imageUrls,
-        designImage1URL: designImage1URL // Will be empty string if no file uploaded
+        designImage1URL: designImage1URL || "" // Will be empty string if no file uploaded
       };
 
       await onSubmit(productData);
