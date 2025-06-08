@@ -52,29 +52,45 @@ const NewDesignOrdersList = () => {
   useEffect(() => {
     const handleOrderUpdate = (messageType, messageData) => {
       // Log all messages received for debugging
-      console.log(`SignalR received in NewDesignOrdersList - Type: ${messageType}, Data: ${messageData}`);
+      console.log(
+        `SignalR received in NewDesignOrdersList - Type: ${messageType}, Data: ${messageData}`
+      );
 
       const relevantUpdateTypes = [
         "UpdateOrderService", // From previous context
-        "OrderCancelled",     // Example: If cancellation affects this list
+        "OrderCancelled", // Example: If cancellation affects this list
         "CreateOrderService", // When a new order is created
       ];
 
       if (relevantUpdateTypes.includes(messageType)) {
-        console.log(`Relevant SignalR message received (${messageType}), refreshing order list.`);
+        console.log(
+          `Relevant SignalR message received (${messageType}), refreshing order list.`
+        );
         fetchOrders(); // Refetch the data
       }
     };
 
     try {
-      signalRService.startConnection().then(() => { // Ensure connection is attempted
-        console.log("SignalR connection ready for NewDesignOrdersList listener.");
-        signalRService.on("messageReceived", handleOrderUpdate);
-      }).catch(err => {
-        console.error("SignalR connection failed in NewDesignOrdersList:", err);
-      });
+      signalRService
+        .startConnection()
+        .then(() => {
+          // Ensure connection is attempted
+          console.log(
+            "SignalR connection ready for NewDesignOrdersList listener."
+          );
+          signalRService.on("messageReceived", handleOrderUpdate);
+        })
+        .catch((err) => {
+          console.error(
+            "SignalR connection failed in NewDesignOrdersList:",
+            err
+          );
+        });
     } catch (err) {
-      console.error("Error initiating SignalR connection for NewDesignOrdersList:", err);
+      console.error(
+        "Error initiating SignalR connection for NewDesignOrdersList:",
+        err
+      );
     }
     return () => {
       console.log("Removing SignalR listener from NewDesignOrdersList.");
@@ -103,7 +119,7 @@ const NewDesignOrdersList = () => {
 
   const orderIdToNotiIds = useMemo(() => {
     const map = {};
-    notifications.forEach(n => {
+    notifications.forEach((n) => {
       const match = n.content.match(/Mã đơn:\s([a-z0-9-]+)/i);
       const orderId = match?.[1];
       if (orderId && !n.isSeen) {
@@ -116,7 +132,7 @@ const NewDesignOrdersList = () => {
 
   const handleViewDetail = async (id) => {
     const notiIds = orderIdToNotiIds[id] || [];
-    await Promise.all(notiIds.map(id => markAsRead(id)));
+    await Promise.all(notiIds.map((id) => markAsRead(id)));
     navigate(`/staff/design-orders/new-design-orders/${id}`);
   };
 
@@ -126,19 +142,19 @@ const NewDesignOrdersList = () => {
 
   const handleRejectOrder = (id) => {
     confirm({
-      title: 'Xác nhận từ chối đơn hàng',
+      title: "Xác nhận từ chối đơn hàng",
       icon: <CloseCircleOutlined />,
-      content: 'Bạn có chắc chắn muốn từ chối đơn hàng này?',
-      okText: 'Xác nhận',
-      okType: 'danger',
-      cancelText: 'Hủy',
+      content: "Bạn có chắc chắn muốn từ chối đơn hàng này?",
+      okText: "Xác nhận",
+      okType: "danger",
+      cancelText: "Hủy",
       onOk: async () => {
         try {
           await cancelServiceOrder(id);
-          message.success('Đã từ chối đơn hàng thành công');
+          message.success("Đã từ chối đơn hàng thành công");
           fetchOrders(); // Refresh the list
         } catch (error) {
-          message.error('Không thể từ chối đơn hàng: ' + error.message);
+          message.error("Không thể từ chối đơn hàng: " + error.message);
         }
       },
     });
@@ -193,40 +209,40 @@ const NewDesignOrdersList = () => {
 
   const getStatusText = (status) => {
     const numericStatusMap = {
-      "0": "Chờ xử lý",
-      "1": "Đang tư vấn & phác thảo",
-      "2": "Đang xác định giá TK",
-      "3": "Đặt cọc thành công",
-      "4": "Đã giao cho NKT",
-      "5": "Đang xác định giá VL",
-      "6": "Hoàn thành thiết kế",
-      "7": "Thanh toán thành công",
-      "8": "Đang xử lý",
-      "9": "Đang giao hàng",
-      "10": "Giao hàng thất bại",
-      "11": "Giao lại",
-      "12": "Đã giao hàng thành công",
-      "13": "Hoàn thành đơn hàng",
-      "14": "Đã hủy",
-      "15": "Cảnh báo (>30%)",
-      "16": "Hoàn tiền",
-      "17": "Đã hoàn tiền",
-      "18": "Ngừng dịch vụ",
-      "19": "Phác thảo lại",
-      "20": "Thiết kế lại",
-      "21": "Chờ đặt cọc",
-      "22": "Hoàn thành giá TK",
-      "23": "Hoàn thành giá VL",
-      "24": "Xác định lại giá TK",
-      "25": "Đổi sản phẩm",
-      "26": "Chờ lên lịch thi công",
-      "27": "Đang lắp đặt",
-      "28": "Đã lắp đặt xong",
-      "29": "Lắp đặt lại",
-      "30": "Khách hàng xác nhận",
-      "31": "Thành công",
-      "32": "Điều chỉnh giá vật liệu",
-      "33": "Đã xác nhận giá vật liệu ngoài",
+      0: "Chờ xử lý",
+      1: "Đang tư vấn & phác thảo",
+      2: "Đang xác định giá TK",
+      3: "Đặt cọc thành công",
+      4: "Đã giao cho NKT",
+      5: "Đang xác định giá VL",
+      6: "Hoàn thành thiết kế",
+      7: "Thanh toán thành công",
+      8: "Đang xử lý",
+      9: "Đang giao hàng",
+      10: "Giao hàng thất bại",
+      11: "Giao lại",
+      12: "Đã giao hàng thành công",
+      13: "Hoàn thành đơn hàng",
+      14: "Đã hủy",
+      15: "Cảnh báo (>30%)",
+      16: "Hoàn tiền",
+      17: "Đã hoàn tiền",
+      18: "Ngừng dịch vụ",
+      19: "Phác thảo lại",
+      20: "Thiết kế lại",
+      21: "Chờ đặt cọc",
+      22: "Hoàn thành giá TK",
+      23: "Hoàn thành giá VL",
+      24: "Xác định lại giá TK",
+      25: "Đổi sản phẩm",
+      26: "Chờ lên lịch thi công",
+      27: "Đang lắp đặt",
+      28: "Đã lắp đặt xong",
+      29: "Lắp đặt lại",
+      30: "Khách hàng xác nhận",
+      31: "Thành công",
+      32: "Điều chỉnh giá vật liệu",
+      33: "Đã xác nhận giá vật liệu ngoài",
     };
 
     const stringStatusMap = {
@@ -263,48 +279,53 @@ const NewDesignOrdersList = () => {
       CustomerConfirm: "Khách hàng xác nhận",
       Successfully: "Thành công",
       ReDetermineMaterialPrice: "Điều chỉnh giá vật liệu",
-      MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài"
+      MaterialPriceConfirmed: "Đã xác nhận giá vật liệu ngoài",
     };
 
-    return numericStatusMap[status] || stringStatusMap[status] || status || "Không xác định";
+    return (
+      numericStatusMap[status] ||
+      stringStatusMap[status] ||
+      status ||
+      "Không xác định"
+    );
   };
 
   const getStatusColor = (status) => {
     const numericColorMap = {
-      "0": "blue",         // Chờ xử lý
-      "1": "cyan",         // Tư vấn & phác thảo
-      "2": "purple",       // Xác định giá TK
-      "3": "green",        // Đặt cọc thành công
-      "4": "geekblue",     // Giao cho NTK
-      "5": "magenta",      // Xác định giá VL
-      "6": "volcano",      // Hoàn thành thiết kế
-      "7": "green",        // Thanh toán thành công
-      "8": "blue",         // Đang xử lý
-      "9": "cyan",         // Đang giao hàng
-      "10": "red",         // Giao hàng thất bại
-      "11": "purple",      // Giao lại
-      "12": "green",       // Giao hàng thành công
-      "13": "success",     // Hoàn thành đơn hàng
-      "14": "error",       // Hủy
-      "15": "warning",     // Cảnh báo
-      "16": "gold",        // Hoàn tiền
-      "17": "success",     // Đã hoàn tiền
-      "18": "default",     // Ngừng dịch vụ
-      "19": "processing",  // Phác thảo lại
-      "20": "processing",  // Thiết kế lại
-      "21": "orange",      // Chờ đặt cọc
-      "22": "success",     // Đã xác định giá TK
-      "23": "success",     // Đã xác định giá VL
-      "24": "warning",     // Xác định lại giá TK
-      "25": "lime",        // Đổi sản phẩm
-      "26": "gold",        // Chờ lên lịch
-      "27": "cyan",        // Đang lắp đặt
-      "28": "green",       // Đã lắp đặt xong
-      "29": "orange",      // Lắp đặt lại
-      "30": "blue",        // Khách xác nhận
-      "31": "success",     // Thành công
-      "32": "volcano",     // Điều chỉnh giá VL
-      "33": "success",     // Đã xác nhận giá VL ngoài
+      0: "blue", // Chờ xử lý
+      1: "cyan", // Tư vấn & phác thảo
+      2: "purple", // Xác định giá TK
+      3: "green", // Đặt cọc thành công
+      4: "geekblue", // Giao cho NTK
+      5: "magenta", // Xác định giá VL
+      6: "volcano", // Hoàn thành thiết kế
+      7: "green", // Thanh toán thành công
+      8: "blue", // Đang xử lý
+      9: "cyan", // Đang giao hàng
+      10: "red", // Giao hàng thất bại
+      11: "purple", // Giao lại
+      12: "green", // Giao hàng thành công
+      13: "success", // Hoàn thành đơn hàng
+      14: "error", // Hủy
+      15: "warning", // Cảnh báo
+      16: "gold", // Hoàn tiền
+      17: "success", // Đã hoàn tiền
+      18: "default", // Ngừng dịch vụ
+      19: "processing", // Phác thảo lại
+      20: "processing", // Thiết kế lại
+      21: "orange", // Chờ đặt cọc
+      22: "success", // Đã xác định giá TK
+      23: "success", // Đã xác định giá VL
+      24: "warning", // Xác định lại giá TK
+      25: "lime", // Đổi sản phẩm
+      26: "gold", // Chờ lên lịch
+      27: "cyan", // Đang lắp đặt
+      28: "green", // Đã lắp đặt xong
+      29: "orange", // Lắp đặt lại
+      30: "blue", // Khách xác nhận
+      31: "success", // Thành công
+      32: "volcano", // Điều chỉnh giá VL
+      33: "success", // Đã xác nhận giá VL ngoài
     };
 
     const stringColorMap = {
@@ -341,7 +362,7 @@ const NewDesignOrdersList = () => {
       ReInstall: "orange",
       CustomerConfirm: "blue",
       Successfully: "success",
-      MaterialPriceConfirmed: "success"
+      MaterialPriceConfirmed: "success",
     };
 
     return numericColorMap[status] || stringColorMap[status] || "default";
@@ -379,17 +400,22 @@ const NewDesignOrdersList = () => {
       render: (text) => (
         <div className="requirements-preview">
           <Tooltip
-            title={<span className="html-preview" dangerouslySetInnerHTML={{ __html: text }}></span>}
+            title={
+              <span
+                className="html-preview"
+                dangerouslySetInnerHTML={{ __html: text }}
+              ></span>
+            }
             color="#fff"
             placement="bottom"
             styles={{
-              root: { maxWidth: '1000px' },
+              root: { maxWidth: "1000px" },
               body: {
-                maxHeight: '300px',
-                overflowY: 'auto',
-                scrollbarWidth: 'thin', // Firefox
-                scrollbarColor: '#888 #f0f0f0', // Firefox
-                WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+                maxHeight: "300px",
+                overflowY: "auto",
+                scrollbarWidth: "thin", // Firefox
+                scrollbarColor: "#888 #f0f0f0", // Firefox
+                WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
               },
             }}
           >
@@ -413,7 +439,9 @@ const NewDesignOrdersList = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        return <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>;
+        return (
+          <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
+        );
       },
     },
     {
@@ -465,6 +493,15 @@ const NewDesignOrdersList = () => {
       <Card title="Quản lý đơn thiết kế mới (Không có mẫu sẵn)">
         <div className="filters-section">
           <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={16} md={8} lg={7} xl={6}>
+              <Input
+                placeholder="Tìm kiếm theo mã, tên, SĐT..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                prefix={<SearchOutlined />}
+                allowClear
+              />
+            </Col>
             <Col xs={24} sm={8} md={6} lg={5} xl={4}>
               <Select
                 placeholder="Trạng thái"
@@ -491,15 +528,6 @@ const NewDesignOrdersList = () => {
                 placeholder={["Từ ngày", "Đến ngày"]}
                 value={dateRange}
                 onChange={(dates) => setDateRange(dates)}
-              />
-            </Col>
-            <Col xs={24} sm={16} md={8} lg={7} xl={6}>
-              <Input
-                placeholder="Tìm kiếm theo mã, tên, SĐT..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                prefix={<SearchOutlined />}
-                allowClear
               />
             </Col>
             <Col xs={24} sm={8} md={6} lg={4} xl={4}>

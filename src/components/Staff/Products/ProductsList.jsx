@@ -162,22 +162,22 @@ const ProductsList = () => {
 
   const handleSubmit = async (productData) => {
     // try {
-      console.log("Submitting product data:", productData); // Add this for debugging
+    console.log("Submitting product data:", productData); // Add this for debugging
 
-      if (editingProduct) {
-        const productId = editingProduct.id;
-        await updateProduct(productId, productData);
-        message.success("Cập nhật sản phẩm thành công");
-      } else {
-        await createProduct(productData);
-        message.success("Thêm sản phẩm thành công");
-      }
+    if (editingProduct) {
+      const productId = editingProduct.id;
+      await updateProduct(productId, productData);
+      message.success("Cập nhật sản phẩm thành công");
+    } else {
+      await createProduct(productData);
+      message.success("Thêm sản phẩm thành công");
+    }
 
-      await fetchProducts();
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingProduct(null);
-      return true;
+    await fetchProducts();
+    setIsModalVisible(false);
+    form.resetFields();
+    setEditingProduct(null);
+    return true;
     // } catch (error) {
     //   console.error("Error submitting product:", error);
     //   message.error("Có lỗi xảy ra: " + error.message);
@@ -201,21 +201,99 @@ const ProductsList = () => {
       width: 300,
       fixed: "left",
       render: (text, record) => (
-        <div className="product-info">
+        <div
+          className="product-info"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14, // khoảng cách giữa ảnh và thông tin
+          }}
+        >
           <img
             src={record.image.imageUrl}
             alt={text}
             className="imageUrl"
             width={70}
             height={70}
-            style={{ marginRight: "10px", borderRadius: "8px" }}
+            style={{
+              borderRadius: "8px",
+              background: "#f7f7f7",
+              border: "1px solid #eee",
+              objectFit: "cover",
+            }}
           />
-          <Col className="product-details">
-            <span className="product-name">{text}</span>
-            <Tag color="processing" style={{ width: "100%" }}>
-              {getCategoryNameById(record.categoryId)}
-            </Tag>
-          </Col>
+          <div
+            className="product-details"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              minWidth: 0,
+              flex: 1,
+            }}
+          >
+            <Tooltip
+              title={text}
+              color="white"
+              styles={{
+                root: { maxWidth: "1000px" },
+                body: {
+                  color: "black",
+                  fontweight: 500,
+                  maxHeight: "650px",
+                  overflowY: "auto",
+                  scrollbarWidth: "thin", // Firefox
+                  scrollbarColor: "#888 #f0f0f0", // Firefox
+                },
+              }}
+            >
+              <span
+                className="product-name"
+                style={{
+                  fontWeight: 600,
+                  fontSize: 16,
+                  color: "#222",
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  marginBottom: 2,
+                }}
+              >
+                {text}
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={getCategoryNameById(record.categoryId)}
+              color="white"
+              styles={{
+                root: { maxWidth: "1000px" },
+                body: {
+                  color: "black",
+                  fontweight: 500,
+                  maxHeight: "650px",
+                  overflowY: "auto",
+                  scrollbarWidth: "thin", // Firefox
+                  scrollbarColor: "#888 #f0f0f0", // Firefox
+                },
+              }}
+            >
+              <Tag
+                color="processing"
+                style={{
+                  width: "fit-content",
+                  maxWidth: 150,
+                  padding: "0 10px",
+                  fontSize: 13,
+                  marginTop: 2,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {getCategoryNameById(record.categoryId)}
+              </Tag>
+            </Tooltip>
+          </div>
         </div>
       ),
       sorter: (a, b) => a.name.localeCompare(b.name),
@@ -227,18 +305,23 @@ const ProductsList = () => {
       key: "description",
       width: 500,
       render: (text) => (
-        <Tooltip 
-        styles={{
-          root: { maxWidth: '1000px' },
-          body: {
-            maxHeight: '650px',
-            overflowY: 'auto',
-            scrollbarWidth: 'thin', // Firefox
-            scrollbarColor: '#888 #f0f0f0', // Firefox
-          },
-        }}
-          color="white" 
-          title={<div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />}
+        <Tooltip
+          styles={{
+            root: { maxWidth: "1000px" },
+            body: {
+              maxHeight: "650px",
+              overflowY: "auto",
+              scrollbarWidth: "thin", // Firefox
+              scrollbarColor: "#888 #f0f0f0", // Firefox
+            },
+          }}
+          color="white"
+          title={
+            <div
+              className="html-preview"
+              dangerouslySetInnerHTML={{ __html: text }}
+            />
+          }
         >
           <span
             style={{
@@ -250,7 +333,10 @@ const ProductsList = () => {
               maxHeight: "4em",
             }}
           >
-            <div className="html-preview" dangerouslySetInnerHTML={{ __html: text }} />
+            <div
+              className="html-preview"
+              dangerouslySetInnerHTML={{ __html: text }}
+            />
           </span>
         </Tooltip>
       ),
@@ -352,7 +438,7 @@ const ProductsList = () => {
           );
 
         const matchCategory = filterCategory
-          ? item.categoryId === parseInt(filterCategory)
+          ? item.categoryId === filterCategory
           : true;
 
         const matchStatus = filterStatus
@@ -473,6 +559,5 @@ const ProductsList = () => {
     </div>
   );
 };
-
 
 export default ProductsList;
