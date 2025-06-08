@@ -179,8 +179,32 @@ class SignalRService {
       stack: error.stack,
       hubUrl: HUB_URL,
       isProduction: this.isProduction,
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent,
+      currentUser: this.getCurrentUser()
     });
+
+    // Check for specific error types and provide helpful messages
+    if (error.message?.includes('Unable to connect to the server')) {
+      console.error("❌ SignalR Server Connection Failed:");
+      console.error("   - Check if backend server is running");
+      console.error("   - Verify SignalR Hub URL:", HUB_URL);
+      console.error("   - Check CORS configuration on server");
+      console.error("   - Verify network connectivity");
+    }
+
+    if (error.message?.includes('WebSocket failed to connect')) {
+      console.error("❌ WebSocket Connection Failed:");
+      console.error("   - WebSocket may be blocked by proxy/firewall");
+      console.error("   - Server may not support WebSocket transport");
+      console.error("   - Check if sticky sessions are enabled (load balancer)");
+    }
+
+    if (error.message?.includes('No Connection with that ID')) {
+      console.error("❌ Connection ID Not Found:");
+      console.error("   - Server may have restarted");
+      console.error("   - Connection may have timed out");
+      console.error("   - Check server connection management");
+    }
   };
 
   _reregisterListeners = () => {
@@ -313,6 +337,57 @@ class SignalRService {
       userId: this.currentUserId,
       userRole: this.currentUserRole
     };
+  };
+
+  // Health check for SignalR connection
+  healthCheck = async () => {
+    try {
+      if (!this.connection) {
+        return { status: 'disconnected', message: 'No connection instance' };
+      }
+
+      const state = this.getConnectionState();
+      const isConnected = this.isConnected();
+
+      return {
+        status: isConnected ? 'healthy' : 'unhealthy',
+        connectionState: state,
+        connectionId: this.connection.connectionId,
+        hubUrl: HUB_URL,
+        user: this.getCurrentUser(),
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  };
+
+  // Test connection to server
+  testConnection = async () => {
+    try {
+      console.log('🔍 Testing SignalR connection to:', HUB_URL);
+
+      // Try to fetch the hub endpoint to check if server is reachable
+      const response = await fetch(HUB_URL.replace('/hub', '/api/health'), {
+        method: 'GET',
+        mode: 'cors'
+      });
+
+      if (response.ok) {
+        console.log('✅ Server is reachable');
+        return { reachable: true, status: response.status };
+      } else {
+        console.warn('⚠️ Server responded with error:', response.status);
+        return { reachable: false, status: response.status };
+      }
+    } catch (error) {
+      console.error('❌ Server is not reachable:', error.message);
+      return { reachable: false, error: error.message };
+    }
   };
 
 }
