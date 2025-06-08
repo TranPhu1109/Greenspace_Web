@@ -14,9 +14,16 @@ class SignalRService {
     this.isProduction = import.meta.env.PROD;
     this.currentUserId = null;
     this.currentUserRole = null;
+    this.isDisabled = false; // Flag to disable SignalR if connection fails repeatedly
   }
 
   startConnection = async (userId = null, userRole = null) => {
+    // Check if SignalR is disabled due to repeated failures
+    if (this.isDisabled) {
+      console.warn('⚠️ SignalR is disabled due to repeated connection failures. App will continue without real-time updates.');
+      return null;
+    }
+
     // Get user info from localStorage if not provided
     if (!userId || !userRole) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -69,37 +76,17 @@ class SignalRService {
       transport: signalR.HttpTransportType.WebSockets |
                  signalR.HttpTransportType.ServerSentEvents |
                  signalR.HttpTransportType.LongPolling,
-      // Add headers for better compatibility and user identification
-      accessTokenFactory: () => {
-        // Add any auth token if needed
-        return null;
-      },
       // Add timeout configurations to handle connection ID issues
-      timeout: 30000, // 30 seconds timeout
-      // Add headers to help with connection tracking
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
+      timeout: 60000, // Increase timeout to 60 seconds for Azure Container Apps
+      // Disable credentials for CORS
+      withCredentials: false
     };
 
     // Add user identification to query string for server-side user tracking
     if (this.currentUserId && this.currentUserRole) {
       transportConfig.query = {
         userId: this.currentUserId,
-        userRole: this.currentUserRole,
-        timestamp: Date.now(), // Add timestamp to ensure unique connections
-        sessionId: `${this.currentUserId}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
-      };
-    }
-
-    // For production (Vercel), add additional configuration
-    if (this.isProduction) {
-      transportConfig.withCredentials = false;
-      transportConfig.headers = {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        userRole: this.currentUserRole
       };
     }
 
@@ -109,20 +96,15 @@ class SignalRService {
         nextRetryDelayInMilliseconds: retryContext => {
           console.log(`🔄 SignalR Auto-reconnect attempt ${retryContext.previousRetryCount + 1}`);
 
-          // Handle "No Connection with that ID" errors by creating fresh connection
-          if (retryContext.retryReason?.message?.includes('No Connection with that ID')) {
-            console.log('🔄 Connection ID issue detected, creating fresh connection...');
-            return 0; // Immediate retry with fresh connection
-          }
-
-          // Exponential backoff: 0, 2, 10, 30 seconds, then every 30 seconds
-          if (retryContext.previousRetryCount === 0) return 0;
-          if (retryContext.previousRetryCount === 1) return 2000;
-          if (retryContext.previousRetryCount === 2) return 10000;
-          return 30000;
+          // For Azure Container Apps, use more aggressive retry strategy
+          if (retryContext.previousRetryCount === 0) return 1000; // 1 second
+          if (retryContext.previousRetryCount === 1) return 3000; // 3 seconds
+          if (retryContext.previousRetryCount === 2) return 5000; // 5 seconds
+          if (retryContext.previousRetryCount === 3) return 10000; // 10 seconds
+          return 15000; // 15 seconds for subsequent attempts
         }
       })
-      .configureLogging(this.isProduction ? signalR.LogLevel.Warning : signalR.LogLevel.Information)
+      .configureLogging(this.isProduction ? signalR.LogLevel.Error : signalR.LogLevel.Information)
       .build();
 
     // Set up event handlers
@@ -142,6 +124,14 @@ class SignalRService {
     } catch (err) {
       console.error("❌ SignalR Connection Error: ", err);
       this.connectionStarted = false;
+      this.reconnectAttempts++;
+
+      // Disable SignalR if too many failures
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        console.warn(`⚠️ SignalR disabled after ${this.maxReconnectAttempts} failed attempts. App will continue without real-time updates.`);
+        this.isDisabled = true;
+      }
+
       this._handleConnectionError(err);
       throw err;
     }
@@ -341,8 +331,22 @@ class SignalRService {
 
   // Check if connection is ready
   isConnected = () => {
-    return this.connectionStarted &&
-           this.connection?.state === signalR.HubConnectionState.Connected;
+    try {
+      return this.connectionStarted &&
+             this.connection?.state === signalR.HubConnectionState.Connected;
+    } catch (error) {
+      console.warn('Error checking SignalR connection state:', error);
+      return false;
+    }
+  };
+
+  // Check if SignalR is available (graceful degradation)
+  isAvailable = () => {
+    try {
+      return this.connection !== null;
+    } catch (error) {
+      return false;
+    }
   };
 
   // Reset connection for user logout/switch
@@ -352,7 +356,15 @@ class SignalRService {
     this.currentUserId = null;
     this.currentUserRole = null;
     this.reconnectAttempts = 0;
+    this.isDisabled = false; // Re-enable SignalR on reset
     console.log('✅ SignalR connection reset completed');
+  };
+
+  // Enable SignalR (for manual retry)
+  enableSignalR = () => {
+    console.log('🔄 Re-enabling SignalR...');
+    this.isDisabled = false;
+    this.reconnectAttempts = 0;
   };
 
   // Get current user info
@@ -393,15 +405,23 @@ class SignalRService {
   // Test connection to server
   testConnection = async () => {
     try {
-      console.log('🔍 Testing SignalR connection to:', HUB_URL);
+      console.log('🔍 Testing server reachability for:', HUB_URL);
 
-      // Try to fetch the hub endpoint to check if server is reachable
-      const response = await fetch(HUB_URL.replace('/hub', '/api/health'), {
+      // Test using a simple API endpoint that should exist
+      // Use the base API URL instead of SignalR hub URL
+      const baseApiUrl = HUB_URL.replace('/hub', '');
+      const testUrl = `${baseApiUrl}/api/categories`; // This should be a simple GET endpoint
+
+      const response = await fetch(testUrl, {
         method: 'GET',
-        mode: 'cors'
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
-      if (response.ok) {
+      if (response.ok || response.status === 200 || response.status === 401) {
+        // 401 is also acceptable as it means server is responding
         console.log('✅ Server is reachable');
         return { reachable: true, status: response.status };
       } else {

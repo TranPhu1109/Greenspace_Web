@@ -51,9 +51,13 @@ export const useSignalR = (eventName, callback, options = {}) => {
 
       // Register event listener if not already registered
       if (eventName && !isListenerRegistered.current) {
-        signalRService.on(eventName, stableCallback);
-        isListenerRegistered.current = true;
-        console.log(`[${componentId.current}] 📡 Registered listener for: ${eventName}`);
+        try {
+          signalRService.on(eventName, stableCallback);
+          isListenerRegistered.current = true;
+          console.log(`[${componentId.current}] 📡 Registered listener for: ${eventName}`);
+        } catch (error) {
+          console.warn(`[${componentId.current}] ⚠️ Failed to register SignalR listener:`, error);
+        }
       }
 
       return connection;
@@ -125,14 +129,14 @@ export const useSignalR = (eventName, callback, options = {}) => {
             }
 
             if (retryCount < maxRetries) {
-              // Shorter delay for connection ID issues
-              const baseDelay = error.message?.includes('No Connection with that ID') ? 500 : 1000;
-              const delay = Math.min(baseDelay * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10s
+              // Use progressive delay for Azure Container Apps
+              const delay = Math.min(2000 * retryCount, 10000); // 2s, 4s, 6s, max 10s
               console.log(`[${componentId.current}] ⏳ Retrying in ${delay}ms...`);
               await new Promise(resolve => setTimeout(resolve, delay));
             } else {
-              console.error(`[${componentId.current}] ❌ All connection attempts failed. SignalR will not be available.`);
-              // Could emit an event here for UI to show offline state
+              console.warn(`[${componentId.current}] ⚠️ All connection attempts failed. App will continue without real-time updates.`);
+              // Don't throw error - let app continue without SignalR
+              break;
             }
           }
         }
