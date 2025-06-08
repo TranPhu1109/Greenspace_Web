@@ -71,37 +71,6 @@ const Dashboard = () => {
         // Fetch orders and products
         await fetchOrders();
         await fetchProducts();
-
-        // Calculate best selling products
-        const productSales = {};
-        if (orders && orders.length > 0) {
-          orders.forEach(order => {
-            if (order.orderDetails && Array.isArray(order.orderDetails)) {
-              order.orderDetails.forEach(item => {
-                const productId = item.productId;
-                // Find product info from products array
-                const productInfo = products.find(p => p.id === productId);
-                
-                if (!productSales[productId]) {
-                  productSales[productId] = {
-                    id: productId,
-                    name: productInfo ? productInfo.name : 'Sản phẩm không tên',
-                    quantity: 0,
-                    revenue: 0
-                  };
-                }
-                productSales[productId].quantity += item.quantity || 0;
-                productSales[productId].revenue += (item.price || 0) * (item.quantity || 0);
-              });
-            }
-          });
-
-          const sortedProducts = Object.values(productSales)
-            .sort((a, b) => b.quantity - a.quantity)
-            .slice(0, 5);
-
-          setBestSellingProducts(sortedProducts);
-        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Set default values in case of error
@@ -118,6 +87,47 @@ const Dashboard = () => {
 
     fetchData();
   }, [fetchOrders, fetchProducts]);
+
+  // Separate useEffect to calculate best selling products when data is available
+  useEffect(() => {
+    if (orders && orders.length > 0 && products && products.length > 0) {
+      console.log('📊 Calculating best selling products...');
+      console.log('Orders data:', orders);
+      console.log('Products data:', products);
+
+      const productSales = {};
+      orders.forEach(order => {
+        if (order.orderDetails && Array.isArray(order.orderDetails)) {
+          order.orderDetails.forEach(item => {
+            const productId = item.productId;
+            // Find product info from products array
+            const productInfo = products.find(p => p.id === productId);
+
+            if (!productSales[productId]) {
+              productSales[productId] = {
+                id: productId,
+                name: productInfo ? productInfo.name : `Sản phẩm ${productId.substring(0, 8)}`,
+                quantity: 0,
+                revenue: 0
+              };
+            }
+            productSales[productId].quantity += item.quantity || 0;
+            productSales[productId].revenue += (item.price || 0) * (item.quantity || 0);
+          });
+        }
+      });
+
+      const sortedProducts = Object.values(productSales)
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5);
+
+      console.log('📈 Best selling products calculated:', sortedProducts);
+      setBestSellingProducts(sortedProducts);
+    } else {
+      console.log('⚠️ No orders or products data available for best selling calculation');
+      setBestSellingProducts([]);
+    }
+  }, [orders, products]);
 
   const handleFilterChange = async (date, month, year) => {
     try {
@@ -145,12 +155,12 @@ const Dashboard = () => {
     revenue: product.revenue || 0
   }));
 
-  // Pie chart data for revenue distribution
+  // Pie chart data for revenue distribution - show actual values, not differences
   const revenuePieData = [
     { name: 'Hôm nay', value: revenueData?.dailyRevenue || 0 },
-    { name: 'Tuần này', value: (revenueData?.weeklyRevenue || 0) - (revenueData?.dailyRevenue || 0) },
-    { name: 'Tháng này', value: (revenueData?.monthlyRevenue || 0) - (revenueData?.weeklyRevenue || 0) },
-    { name: 'Năm nay', value: (revenueData?.yearlyRevenue || 0) - (revenueData?.monthlyRevenue || 0) }
+    { name: 'Tuần này', value: revenueData?.weeklyRevenue || 0 },
+    { name: 'Tháng này', value: revenueData?.monthlyRevenue || 0 },
+    { name: 'Năm nay', value: revenueData?.yearlyRevenue || 0 }
   ].filter(item => item.value > 0);
 
   // Custom tooltip for charts
