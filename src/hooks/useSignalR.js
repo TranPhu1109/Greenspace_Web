@@ -22,7 +22,7 @@ export const useSignalR = (eventName, callback, options = {}) => {
 
   const callbackRef = useRef(callback);
   const isListenerRegistered = useRef(false);
-  const componentId = useRef(`SignalR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const componentId = useRef(`SignalR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
   // Update callback ref when callback changes
   useEffect(() => {
@@ -41,16 +41,21 @@ export const useSignalR = (eventName, callback, options = {}) => {
     if (!enabled) return null;
 
     try {
-      console.log(`[${componentId.current}] 🔌 Connecting to SignalR...`);
-      const connection = await signalRService.startConnection();
-      
+      // Get user info from localStorage for user-specific connection
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user.id;
+      const userRole = user.roleName;
+
+      console.log(`[${componentId.current}] 🔌 Connecting to SignalR for user: ${userId} (${userRole})...`);
+      const connection = await signalRService.startConnection(userId, userRole);
+
       // Register event listener if not already registered
       if (eventName && !isListenerRegistered.current) {
         signalRService.on(eventName, stableCallback);
         isListenerRegistered.current = true;
         console.log(`[${componentId.current}] 📡 Registered listener for: ${eventName}`);
       }
-      
+
       return connection;
     } catch (error) {
       console.error(`[${componentId.current}] ❌ Failed to connect to SignalR:`, error);

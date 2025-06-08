@@ -21,10 +21,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "src/pages/**/*.jsx": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }

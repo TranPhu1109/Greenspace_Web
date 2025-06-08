@@ -12,17 +12,38 @@ class SignalRService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.isProduction = import.meta.env.PROD;
+    this.currentUserId = null;
+    this.currentUserRole = null;
   }
 
-  startConnection = async () => {
+  startConnection = async (userId = null, userRole = null) => {
+    // Get user info from localStorage if not provided
+    if (!userId || !userRole) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      userId = userId || user.id;
+      userRole = userRole || user.roleName;
+    }
+
+    // Check if we need to reconnect with different user
+    const needsNewConnection = this.currentUserId !== userId || this.currentUserRole !== userRole;
+
+    if (needsNewConnection && this.connectionStarted) {
+      console.log(`🔄 User changed (${this.currentUserId} -> ${userId}), creating new connection...`);
+      await this.stopConnection();
+    }
+
+    // Store current user info
+    this.currentUserId = userId;
+    this.currentUserRole = userRole;
+
     // If connection is already being established, return the existing promise
     if (this.connectionPromise) {
       return this.connectionPromise;
     }
 
-    // If already connected, return existing connection
+    // If already connected with same user, return existing connection
     if (this.connectionStarted && this.connection?.state === signalR.HubConnectionState.Connected) {
-      console.log("SignalR connection already active.");
+      console.log(`SignalR connection already active for user: ${userId}`);
       return this.connection;
     }
 
@@ -48,12 +69,22 @@ class SignalRService {
       transport: signalR.HttpTransportType.WebSockets |
                  signalR.HttpTransportType.ServerSentEvents |
                  signalR.HttpTransportType.LongPolling,
-      // Add headers for better compatibility
+      // Add headers for better compatibility and user identification
       accessTokenFactory: () => {
         // Add any auth token if needed
         return null;
       }
     };
+
+    // Add user identification to query string for server-side user tracking
+    if (this.currentUserId && this.currentUserRole) {
+      transportConfig.query = {
+        userId: this.currentUserId,
+        userRole: this.currentUserRole,
+        timestamp: Date.now(), // Add timestamp to ensure unique connections
+        sessionId: `${this.currentUserId}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+      };
+    }
 
     // For production (Vercel), add additional configuration
     if (this.isProduction) {
@@ -88,6 +119,8 @@ class SignalRService {
       console.log("✅ SignalR Connected successfully");
       console.log(`🔗 Connection ID: ${this.connection.connectionId}`);
       console.log(`🚀 Transport: ${this.connection.transport?.name || 'Unknown'}`);
+      console.log(`👤 User: ${this.currentUserId} (${this.currentUserRole})`);
+      console.log(`🔑 Session: ${transportConfig.query?.sessionId || 'N/A'}`);
 
       return this.connection;
     } catch (err) {
@@ -262,6 +295,24 @@ class SignalRService {
   isConnected = () => {
     return this.connectionStarted &&
            this.connection?.state === signalR.HubConnectionState.Connected;
+  };
+
+  // Reset connection for user logout/switch
+  resetConnection = async () => {
+    console.log('🔄 Resetting SignalR connection...');
+    await this.stopConnection();
+    this.currentUserId = null;
+    this.currentUserRole = null;
+    this.reconnectAttempts = 0;
+    console.log('✅ SignalR connection reset completed');
+  };
+
+  // Get current user info
+  getCurrentUser = () => {
+    return {
+      userId: this.currentUserId,
+      userRole: this.currentUserRole
+    };
   };
 
 }
