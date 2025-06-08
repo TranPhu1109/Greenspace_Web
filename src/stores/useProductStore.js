@@ -197,7 +197,7 @@ const useProductStore = create(persist((set, get) => ({
           description: productData.description,
           size: productData.size || 0,
           image: productData.image, // Pass the entire image object
-          designImage1URL: productData.designImage1URL || null,
+          designImage1URL: productData.designImage1URL || "",
         },
         {
           headers: {
