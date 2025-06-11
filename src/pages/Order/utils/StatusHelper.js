@@ -217,21 +217,35 @@ export const showDesignRecordsStatuses = [
 
 // Define statuses where contract should be visible
 export const contractVisibleStatuses = [
-  'WaitDeposit',                // 21
-  'DepositSuccessful',          // 3
-  'AssignToDesigner',           // 4
-  'DeterminingMaterialPrice',   // 5
-  'DoneDesign',                 // 6
-  'DoneDeterminingMaterialPrice', // 23
-  'PaymentSuccess',             // 7
-  'Processing',                 // 8
-  'PickedPackageAndDelivery',   // 9
-  'DeliveryFail',               // 10
-  'ReDelivery',                 // 11
-  'DeliveredSuccessfully',      // 12
-  'CompleteOrder',              // 13
-  'Warning',                    // 15
-  'MaterialPriceConfirmed',     // 33
+  'WaitDeposit',                // 21 - Chờ đặt cọc
+  'DepositSuccessful',          // 3 - Đặt cọc thành công
+  'AssignToDesigner',           // 4 - Đã giao cho nhà thiết kế
+  'DeterminingMaterialPrice',   // 5 - Xác định giá vật liệu
+  'DoneDesign',                 // 6 - Hoàn thành thiết kế
+  'PaymentSuccess',             // 7 - Thanh toán thành công
+  'Processing',                 // 8 - Đang xử lý
+  'PickedPackageAndDelivery',   // 9 - Đã lấy hàng & đang giao
+  'DeliveryFail',               // 10 - Giao hàng thất bại
+  'ReDelivery',                 // 11 - Giao lại
+  'DeliveredSuccessfully',      // 12 - Đã giao hàng thành công
+  'CompleteOrder',              // 13 - Hoàn thành đơn hàng
+  'OrderCancelled',             // 14 - Đơn hàng đã bị hủy
+  'DesignPriceConfirm',         // 15 - Xác nhận giá thiết kế của manager
+  'Refund',                     // 16 - Đang hoàn tiền
+  'DoneRefund',                 // 17 - Hoàn thành hoàn tiền
+  'StopService',                // 18 - Dừng dịch vụ
+  'ReDesign',                   // 20 - Thiết kế lại
+  'WaitDeposit',                // 21 - Chờ đặt cọc
+  'DoneDeterminingMaterialPrice', // 23 - Đã xác định xong giá vật liệu
+  'ExchangeProdcut',            // 25 - Đổi sản phẩm
+  'WaitForScheduling',          // 26 - Chờ lên lịch
+  'Installing',                 // 27 - Đang lắp đặt
+  'DoneInstalling',             // 28 - Đã lắp đặt xong
+  'ReInstall',                  // 29 - Lắp đặt lại
+  'CustomerConfirm',            // 30 - Khách hàng xác nhận
+  'Successfully',               // 31 - Thành công
+  'ReDetermineMaterialPrice',   // 32 - Xác định lại giá vật liệu
+  'MaterialPriceConfirmed',     // 33 - Đã xác nhận giá vật liệu
 ];
 
 // Define numeric status codes where contract should be visible
